@@ -1,0 +1,14 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/ai/generate/route": "app/api/ai/generate/route.js",
+  "/api/chats/route": "app/api/chats/route.js",
+  "/api/export/route": "app/api/export/route.js",
+  "/api/import/route": "app/api/import/route.js",
+  "/api/upload/route": "app/api/upload/route.js",
+  "/auth/callback/route": "app/auth/callback/route.js",
+  "/auth/signin/page": "app/auth/signin/page.js",
+  "/auth/signup/page": "app/auth/signup/page.js",
+  "/chats/page": "app/chats/page.js",
+  "/studio/page": "app/studio/page.js",
+  "/page": "app/page.js"
+}

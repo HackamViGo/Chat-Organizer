@@ -86,7 +86,7 @@ export const useImageStore = create<ImageStore>((set, get) => ({
   // Supabase integration
   fetchImages: async (userId, folderId) => {
     set({ isLoading: true });
-    const supabase = createClient();
+    const supabase = createClient() as any;
     let query = supabase
       .from('images')
       .select('*')
@@ -105,7 +105,7 @@ export const useImageStore = create<ImageStore>((set, get) => ({
   },
 
   deleteImages: async (imageIds) => {
-    const supabase = createClient();
+    const supabase = createClient() as any;
     
     // 1. Get paths for storage deletion
     const { data: imagesToDelete } = await supabase
@@ -114,7 +114,7 @@ export const useImageStore = create<ImageStore>((set, get) => ({
       .in('id', imageIds);
     
     if (imagesToDelete && imagesToDelete.length > 0) {
-      const paths = imagesToDelete.map(img => img.path);
+      const paths = imagesToDelete.map((img: any) => img.path);
       await supabase.storage.from('images').remove(paths);
     }
 
@@ -133,7 +133,7 @@ export const useImageStore = create<ImageStore>((set, get) => ({
   },
 
   moveImages: async (imageIds, folderId) => {
-    const supabase = createClient();
+    const supabase = createClient() as any;
     const { error } = await supabase
       .from('images')
       .update({ folder_id: folderId })

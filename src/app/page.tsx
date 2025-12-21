@@ -38,21 +38,25 @@ export default function HomePage() {
             </div>
           </Link>
 
-          <div className="glass-card p-6 rounded-2xl hover:scale-105 transition-transform cursor-pointer group">
-            <div className="w-12 h-12 rounded-xl bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 dark:group-hover:bg-purple-500/30 transition-colors">
-              <FolderPlus className="text-purple-600 dark:text-purple-400" size={24} />
+          <Link href="/chats">
+            <div className="glass-card p-6 rounded-2xl hover:scale-105 transition-transform cursor-pointer group">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center mb-4 group-hover:bg-purple-500/20 dark:group-hover:bg-purple-500/30 transition-colors">
+                <FolderPlus className="text-purple-600 dark:text-purple-400" size={24} />
+              </div>
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2">New Folder</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Organize your chats into custom folders</p>
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-2">New Folder</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Organize your chats into custom folders</p>
-          </div>
+          </Link>
 
-          <div className="glass-card p-6 rounded-2xl hover:scale-105 transition-transform cursor-pointer group">
-            <div className="w-12 h-12 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 dark:group-hover:bg-orange-500/30 transition-colors">
-              <Plus className="text-orange-600 dark:text-orange-400" size={24} />
+          <Link href="/prompts">
+            <div className="glass-card p-6 rounded-2xl hover:scale-105 transition-transform cursor-pointer group">
+              <div className="w-12 h-12 rounded-xl bg-orange-500/10 dark:bg-orange-500/20 flex items-center justify-center mb-4 group-hover:bg-orange-500/20 dark:group-hover:bg-orange-500/30 transition-colors">
+                <Plus className="text-orange-600 dark:text-orange-400" size={24} />
+              </div>
+              <h3 className="font-bold text-slate-900 dark:text-white mb-2">Prompts Library</h3>
+              <p className="text-sm text-slate-600 dark:text-slate-400">Save and reuse your best prompts</p>
             </div>
-            <h3 className="font-bold text-slate-900 dark:text-white mb-2">Prompts Library</h3>
-            <p className="text-sm text-slate-600 dark:text-slate-400">Save and reuse your best prompts</p>
-          </div>
+          </Link>
         </div>
 
         {/* Recent Chats */}

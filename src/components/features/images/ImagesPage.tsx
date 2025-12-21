@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { 
   Upload, Image as ImageIcon, Download, Trash2, Folder as FolderIcon, 
   X, RefreshCw, LayoutGrid, Plus, ChevronLeft, ChevronRight, Play, Pause, Maximize2,
@@ -345,7 +346,7 @@ export function ImagesPage() {
     if (!img.url) return;
     setConvertingId(img.id);
     try {
-      const imageObj = new Image();
+      const imageObj = new window.Image();
       imageObj.src = img.url;
       await new Promise((resolve) => { imageObj.onload = resolve; });
       const canvas = document.createElement('canvas');
@@ -529,6 +530,7 @@ export function ImagesPage() {
                             {currentPreviewImage ? (
                                <div key={currentPreviewImage.id} className="w-full h-full animate-in fade-in duration-500">
                                  {currentPreviewImage.url && (
+                                   // eslint-disable-next-line @next/next/no-img-element
                                    <img 
                                      src={currentPreviewImage.url} 
                                      className="w-full h-full object-cover" 
@@ -884,6 +886,7 @@ export function ImagesPage() {
                  <ChevronLeft size={32} />
                </button>
                
+               {/* eslint-disable-next-line @next/next/no-img-element */}
                <img 
                  key={displayedImages[lightboxIndex].id}
                  onClick={(e) => e.stopPropagation()}
@@ -985,6 +988,7 @@ const ImageCard: React.FC<{
 
       <div className="aspect-square rounded-lg bg-slate-100 dark:bg-black/50 relative overflow-hidden mb-3 border border-slate-200 dark:border-white/5">
         {image.url ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img src={image.url} alt={image.name || 'image'} className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center">

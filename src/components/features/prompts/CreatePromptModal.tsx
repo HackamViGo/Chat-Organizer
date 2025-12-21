@@ -82,6 +82,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
 
       if (!user) {
         console.error('User not authenticated');
+        setIsSubmitting(false);
         return;
       }
 
@@ -103,6 +104,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
 
         if (result.error) {
           console.error('Error updating prompt:', result.error);
+          setIsSubmitting(false);
           return;
         }
 
@@ -127,6 +129,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
 
         if (result.error) {
           console.error('Error creating prompt:', result.error);
+          setIsSubmitting(false);
           return;
         }
 
@@ -138,9 +141,9 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
 
       reset();
       onClose();
+      setIsSubmitting(false);
     } catch (error) {
-      console.error('Error:', error);
-    } finally {
+      console.error('Error saving prompt:', error);
       setIsSubmitting(false);
     }
   };

@@ -53,7 +53,7 @@ export async function POST(request: Request) {
       name: file.name,
       mime_type: file.type,
       size: file.size,
-    }).select().single();
+    } as any).select().single();
 
     if (dbError) throw dbError;
 

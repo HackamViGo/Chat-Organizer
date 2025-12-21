@@ -29,20 +29,16 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, content, platform, url, folder_id } = body;
+    const { images } = body;
 
     const { data, error } = await supabase
-      .from('chats')
-      .insert({
-        user_id: user.id,
-        title,
-        content,
-        platform,
-        url,
-        folder_id,
-      } as any)
-      .select()
-      .single();
+      .from('images')
+      .insert(
+        images.map((src: string) => ({
+          user_id: user.id,
+          src,
+        }))
+      );
 
     if (error) throw error;
 

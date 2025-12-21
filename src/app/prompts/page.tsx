@@ -17,8 +17,15 @@ export default function PromptsPage() {
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!mounted) return;
+    
     async function fetchPrompts() {
       try {
         const supabase = createClient();
@@ -48,7 +55,7 @@ export default function PromptsPage() {
     }
 
     fetchPrompts();
-  }, [setPrompts]);
+  }, [mounted, setPrompts]);
 
   // Filter and sort prompts
   const filteredAndSortedPrompts = prompts
@@ -85,7 +92,7 @@ export default function PromptsPage() {
     setEditingPrompt(null);
   };
 
-  if (isLoading) {
+  if (!mounted || isLoading) {
     return (
       <div className="container mx-auto p-8">
         <div className="animate-pulse">

@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useChatStore } from '@/store/useChatStore';
 import { ChatCard } from '@/components/features/chats/ChatCard';
 import { MessageSquarePlus } from 'lucide-react';
@@ -7,6 +8,22 @@ import Link from 'next/link';
 
 export default function ChatsPage() {
   const { chats } = useChatStore();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <div className="container mx-auto p-8">
+        <div className="animate-pulse">
+          <div className="h-8 w-48 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+          <div className="h-4 w-64 bg-slate-200 dark:bg-slate-800 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto p-8">

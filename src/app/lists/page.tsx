@@ -1,4 +1,4 @@
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 import { ListsPage } from '@/components/features/lists/ListsPage';
 
@@ -8,7 +8,7 @@ export const metadata = {
 };
 
 export default async function ListsPageWrapper() {
-  const supabase = await createServerClient();
+  const supabase = createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   
   if (!user) {

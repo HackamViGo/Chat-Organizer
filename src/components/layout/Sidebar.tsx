@@ -1,10 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
+import { createClient } from '@/lib/supabase/client';
 import { Chat, Folder } from '@/types';
 import { 
   LayoutGrid, Archive, FileEdit, Settings, 
@@ -125,8 +126,7 @@ interface FolderTreeItemProps {
 }
 
 const getFolderLink = (folder: Folder) => {
-  // Note: folder.type doesn't exist in DB yet, default to chat
-  const type = 'chat'; // TODO: Add type field to folders table
+  const type = (folder as any).type || 'chat'; // Default to chat if no type
   switch(type) {
     case 'image': return `/images?folder=${folder.id}`;
     case 'prompt': return `/prompts?folder=${folder.id}`;
@@ -141,18 +141,18 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
 }) => {
   // Logic to find children folders
   const children = useMemo(() => {
-    let kids = allFolders.filter(f => f.parent_id === folder.id);
+    let kids = allFolders.filter(f => (f as any).parent_id === folder.id);
     if (sortMode === 'name_asc') kids.sort((a, b) => a.name.localeCompare(b.name));
     else if (sortMode === 'name_desc') kids.sort((a, b) => b.name.localeCompare(a.name));
-    else if (sortMode === 'date_new') kids.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    else if (sortMode === 'date_old') kids.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    else if (sortMode === 'date_new') kids.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
+    else if (sortMode === 'date_old') kids.sort((a, b) => new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime());
     return kids;
   }, [allFolders, folder.id, sortMode]);
 
   // Logic to find chats in this folder
   const folderChats = useMemo(() => {
     let chats = allChats.filter(c => c.folder_id === folder.id && !c.is_archived);
-    chats.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()); 
+    chats.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime()); 
     return chats;
   }, [allChats, folder.id]);
 
@@ -262,7 +262,7 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
 
 // --- Main Component ---
 
-export function Sidebar() {
+function SidebarContent() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -298,16 +298,23 @@ export function Sidebar() {
 
   const getSortedFolders = () => {
     let filtered = folders;
+    
+    // Filter by active type
+    filtered = filtered.filter(f => {
+      const folderType = (f as any).type || 'chat'; // Default to chat if no type
+      return folderType === activeType;
+    });
+    
     if (searchTerm) filtered = filtered.filter(f => f.name.toLowerCase().includes(searchTerm.toLowerCase()));
     
     // Root folders only
-    let roots = filtered.filter(f => !f.parent_id);
+    let roots = filtered.filter(f => !(f as any).parent_id);
     
     // Sort
     if (sortMode === 'name_asc') roots.sort((a, b) => a.name.localeCompare(b.name));
     else if (sortMode === 'name_desc') roots.sort((a, b) => b.name.localeCompare(a.name));
-    else if (sortMode === 'date_new') roots.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    else if (sortMode === 'date_old') roots.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+    else if (sortMode === 'date_new') roots.sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
+    else if (sortMode === 'date_old') roots.sort((a, b) => new Date(a.created_at!).getTime() - new Date(b.created_at!).getTime());
     
     return roots;
   };
@@ -339,13 +346,38 @@ export function Sidebar() {
     e.preventDefault();
     if (!newFolderName.trim()) return;
     
-    await addFolder({
-      name: newFolderName,
-      color: selectedColor,
-    });
-    
-    setNewFolderName('');
-    setIsModalOpen(false);
+    try {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
+      
+      const { data: newFolder, error } = await (supabase as any)
+        .from('folders')
+        .insert({
+          user_id: user.id,
+          name: newFolderName,
+          color: selectedColor,
+          type: activeType,
+          icon: selectedIcon,
+        })
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error creating folder:', error);
+        return;
+      }
+      
+      if (newFolder) {
+        addFolder(newFolder);
+      }
+      
+      setNewFolderName('');
+      setIsModalOpen(false);
+    } catch (error) {
+      console.error('Failed to create folder:', error);
+    }
   };
 
   const handleFolderDragStart = (e: React.DragEvent, folderId: string) => {
@@ -458,6 +490,7 @@ export function Sidebar() {
             <NavItem to="/studio" icon={MessageSquarePlus} label="AI Studio" isActive={isActive('/studio')} />
             <NavItem to="/chats" icon={MessageSquare} label="My Chats" isActive={isActive('/chats')} />
             <NavItem to="/prompts" icon={FileEdit} label="Prompts" isActive={isActive('/prompts')} />
+            <NavItem to="/images" icon={ImageIcon} label="Images" isActive={isActive('/images')} />
             <NavItem to="/lists" icon={CheckSquare} label="Lists" isActive={isActive('/lists')} />
           </nav>
 
@@ -550,5 +583,19 @@ export function Sidebar() {
         </div>
       </aside>
     </>
+  );
+}
+
+export function Sidebar() {
+  return (
+    <Suspense fallback={
+      <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white/90 dark:bg-[#0B1121]/90 backdrop-blur-xl border-r border-slate-200 dark:border-white/5">
+        <div className="flex items-center justify-center h-full">
+          <div className="animate-pulse text-slate-400">Loading...</div>
+        </div>
+      </aside>
+    }>
+      <SidebarContent />
+    </Suspense>
   );
 }

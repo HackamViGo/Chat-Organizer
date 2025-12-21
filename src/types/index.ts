@@ -20,6 +20,21 @@ export type User = Database['public']['Tables']['users']['Row'];
 export type UserInsert = Database['public']['Tables']['users']['Insert'];
 export type UserUpdate = Database['public']['Tables']['users']['Update'];
 
+export type List = Database['public']['Tables']['lists']['Row'];
+export type ListInsert = Database['public']['Tables']['lists']['Insert'];
+export type ListUpdate = Database['public']['Tables']['lists']['Update'];
+
+export type ListItem = Database['public']['Tables']['list_items']['Row'];
+export type ListItemInsert = Database['public']['Tables']['list_items']['Insert'];
+export type ListItemUpdate = Database['public']['Tables']['list_items']['Update'];
+
+// Helper type с nested items
+export interface ListWithItems extends List {
+  items: ListItem[];
+}
+
+export type ListColor = 'emerald' | 'blue' | 'purple' | 'amber' | 'rose' | 'cyan';
+
 // Platform enum
 export enum Platform {
   ChatGPT = 'chatgpt',
@@ -29,3 +44,12 @@ export enum Platform {
 }
 
 export type ViewMode = 'grid' | 'list';
+
+export interface UploadItem {
+  id: string;
+  name: string;
+  progress: number;
+  status: 'uploading' | 'converting' | 'completed' | 'error';
+  error?: string;
+  file?: File;
+}

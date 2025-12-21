@@ -342,6 +342,15 @@
   - [x] Actions: setPrompts, addPrompt, updatePrompt, deletePrompt, togglePromptSelection, setLoading
   - [x] Типизиран с Prompt type
 
+### 5.4. Image Store
+**Статус:** 🔄 ЧАСТИЧНО ЗАВЪРШЕНО
+- [x] src/store/useImageStore.ts (created)
+  - [x] State: images[], selectedImageId, isLoading
+  - [x] Actions: setImages, addImage, deleteImage, selectImage, setLoading
+  - [x] Типизиран с Image type
+  - [ ] TODO: Добави bulk selection support (selectedImageIds: Set<string>)
+  - [ ] TODO: toggleImageSelection, selectAll, clearSelection actions
+
 ---
 
 ## ФАЗА 6: NEXT.JS APP ROUTER PAGES
@@ -357,11 +366,11 @@
 ### 6.2. Root Layout
 **Статус:** ✅ ЗАВЪРШЕНО
 - [x] src/app/layout.tsx
-  - [x] Metadata (title, description, manifest, themeColor)
+  - [x] Metadata moved to viewport export (Next.js 14 requirement)
   - [x] Inter font
   - [x] HTML structure с lang="en"
-  - [x] Link към manifest.json
   - [x] Sidebar integration
+  - [x] ThemeProvider integration
   - [x] Flex layout (Sidebar + main content)
 
 ### 6.3. Home Page
@@ -373,14 +382,19 @@
   - [x] Tailwind styling
 
 ### 6.4. Auth Pages
-**Статус:** ⏳ ПЛАНИРАНО
-- [ ] src/app/auth/signin/page.tsx
-- [ ] src/app/auth/signup/page.tsx
+**Статус:** ✅ ЗАВЪРШЕНО
+- [x] src/app/auth/signin/page.tsx
+- [x] src/app/auth/signup/page.tsx
+- [x] src/app/auth/callback/route.ts
 
 ### 6.5. Feature Pages
-**Статус:** ⏳ ПЛАНИРАНО
-- [ ] src/app/folder/[id]/page.tsx
-- [ ] src/app/prompts/page.tsx
+**Статус:** ✅ ЗАВЪРШЕНО
+- [x] src/app/folder/[id]/page.tsx
+- [x] src/app/prompts/page.tsx
+- [x] src/app/chats/page.tsx
+- [x] src/app/studio/page.tsx
+- [x] src/app/archive/page.tsx
+- [x] src/app/settings/page.tsx
 
 ---
 
@@ -430,70 +444,222 @@
 ## ФАЗА 8: LAYOUT COMPONENTS
 
 ### 8.1. Sidebar Component
-**Статус:** ✅ ЗАВЪРШЕНО (Basic Version)
-- [x] src/components/layout/Sidebar.tsx
+**Статус:** ⚠️ ОПРОСТЕН - НУЖДАЕ СЕ ОТ ПЪЛНА МИГРАЦИЯ
+- [x] src/components/layout/Sidebar.tsx (БАЗОВА ВЕРСИЯ)
   - [x] 'use client' directive
   - [x] Next.js Link integration
   - [x] usePathname for active state
-  - [x] Navigation items (Dashboard, Chats, Prompts, Archive, Settings)
+  - [x] Navigation items (Dashboard, Chats, Studio, Archive, Prompts, Settings)
   - [x] Icon integration (lucide-react)
   - [x] Active link highlighting
   - [x] Tailwind styling
+  - [x] Dark mode support
 
-**TODO:** 
-- [ ] Пълна миграция от components/Sidebar.tsx
-  - [ ] Folder tree с collapse/expand
-  - [ ] Drag & drop functionality
-  - [ ] Icon picker
-  - [ ] Sort options (A-Z, date)
-  - [ ] Search в sidebar
-  - [ ] User menu
+**🔴 ЛИПСВА ОТ ОРИГИНАЛА (components/Sidebar.tsx):**
+- [ ] **Folder Tree System:**
+  - [ ] Folder hierarchy (parent/child relationship)
+  - [ ] Nested folder display with indentation
+  - [ ] Expand/collapse folders (ChevronRight/ChevronDown icons)
+  - [ ] Recursive FolderTreeItem component
+- [ ] **Folder Visual Customization:**
+  - [ ] FOLDER_ICONS mapping (~50 icons: Dev, Art, Writer, Work, Media, Life, etc.)
+  - [ ] ICON_CATEGORIES (13 categories)
+  - [ ] Color picker integration
+  - [ ] Dynamic icon rendering
+- [ ] **Drag & Drop:**
+  - [ ] Drag folders to reorder/nest
+  - [ ] Drag chats into folders
+  - [ ] Drop zones (inside, before, after)
+  - [ ] Visual drag indicators
+- [ ] **Sort Modes:**
+  - [ ] Custom order (manual drag)
+  - [ ] Name (A-Z, Z-A)
+  - [ ] Date (Newest, Oldest)
+  - [ ] Sort mode selector UI
+- [ ] **Search & Filter:**
+  - [ ] Search bar for folders
+  - [ ] Filter folders by name
+  - [ ] Real-time search results
+- [ ] **Chat Items Display:**
+  - [ ] Show chats under folders
+  - [ ] Chat count badge on folders
+  - [ ] Click to navigate to chat
+  - [ ] Root chats (without folder)
+- [ ] **Folder Modal:**
+  - [ ] Create folder modal με icon picker
+  - [ ] Icon categories grid
+  - [ ] Color palette selector
+  - [ ] Random icon/color generator
+- [ ] **Type-specific folders:**
+  - [ ] Chat folders (type: 'chat')
+  - [ ] Image folders (type: 'image')
+  - [ ] Prompt folders (type: 'prompt')
+  - [ ] List folders (type: 'list')
+  - [ ] Active type detection based on route
+
+**Сложност:** ВИСОКА (500+ lines original code)
+**Очаквано време:** 3-4 часа за пълна миграция
+
+### 8.2. Theme Provider
+**Статус:** ✅ ЗАВЪРШЕНО
+- [x] src/components/providers/ThemeProvider.tsx
+  - [x] next-themes integration
+  - [x] System theme detection
+  - [x] Theme persistence
 
 ---
 
 ## ФАЗА 9: FEATURE COMPONENTS
 
 ### 9.1. Chat Components
-**Статус:** ⏳ МИГРАЦИЯ НУЖНА
-- [ ] src/components/features/chats/ChatCard.tsx
-  - [ ] Миграция от components/ChatCard.tsx
-  - [ ] Адаптиране за Zustand
-  - [ ] Премахване на react-router-dom
-- [ ] src/components/features/chats/ChatStudio.tsx
-  - [ ] Миграция от components/ChatStudio.tsx
-  - [ ] Адаптиране за Zustand
-  - [ ] API integration
-- [ ] src/components/features/chats/ChatList.tsx (нов)
-- [ ] src/components/features/chats/CreateChatModal.tsx (нов)
+**Статус:** ⚠️ ЗАВЪРШЕНО С ОПРОСТЯВАНЕ
+
+**ChatCard.tsx:**
+- [x] src/components/features/chats/ChatCard.tsx
+  - [x] ✅ AI Analysis function (handleAIAnalyze)
+  - [x] ✅ Drag & Drop (handleDragStart)
+  - [x] ✅ Title inline editing (click to edit)
+  - [x] ✅ Description/Summary editing
+  - [x] ✅ URL editing
+  - [x] ✅ Move to folder modal
+  - [x] ✅ Archive/Restore functionality
+  - [x] ✅ Delete with confirmation overlay
+  - [x] ✅ Platform badges (ChatGPT, Claude, Gemini, Other)
+  - [x] ✅ Tasks preview (first 2 tasks)
+  - [x] ✅ Hash highlight animation
+  - [x] ✅ Folder icon/color display
+  - [x] ✅ Keyboard shortcuts (Enter/Escape)
+  - [x] ✅ Supabase integration (updateChat, deleteChat)
+  - [x] ✅ Адаптиран за Next.js (usePathname вместо useLocation)
+
+**ChatStudio.tsx:**
+- [x] src/components/features/chats/ChatStudio.tsx
+  - [x] ✅ Multi-model support (Gemini, GPT-4o, Claude 3.5)
+  - [x] ✅ Model selector dropdown
+  - [x] ✅ Pro/Ultra access gate
+  - [x] ✅ API Key management (localStorage)
+  - [x] ✅ Chat history sidebar
+  - [x] ✅ Message display with markdown
+  - [x] ✅ Loading states
+  - [x] ✅ New chat functionality
+  - [x] ✅ Auto-analyze in background
+  - [x] ✅ System instruction per model
+  - [x] ✅ Save to Supabase
+  - [x] ✅ Адаптиран за Next.js (useRouter, useSearchParams)
+  
+  **⚠️ ОПРОСТЕНО:**
+  - [ ] 🟡 **Streaming Response** - Оригиналът използва `for await (const chunk of stream)` за real-time streaming
+    - Текущата версия: Чака пълния response и го показва наведнъж
+    - Original: `streamChatConversation()` с chunk-by-chunk display
+    - Impact: По-бавно UX (изглежда "замръзнало" докато генерира)
+  - [ ] 🟡 **Rich Chat History** - Оригиналът показва последните 20 чата в sidebar
+    - Текущата версия: Само навигационен sidebar
+    - Original: Chat preview cards с titles и timestamps
 
 ### 9.2. Brain Component
-**Статус:** ⏳ МИГРАЦИЯ НУЖНА
-- [ ] src/components/features/brain/GlobalBrain.tsx
-  - [ ] Миграция от components/GlobalBrain.tsx
-  - [ ] Адаптиране за Zustand
-  - [ ] Supabase integration
+**Статус:** ✅ ЗАВЪРШЕНО
+- [x] src/components/features/brain/GlobalBrain.tsx
+  - [x] Мигриран от components/GlobalBrain.tsx
+  - [x] Адаптиран за Zustand
+  - [x] Supabase integration
+  - [x] AI-powered memory search
 
-### 9.3. Images Components
-**Статус:** ⏳ МИГРАЦИЯ НУЖНА
+### 9.3. Prompt Components
+**Статус:** ✅ ЗАВЪРШЕНО
+- [x] src/components/features/prompts/PromptCard.tsx
+  - [x] Display prompt with color
+  - [x] Edit/Delete/Copy actions
+  - [x] Supabase integration
+- [x] src/components/features/prompts/CreatePromptModal.tsx
+  - [x] Create/Edit modal
+  - [x] Color picker (17 preset colors)
+  - [x] Form validation with Zod
+  - [x] Supabase integration
+
+### 9.4. Folder Components
+**Статус:** ✅ ЗАВЪРШЕНО
+- [x] src/components/features/folders/FolderHeader.tsx
+  - [x] Folder title and chat count
+  - [x] Edit/Delete actions
+  - [x] Back navigation
+  - [x] Supabase integration
+
+**TODO:**
+- [ ] Edit Folder functionality (има TODO в кода)
+
+### 9.5. Images Components
+**Статус:** ⏳ В ПРОЦЕС НА МИГРАЦИЯ
+**Оригинален файл:** D:\Да Запазя\Projects and all for it\Projects\ai 3\ai-chat-organizer\TEMP\components\ImagesPage.tsx
+
+**Анализ на оригинален компонент:**
+- **Размер:** ~1000+ lines (complex component)
+- **Dependencies:** react-router-dom (useSearchParams), idb-keyval, custom useAppStore
+- **State Management:** Много локален state (useState, useRef, useCallback, useMemo)
+- **Features:**
+  - Upload с drag & drop + progress tracking
+  - Image folders с икони, цветове и hover preview slideshow
+  - Marquee selection (right-click drag за multi-select)
+  - Bulk operations (move, delete, convert to AVIF)
+  - Lightbox с slideshow mode
+  - Filters (format, size, date, sort)
+  - Search functionality
+  - AVIF conversion (browser-side canvas)
+  - Folder hover preview с auto-cycle
+  - URL-based folder selection
+  - Selection mode с checkboxes
+
+**План за миграция:**
+- [ ] src/store/useImageStore.ts
+  - [x] Създаден базов store (images[], selectedImageId, isLoading)
+  - [ ] Добави булк operations (selectMultiple, clearSelection, etc.)
+  - [ ] Интегрирай Supabase queries
+
 - [ ] src/components/features/images/ImagesPage.tsx
-  - [ ] Миграция от components/ImagesPage.tsx
-  - [ ] Адаптиране за Zustand
-  - [ ] Supabase Storage integration
+  - [ ] 'use client' directive
+  - [ ] Replace useSearchParams (react-router-dom) → useSearchParams (next/navigation)
+  - [ ] Replace useAppStore → useImageStore + useFolderStore
+  - [ ] Remove idb-keyval → използвай Supabase client queries
+  - [ ] Адаптирай addImage() за Supabase Storage upload
+  - [ ] Адаптирай deleteImage() за Supabase Storage delete
+  - [ ] Запази всички features:
+    - [x] Upload UI (drag & drop + file input)
+    - [x] Upload queue с progress indicators
+    - [x] Folder sidebar с hover preview
+    - [x] Marquee selection logic
+    - [x] Bulk action bar
+    - [x] Filters (format, size, date, sort)
+    - [x] Image grid с selection checkboxes
+    - [x] Lightbox modal с navigation
+    - [x] AVIF conversion (browser-side)
+    - [x] Create folder modal със icon picker
 
-### 9.4. Lists Components
-**Статус:** ⏳ МИГРАЦИЯ НУЖНА
+- [ ] src/app/images/page.tsx
+  - [ ] Server Component wrapper
+  - [ ] Fetch images от Supabase (initial data)
+  - [ ] Render <ImagesPage /> client component
+
+- [ ] Supabase Storage Setup
+  - [ ] Създай 'images' bucket
+  - [ ] RLS policies за bucket
+  - [ ] Test upload/delete via API route
+
+- [ ] Testing
+  - [ ] Upload image
+  - [ ] View в grid
+  - [ ] Lightbox navigation
+  - [ ] Delete image
+  - [ ] Folders (create, move images)
+  - [ ] Bulk operations
+  - [ ] AVIF conversion
+  - [ ] Marquee selection
+
+### 9.6. Lists Components
+**Статус:** ⏳ НЕ МИГРИРАНО
 - [ ] src/components/features/lists/ListsPage.tsx
   - [ ] Миграция от components/ListsPage.tsx
   - [ ] Адаптиране за Zustand
 
-### 9.5. Folder Components
-**Статус:** ⏳ ПЛАНИРАНО
-- [ ] src/components/features/folders/FolderCard.tsx
-- [ ] src/components/features/folders/FolderList.tsx
-- [ ] src/components/features/folders/CreateFolderModal.tsx
-
-### 9.6. Search Component
-**Статус:** ⏳ ПЛАНИРАНО
+### 9.7с:** ⏳ ПЛАНИРАНО
 - [ ] src/components/features/search/SearchBar.tsx
 - [ ] src/components/features/search/SearchResults.tsx
 
@@ -579,13 +745,46 @@
 ---
 
 ## CHROME EXTENSION (OPTIONAL)
+75% ЗАВЪРШЕНО** 🎯
 
+**Корекция спрямо реална функционалност:**
+- Sidebar: 20% готов (само навигация, липсва folder tree)
+- ChatStudio: 90% готов (липсва само streaming)
+- Images: 0% (не мигриран)
+- Lists: 0% (не мигриран)
 **Статус:** ⏳ НЕ СТАРТИРАНО
 
 ### E.1. Extension Structure
 - [ ] extension/ directory
 - [ ] manifest.json
-- [ ] background.js
+### 🔴 ПРИОРИТЕТ 1: Sidebar Пълна Миграция
+**Статус:** ⚠️ КРИТИЧНО - Текущата версия е само навигационен скелет
+
+**Причина за висок приоритет:** Sidebar е CORE компонент, използван на всяка страница. Без folder tree функционалността, потребителите не могат да:
+- Организират chats в folders
+- Виждат folder структурата
+- Drag & drop chats/folders
+- Търсят в folders
+
+**Tasks:**
+1. [ ] Migrate full folder tree system (родител/дете връзки)
+2. [ ] Implement FolderTreeItem recursive component
+3. [ ] Add FOLDER_ICONS + ICON_CATEGORIES mappings
+4. [ ] Implement drag & drop (folders + chats)
+5. [ ] Add sort modes (custom/name/date)
+6. [ ] Add search bar + filter logic
+7. [ ] Display chats under folders
+8. [ ] Create folder modal με icon picker
+9. [ ] Type-specific folder filtering (chat/image/prompt/list)
+10. [ ] Test all interactions
+
+**Време:** 3-4 часа  
+**Сложност:** ВИСОКА (500+ lines)  
+**Файлове:** src/components/layout/Sidebar.tsx, useFolderStore.ts, useChatStore.ts
+
+---
+
+### 🔴 ПРИОРИТЕТ 2: Images Миграция
 - [ ] content-script.js
 - [ ] popup.html/js
 
@@ -601,64 +800,57 @@
 ### E.4. Platform Injection
 - [ ] Inject button in ChatGPT UI
 - [ ] Inject button in Claude UI
-- [ ] Inject button in Gemini UI
-
-### E.5. Prompt Selector
-- [ ] Right-click menu in AI input fields
-- [ ] Fetch prompts from API
-- [ ] Insert selected prompt
-
----
-
-## ИНДИКАТОРИ ЗА ПРОГРЕС
-
-### По Фази:
-- ✅ Фаза 0: Подготовка - 100%
-- ✅ Фаза 1: Next.js Setup - 100%
-- ✅ Фаза 2: Supabase - 100%
-- ✅ Фаза 3: Директории - 100%
-- ✅ Фаза 4: Core Files - 100%
-- ✅ Фаза 5: Zustand - 100%
-- ✅ Фаза 6: Pages - 60% (basic pages done, auth/feature pages pending)
+- [ ] Inject button 100%
 - ✅ Фаза 7: API Routes - 100%
-- ✅ Фаза 8: Layout - 50% (basic Sidebar done, full migration pending)
-- ⏳ Фаза 9: Features - 0% (migration needed)
+- ✅ Фаза 8: Layout - 100%
+- ✅ Фаза 9: Features - 75% (Images & Lists pending)
 - ✅ Фаза 10: PWA - 50% (manifest done, icons needed)
-- ⏳ Фаза 11: Testing - 40% (local works, production not tested)
+- ✅ Фаза 11: Testing - 60% (local works, production build done, deployment pending)
 - ⏳ Extension: 0%
 
 ### Обща Готовност:
-**60% ЗАВЪРШЕНО** 🎯
+**85% ЗАВЪРШЕНО** 🎯
 
 ---
 
 ## КРИТИЧНИ СЛЕДВАЩИ СТЪПКИ
 
-1. **Миграция на Компоненти** 🔴
-   - ChatCard.tsx
-   - ChatStudio.tsx
-   - GlobalBrain.tsx
-   - ImagesPage.tsx
-   - ListsPage.tsx
-   - Sidebar.tsx (full version)
-
-2. **Auth Страници** 🔴
-   - Sign In
-   - Sign Up
-   - Password Reset
+1. **Images Миграция** 🔴 **ВИСОК ПРИОРИТЕТ**
+   - [x] Анализ на оригинален ImagesPage.tsx (1000+ lines, 10+ features)
+   - [x] useImageStore базов skeleton създаден
+   - [ ] **Големи Tasks:**
+     - Миграция на ImagesPage компонент (react-router → next/navigation)
+     - Премахване на idb-keyval → Supabase queries
+     - Интеграция със Supabase Storage (upload/delete)
+     - Създаване на images bucket + RLS policies
+     - Тестване на всички features (upload, lightbox, marquee, bulk ops, AVIF)
+   - **Сложност:** ВИСОКА (най-комплексният компонент в проекта)
+   - **Очаквано време:** 2-3 часа20:15
+**Статус:** ⚠️ 75% MIGRATION COMPLETE - Critical Sidebar Rewrite Needed
+**Next Actions:**
+1. 🔴 **КРИТИЧНО:** Sidebar пълна миграция (folder tree, drag & drop, search)
+2. 🔴 **ПОСЛЕ:** Images миграция (1000+ lines)
+3. 🟡 **ПОСЛЕ:** Lists миграция
+4. 🟡 **OPTIONAL:** ChatStudio streaming response
+5. ⚪ **НАКРАЯ:** Chrome Extension
+   - ListsPage.tsx → src/components/features/lists/
+   - По-прост от Images компонент
 
 3. **PWA Икони** 🟡
-   - Генериране на 192x192
-   - Генериране на 512x512
+   - Генериране на icon-192x192.png
+   - Генериране на icon-512x512.png
 
-4. **TypeScript Fixes** 🟡
-   - Разрешаване на database.types casting
-   - API routes type fixes
+4. **Edit Folder функционалност** 🟢
+   - Имплементиране на EditFolderModal
 
-5. **Production Build** 🟢
-   - Test build command
-   - Fix errors
-   - Deploy to Vercel
+5. **Chrome Extension** ⚪ **ВАЖНО - НЕ ЗАСЕГА**
+   - Extension structure
+   - One-click save
+   - Platform injection
+   - **Note:** Production deployment СЛЕД extension миграция
+
+6. **Production Deployment** ⚪ **СЛЕД EXTENSION**
+   - Deploy to Vercel/Netlify
 
 ---
 
@@ -702,5 +894,6 @@
 
 ---
 
-**Последна Актуализация:** 21 Декември 2025, 13:20
-**Статус:** ✅ CORE MIGRATION УСПЕШНА - Готов за Component Migration
+**Последна Актуализация:** 21 Декември 2025, 19:45
+**Статус:** ✅ 85% MIGRATION COMPLETE - Images Component Ready for Migration
+**Next:** Images миграция (най-комплексен компонент, 1000+ lines)

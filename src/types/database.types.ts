@@ -1,4 +1,4 @@
-export type Json =
+﻿export type Json =
   | string
   | number
   | boolean
@@ -7,9 +7,6 @@ export type Json =
   | Json[]
 
 export type Database = {
-  __InternalSupabase: {
-    PostgrestVersion: "13.0.5"
-  }
   public: {
     Tables: {
       chats: {
@@ -55,89 +52,133 @@ export type Database = {
           url?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "chats_folder_id_fkey"
-            columns: ["folder_id"]
-            isOneToOne: false
-            referencedRelation: "folders"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "chats_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       folders: {
         Row: {
           color: string | null
           created_at: string | null
+          icon: string | null
           id: string
           name: string
+          type: string | null
           updated_at: string | null
           user_id: string
         }
         Insert: {
           color?: string | null
           created_at?: string | null
+          icon?: string | null
           id?: string
           name: string
+          type?: string | null
           updated_at?: string | null
           user_id: string
         }
         Update: {
           color?: string | null
           created_at?: string | null
+          icon?: string | null
           id?: string
           name?: string
+          type?: string | null
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "folders_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       images: {
         Row: {
           created_at: string | null
+          folder_id: string | null
           id: string
+          mime_type: string | null
+          name: string | null
           path: string
+          size: number | null
           url: string
           user_id: string
         }
         Insert: {
           created_at?: string | null
+          folder_id?: string | null
           id?: string
+          mime_type?: string | null
+          name?: string | null
           path: string
+          size?: number | null
           url: string
           user_id: string
         }
         Update: {
           created_at?: string | null
+          folder_id?: string | null
           id?: string
+          mime_type?: string | null
+          name?: string | null
           path?: string
+          size?: number | null
           url?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "images_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      list_items: {
+        Row: {
+          completed: boolean | null
+          created_at: string | null
+          id: string
+          list_id: string
+          position: number | null
+          text: string
+        }
+        Insert: {
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          list_id: string
+          position?: number | null
+          text: string
+        }
+        Update: {
+          completed?: boolean | null
+          created_at?: string | null
+          id?: string
+          list_id?: string
+          position?: number | null
+          text?: string
+        }
+        Relationships: []
+      }
+      lists: {
+        Row: {
+          color: string | null
+          created_at: string | null
+          folder_id: string | null
+          id: string
+          title: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string | null
+          folder_id?: string | null
+          id?: string
+          title: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          color?: string | null
+          created_at?: string | null
+          folder_id?: string | null
+          id?: string
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       prompts: {
         Row: {
@@ -167,15 +208,7 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "prompts_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       users: {
         Row: {

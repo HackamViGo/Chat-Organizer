@@ -12,32 +12,52 @@ export async function POST(request: Request) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const folderId = formData.get('folderId') as string | null;
     
     if (!file) {
       return new NextResponse('No file provided', { status: 400 });
     }
 
+    // Validation
+    if (file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+    }
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/avif'];
+    if (!allowedTypes.includes(file.type)) {
+      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+    }
+
     // Upload to Supabase Storage
-    const fileName = `${user.id}/${Date.now()}-${file.name}`;
+    const timestamp = Date.now();
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+    const fileName = `${user.id}/${timestamp}_${sanitizedName}`;
+    
     const { data, error } = await supabase.storage
-      .from('uploads')
+      .from('images')
       .upload(fileName, file);
 
     if (error) throw error;
 
     // Get public URL
     const { data: { publicUrl } } = supabase.storage
-      .from('uploads')
+      .from('images')
       .getPublicUrl(fileName);
 
     // Save to images table
-    await supabase.from('images').insert({
+    const { data: imageRecord, error: dbError } = await supabase.from('images').insert({
       user_id: user.id,
       url: publicUrl,
       path: fileName,
-    } as any);
+      folder_id: folderId,
+      name: file.name,
+      mime_type: file.type,
+      size: file.size,
+    }).select().single();
 
-    return NextResponse.json({ url: publicUrl, path: fileName });
+    if (dbError) throw dbError;
+
+    return NextResponse.json(imageRecord);
   } catch (error: any) {
     return new NextResponse(error.message, { status: 500 });
   }

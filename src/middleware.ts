@@ -2,11 +2,6 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
-  // Middleware completely disabled for local development
-  // Enable in production/Vercel for auth protection
-  return NextResponse.next();
-  
-  /* COMMENTED OUT FOR LOCAL DEV - UNCOMMENT FOR PRODUCTION
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -63,7 +58,16 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const publicRoutes = ['/auth/signin', '/auth/signup', '/auth/callback'];
+  // Allow extension requests (OPTIONS, API calls with Bearer token) and public resources
+  if (
+    request.method === 'OPTIONS' ||
+    request.nextUrl.pathname.startsWith('/api/') ||
+    request.nextUrl.pathname.startsWith('/extension-auth')
+  ) {
+    return response;
+  }
+
+  const publicRoutes = ['/auth/signin', '/auth/signup', '/auth/callback', '/landing'];
   const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route));
 
   if (!user && !isPublicRoute) {
@@ -77,7 +81,6 @@ export async function middleware(request: NextRequest) {
   }
 
   return response;
-  */
 }
 
 export const config = {

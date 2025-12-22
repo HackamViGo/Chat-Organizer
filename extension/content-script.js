@@ -1,13 +1,13 @@
 // Content Script for AI Chat Organizer Extension
 // Injects into AI platform pages with hover menu and context menu support
 
-(function() {
+(function () {
   'use strict';
 
   // Configuration
   const HOVER_MENU_DELAY = 500; // ms to show menu on hover
   const PLATFORM = detectCurrentPlatform();
-  
+
   let hoverTimeout = null;
   let currentHoverMenu = null;
   let customFolders = [];
@@ -18,7 +18,7 @@
 
   function init() {
     console.log('AI Chat Organizer extension loaded on', PLATFORM);
-    
+
     if (PLATFORM !== 'Unknown') {
       loadCustomFolders();
       injectStyles();
@@ -29,10 +29,10 @@
   }
 
   // ===== PLATFORM DETECTION =====
-  
+
   function detectCurrentPlatform() {
     const hostname = window.location.hostname;
-    
+
     if (hostname.includes('chatgpt.com') || hostname.includes('chat.openai.com')) {
       return 'ChatGPT';
     } else if (hostname.includes('claude.ai')) {
@@ -46,7 +46,7 @@
   }
 
   // ===== HOVER MENU FUNCTIONALITY =====
-  
+
   function loadCustomFolders() {
     // Load folders from API via background script
     chrome.runtime.sendMessage(
@@ -71,7 +71,7 @@
 
   function getChatElements() {
     // Platform-specific selectors for chat list items
-    switch(PLATFORM) {
+    switch (PLATFORM) {
       case 'ChatGPT':
         return document.querySelectorAll('nav [class*="group"] a[href*="/c/"], nav ol li a');
       case 'Claude':
@@ -128,7 +128,7 @@
           return current;
         }
       }
-      
+
       current = current.parentElement;
       depth++;
     }
@@ -163,7 +163,7 @@
   function createHoverMenu(chatElement) {
     const menu = document.createElement('div');
     menu.className = 'ai-organizer-hover-menu';
-    
+
     let customFoldersHtml = '';
     if (customFolders.length > 0) {
       customFolders.forEach((folder) => {
@@ -222,7 +222,7 @@
     if (left + menuWidth > window.innerWidth) {
       // Position to the left instead
       left = rect.left - menuWidth - padding;
-      
+
       // If still overflows, position inside viewport
       if (left < 0) {
         left = padding;
@@ -247,15 +247,15 @@
     const chatUrl = chatElement.href || window.location.href;
     const chatTitle = chatElement.textContent?.trim() || extractChatTitle() || 'Untitled Chat';
 
-    switch(action) {
+    switch (action) {
       case 'add-to-my-chats':
         await saveChatToFolder(chatUrl, chatTitle, null);
         break;
-      
+
       case 'new-folder':
         showNewFolderModal(chatUrl, chatTitle);
         break;
-      
+
       case 'custom-folder':
         await saveChatToFolder(chatUrl, chatTitle, folderId);
         break;
@@ -291,7 +291,9 @@
       }
     } catch (error) {
       console.error('Save error:', error);
-      showNotification('✗ Failed to save chat', 'error');
+      // Show actual error message if possible
+      const errorMsg = error.message || 'Failed to save chat';
+      showNotification('✗ ' + errorMsg, 'error');
     }
   }
 
@@ -399,7 +401,7 @@
 
         if (response && response.success) {
           const newFolder = response.folder;
-          
+
           // Add to custom menu if requested
           if (addToCustomMenu) {
             customFolders.push(newFolder);
@@ -428,12 +430,12 @@
   }
 
   // ===== SAVE BUTTON INJECTION =====
-  
+
   function injectSaveButton() {
     // Wait for page to load
     const checkInterval = setInterval(() => {
       const targetElement = getTargetElement();
-      
+
       if (targetElement && !saveButton) {
         clearInterval(checkInterval);
         saveButton = createSaveButton();
@@ -447,7 +449,7 @@
 
   function getTargetElement() {
     // Platform-specific selectors for where to inject the save button
-    switch(PLATFORM) {
+    switch (PLATFORM) {
       case 'ChatGPT':
         return document.querySelector('nav') || document.querySelector('header');
       case 'Claude':
@@ -470,14 +472,14 @@
       </svg>
       <span>Save to Organizer</span>
     `;
-    
+
     button.addEventListener('click', handleSaveClick);
     return button;
   }
 
   async function handleSaveClick() {
     const chatData = extractChatData();
-    
+
     try {
       const response = await chrome.runtime.sendMessage({
         action: 'saveChat',
@@ -496,7 +498,7 @@
   }
 
   // ===== CHAT EXTRACTION =====
-  
+
   function extractChatData() {
     return {
       url: window.location.href,
@@ -508,22 +510,22 @@
   }
 
   function extractChatTitle() {
-    switch(PLATFORM) {
+    switch (PLATFORM) {
       case 'ChatGPT':
-        return document.querySelector('h1')?.textContent || 
-               document.querySelector('title')?.textContent ||
-               'ChatGPT Conversation';
+        return document.querySelector('h1')?.textContent ||
+          document.querySelector('title')?.textContent ||
+          'ChatGPT Conversation';
       case 'Claude':
         return document.querySelector('[data-testid="chat-title"]')?.textContent ||
-               document.querySelector('h1')?.textContent ||
-               'Claude Conversation';
+          document.querySelector('h1')?.textContent ||
+          'Claude Conversation';
       case 'Gemini':
         return document.querySelector('.conversation-title')?.textContent ||
-               document.querySelector('h1')?.textContent ||
-               'Gemini Chat';
+          document.querySelector('h1')?.textContent ||
+          'Gemini Chat';
       case 'LMArena':
         return document.querySelector('.chat-title')?.textContent ||
-               'LM Arena Conversation';
+          'LM Arena Conversation';
       default:
         return 'Conversation';
     }
@@ -531,8 +533,8 @@
 
   function extractChatContent() {
     const messages = [];
-    
-    switch(PLATFORM) {
+
+    switch (PLATFORM) {
       case 'ChatGPT':
         messages.push(...extractChatGPTMessages());
         break;
@@ -553,78 +555,78 @@
 
     // Add header with metadata
     const header = `=== ${PLATFORM} Conversation ===\nExtracted: ${new Date().toLocaleString()}\nURL: ${window.location.href}\n\n`;
-    
+
     return header + messages.join('\n---\n\n');
   }
 
   function extractChatGPTMessages() {
     const messages = [];
     const messageElements = document.querySelectorAll('[data-message-author-role]');
-    
+
     messageElements.forEach((el, index) => {
       const role = el.getAttribute('data-message-author-role');
       const contentEl = el.querySelector('.markdown, [class*="markdown"]') || el;
       const content = contentEl.textContent.trim();
-      
+
       if (content) {
         const roleLabel = role === 'user' ? 'USER' : 'ASSISTANT';
         messages.push(`${roleLabel}:\n${content}\n`);
       }
     });
-    
+
     return messages;
   }
 
   function extractClaudeMessages() {
     const messages = [];
     const messageElements = document.querySelectorAll('[data-testid^="message-"]');
-    
+
     messageElements.forEach((el, index) => {
       const isUser = el.getAttribute('data-testid').includes('user');
       const roleLabel = isUser ? 'USER' : 'ASSISTANT';
       const content = el.textContent.trim();
-      
+
       if (content) {
         messages.push(`${roleLabel}:\n${content}\n`);
       }
     });
-    
+
     return messages;
   }
 
   function extractGeminiMessages() {
     const messages = [];
     const messageElements = document.querySelectorAll('[data-test-id*="message"]');
-    
+
     messageElements.forEach((el, index) => {
       const isUser = el.getAttribute('data-test-id').includes('user');
       const roleLabel = isUser ? 'USER' : 'MODEL';
       const content = el.textContent.trim();
-      
+
       if (content) {
         messages.push(`${roleLabel}:\n${content}\n`);
       }
     });
-    
+
     return messages;
   }
 
   function extractLMArenaMessages() {
     const messages = [];
     const messageElements = document.querySelectorAll('.message, [data-message]');
-    
+
     messageElements.forEach(el => {
       const content = el.textContent.trim();
       if (content) {
         messages.push(content);
       }
     });
-    
+
     return messages;
   }
 
   // ===== PROMPT INSERTION =====
-  
+
   function showPromptSelector(prompts) {
     if (!prompts || prompts.length === 0) {
       const modal = document.createElement('div');
@@ -638,19 +640,19 @@
           <div class="ai-organizer-modal-content">
             <div class="ai-organizer-no-prompts">
               <p>You don't have any saved prompts yet.</p>
-              <a href="http://localhost:3000/prompts" target="_blank">Create your first prompt</a>
+              <a href="https://brainbox-alpha.vercel.app/prompts" target="_blank">Create your first prompt</a>
             </div>
           </div>
         </div>
       `;
-      
+
       document.body.appendChild(modal);
-      
+
       modal.querySelector('.ai-organizer-modal-close').addEventListener('click', () => modal.remove());
       modal.addEventListener('click', (e) => {
         if (e.target === modal) modal.remove();
       });
-      
+
       return;
     }
 
@@ -698,7 +700,7 @@
 
   function insertPromptIntoPage(content) {
     const activeElement = document.activeElement;
-    
+
     // Try to insert into focused element
     if (activeElement && (activeElement.tagName === 'TEXTAREA' || activeElement.tagName === 'INPUT')) {
       activeElement.value = content;
@@ -717,7 +719,7 @@
 
     // Platform-specific fallback
     let inputElement = null;
-    switch(PLATFORM) {
+    switch (PLATFORM) {
       case 'ChatGPT':
         inputElement = document.querySelector('#prompt-textarea, [data-id="root"] textarea');
         break;
@@ -747,24 +749,24 @@
   }
 
   // ===== NOTIFICATIONS =====
-  
+
   function showNotification(message, type = 'success') {
     // Check if it's a login error
-    const isLoginError = message.toLowerCase().includes('login') || 
-                        message.toLowerCase().includes('unauthorized') ||
-                        message.toLowerCase().includes('please login');
-    
+    const isLoginError = message.toLowerCase().includes('login') ||
+      message.toLowerCase().includes('unauthorized') ||
+      message.toLowerCase().includes('please login');
+
     if (isLoginError) {
       showLoginRequiredModal();
       return;
     }
-    
+
     const notification = document.createElement('div');
     notification.className = `ai-organizer-notification ${type}`;
     notification.textContent = message;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
       notification.classList.add('hiding');
       setTimeout(() => notification.remove(), 300);
@@ -776,7 +778,7 @@
     // Remove existing modal if any
     const existing = document.querySelector('.ai-organizer-login-modal');
     if (existing) existing.remove();
-    
+
     const modalOverlay = document.createElement('div');
     modalOverlay.className = 'ai-organizer-login-modal';
     modalOverlay.innerHTML = `
@@ -802,9 +804,9 @@
         <button class="ai-organizer-cancel-btn" id="brainbox-cancel-btn">Maybe Later</button>
       </div>
     `;
-    
+
     document.body.appendChild(modalOverlay);
-    
+
     // Add event listeners
     document.getElementById('brainbox-login-btn').addEventListener('click', () => {
       // Change URL for local testing
@@ -812,11 +814,11 @@
       // window.open('https://brainbox-alpha.vercel.app/extension-auth', '_blank');
       modalOverlay.remove();
     });
-    
+
     document.getElementById('brainbox-cancel-btn').addEventListener('click', () => {
       modalOverlay.remove();
     });
-    
+
     // Close on overlay click
     modalOverlay.addEventListener('click', (e) => {
       if (e.target === modalOverlay) {
@@ -826,7 +828,7 @@
   }
 
   // ===== MESSAGE LISTENER =====
-  
+
   function setupMessageListener() {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === 'extractChatContext') {
@@ -850,7 +852,7 @@
   function extractAllImagesFromPage() {
     const images = [];
     const imageElements = document.querySelectorAll('img');
-    
+
     imageElements.forEach(img => {
       const src = img.src || img.dataset.src;
       if (src && src.startsWith('http')) {
@@ -860,7 +862,7 @@
         }
       }
     });
-    
+
     // Also check for background images
     const allElements = document.querySelectorAll('*');
     allElements.forEach(el => {
@@ -872,13 +874,13 @@
         }
       }
     });
-    
+
     // Remove duplicates
     return [...new Set(images)];
   }
 
   // ===== STYLES INJECTION =====
-  
+
   function injectStyles() {
     const style = document.createElement('style');
     style.textContent = `

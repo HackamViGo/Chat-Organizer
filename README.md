@@ -1,6 +1,6 @@
-# 🚀 Mega-Pack AI Studio
+# 🧠 BrainBox - AI Chat Organizer
 
-AI Chat Organizer - Intelligent Knowledge Manager built with Next.js 14, Supabase, and Google Gemini AI.
+Intelligent Knowledge Manager for AI Conversations - Built with Next.js 14, Supabase, and Google Gemini AI.
 
 ## ✨ Features
 

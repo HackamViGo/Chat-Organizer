@@ -1,6 +1,6 @@
 {
-  "name": "Mega-Pack AI Studio",
-  "short_name": "Mega-Pack",
+  "name": "BrainBox - AI Chat Organizer",
+  "short_name": "BrainBox",
   "description": "Intelligent Knowledge Manager for AI Conversations",
   "start_url": "/",
   "display": "standalone",

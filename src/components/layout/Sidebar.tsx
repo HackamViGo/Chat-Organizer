@@ -91,21 +91,69 @@ const NavItem: React.FC<{
   to: string; 
   icon: React.ElementType; 
   label: string; 
-  isActive: boolean; 
-}> = ({ to, icon: Icon, label, isActive }) => (
-  <Link 
-    href={to} 
-    className={`
-      flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
-      ${isActive 
-        ? 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-700 dark:text-cyan-100 border border-cyan-200/50 dark:border-white/10' 
-        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-white/5'}
-    `}
-  >
-    <Icon size={18} className={`transition-colors ${isActive ? 'text-cyan-600 dark:text-cyan-400' : 'text-slate-400 group-hover:text-slate-500 dark:group-hover:text-slate-300'}`} />
-    {label}
-  </Link>
-);
+  isActive: boolean;
+  color?: string; // e.g. 'emerald', 'purple', 'amber'
+}> = ({ to, icon: Icon, label, isActive, color = 'cyan' }) => {
+  const colorClasses = {
+    cyan: {
+      active: 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 text-cyan-700 dark:text-cyan-100 border border-cyan-200/50 dark:border-white/10',
+      activeIcon: 'text-cyan-600 dark:text-cyan-400',
+      hover: 'hover:bg-gradient-to-r hover:from-cyan-500 hover:to-blue-600 hover:text-white hover:shadow-lg hover:shadow-cyan-500/30 dark:hover:shadow-cyan-500/40'
+    },
+    emerald: {
+      active: 'bg-gradient-to-r from-emerald-500/10 to-green-500/10 text-emerald-700 dark:text-emerald-100 border border-emerald-200/50 dark:border-white/10',
+      activeIcon: 'text-emerald-600 dark:text-emerald-400',
+      hover: 'hover:bg-gradient-to-r hover:from-emerald-500 hover:to-green-600 hover:text-white hover:shadow-lg hover:shadow-emerald-500/30 dark:hover:shadow-emerald-500/40'
+    },
+    purple: {
+      active: 'bg-gradient-to-r from-purple-500/10 to-violet-500/10 text-purple-700 dark:text-purple-100 border border-purple-200/50 dark:border-white/10',
+      activeIcon: 'text-purple-600 dark:text-purple-400',
+      hover: 'hover:bg-gradient-to-r hover:from-purple-500 hover:to-violet-600 hover:text-white hover:shadow-lg hover:shadow-purple-500/30 dark:hover:shadow-purple-500/40'
+    },
+    amber: {
+      active: 'bg-gradient-to-r from-amber-500/10 to-yellow-500/10 text-amber-700 dark:text-amber-100 border border-amber-200/50 dark:border-white/10',
+      activeIcon: 'text-amber-600 dark:text-amber-400',
+      hover: 'hover:bg-gradient-to-r hover:from-amber-500 hover:to-yellow-600 hover:text-white hover:shadow-lg hover:shadow-amber-500/30 dark:hover:shadow-amber-500/40'
+    },
+    rose: {
+      active: 'bg-gradient-to-r from-rose-500/10 to-pink-500/10 text-rose-700 dark:text-rose-100 border border-rose-200/50 dark:border-white/10',
+      activeIcon: 'text-rose-600 dark:text-rose-400',
+      hover: 'hover:bg-gradient-to-r hover:from-rose-500 hover:to-pink-600 hover:text-white hover:shadow-lg hover:shadow-rose-500/30 dark:hover:shadow-rose-500/40'
+    },
+    orange: {
+      active: 'bg-gradient-to-r from-orange-500/10 to-red-500/10 text-orange-700 dark:text-orange-100 border border-orange-200/50 dark:border-white/10',
+      activeIcon: 'text-orange-600 dark:text-orange-400',
+      hover: 'hover:bg-gradient-to-r hover:from-orange-500 hover:to-red-600 hover:text-white hover:shadow-lg hover:shadow-orange-500/30 dark:hover:shadow-orange-500/40'
+    },
+    slate: {
+      active: 'bg-gradient-to-r from-slate-500/10 to-gray-500/10 text-slate-700 dark:text-slate-100 border border-slate-200/50 dark:border-white/10',
+      activeIcon: 'text-slate-600 dark:text-slate-400',
+      hover: 'hover:bg-gradient-to-r hover:from-slate-500 hover:to-gray-600 hover:text-white hover:shadow-lg hover:shadow-slate-500/30 dark:hover:shadow-slate-500/40'
+    },
+    indigo: {
+      active: 'bg-gradient-to-r from-indigo-500/10 to-blue-500/10 text-indigo-700 dark:text-indigo-100 border border-indigo-200/50 dark:border-white/10',
+      activeIcon: 'text-indigo-600 dark:text-indigo-400',
+      hover: 'hover:bg-gradient-to-r hover:from-indigo-500 hover:to-blue-600 hover:text-white hover:shadow-lg hover:shadow-indigo-500/30 dark:hover:shadow-indigo-500/40'
+    }
+  };
+
+  const colors = colorClasses[color as keyof typeof colorClasses] || colorClasses.cyan;
+
+  return (
+    <Link 
+      href={to} 
+      className={`
+        flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
+        ${isActive 
+          ? colors.active
+          : `text-slate-500 dark:text-slate-400 ${colors.hover}`}
+      `}
+    >
+      <Icon size={18} className={`transition-colors ${isActive ? colors.activeIcon : 'text-slate-400 group-hover:opacity-100'}`} />
+      {label}
+    </Link>
+  );
+};
 
 // 2. Folder Tree Item
 interface FolderTreeItemProps {
@@ -486,12 +534,12 @@ function SidebarContent() {
 
           {/* 2. Main Navigation Links */}
           <nav className="space-y-1 mb-4">
-            <NavItem to="/" icon={LayoutGrid} label="Dashboard" isActive={isActive('/')} />
-            <NavItem to="/studio" icon={MessageSquarePlus} label="AI Studio" isActive={isActive('/studio')} />
-            <NavItem to="/chats" icon={MessageSquare} label="My Chats" isActive={isActive('/chats')} />
-            <NavItem to="/prompts" icon={FileEdit} label="Prompts" isActive={isActive('/prompts')} />
-            <NavItem to="/images" icon={ImageIcon} label="Images" isActive={isActive('/images')} />
-            <NavItem to="/lists" icon={CheckSquare} label="Lists" isActive={isActive('/lists')} />
+            <NavItem to="/" icon={LayoutGrid} label="Dashboard" isActive={isActive('/')} color="emerald" />
+            <NavItem to="/studio" icon={MessageSquarePlus} label="AI Studio" isActive={isActive('/studio')} color="purple" />
+            <NavItem to="/chats" icon={MessageSquare} label="My Chats" isActive={isActive('/chats')} color="cyan" />
+            <NavItem to="/prompts" icon={FileEdit} label="Prompts" isActive={isActive('/prompts')} color="amber" />
+            <NavItem to="/images" icon={ImageIcon} label="Images" isActive={isActive('/images')} color="rose" />
+            <NavItem to="/lists" icon={CheckSquare} label="Lists" isActive={isActive('/lists')} color="orange" />
           </nav>
 
           {/* Divider */}
@@ -576,8 +624,22 @@ function SidebarContent() {
 
           {/* 4. Bottom Tools */}
           <div className="pt-3 mt-2 border-t border-slate-200 dark:border-white/5 space-y-1">
-             <NavItem to="/archive" icon={Archive} label="Archive" isActive={isActive('/archive')} />
-             <NavItem to="/settings" icon={Settings} label="Settings" isActive={isActive('/settings')} />
+             <NavItem to="/archive" icon={Archive} label="Archive" isActive={isActive('/archive')} color="slate" />
+             <NavItem to="/settings" icon={Settings} label="Settings" isActive={isActive('/settings')} color="indigo" />
+             
+             {/* Download Extension Button */}
+             <Link
+               href="/download"
+               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
+                 isActive('/download')
+                   ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
+                   : 'bg-gradient-to-r from-cyan-500 to-blue-600 dark:from-purple-500 dark:to-violet-600 text-white shadow-lg shadow-cyan-500/30 dark:shadow-purple-500/30 hover:from-purple-500 hover:to-violet-600 dark:hover:from-cyan-500 dark:hover:to-blue-600 hover:shadow-purple-500/30 dark:hover:shadow-cyan-500/30'
+               }`}
+             >
+               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+               <span className="font-semibold">Download</span>
+             </Link>
+             
              <button
                onClick={async () => {
                  const supabase = createClient();

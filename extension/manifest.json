@@ -11,6 +11,7 @@
   ],
   "host_permissions": [
     "http://localhost:3000/*",
+    "https://brainbox-alpha.vercel.app/*",
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
     "https://claude.ai/*",
@@ -20,6 +21,14 @@
     "service_worker": "background.js"
   },
   "content_scripts": [
+    {
+      "matches": [
+        "http://localhost:3000/extension-auth*",
+        "https://brainbox-alpha.vercel.app/extension-auth*"
+      ],
+      "js": ["extension-auth.js"],
+      "run_at": "document_idle"
+    },
     {
       "matches": [
         "https://chatgpt.com/*",

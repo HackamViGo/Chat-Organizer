@@ -84,6 +84,7 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
+  const [showViewModal, setShowViewModal] = useState(false);
   
   // Editing Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -92,7 +93,10 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
 
   // Editing Description (Summary)
   const [isEditingDesc, setIsEditingDesc] = useState(false);
-  const [editedDesc, setEditedDesc] = useState(chat.summary || '');
+  const [editedDesc, setEditedDesc] = useState(chat.content || '');
+  const [isEditingInModal, setIsEditingInModal] = useState(false);
+  const [modalContent, setModalContent] = useState(chat.content || '');
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Editing URL
   const [isEditingUrl, setIsEditingUrl] = useState(false);
@@ -174,10 +178,50 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
 
   // Description Editing Logic
   const handleDescSave = async () => {
-    if (editedDesc !== chat.summary) {
-      await updateChat(chat.id, { summary: editedDesc });
+    if (editedDesc !== chat.content) {
+      await updateChat(chat.id, { content: editedDesc });
     }
     setIsEditingDesc(false);
+  };
+  // Modal content save
+  const handleSaveModalContent = async () => {
+    if (modalContent !== chat.content) {
+      await updateChat(chat.id, { content: modalContent });
+    }
+    setIsEditingInModal(false);
+    setShowViewModal(false);
+  };
+
+  // Text formatting functions
+  const insertFormatting = (before: string, after: string = '') => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const selectedText = modalContent.substring(start, end);
+    
+    // If nothing selected and we're adding markers, add placeholder
+    const textToWrap = selectedText || 'text';
+    
+    const beforeText = modalContent.substring(0, start);
+    const afterText = modalContent.substring(end);
+    const newText = beforeText + before + textToWrap + after + afterText;
+    
+    // Calculate new selection position
+    const newStart = start + before.length;
+    const newEnd = newStart + textToWrap.length;
+    
+    // Update content
+    setModalContent(newText);
+    
+    // Restore selection immediately after React updates
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(newStart, newEnd);
+      }
+    }, 0);
   };
 
   // URL Editing Logic
@@ -211,7 +255,8 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
         id={chat.id}
         draggable
         onDragStart={handleDragStart}
-        className={`glass-card rounded-xl p-5 relative group flex flex-col h-full cursor-grab active:cursor-grabbing text-slate-900 dark:text-white transition-all duration-500
+        onClick={() => setShowViewModal(true)}
+        className={`glass-card rounded-xl p-5 relative group flex flex-col h-full cursor-pointer text-slate-900 dark:text-white transition-all duration-500 hover:scale-[1.02]
           ${isHighlighted ? 'ring-2 ring-cyan-500 shadow-lg shadow-cyan-500/20 scale-[1.02]' : ''}
         `}
       >
@@ -375,19 +420,19 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
                   placeholder="Enter a description..."
                />
                <div className="flex justify-end gap-2">
-                 <button onClick={() => { setEditedDesc(chat.summary || ''); setIsEditingDesc(false); }} className="text-xs px-2 py-1 text-slate-500">Cancel</button>
+                 <button onClick={() => { setEditedDesc(chat.content || ''); setIsEditingDesc(false); }} className="text-xs px-2 py-1 text-slate-500">Cancel</button>
                  <button onClick={handleDescSave} className="text-xs px-2 py-1 bg-cyan-600 text-white rounded">Save</button>
                </div>
             </div>
           ) : (
             <>
-              {chat.summary ? (
+              {chat.content ? (
                 <div 
                   className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 cursor-text"
                   onClick={() => setIsEditingDesc(true)}
                   title="Click to edit description"
                 >
-                  {chat.summary}
+                  {chat.content}
                 </div>
               ) : (
                 <p 
@@ -485,6 +530,170 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
           )}
         </div>
       </div>
+
+      {/* View Chat Modal */}
+      {showViewModal && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowViewModal(false);
+              setIsEditingInModal(false);
+              setModalContent(chat.content || '');
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{chat.title}</h2>
+              <button
+                onClick={() => {
+                  setShowViewModal(false);
+                  setIsEditingInModal(false);
+                  setModalContent(chat.content || '');
+                }}
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-6">
+              {isEditingInModal ? (
+                <textarea
+                  ref={textareaRef}
+                  value={modalContent}
+                  onChange={(e) => setModalContent(e.target.value)}
+                  className="w-full h-full min-h-[400px] font-mono text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                />
+              ) : (
+                <div 
+                  className="prose dark:prose-invert max-w-none cursor-text"
+                  onClick={() => setIsEditingInModal(true)}
+                >
+                  <pre className="whitespace-pre-wrap font-mono text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
+                    {chat.content || 'No content available'}
+                  </pre>
+                </div>
+              )}
+            </div>
+
+            {/* Toolbar */}
+            {isEditingInModal && (
+              <div className="px-6 py-3 border-t border-slate-200 dark:border-slate-700 flex gap-2 flex-wrap bg-slate-50 dark:bg-slate-800/50">
+                <button
+                  onClick={() => insertFormatting('**', '**')}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors font-bold"
+                  title="Bold"
+                >
+                  B
+                </button>
+                <button
+                  onClick={() => insertFormatting('_', '_')}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors italic"
+                  title="Italic"
+                >
+                  I
+                </button>
+                <button
+                  onClick={() => insertFormatting('~~', '~~')}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors line-through"
+                  title="Strikethrough"
+                >
+                  S
+                </button>
+                <div className="w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                <button
+                  onClick={() => insertFormatting('==', '==')}
+                  className="px-2 py-1 hover:bg-yellow-200 dark:hover:bg-yellow-500/30 rounded-lg transition-colors bg-yellow-100 dark:bg-yellow-500/20 text-sm"
+                  title="Highlight"
+                >
+                  ⬤
+                </button>
+                <button
+                  onClick={() => insertFormatting('`', '`')}
+                  className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors font-mono text-sm"
+                  title="Code"
+                >
+                  {'</>'}
+                </button>
+                <div className="w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
+                <button
+                  onClick={() => insertFormatting('# ', '')}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors font-bold text-lg"
+                  title="Heading"
+                >
+                  H
+                </button>
+                <button
+                  onClick={() => insertFormatting('- ', '')}
+                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                  title="List"
+                >
+                  ≡
+                </button>
+              </div>
+            )}
+
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
+              <div className="flex gap-2 items-center text-sm text-slate-600 dark:text-slate-400">
+                <PlatformBadge platform={chat.platform as Platform} />
+                {chat.url && (
+                  <a 
+                    href={chat.url} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-cyan-600 dark:text-cyan-400 hover:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <ExternalLink size={14} />
+                    Open Original
+                  </a>
+                )}
+              </div>
+              <div className="flex gap-2">
+                {isEditingInModal ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        setIsEditingInModal(false);
+                        setModalContent(chat.content || '');
+                      }}
+                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSaveModalContent}
+                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all"
+                    >
+                      Save Changes
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setIsEditingInModal(true)}
+                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        setShowViewModal(false);
+                        setModalContent(chat.content || '');
+                      }}
+                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
+                    >
+                      Close
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

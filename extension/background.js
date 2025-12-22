@@ -1,6 +1,8 @@
 // Background Service Worker for AI Chat Organizer Extension
 
-const API_BASE_URL = 'https://brainbox-alpha.vercel.app';
+// Change to http://localhost:3000 for local testing
+const API_BASE_URL = 'http://localhost:3000';
+// const API_BASE_URL = 'https://brainbox-alpha.vercel.app';
 
 // Initialize context menu on install
 chrome.runtime.onInstalled.addListener(() => {
@@ -63,6 +65,22 @@ async function handleAddToChatOrganizer(info, tab) {
   const platform = detectPlatform(pageUrl);
 
   try {
+    // Check if we have token first
+    const { accessToken } = await chrome.storage.local.get(['accessToken']);
+    
+    if (!accessToken) {
+      // No token - open auth page
+      chrome.tabs.create({ 
+        url: `${API_BASE_URL}/extension-auth` 
+      });
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'showNotification',
+        message: 'Please authenticate the extension first',
+        type: 'error'
+      });
+      return;
+    }
+
     // Try to extract full chat context
     const response = await chrome.tabs.sendMessage(tab.id, {
       action: 'extractChatContext'
@@ -86,13 +104,28 @@ async function handleAddToChatOrganizer(info, tab) {
     });
   } catch (error) {
     console.error('Error adding to chat organizer:', error);
-    // Fallback: open popup for manual save
-    openSaveDialog({
-      title: pageTitle,
-      url: pageUrl,
-      content: selectedText,
-      platform: platform
-    });
+    
+    // Check if it's a login error
+    const errorMessage = error.message || '';
+    if (errorMessage.includes('login') || errorMessage.includes('Session expired') || errorMessage.includes('unauthorized')) {
+      // Token expired - open auth page
+      chrome.tabs.create({ 
+        url: `${API_BASE_URL}/extension-auth` 
+      });
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'showNotification',
+        message: 'Session expired - please re-authenticate',
+        type: 'error'
+      });
+    } else {
+      // Fallback: open popup for manual save
+      openSaveDialog({
+        title: pageTitle,
+        url: pageUrl,
+        content: selectedText,
+        platform: platform
+      });
+    }
   }
 }
 
@@ -268,22 +301,57 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       .catch(error => sendResponse({ success: false, error: error.message }));
     return true;
   }
+
+  if (request.action === 'storeAuthToken') {
+    // Store auth tokens
+    chrome.storage.local.set({
+      accessToken: request.data.accessToken,
+      refreshToken: request.data.refreshToken,
+      expiresAt: request.data.expiresAt
+    }, () => {
+      sendResponse({ success: true });
+    });
+    return true;
+  }
 });
 
 // Save chat to API
 async function handleSaveChat(chatData) {
   try {
+    // Get stored access token and expiry
+    const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
+    
+    // Check if token exists and is not expired
+    if (!accessToken || (expiresAt && Date.now() > expiresAt)) {
+      // Open auth page
+      chrome.tabs.create({ 
+        url: `${API_BASE_URL}/extension-auth` 
+      });
+      throw new Error('Please authenticate the extension first');
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/chats`, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
       },
-      credentials: 'include',
-      body: JSON.stringify(chatData)
+      body: JSON.stringify(chatData),
+      credentials: 'omit'
     });
     
+    if (response.status === 401 || response.status === 403) {
+      // Token expired - clear and open auth page
+      await chrome.storage.local.remove(['accessToken', 'refreshToken', 'expiresAt']);
+      chrome.tabs.create({ 
+        url: `${API_BASE_URL}/extension-auth` 
+      });
+      throw new Error('Session expired - please re-authenticate');
+    }
+    
     if (!response.ok) {
-      throw new Error('Failed to save chat');
+      const errorText = await response.text();
+      throw new Error(errorText || 'Failed to save chat');
     }
     
     const result = await response.json();
@@ -309,8 +377,19 @@ async function handleCreateFolder(folderData) {
     if (!response.ok) {
       throw new Error('Failed to create folder');
     }
+    { accessToken } = await chrome.storage.local.get(['accessToken']);
     
-    const result = await response.json();
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+    
+    if (accessToken) {
+      headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/folders`, {
+      headers: headers,
+      credentials: accessToken ? 'omit' = await response.json();
     return result;
   } catch (error) {
     console.error('Error creating folder:', error);

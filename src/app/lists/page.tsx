@@ -8,22 +8,22 @@ export const metadata = {
 };
 
 export default async function ListsPageWrapper() {
-  const supabase = createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  // Auth disabled for local development
+  // const supabase = createServerSupabaseClient();
+  // const { data: { user } } = await supabase.auth.getUser();
+  // if (!user) {
+  //   redirect('/auth/signin');
+  // }
   
-  if (!user) {
-    redirect('/auth/signin');
-  }
+  // Fetch initial data (disabled for now - no user)
+  // const { data: lists } = await supabase
+  //   .from('lists')
+  //   .select(`
+  //     *,
+  //     items:list_items(*)
+  //   `)
+  //   .eq('user_id', user.id)
+  //   .order('created_at', { ascending: false });
   
-  // Fetch initial data
-  const { data: lists } = await supabase
-    .from('lists')
-    .select(`
-      *,
-      items:list_items(*)
-    `)
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
-  
-  return <ListsPage initialLists={lists || []} />;
+  return <ListsPage initialLists={[]} />;
 }

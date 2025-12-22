@@ -1,4 +1,6 @@
-const API_BASE_URL = 'https://brainbox-alpha.vercel.app';
+// Change to http://localhost:3000 for local testing
+const API_BASE_URL = 'http://localhost:3000';
+// const API_BASE_URL = 'https://brainbox-alpha.vercel.app';
 
 let pendingChat = null;
 let folders = [];
@@ -19,6 +21,16 @@ async function init() {
   showLoading(true);
   
   try {
+    // Check if user is logged in (has access token)
+    const { accessToken } = await chrome.storage.local.get(['accessToken']);
+    
+    if (!accessToken) {
+      // Not logged in - show login prompt
+      showLoginPrompt();
+      showLoading(false);
+      return;
+    }
+
     // Load pending chat from storage
     const data = await chrome.storage.local.get(['pendingChat']);
     pendingChat = data.pendingChat;
@@ -48,14 +60,43 @@ async function init() {
   }
 }
 
+// Show login prompt
+function showLoginPrompt() {
+  loadingState.style.display = 'none';
+  saveForm.style.display = 'none';
+  
+  const loginPrompt = document.createElement('div');
+  loginPrompt.style.cssText = 'padding: 24px; text-align: center;';
+  loginPrompt.innerHTML = `
+    <h2 style="font-size: 20px; margin-bottom: 16px;">Login Required</h2>
+    <p style="margin-bottom: 24px; opacity: 0.9;">Please login to your BrainBox account to use the extension.</p>
+    <button id="login-btn" style="width: 100%; padding: 12px; background: white; color: #667eea; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
+      Login to BrainBox
+    </button>
+  `;
+  
+  document.querySelector('.content').appendChild(loginPrompt);
+  
+  document.getElementById('login-btn').addEventListener('click', () => {
+    chrome.tabs.create({ url: `${API_BASE_URL}/extension-auth` });
+    window.close();
+  });
+}
+
 // Fetch folders from API
 async function fetchFolders() {
   try {
+    const { accessToken } = await chrome.storage.local.get(['accessToken']);
+    
+    if (!accessToken) {
+      throw new Error('Not authenticated');
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/folders`, {
       method: 'GET',
-      credentials: 'include',
       headers: {
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
       }
     });
 

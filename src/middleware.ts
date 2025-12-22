@@ -2,6 +2,11 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
+  // Middleware completely disabled for local development
+  // Enable in production/Vercel for auth protection
+  return NextResponse.next();
+  
+  /* COMMENTED OUT FOR LOCAL DEV - UNCOMMENT FOR PRODUCTION
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -58,23 +63,21 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Public routes that don't require authentication
   const publicRoutes = ['/auth/signin', '/auth/signup', '/auth/callback'];
   const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route));
 
-  // If user is not logged in and trying to access protected route
   if (!user && !isPublicRoute) {
     const redirectUrl = new URL('/auth/signin', request.url);
     redirectUrl.searchParams.set('redirect', request.nextUrl.pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // If user is logged in and trying to access auth pages, redirect to home
   if (user && isPublicRoute) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 
   return response;
+  */
 }
 
 export const config = {

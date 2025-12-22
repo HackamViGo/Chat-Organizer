@@ -48,9 +48,19 @@
   // ===== HOVER MENU FUNCTIONALITY =====
   
   function loadCustomFolders() {
-    chrome.storage.local.get(['customFolders'], (result) => {
-      customFolders = result.customFolders || [];
-    });
+    // Load folders from API via background script
+    chrome.runtime.sendMessage(
+      { action: 'getFolders' },
+      (response) => {
+        if (response && response.success) {
+          customFolders = response.folders || [];
+          console.log('Loaded folders:', customFolders.length);
+        } else {
+          console.error('Failed to load folders:', response?.error);
+          customFolders = [];
+        }
+      }
+    );
   }
 
   function initializeHoverMenus() {
@@ -537,18 +547,28 @@
         break;
     }
 
-    return messages.join('\n\n');
+    if (messages.length === 0) {
+      return 'No conversation content extracted';
+    }
+
+    // Add header with metadata
+    const header = `=== ${PLATFORM} Conversation ===\nExtracted: ${new Date().toLocaleString()}\nURL: ${window.location.href}\n\n`;
+    
+    return header + messages.join('\n---\n\n');
   }
 
   function extractChatGPTMessages() {
     const messages = [];
     const messageElements = document.querySelectorAll('[data-message-author-role]');
     
-    messageElements.forEach(el => {
+    messageElements.forEach((el, index) => {
       const role = el.getAttribute('data-message-author-role');
-      const content = el.textContent.trim();
+      const contentEl = el.querySelector('.markdown, [class*="markdown"]') || el;
+      const content = contentEl.textContent.trim();
+      
       if (content) {
-        messages.push(`[${role}]: ${content}`);
+        const roleLabel = role === 'user' ? 'USER' : 'ASSISTANT';
+        messages.push(`${roleLabel}:\n${content}\n`);
       }
     });
     
@@ -559,12 +579,13 @@
     const messages = [];
     const messageElements = document.querySelectorAll('[data-testid^="message-"]');
     
-    messageElements.forEach(el => {
+    messageElements.forEach((el, index) => {
       const isUser = el.getAttribute('data-testid').includes('user');
-      const role = isUser ? 'user' : 'assistant';
+      const roleLabel = isUser ? 'USER' : 'ASSISTANT';
       const content = el.textContent.trim();
+      
       if (content) {
-        messages.push(`[${role}]: ${content}`);
+        messages.push(`${roleLabel}:\n${content}\n`);
       }
     });
     
@@ -575,11 +596,13 @@
     const messages = [];
     const messageElements = document.querySelectorAll('[data-test-id*="message"]');
     
-    messageElements.forEach(el => {
-      const role = el.getAttribute('data-test-id').includes('user') ? 'user' : 'model';
+    messageElements.forEach((el, index) => {
+      const isUser = el.getAttribute('data-test-id').includes('user');
+      const roleLabel = isUser ? 'USER' : 'MODEL';
       const content = el.textContent.trim();
+      
       if (content) {
-        messages.push(`[${role}]: ${content}`);
+        messages.push(`${roleLabel}:\n${content}\n`);
       }
     });
     
@@ -726,6 +749,16 @@
   // ===== NOTIFICATIONS =====
   
   function showNotification(message, type = 'success') {
+    // Check if it's a login error
+    const isLoginError = message.toLowerCase().includes('login') || 
+                        message.toLowerCase().includes('unauthorized') ||
+                        message.toLowerCase().includes('please login');
+    
+    if (isLoginError) {
+      showLoginRequiredModal();
+      return;
+    }
+    
     const notification = document.createElement('div');
     notification.className = `ai-organizer-notification ${type}`;
     notification.textContent = message;
@@ -736,6 +769,60 @@
       notification.classList.add('hiding');
       setTimeout(() => notification.remove(), 300);
     }, 3000);
+  }
+
+  // Show centered modal for login required
+  function showLoginRequiredModal() {
+    // Remove existing modal if any
+    const existing = document.querySelector('.ai-organizer-login-modal');
+    if (existing) existing.remove();
+    
+    const modalOverlay = document.createElement('div');
+    modalOverlay.className = 'ai-organizer-login-modal';
+    modalOverlay.innerHTML = `
+      <div class="ai-organizer-login-content">
+        <div class="ai-organizer-login-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+            <polyline points="10 17 15 12 10 7"/>
+            <line x1="15" x2="3" y1="12" y2="12"/>
+          </svg>
+        </div>
+        <h2>Login Required</h2>
+        <p>Please login to your BrainBox account to save chats.</p>
+        <button class="ai-organizer-login-btn" id="brainbox-login-btn">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
+            <line x1="9" x2="9.01" y1="9" y2="9"/>
+            <line x1="15" x2="15.01" y1="9" y2="9"/>
+          </svg>
+          Login to BrainBox
+        </button>
+        <button class="ai-organizer-cancel-btn" id="brainbox-cancel-btn">Maybe Later</button>
+      </div>
+    `;
+    
+    document.body.appendChild(modalOverlay);
+    
+    // Add event listeners
+    document.getElementById('brainbox-login-btn').addEventListener('click', () => {
+      // Change URL for local testing
+      window.open('http://localhost:3000/extension-auth', '_blank');
+      // window.open('https://brainbox-alpha.vercel.app/extension-auth', '_blank');
+      modalOverlay.remove();
+    });
+    
+    document.getElementById('brainbox-cancel-btn').addEventListener('click', () => {
+      modalOverlay.remove();
+    });
+    
+    // Close on overlay click
+    modalOverlay.addEventListener('click', (e) => {
+      if (e.target === modalOverlay) {
+        modalOverlay.remove();
+      }
+    });
   }
 
   // ===== MESSAGE LISTENER =====

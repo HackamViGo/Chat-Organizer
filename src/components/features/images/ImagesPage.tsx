@@ -7,7 +7,7 @@ import {
   Upload, Image as ImageIcon, Download, Trash2, Folder as FolderIcon, 
   X, RefreshCw, LayoutGrid, Plus, ChevronLeft, ChevronRight, Play, Pause, Maximize2,
   Check, AlertTriangle, Dice5, Search, CheckSquare, Square, FolderInput, FileImage, 
-  Calendar, HardDrive, ArrowUpAZ, FolderPlus
+  Calendar, HardDrive, ArrowUpAZ, FolderPlus, FolderMinus
 } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
 import { useImageStore } from '@/store/useImageStore';
@@ -87,6 +87,10 @@ export function ImagesPage() {
 
   const [hoveredFolderId, setHoveredFolderId] = useState<string | null>(null);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [showFolderedImages, setShowFolderedImages] = useState(false);
+  const [feedbackImageIds, setFeedbackImageIds] = useState<Set<string>>(new Set());
+  const [showMoveConfirmModal, setShowMoveConfirmModal] = useState(false);
+  const [pendingMove, setPendingMove] = useState<{ targetFolderId: string | null; imageIds: string[] } | null>(null);
   
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -115,7 +119,12 @@ export function ImagesPage() {
   
   const displayedImages = useMemo(() => {
     let result = images;
-    if (selectedFolderId) result = result.filter(i => i.folder_id === selectedFolderId);
+    if (selectedFolderId) {
+      result = result.filter(i => i.folder_id === selectedFolderId);
+    } else if (!showFolderedImages) {
+      // In All Images view, show only unsorted images by default
+      result = result.filter(i => !i.folder_id);
+    }
     if (searchQuery) result = result.filter(i => i.name?.toLowerCase().includes(searchQuery.toLowerCase()));
     
     if (activeFilters.format !== 'all') result = result.filter(i => i.mime_type?.includes(activeFilters.format));
@@ -149,7 +158,7 @@ export function ImagesPage() {
     });
 
     return result;
-  }, [images, selectedFolderId, searchQuery, activeFilters]);
+  }, [images, selectedFolderId, searchQuery, activeFilters, showFolderedImages]);
 
   useEffect(() => {
     let interval: any;
@@ -198,6 +207,27 @@ export function ImagesPage() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
+  const handleRemoveFromFolder = async (imageId: string) => {
+    try {
+      setFeedbackImageIds(new Set([imageId]));
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      await moveImages([imageId], null);
+      
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await fetchImages(user.id, selectedFolderId || undefined);
+      }
+      
+      setFeedbackImageIds(new Set());
+    } catch (error) {
+      console.error('Failed to remove from folder:', error);
+      alert('Failed to remove image from folder');
+      setFeedbackImageIds(new Set());
+    }
+  };
+
   const handleDropOnFolder = async (e: React.DragEvent, targetFolderId: string | undefined) => {
     e.preventDefault();
     e.stopPropagation();
@@ -205,17 +235,71 @@ export function ImagesPage() {
 
     if (!draggedImageId) return;
 
+    const idsToMove = selectedImageIds.has(draggedImageId) 
+      ? Array.from(selectedImageIds) 
+      : [draggedImageId];
+
+    // Check if moving images from folders when in All Images view
+    if (!selectedFolderId) {
+      const folderedImages = idsToMove.filter(id => {
+        const img = images.find(i => i.id === id);
+        return img?.folder_id;
+      });
+      
+      if (folderedImages.length > 0) {
+        // Show modal for confirmation
+        setPendingMove({ targetFolderId: targetFolderId || null, imageIds: idsToMove });
+        setShowMoveConfirmModal(true);
+        setDraggedImageId(null);
+        return;
+      }
+    }
+
+    // No images in folders, proceed directly
+    await executeMoveImages(targetFolderId || null, idsToMove, false);
+    
     if (selectedImageIds.has(draggedImageId)) {
-        await moveImages(Array.from(selectedImageIds), targetFolderId || null);
-        resetSelection();
-    } else {
-        await moveImages([draggedImageId], targetFolderId || null);
+      resetSelection();
     }
     setDraggedImageId(null);
   };
 
+  const executeMoveImages = async (targetFolderId: string | null, imageIds: string[], isCopy: boolean) => {
+    try {
+      // Visual feedback BEFORE moving
+      setFeedbackImageIds(new Set(imageIds));
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      if (isCopy) {
+        // TODO: Implement copy logic
+        alert('Copy functionality coming soon!');
+        setFeedbackImageIds(new Set());
+        return;
+      }
+      
+      await moveImages(imageIds, targetFolderId);
+      
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        await fetchImages(user.id, selectedFolderId || undefined);
+      }
+      
+      setFeedbackImageIds(new Set());
+    } catch (error) {
+      console.error('Failed to move images:', error);
+      alert('Failed to move images');
+      setFeedbackImageIds(new Set());
+    }
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button === 2 && galleryRef.current && !draggedImageId) {
+    // Only start drag select on left click in empty space (not on image cards)
+    if (e.button === 0 && galleryRef.current && !draggedImageId) {
+      const target = e.target as HTMLElement;
+      // Check if clicking on an image card or its children
+      if (target.closest('[id^="card-"]')) return;
+      
       const rect = galleryRef.current.getBoundingClientRect();
       const x = e.clientX - rect.left + galleryRef.current.scrollLeft;
       const y = e.clientY - rect.top + galleryRef.current.scrollTop;
@@ -246,6 +330,9 @@ export function ImagesPage() {
     const boxTop = Math.min(selectionBox.startY, y);
     const boxBottom = Math.max(selectionBox.startY, y);
 
+    // Track which images should be selected
+    const newSelection = new Set<string>();
+    
     displayedImages.forEach(img => {
       const el = document.getElementById(`card-${img.id}`);
       if (el) {
@@ -261,9 +348,23 @@ export function ImagesPage() {
            itemBottom < boxTop
         );
 
-        if (isIntersecting && !selectedImageIds.has(img.id)) {
-           toggleImageSelection(img.id);
+        if (isIntersecting) {
+           newSelection.add(img.id);
         }
+      }
+    });
+    
+    // Update selection to match what's in the box
+    newSelection.forEach(id => {
+      if (!selectedImageIds.has(id)) {
+        toggleImageSelection(id);
+      }
+    });
+    
+    // Deselect items that are no longer in the box
+    Array.from(selectedImageIds).forEach(id => {
+      if (!newSelection.has(id)) {
+        toggleImageSelection(id);
       }
     });
   };
@@ -397,9 +498,33 @@ export function ImagesPage() {
   };
 
   const handleBulkMove = async (targetFolderId?: string) => {
-    await moveImages(Array.from(selectedImageIds), targetFolderId || null);
-    setShowBulkMoveModal(false);
-    resetSelection();
+    try {
+      const imageIds = Array.from(selectedImageIds);
+      
+      // Check if moving images from folders when in All Images view
+      if (!selectedFolderId) {
+        const folderedImages = imageIds.filter(id => {
+          const img = images.find(i => i.id === id);
+          return img?.folder_id;
+        });
+        
+        if (folderedImages.length > 0) {
+          // Show modal for confirmation
+          setPendingMove({ targetFolderId: targetFolderId || null, imageIds });
+          setShowBulkMoveModal(false);
+          setShowMoveConfirmModal(true);
+          return;
+        }
+      }
+      
+      // No images in folders, proceed directly
+      setShowBulkMoveModal(false);
+      await executeMoveImages(targetFolderId || null, imageIds, false);
+      resetSelection();
+    } catch (error) {
+      console.error('Failed to move images:', error);
+      alert('Failed to move images. Check console for details.');
+    }
   };
 
   const handleBulkCreateGroup = () => {
@@ -446,9 +571,16 @@ export function ImagesPage() {
       if (!error && data) {
         addFolder(data as any);
         if (isCreatingGroupFromSelection && selectedImageIds.size > 0) {
+          console.log('Moving selected images to new folder:', Array.from(selectedImageIds), 'folder:', (data as any).id);
           await moveImages(Array.from(selectedImageIds), (data as any).id);
+          
+          // Refresh images after moving to new folder
+          await fetchImages(user.id, selectedFolderId || undefined);
           resetSelection();
         }
+      } else if (error) {
+        console.error('Failed to create folder:', error);
+        alert('Failed to create folder. Check console for details.');
       }
 
       setNewFolderName('');
@@ -569,48 +701,48 @@ export function ImagesPage() {
 
        {isCreateModalOpen && (
          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-           <div className="glass-panel w-full max-w-sm rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-              <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800">
                 <h3 className="font-semibold text-slate-900 dark:text-white">
                     {isCreatingGroupFromSelection ? 'Create Group from Selection' : 'Create Image Group'}
                 </h3>
                 <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={18} /></button>
               </div>
 
-              <form onSubmit={handleCreateImageFolder} className="p-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+              <form onSubmit={handleCreateImageFolder} className="p-4 flex flex-col gap-4 overflow-y-auto">
                 <div>
-                  <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Group Name</label>
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Group Name</label>
                   <input 
                     autoFocus
                     type="text"
                     placeholder="e.g. Assets, Wallpapers"
-                    className="w-full bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50 transition-all"
+                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
                     value={newFolderName}
                     onChange={(e) => setNewFolderName(e.target.value)}
                   />
                 </div>
                 <div>
                    <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Appearance</label>
+                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Appearance</label>
                       <button type="button" onClick={randomizeTheme} className="text-xs flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 font-medium transition-colors">
                         <Dice5 size={14} /> Randomize
                       </button>
                    </div>
-                   <div className="flex gap-2 mb-4 overflow-x-auto pb-1 no-scrollbar">
+                   <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
                      {['cyan', 'rose', 'purple', 'blue', 'emerald', 'amber'].map(color => (
-                       <button key={color} type="button" onClick={() => setSelectedColor(color)} className={`w-6 h-6 rounded-full bg-${color}-500 transition-all shrink-0 ${selectedColor === color ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-[#0f172a] ring-white scale-110' : 'hover:scale-110 opacity-70 hover:opacity-100'}`} />
+                       <button key={color} type="button" onClick={() => setSelectedColor(color)} className={`w-6 h-6 rounded-full bg-${color}-500 transition-all shrink-0 ${selectedColor === color ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-cyan-500 scale-110' : 'hover:scale-110 opacity-70 hover:opacity-100'}`} />
                      ))}
                    </div>
-                   <div className="h-48 overflow-y-auto custom-scrollbar border border-slate-200 dark:border-white/10 rounded-lg p-2 bg-slate-50/50 dark:bg-black/20 space-y-3">
+                   <div className="h-48 overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-800 space-y-3">
                       {IMAGE_ICON_CATEGORIES.map(cat => (
                         <div key={cat.name}>
-                          <div className="text-[10px] font-bold text-slate-400 uppercase mb-1.5">{cat.name}</div>
+                          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">{cat.name}</div>
                           <div className="grid grid-cols-6 gap-1.5">
                             {cat.icons.map(iconKey => {
                                const Icon = FOLDER_ICONS[iconKey];
                                if (!Icon) return null;
                                return (
-                                 <button key={iconKey} type="button" onClick={() => setSelectedIcon(iconKey)} className={`p-1.5 rounded-md flex items-center justify-center transition-all ${selectedIcon === iconKey ? `bg-${selectedColor}-500 text-white shadow-md scale-105` : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}`} title={iconKey}>
+                                 <button key={iconKey} type="button" onClick={() => setSelectedIcon(iconKey)} className={`p-1.5 rounded-md flex items-center justify-center transition-all ${selectedIcon === iconKey ? `bg-${selectedColor}-500 text-white shadow-md scale-105` : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200'}`} title={iconKey}>
                                     <Icon size={16} />
                                  </button>
                                )
@@ -621,9 +753,9 @@ export function ImagesPage() {
                    </div>
                 </div>
               </form>
-              <div className="p-4 border-t border-slate-100 dark:border-white/5 flex justify-end gap-2 bg-slate-50/50 dark:bg-white/5">
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10">Cancel</button>
-                <button onClick={handleCreateImageFolder} disabled={!newFolderName.trim()} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-900/20">Create</button>
+              <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2 bg-slate-50 dark:bg-slate-800">
+                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancel</button>
+                <button onClick={handleCreateImageFolder} disabled={!newFolderName.trim()} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-colors">Create</button>
               </div>
            </div>
          </div>
@@ -631,19 +763,21 @@ export function ImagesPage() {
 
        {showBulkMoveModal && (
          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-           <div className="glass-panel w-full max-w-sm rounded-xl p-4 shadow-2xl relative flex flex-col max-h-[500px]">
-             <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-200 dark:border-white/10">
-               <h3 className="font-bold">Move {selectedImageIds.size} Items To...</h3>
-               <button onClick={() => setShowBulkMoveModal(false)}><X size={18} className="text-slate-400" /></button>
+           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl p-4 shadow-2xl relative flex flex-col max-h-[500px] border border-slate-200 dark:border-slate-700">
+             <div className="flex justify-between items-center mb-4 pb-2 border-b border-slate-200 dark:border-slate-700">
+               <h3 className="font-bold text-slate-900 dark:text-white">Move {selectedImageIds.size} Items To...</h3>
+               <button onClick={() => setShowBulkMoveModal(false)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+                 <X size={18} />
+               </button>
              </div>
              <div className="flex-1 overflow-y-auto custom-scrollbar space-y-1">
-               <button onClick={() => handleBulkMove(undefined)} className="w-full text-left px-3 py-2 rounded text-sm hover:bg-slate-100 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300">
+               <button onClick={() => handleBulkMove(undefined)} className="w-full text-left px-3 py-2 rounded text-sm bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition-colors">
                  Unsorted (Root)
                </button>
                {imageFolders.map(f => {
                   const Icon = f.icon && FOLDER_ICONS[f.icon] ? FOLDER_ICONS[f.icon] : FolderIcon;
                   return (
-                    <button key={f.id} onClick={() => handleBulkMove(f.id)} className="w-full text-left px-3 py-2 rounded text-sm hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300">
+                    <button key={f.id} onClick={() => handleBulkMove(f.id)} className="w-full text-left px-3 py-2 rounded text-sm bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors">
                       <Icon size={14} className={`text-${f.color}-500`} /> {f.name}
                     </button>
                   )
@@ -682,6 +816,18 @@ export function ImagesPage() {
                   <span>{displayedImages.length} Assets</span>
                   <span>•</span>
                   <span>{selectedFolderId ? 'Folder View' : 'Global View'}</span>
+                  {!selectedFolderId && (
+                    <>
+                      <span>•</span>
+                      <button 
+                        onClick={() => setShowFolderedImages(!showFolderedImages)}
+                        className="text-cyan-500 hover:text-cyan-600 dark:hover:text-cyan-400 font-medium transition-colors flex items-center gap-1"
+                      >
+                        <FolderIcon size={14} />
+                        {showFolderedImages ? 'Hide' : 'Show'} Foldered
+                      </button>
+                    </>
+                  )}
                 </div>
              </div>
 
@@ -844,22 +990,35 @@ export function ImagesPage() {
              </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6 pb-20 select-none">
-               {displayedImages.map((img, index) => (
-                 <div key={img.id} id={`card-${img.id}`}>
-                    <ImageCard 
-                        image={img} 
-                        onDragStart={handleImageDragStart}
-                        onConvert={convertToAvif}
-                        onDownload={downloadImage}
-                        onDelete={deleteImageWrapper}
-                        isConverting={convertingId === img.id}
-                        onClick={() => isSelectionMode ? toggleImageSelection(img.id) : openLightbox(index)}
-                        selectable={true}
-                        isSelected={selectedImageIds.has(img.id)}
-                        onToggleSelect={() => toggleImageSelection(img.id)}
-                    />
-                 </div>
-               ))}
+               {displayedImages.map((img, index) => {
+                 const hasFeedback = feedbackImageIds.has(img.id);
+                 const imgFolder = img.folder_id ? folders.find(f => f.id === img.folder_id) : null;
+                 return (
+                   <div 
+                     key={img.id} 
+                     id={`card-${img.id}`}
+                     className={hasFeedback ? 'animate-pulse-scale' : ''}
+                   >
+                      <ImageCard 
+                          image={img} 
+                          folder={imgFolder}
+                          onDragStart={handleImageDragStart}
+                          onConvert={convertToAvif}
+                          onDownload={downloadImage}
+                          onDelete={deleteImageWrapper}
+                          onRemoveFromFolder={(id, e) => {
+                            e.stopPropagation();
+                            handleRemoveFromFolder(id);
+                          }}
+                          isConverting={convertingId === img.id}
+                          onClick={() => isSelectionMode ? toggleImageSelection(img.id) : openLightbox(index)}
+                          selectable={true}
+                          isSelected={selectedImageIds.has(img.id)}
+                          onToggleSelect={() => toggleImageSelection(img.id)}
+                      />
+                   </div>
+                 );
+               })}
             </div>
           )}
        </div>
@@ -920,6 +1079,83 @@ export function ImagesPage() {
             </div>
          </div>
        )}
+
+       {/* Move Confirmation Modal */}
+       {showMoveConfirmModal && pendingMove && (
+         <div 
+           className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[80] flex items-center justify-center p-4"
+           onClick={() => {
+             setShowMoveConfirmModal(false);
+             setPendingMove(null);
+           }}
+         >
+           <div 
+             className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-md w-full border border-slate-200 dark:border-slate-700 animate-in fade-in zoom-in-95 duration-200"
+             onClick={(e) => e.stopPropagation()}
+           >
+             {/* Header */}
+             <div className="flex items-center justify-between p-6 border-b border-slate-200 dark:border-slate-700">
+               <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                 Move Images
+               </h3>
+               <button
+                 onClick={() => {
+                   setShowMoveConfirmModal(false);
+                   setPendingMove(null);
+                 }}
+                 className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+               >
+                 <X className="w-5 h-5 text-slate-500" />
+               </button>
+             </div>
+
+             {/* Content */}
+             <div className="p-6">
+               <p className="text-slate-600 dark:text-slate-400 mb-6">
+                 {pendingMove.imageIds.filter(id => images.find(i => i.id === id)?.folder_id).length} image(s) already in a folder. What would you like to do?
+               </p>
+
+               {/* Actions */}
+               <div className="space-y-3">
+                 <button
+                   onClick={() => {
+                     executeMoveImages(pendingMove.targetFolderId, pendingMove.imageIds, false);
+                     setShowMoveConfirmModal(false);
+                     setPendingMove(null);
+                     resetSelection();
+                   }}
+                   className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors"
+                 >
+                   Move (Replace folder)
+                 </button>
+
+                 <button
+                   onClick={() => {
+                     executeMoveImages(pendingMove.targetFolderId, pendingMove.imageIds, true);
+                     setShowMoveConfirmModal(false);
+                     setPendingMove(null);
+                     resetSelection();
+                   }}
+                   className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-medium transition-colors"
+                 >
+                   Copy (Keep in both folders)
+                 </button>
+
+                 <button
+                   onClick={() => {
+                     setShowMoveConfirmModal(false);
+                     setPendingMove(null);
+                   }}
+                   className="w-full px-4 py-3 bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-900 dark:text-white rounded-xl font-medium transition-colors"
+                 >
+                   Cancel
+                 </button>
+               </div>
+             </div>
+           </div>
+         </div>
+       )}
+
        <style>{`
         @keyframes shrink {
           from { width: 100%; }
@@ -953,16 +1189,20 @@ const FilterSelect: React.FC<{
 
 const ImageCard: React.FC<{
   image: ImageType, 
+  folder?: any,
   onDragStart: (e: React.DragEvent, id: string) => void,
   onConvert: (img: ImageType, e: React.MouseEvent) => void,
   onDownload: (url: string, name: string, e: React.MouseEvent) => void,
   onDelete: (id: string, e: React.MouseEvent) => void,
+  onRemoveFromFolder?: (id: string, e: React.MouseEvent) => void,
   onClick: () => void,
   isConverting: boolean,
   selectable?: boolean,
   isSelected?: boolean,
   onToggleSelect?: () => void
-}> = ({ image, onDragStart, onConvert, onDownload, onDelete, onClick, isConverting, selectable, isSelected, onToggleSelect }) => {
+}> = ({ image, folder, onDragStart, onConvert, onDownload, onDelete, onRemoveFromFolder, onClick, isConverting, selectable, isSelected, onToggleSelect }) => {
+  const FolderIconComponent = folder?.icon && FOLDER_ICONS[folder.icon] ? FOLDER_ICONS[folder.icon] : FolderIcon;
+  
   return (
     <div 
       draggable
@@ -973,6 +1213,15 @@ const ImageCard: React.FC<{
         ${isSelected ? 'ring-2 ring-cyan-500 bg-cyan-500/10' : 'hover:scale-[1.02]'}
       `}
     >
+      {folder && (
+        <div 
+          className={`absolute top-2 left-2 z-10 w-10 h-10 flex items-center justify-center rounded-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-${folder.color}-500/50 shadow-lg transition-all hover:scale-110 cursor-default`}
+          title={`In folder: ${folder.name}`}
+        >
+          <FolderIconComponent size={18} className={`text-${folder.color}-600 dark:text-${folder.color}-400 group-hover:text-${folder.color}-500 dark:group-hover:text-${folder.color}-300 transition-colors`} />
+        </div>
+      )}
+      
       {selectable && (
         <button 
           onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
@@ -1005,6 +1254,15 @@ const ImageCard: React.FC<{
              >
                <Download size={18} />
              </button>
+             {folder && onRemoveFromFolder && (
+               <button 
+                 onClick={(e) => onRemoveFromFolder(image.id, e)}
+                 className="p-2.5 bg-orange-500/20 hover:bg-orange-500/40 backdrop-blur-md rounded-full text-orange-400 transition-colors" 
+                 title="Remove from folder"
+               >
+                 <FolderMinus size={18} />
+               </button>
+             )}
              <button 
                onClick={(e) => onDelete(image.id, e)}
                className="p-2.5 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-md rounded-full text-red-400 transition-colors" 

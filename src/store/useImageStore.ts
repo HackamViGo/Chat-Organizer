@@ -139,12 +139,15 @@ export const useImageStore = create<ImageStore>((set, get) => ({
       .update({ folder_id: folderId })
       .in('id', imageIds);
     
-    if (!error) {
-      set((state) => ({
-        images: state.images.map((img) => 
-          imageIds.includes(img.id) ? { ...img, folder_id: folderId } : img
-        )
-      }));
+    if (error) {
+      console.error('moveImages error:', error);
+      throw error;
     }
+    
+    set((state) => ({
+      images: state.images.map((img) => 
+        imageIds.includes(img.id) ? { ...img, folder_id: folderId } : img
+      )
+    }));
   }
 }));

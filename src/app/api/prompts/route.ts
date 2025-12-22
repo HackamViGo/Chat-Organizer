@@ -2,6 +2,19 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 
+// CORS headers for Chrome extension
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Credentials': 'true',
+};
+
+// Handle OPTIONS request for CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  return NextResponse.json({}, { headers: corsHeaders });
+}
+
 export async function GET(request: NextRequest) {
   const cookieStore = cookies();
   const supabase = createServerClient(
@@ -36,9 +49,12 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ prompts: data });
+    return NextResponse.json({ prompts: data }, { headers: corsHeaders });
   } catch (error: any) {
-    return new NextResponse(error.message, { status: 500 });
+    return new NextResponse(error.message, { 
+      status: 500,
+      headers: corsHeaders 
+    });
   }
 }
 
@@ -65,7 +81,10 @@ export async function POST(request: NextRequest) {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+      return new NextResponse('Unauthorized', { 
+        status: 401,
+        headers: corsHeaders 
+      });
     }
 
     const body = await request.json();
@@ -85,8 +104,11 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(data);
+    return NextResponse.json(data, { headers: corsHeaders });
   } catch (error: any) {
-    return new NextResponse(error.message, { status: 500 });
+    return new NextResponse(error.message, { 
+      status: 500,
+      headers: corsHeaders 
+    });
   }
 }

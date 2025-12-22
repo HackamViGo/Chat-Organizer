@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:3000';
+const API_BASE_URL = 'https://brainbox-alpha.vercel.app';
 
 let pendingChat = null;
 let folders = [];

@@ -1,6 +1,6 @@
 // Background Service Worker for AI Chat Organizer Extension
 
-const API_BASE_URL = 'http://localhost:3000'; // Change to production URL when deployed
+const API_BASE_URL = 'https://brainbox-alpha.vercel.app';
 
 // Initialize context menu on install
 chrome.runtime.onInstalled.addListener(() => {

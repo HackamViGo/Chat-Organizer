@@ -11,7 +11,7 @@ import {
   LayoutGrid, Archive, FileEdit, Settings, 
   Folder as FolderIcon, Plus, ChevronRight, ChevronDown, Hash, User, X, Search,
   ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, GripVertical, ListTodo,
-  MessageSquarePlus, MessageCircle,
+  MessageSquarePlus, MessageCircle, LogOut, Brain,
   // Dev Icons
   Code, Terminal, Cpu, Database, Server,
   // Art Icons
@@ -479,9 +479,9 @@ function SidebarContent() {
           {/* 1. Header & Logo */}
           <div className="flex items-center gap-2 px-2 mb-6 mt-2">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/20">
-              <Hash className="text-white" size={18} />
+              <Brain className="text-white" size={18} />
             </div>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">Mega-Pack</h1>
+            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">BrainBox</h1>
           </div>
 
           {/* 2. Main Navigation Links */}
@@ -578,6 +578,17 @@ function SidebarContent() {
           <div className="pt-3 mt-2 border-t border-slate-200 dark:border-white/5 space-y-1">
              <NavItem to="/archive" icon={Archive} label="Archive" isActive={isActive('/archive')} />
              <NavItem to="/settings" icon={Settings} label="Settings" isActive={isActive('/settings')} />
+             <button
+               onClick={async () => {
+                 const supabase = createClient();
+                 await supabase.auth.signOut();
+                 router.push('/auth/signin');
+               }}
+               className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+             >
+               <LogOut size={18} className="transition-colors" />
+               Logout
+             </button>
           </div>
 
         </div>

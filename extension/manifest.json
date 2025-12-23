@@ -15,7 +15,9 @@
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
     "https://claude.ai/*",
-    "https://gemini.google.com/*"
+    "https://gemini.google.com/*",
+    "https://lmarena.ai/*",
+    "https://chat.lmsys.org/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -26,7 +28,9 @@
         "http://localhost:3000/extension-auth*",
         "https://brainbox-alpha.vercel.app/extension-auth*"
       ],
-      "js": ["extension-auth.js"],
+      "js": [
+        "extension-auth.js"
+      ],
       "run_at": "document_idle"
     },
     {
@@ -34,10 +38,16 @@
         "https://chatgpt.com/*",
         "https://chat.openai.com/*",
         "https://claude.ai/*",
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://lmarena.ai/*",
+        "https://chat.lmsys.org/*"
       ],
-      "js": ["content-script.js"],
-      "css": ["content-styles.css"],
+      "js": [
+        "content-script.js"
+      ],
+      "css": [
+        "content-styles.css"
+      ],
       "run_at": "document_idle"
     }
   ],

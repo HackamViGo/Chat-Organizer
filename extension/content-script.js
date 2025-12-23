@@ -561,18 +561,58 @@
 
   function extractChatGPTMessages() {
     const messages = [];
-    const messageElements = document.querySelectorAll('[data-message-author-role]');
 
-    messageElements.forEach((el, index) => {
-      const role = el.getAttribute('data-message-author-role');
-      const contentEl = el.querySelector('.markdown, [class*="markdown"]') || el;
-      const content = contentEl.textContent.trim();
+    // Strategy 1: Look for 'article' elements (standard ChatGPT message containers)
+    const articles = document.querySelectorAll('article');
 
-      if (content) {
-        const roleLabel = role === 'user' ? 'USER' : 'ASSISTANT';
-        messages.push(`${roleLabel}:\n${content}\n`);
+    if (articles.length > 0) {
+      articles.forEach((article, index) => {
+        // Determine role: checks for user specific elements or text
+        const isUser = article.querySelector('[data-testid="user-message"]') ||
+          article.querySelector('h5') ||
+          (article.innerText && article.innerText.startsWith('You\n'));
+
+        const roleLabel = isUser ? 'USER' : 'ASSISTANT';
+
+        // Extract text content
+        // Usually content is in .markdown or a div with specific classes
+        const contentDiv = article.querySelector('.markdown') || article.querySelector('div[class*="text-message"]');
+        let text = '';
+
+        if (contentDiv) {
+          text = contentDiv.innerText.trim();
+        } else {
+          // Fallback: Get all text if specific container is missing
+          text = article.innerText.trim();
+        }
+
+        if (text) {
+          messages.push(`**${roleLabel}:**\n${text}\n`);
+        }
+      });
+    } else {
+      // Strategy 2: Fallback to getting all .markdown elements directly
+      // This works if article tags are missing but markdown content exists
+      const markdownDivs = document.querySelectorAll('.markdown');
+      markdownDivs.forEach(div => {
+        // Assume assistant if we can't determine, or valid message block
+        messages.push(`**MESSAGE:**\n${div.innerText.trim()}\n`);
+      });
+
+      // Strategy 3: Old data-message-author-role fallback
+      if (messages.length === 0) {
+        const messageElements = document.querySelectorAll('[data-message-author-role]');
+        messageElements.forEach((el) => {
+          const role = el.getAttribute('data-message-author-role');
+          const contentEl = el.querySelector('.markdown, [class*="markdown"]') || el;
+          const content = contentEl.textContent.trim();
+          if (content) {
+            const roleLabel = role === 'user' ? 'USER' : 'ASSISTANT';
+            messages.push(`**${roleLabel}:**\n${content}\n`);
+          }
+        });
       }
-    });
+    }
 
     return messages;
   }

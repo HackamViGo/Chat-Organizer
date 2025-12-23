@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, Chrome, Loader2 } from 'lucide-react';
@@ -10,11 +10,7 @@ export default function ExtensionAuthPage() {
   const [message, setMessage] = useState('Checking authentication...');
   const router = useRouter();
 
-  useEffect(() => {
-    handleExtensionAuth();
-  }, []);
-
-  async function handleExtensionAuth() {
+  const handleExtensionAuth = useCallback(async () => {
     try {
       const supabase = createClient();
       
@@ -71,7 +67,11 @@ export default function ExtensionAuthPage() {
       setStatus('error');
       setMessage(error.message || 'Failed to connect extension');
     }
-  }
+  }, [router]);
+
+  useEffect(() => {
+    handleExtensionAuth();
+  }, [handleExtensionAuth]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-[#0B1121] dark:via-[#0f1729] dark:to-[#0B1121] p-6 flex items-center justify-center">

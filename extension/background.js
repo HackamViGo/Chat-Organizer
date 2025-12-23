@@ -172,43 +172,34 @@ async function handleAddAllImages(info, tab) {
       return;
     }
 
-    // Save all images
-    let savedCount = 0;
-    let failedCount = 0;
+    // Save all images - now using BULK API for speed
+    try {
+      // Prepare bulk data
+      const bulkData = {
+        source_url: tab.url,
+        images: images.map(url => ({
+          url: url,
+          name: `Image from ${tab.title}`
+        }))
+      };
 
-    // Show initial notification
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'showNotification',
-      message: `⏳ Saving ${images.length} images...`,
-      type: 'success'
-    });
+      await handleSaveImage(bulkData);
 
-    for (const imageUrl of images) {
-      try {
-        await handleSaveImage({
-          url: imageUrl,
-          source_url: tab.url,
-          title: `Image from ${tab.title}`,
-          timestamp: new Date().toISOString()
-        });
-        savedCount++;
-      } catch (error) {
-        console.error('Error saving image:', imageUrl, error);
-        failedCount++;
-      }
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'showNotification',
+        message: `✓ Saved all ${images.length} images!`,
+        type: 'success'
+      });
+    } catch (error) {
+      console.error('Bulk save error:', error);
+      chrome.tabs.sendMessage(tab.id, {
+        action: 'showNotification',
+        message: '✗ Failed to save images',
+        type: 'error'
+      });
     }
-
-    const finalMessage = failedCount === 0
-      ? `✓ All ${savedCount} images saved!`
-      : `✓ ${savedCount} saved, ✗ ${failedCount} failed`;
-
-    chrome.tabs.sendMessage(tab.id, {
-      action: 'showNotification',
-      message: finalMessage,
-      type: failedCount === 0 ? 'success' : 'error'
-    });
   } catch (error) {
-    console.error('Error adding all images:', error);
+    console.error('Error in handleAddAllImages:', error);
     chrome.tabs.sendMessage(tab.id, {
       action: 'showNotification',
       message: '✗ Failed to extract images',
@@ -317,16 +308,38 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     });
     return true;
   }
+
+  if (request.action === 'saveImage') {
+    handleSaveImage(request.data)
+      .then(result => sendResponse({ success: true, data: result }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
+
+  if (request.action === 'saveAllImages') {
+    handleSaveImage(request.data)
+      .then(result => sendResponse({ success: true, data: result }))
+      .catch(error => sendResponse({ success: false, error: error.message }));
+    return true;
+  }
 });
 
 // Save chat to API
 async function handleSaveChat(chatData) {
   try {
+    console.log('[BrainBox Background] 📤 Saving chat:', {
+      title: chatData.title,
+      platform: chatData.platform,
+      contentLength: chatData.content?.length || 0,
+      url: chatData.url
+    });
+
     // Get stored access token and expiry
     const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
 
     // Check if token exists and is not expired
     if (!accessToken || (expiresAt && Date.now() > expiresAt)) {
+      console.warn('[BrainBox Background] ⚠️ Token missing or expired');
       // Open auth page
       chrome.tabs.create({
         url: `${API_BASE_URL}/extension-auth`
@@ -344,7 +357,10 @@ async function handleSaveChat(chatData) {
       credentials: 'omit'
     });
 
+    console.log('[BrainBox Background] 📡 API Response status:', response.status);
+
     if (response.status === 401 || response.status === 403) {
+      console.error('[BrainBox Background] ❌ Authentication failed');
       // Token expired - clear and open auth page
       await chrome.storage.local.remove(['accessToken', 'refreshToken', 'expiresAt']);
       chrome.tabs.create({
@@ -355,13 +371,15 @@ async function handleSaveChat(chatData) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(errorText || 'Failed to save chat');
+      console.error('[BrainBox Background] ❌ API Error:', errorText);
+      throw new Error(errorText || `HTTP ${response.status}`);
     }
 
     const result = await response.json();
+    console.log('[BrainBox Background] ✅ Chat saved successfully:', result.id);
     return result;
   } catch (error) {
-    console.error('Error saving chat:', error);
+    console.error('[BrainBox Background] ❌ Save failed:', error);
     throw error;
   }
 }

@@ -17,7 +17,7 @@
   init();
 
   function init() {
-    console.log('AI Chat Organizer extension loaded on', PLATFORM);
+    console.log('[BrainBox] 🚀 Extension loaded on', PLATFORM);
 
     if (PLATFORM !== 'Unknown') {
       loadCustomFolders();
@@ -25,6 +25,7 @@
       injectSaveButton();
       initializeHoverMenus();
       setupMessageListener();
+      initImageSaveButtons(); // ✅ NEW: Image save UI
     }
   }
 
@@ -488,13 +489,29 @@
   }
 
   async function handleSaveClick() {
+    console.log('[BrainBox] 💾 Save button clicked');
+
     // Direct auth check
     const { accessToken } = await chrome.storage.local.get(['accessToken']);
     if (!accessToken) {
+      console.warn('[BrainBox] ⚠️ No access token found');
       showLoginRequiredModal();
       return;
     }
+
     const chatData = extractChatData();
+
+    // ✅ NEW: Validate content is not empty
+    if (!chatData.content || chatData.content === 'No conversation content extracted') {
+      console.error('[BrainBox] ❌ Cannot save: No chat content found');
+      console.log('[BrainBox Debug] Chat data:', chatData);
+      showNotification('⚠️ No chat content found. Open DevTools (F12) for details.', 'error');
+      return;
+    }
+
+    // Count messages for feedback
+    const messageCount = (chatData.content.match(/\*\*USER:\*\*|\*\*ASSISTANT:\*\*|\*\*MODEL:\*\*/g) || []).length;
+    console.log(`[BrainBox] 📊 Saving ${messageCount} messages (${chatData.content.length} chars)`);
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -503,13 +520,14 @@
       });
 
       if (response && response.success) {
-        showNotification('✓ Chat saved successfully!', 'success');
+        console.log('[BrainBox] ✅ Chat saved successfully:', response.data?.id);
+        showNotification(`✓ Chat saved! (${messageCount} messages)`, 'success');
       } else {
         throw new Error(response?.error || 'Failed to save');
       }
     } catch (error) {
-      console.error('Save error:', error);
-      showNotification('Failed to save chat. Please try again.', 'error');
+      console.error('[BrainBox] ❌ Save error:', error);
+      showNotification(`✗ Failed: ${error.message}`, 'error');
     }
   }
 
@@ -550,6 +568,9 @@
   function extractChatContent() {
     const messages = [];
 
+    console.log(`[BrainBox Debug] 🔍 Starting extraction for ${PLATFORM}`);
+    console.log(`[BrainBox Debug] 📍 Current URL: ${window.location.href}`);
+
     switch (PLATFORM) {
       case 'ChatGPT':
         messages.push(...extractChatGPTMessages());
@@ -566,7 +587,17 @@
     }
 
     if (messages.length === 0) {
+      console.warn(`[BrainBox] ⚠️ NO MESSAGES FOUND for ${PLATFORM}!`);
+      console.log(`[BrainBox Debug] 🔧 Diagnostic Info:`);
+      console.log(`  - Articles found: ${document.querySelectorAll('article').length}`);
+      console.log(`  - [data-message-author-role]: ${document.querySelectorAll('[data-message-author-role]').length}`);
+      console.log(`  - .message elements: ${document.querySelectorAll('.message, [class*="message"]').length}`);
       return 'No conversation content extracted';
+    }
+
+    console.log(`[BrainBox] ✅ Extracted ${messages.length} messages from ${PLATFORM}`);
+    if (messages.length > 0) {
+      console.log(`[BrainBox Debug] 📝 First message preview:`, messages[0].substring(0, 100) + '...');
     }
 
     // Add header with metadata
@@ -578,89 +609,99 @@
   function extractChatGPTMessages() {
     const messages = [];
 
-    // Strategy 1: Look for 'article' elements (standard ChatGPT message containers)
-    const articles = document.querySelectorAll('article');
+    console.log('[BrainBox] 🔍 Trying ChatGPT extraction strategies...');
 
-    if (articles.length > 0) {
-      articles.forEach((article, index) => {
-        // Determine role: checks for user specific elements or text
-        const isUser = article.querySelector('[data-testid="user-message"]') ||
-          article.querySelector('h5') ||
-          (article.innerText && article.innerText.startsWith('You\n'));
+    // Strategy 1: Modern ChatGPT (2024+) - data-testid conversation turns
+    const conversationTurns = document.querySelectorAll('[data-testid^="conversation-turn-"]');
+    console.log(`[BrainBox] Strategy 1: Found ${conversationTurns.length} conversation turns`);
 
+    if (conversationTurns.length > 0) {
+      conversationTurns.forEach((turn) => {
+        const testId = turn.getAttribute('data-testid');
+        const isUser = testId?.includes('user');
         const roleLabel = isUser ? 'USER' : 'ASSISTANT';
 
-        // Extract text content
-        // Usually content is in .markdown or a div with specific classes
-        const contentDiv = article.querySelector('.markdown') || article.querySelector('div[class*="text-message"]');
-        let text = '';
+        // Find content within turn
+        const contentDiv = turn.querySelector('.markdown, [class*="markdown"]') || turn;
+        const text = contentDiv.innerText.trim();
 
-        if (contentDiv) {
-          text = contentDiv.innerText.trim();
-        } else {
-          // Fallback: Get all text if specific container is missing
-          text = article.innerText.trim();
-        }
-
-        if (text) {
+        if (text && text.length > 5) {
           messages.push(`**${roleLabel}:**\n${text}\n`);
         }
       });
-    } else {
-      // Strategy 2: Fallback to getting all .markdown elements directly
-      // This works if article tags are missing but markdown content exists
-      const markdownDivs = document.querySelectorAll('.markdown');
-      markdownDivs.forEach(div => {
-        // Assume assistant if we can't determine, or valid message block
-        messages.push(`**MESSAGE:**\n${div.innerText.trim()}\n`);
-      });
-
-      // Strategy 3: Old data-message-author-role fallback
-      if (messages.length === 0) {
-        const messageElements = document.querySelectorAll('[data-message-author-role]');
-        messageElements.forEach((el) => {
-          const role = el.getAttribute('data-message-author-role');
-          const contentEl = el.querySelector('.markdown, [class*="markdown"]') || el;
-          const content = contentEl.textContent.trim();
-          if (content) {
-            const roleLabel = role === 'user' ? 'USER' : 'ASSISTANT';
-            messages.push(`**${roleLabel}:**\n${content}\n`);
-          }
-        });
-      }
     }
 
+    // Strategy 2: Article-based (common structure)
+    if (messages.length === 0) {
+      const articles = document.querySelectorAll('article');
+      console.log(`[BrainBox] Strategy 2: Found ${articles.length} articles`);
+
+      articles.forEach((article) => {
+        // Check for data-message-author-role attribute (most reliable)
+        const authorRole = article.querySelector('[data-message-author-role]')?.getAttribute('data-message-author-role');
+
+        let isUser = false;
+        if (authorRole) {
+          isUser = authorRole === 'user';
+        } else {
+          // Fallback: check for user-specific elements
+          isUser = !!article.querySelector('[data-testid="user-message"]') ||
+            !!article.querySelector('.user-proxy-message') ||
+            !!article.querySelector('.font-user-message');
+        }
+
+        const roleLabel = isUser ? 'USER' : 'ASSISTANT';
+
+        // Find content - try multiple selectors
+        const contentDiv = article.querySelector('.markdown') ||
+          article.querySelector('[class*="markdown"]') ||
+          article.querySelector('.whitespace-pre-wrap') ||
+          article.querySelector('div[class*="text"]');
+
+        const text = contentDiv ? contentDiv.innerText.trim() : article.innerText.trim();
+
+        if (text && text.length > 10) {
+          // Clean up UI labels
+          const cleanText = text.replace(/^(You|ChatGPT|Вие|Ти)\s*\n/, '');
+          messages.push(`**${roleLabel}:**\n${cleanText}\n`);
+        }
+      });
+    }
+
+    // Strategy 3: Direct data-message-author-role (legacy/fallback)
+    if (messages.length === 0) {
+      const turns = document.querySelectorAll('[data-message-author-role]');
+      console.log(`[BrainBox] Strategy 3: Found ${turns.length} message roles`);
+
+      turns.forEach(turn => {
+        const role = turn.getAttribute('data-message-author-role');
+        const roleLabel = role === 'user' ? 'USER' : 'ASSISTANT';
+        const text = turn.innerText.trim();
+        if (text && text.length > 5) {
+          messages.push(`**${roleLabel}:**\n${text}\n`);
+        }
+      });
+    }
+
+    console.log(`[BrainBox] ChatGPT extraction result: ${messages.length} messages`);
     return messages;
   }
 
   function extractClaudeMessages() {
     const messages = [];
-    // Claude uses data-testid="user-message" and "assistant-message" often, or generic message blocks
-    // Strategy 1: Specific testids
-    const messageElements = document.querySelectorAll('[data-testid*="message"]');
+    const elements = document.querySelectorAll('[data-testid*="message"], .chat-content, .font-claude-message, .font-user-message');
 
-    if (messageElements.length > 0) {
-      messageElements.forEach((el, index) => {
-        const isUser = el.getAttribute('data-testid')?.includes('user');
-        const roleLabel = isUser ? 'USER' : 'ASSISTANT';
+    elements.forEach(el => {
+      const isUser = el.getAttribute('data-testid')?.includes('user') || el.classList.contains('font-user-message');
+      const roleLabel = isUser ? 'USER' : 'ASSISTANT';
 
-        // Content is usually in a .font-user-message or .font-claude-message div
-        const contentEl = el.querySelector('.font-user-message, .font-claude-message, .grid-cols-1') || el;
-        const content = contentEl.innerText.trim();
+      const contentEl = el.querySelector('.markdown, .grid-cols-1, .prose') || el;
+      const text = contentEl.innerText.trim();
 
-        if (content) {
-          messages.push(`**${roleLabel}:**\n${content}\n`);
-        }
-      });
-    } else {
-      // Strategy 2: Fallback for newer UI changes
-      const gridItems = document.querySelectorAll('.font-claude-message, .font-user-message');
-      gridItems.forEach(el => {
-        const isUser = el.classList.contains('font-user-message');
-        const roleLabel = isUser ? 'USER' : 'ASSISTANT';
-        messages.push(`**${roleLabel}:**\n${el.innerText.trim()}\n`);
-      });
-    }
+      if (text) {
+        messages.push(`**${roleLabel}:**\n${text}\n`);
+      }
+    });
 
     return messages;
   }
@@ -668,32 +709,78 @@
   function extractGeminiMessages() {
     const messages = [];
 
-    // Gemini structure involves 'conversation-container' and 'message-content'
-    // Strategy 1: Look for message containers with data-test-id
-    const messageElements = document.querySelectorAll('.message-content, [data-test-id^="message-"], message-content');
+    console.log('[BrainBox] 🔍 Trying Gemini extraction strategies...');
 
-    if (messageElements.length > 0) {
-      messageElements.forEach((el) => {
-        // Build role detection based on placement or attributes if available
-        // Often Gemini doesn't explicitly label user msg in attributes but in structure
-        // We'll rely on text heuristic or class
-        const isUser = el.closest('.user-message') || el.classList.contains('user-message') || el.innerText.startsWith('You\n');
+    // Strategy 1: Custom message-content elements (Gemini uses web components)
+    const messageContents = document.querySelectorAll('message-content, .message-content');
+    console.log(`[BrainBox] Strategy 1: Found ${messageContents.length} message-content elements`);
+
+    if (messageContents.length > 0) {
+      messageContents.forEach(el => {
+        // Detect role by parent or sibling elements
+        const parent = el.closest('[class*="user"], [class*="model"]');
+        const isUser = parent?.className.includes('user') ||
+          el.className.includes('user') ||
+          el.closest('[data-test-id*="user"]');
         const roleLabel = isUser ? 'USER' : 'MODEL';
 
-        const content = el.innerText.trim();
-
-        if (content) {
-          messages.push(`**${roleLabel}:**\n${content}\n`);
+        const text = el.innerText.trim();
+        if (text && text.length > 5) {
+          messages.push(`**${roleLabel}:**\n${text}\n`);
         }
-      });
-    } else {
-      // Strategy 2: Angular specific selectors (often used by Google)
-      const legacyElements = document.querySelectorAll('[data-message-id]');
-      legacyElements.forEach(el => {
-        messages.push(`**MESSAGE:**\n${el.innerText.trim()}\n`);
       });
     }
 
+    // Strategy 2: Look for model-response and user-query classes
+    if (messages.length === 0) {
+      const userQueries = document.querySelectorAll('.user-query-text, [class*="user-query"]');
+      const modelResponses = document.querySelectorAll('.model-response-text, [class*="model-response"]');
+      console.log(`[BrainBox] Strategy 2: Found ${userQueries.length} user queries, ${modelResponses.length} model responses`);
+
+      // Combine and sort by DOM order
+      const allMessages = [...userQueries, ...modelResponses].sort((a, b) => {
+        return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+      });
+
+      allMessages.forEach(el => {
+        const isUser = el.className.includes('user');
+        const roleLabel = isUser ? 'USER' : 'MODEL';
+        const text = el.innerText.trim();
+        if (text && text.length > 5) {
+          messages.push(`**${roleLabel}:**\n${text}\n`);
+        }
+      });
+    }
+
+    // Strategy 3: Fallback - look in conversation container for any text blocks
+    if (messages.length === 0) {
+      const conversationArea = document.querySelector('main, [role="main"], .conversation-container, [class*="conversation"]');
+      console.log(`[BrainBox] Strategy 3: Searching in conversation area:`, !!conversationArea);
+
+      if (conversationArea) {
+        // Look for divs with substantial text content
+        const textBlocks = conversationArea.querySelectorAll('div[class*="message"], div[class*="text"], p');
+        const validBlocks = [];
+
+        textBlocks.forEach(block => {
+          const text = block.innerText.trim();
+          // Filter: must have substantial content and not be a UI element
+          if (text.length > 20 && !text.includes('Copy') && !text.includes('Share')) {
+            validBlocks.push({ element: block, text });
+          }
+        });
+
+        console.log(`[BrainBox] Strategy 3: Found ${validBlocks.length} valid text blocks`);
+
+        // Alternate between USER and MODEL (heuristic)
+        validBlocks.forEach((block, idx) => {
+          const roleLabel = idx % 2 === 0 ? 'USER' : 'MODEL';
+          messages.push(`**${roleLabel}:**\n${block.text}\n`);
+        });
+      }
+    }
+
+    console.log(`[BrainBox] Gemini extraction result: ${messages.length} messages`);
     return messages;
   }
 
@@ -912,32 +999,207 @@
   // Extract all images from current page
   function extractAllImagesFromPage() {
     const images = [];
-    const imageElements = document.querySelectorAll('img');
 
+    // 1. Standard images
+    const imageElements = document.querySelectorAll('img');
     imageElements.forEach(img => {
-      const src = img.src || img.dataset.src;
-      if (src && src.startsWith('http')) {
-        // Filter out small images (likely icons/logos)
-        if (img.naturalWidth > 100 && img.naturalHeight > 100) {
+      const src = img.src || img.dataset.src || img.currentSrc;
+      if (src && (src.startsWith('http') || src.startsWith('blob:') || src.startsWith('data:'))) {
+        // More lenient filter for chat platforms
+        // Only ignore very small icons or data-URLs that aren't actually images
+        if (src.length > 50) {
           images.push(src);
         }
       }
     });
 
-    // Also check for background images
-    const allElements = document.querySelectorAll('*');
-    allElements.forEach(el => {
-      const bgImage = window.getComputedStyle(el).backgroundImage;
+    // 2. Chat specific image containers (some platforms use divs with background-image)
+    const chatImages = document.querySelectorAll('[style*="background-image"], .image-container, .chat-image');
+    chatImages.forEach(el => {
+      const bgImage = el.style.backgroundImage || window.getComputedStyle(el).backgroundImage;
       if (bgImage && bgImage !== 'none') {
         const urlMatch = bgImage.match(/url\(['"]?(.*?)['"]?\)/);
-        if (urlMatch && urlMatch[1] && urlMatch[1].startsWith('http')) {
+        if (urlMatch && urlMatch[1]) {
           images.push(urlMatch[1]);
         }
       }
     });
 
-    // Remove duplicates
-    return [...new Set(images)];
+    // Remove duplicates and filter out noise
+    const uniqueImages = [...new Set(images)].filter(src => {
+      // Filter out common UI icons
+      const isIcon = src.includes('favicon') || src.includes('avatar') || src.includes('icon-');
+      return !isIcon;
+    });
+
+    console.log(`[BrainBox] Found ${uniqueImages.length} potential images`);
+    return uniqueImages;
+  }
+
+  // ===== IMAGE SAVE FUNCTIONALITY =====
+
+  function initImageSaveButtons() {
+    console.log('[BrainBox] 🖼️ Initializing image save buttons');
+
+    // Add floating "Save All Images" button
+    createBulkImageSaveButton();
+
+    // Add hover listeners to images
+    document.addEventListener('mouseover', handleImageHover);
+    document.addEventListener('mouseout', handleImageMouseOut);
+  }
+
+  function createBulkImageSaveButton() {
+    // Check if button already exists
+    if (document.querySelector('.brainbox-save-all-images')) {
+      console.log('[BrainBox] Bulk save button already exists');
+      return;
+    }
+
+    const bulkButton = document.createElement('button');
+    bulkButton.className = 'brainbox-save-all-images';
+    bulkButton.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+      </svg>
+      Save All Images
+    `;
+    bulkButton.onclick = handleSaveAllImages;
+    document.body.appendChild(bulkButton);
+    console.log('[BrainBox] ✅ Bulk save button added');
+  }
+
+  let currentHoverButton = null;
+
+  function handleImageHover(e) {
+    if (e.target.tagName !== 'IMG') return;
+
+    const img = e.target;
+
+    // Don't add button to tiny images (likely icons)
+    if (img.naturalWidth < 50 || img.naturalHeight < 50) return;
+
+    // Check if button already exists for this image
+    if (img.dataset.brainboxButton) return;
+
+    // Create save button
+    const saveBtn = document.createElement('button');
+    saveBtn.className = 'brainbox-img-save';
+    saveBtn.innerHTML = '💾 Save';
+    saveBtn.onclick = (event) => {
+      event.stopPropagation();
+      handleSaveSingleImage(img.src || img.currentSrc);
+    };
+
+    // Position button
+    const parent = img.parentElement;
+    if (parent) {
+      const originalPosition = window.getComputedStyle(parent).position;
+      if (originalPosition === 'static') {
+        parent.style.position = 'relative';
+      }
+      parent.appendChild(saveBtn);
+      img.dataset.brainboxButton = 'true';
+      currentHoverButton = saveBtn;
+
+      console.log('[BrainBox] 🖘️ Hover button added to image:', img.src?.substring(0, 50));
+    }
+  }
+
+  function handleImageMouseOut(e) {
+    if (e.target.tagName !== 'IMG') return;
+
+    // Remove button after a delay
+    setTimeout(() => {
+      if (currentHoverButton && !currentHoverButton.matches(':hover')) {
+        currentHoverButton.remove();
+        currentHoverButton = null;
+        delete e.target.dataset.brainboxButton;
+      }
+    }, 500);
+  }
+
+  async function handleSaveSingleImage(imageUrl) {
+    console.log('[BrainBox] 💾 Attempting to save single image:', imageUrl);
+
+    try {
+      // Check auth
+      const { accessToken } = await chrome.storage.local.get(['accessToken']);
+      if (!accessToken) {
+        console.warn('[BrainBox] ⚠️ No access token for image save');
+        showLoginRequiredModal();
+        return;
+      }
+
+      console.log('[BrainBox] 🔑 Auth OK, sending save request');
+
+      const response = await chrome.runtime.sendMessage({
+        action: 'saveImage',
+        data: {
+          url: imageUrl,
+          name: 'Saved Image',
+          source_url: window.location.href
+        }
+      });
+
+      console.log('[BrainBox] 📡 Save response:', response);
+
+      if (response && response.success) {
+        showNotification('✓ Image saved!', 'success');
+      } else {
+        throw new Error(response?.error || 'Failed to save');
+      }
+    } catch (error) {
+      console.error('[BrainBox] ❌ Image save error:', error);
+      showNotification(`✗ Failed: ${error.message}`, 'error');
+    }
+  }
+
+  async function handleSaveAllImages() {
+    console.log('[BrainBox] 📸 Starting bulk image save');
+
+    try {
+      // Check auth
+      const { accessToken } = await chrome.storage.local.get(['accessToken']);
+      if (!accessToken) {
+        console.warn('[BrainBox] ⚠️ No access token for bulk save');
+        showLoginRequiredModal();
+        return;
+      }
+
+      console.log('[BrainBox] 🔍 Extracting images from page...');
+      const images = extractAllImagesFromPage();
+
+      if (images.length === 0) {
+        console.warn('[BrainBox] ⚠️ No images found on page');
+        showNotification('No images found on this page', 'error');
+        return;
+      }
+
+      console.log(`[BrainBox] 📊 Found ${images.length} images, preparing bulk save`);
+      showNotification(`⏳ Saving ${images.length} images...`, 'success');
+
+      const response = await chrome.runtime.sendMessage({
+        action: 'saveAllImages',
+        data: {
+          source_url: window.location.href,
+          images: images.map(url => ({ url, name: 'Extracted Image' }))
+        }
+      });
+
+      console.log('[BrainBox] 📡 Bulk save response:', response);
+
+      if (response && response.success) {
+        const savedCount = response.data?.length || images.length;
+        console.log(`[BrainBox] ✅ Successfully saved ${savedCount} images`);
+        showNotification(`✓ Saved ${savedCount} images!`, 'success');
+      } else {
+        throw new Error(response?.error || 'Failed to save');
+      }
+    } catch (error) {
+      console.error('[BrainBox] ❌ Bulk save error:', error);
+      showNotification(`✗ Failed: ${error.message}`, 'error');
+    }
   }
 
   // ===== STYLES INJECTION =====

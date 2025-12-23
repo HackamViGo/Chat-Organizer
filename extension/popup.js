@@ -1,220 +1,151 @@
-// Change to http://localhost:3000 for local testing
-const API_BASE_URL = 'http://localhost:3000';
-// const API_BASE_URL = 'https://brainbox-alpha.vercel.app';
+// BrainBox Extension Popup Logic
+const API_BASE_URL = 'https://brainbox-alpha.vercel.app';
 
-let pendingChat = null;
-let folders = [];
+// DOM Elements
+const views = {
+  loading: document.getElementById('view-loading'),
+  login: document.getElementById('view-login'),
+  dashboard: document.getElementById('view-dashboard')
+};
 
-// DOM elements
-const loadingState = document.getElementById('loading-state');
-const saveForm = document.getElementById('save-form');
-const messageContainer = document.getElementById('message-container');
-const titleInput = document.getElementById('title');
-const urlInput = document.getElementById('url');
-const platformSelect = document.getElementById('platform');
-const folderSelect = document.getElementById('folder');
-const contentTextarea = document.getElementById('content');
-const cancelBtn = document.getElementById('cancel-btn');
+const userElements = {
+  name: document.getElementById('user-name'),
+  email: document.getElementById('user-email'),
+  avatar: document.getElementById('user-avatar'),
+  badge: document.getElementById('connection-badge')
+};
 
-// Initialize popup
+const statElements = {
+  chats: document.getElementById('stat-chats'),
+  folders: document.getElementById('stat-folders'),
+  prompts: document.getElementById('stat-prompts'),
+  images: document.getElementById('stat-images')
+};
+
+// Initialize
 async function init() {
-  showLoading(true);
-  
   try {
-    // Check if user is logged in (has access token)
     const { accessToken } = await chrome.storage.local.get(['accessToken']);
-    
+
     if (!accessToken) {
-      // Not logged in - show login prompt
-      showLoginPrompt();
-      showLoading(false);
+      // User requested: "ако пробваш да позваш extansiona а не си логнат да те праща директно в лог ин"
+      chrome.tabs.create({ url: `${API_BASE_URL}/extension-auth` });
+      window.close();
       return;
     }
 
-    // Load pending chat from storage
-    const data = await chrome.storage.local.get(['pendingChat']);
-    pendingChat = data.pendingChat;
+    // Attempt to fetch stats
+    await loadDashboard(accessToken);
 
-    // Fetch folders from API
-    await fetchFolders();
+    // Check if we are on a supported AI platform
+    await checkPlatformStatus();
 
-    // Populate form if pending chat exists
-    if (pendingChat) {
-      populateForm(pendingChat);
-    } else {
-      // Try to extract current tab data
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (tabs[0]) {
-        titleInput.value = tabs[0].title || '';
-        urlInput.value = tabs[0].url || '';
-        platformSelect.value = detectPlatformFromUrl(tabs[0].url);
-      }
-    }
-
-    showLoading(false);
-    saveForm.style.display = 'block';
   } catch (error) {
     console.error('Init error:', error);
-    showMessage('Failed to load chat data. Please try again.', 'error');
-    showLoading(false);
+    chrome.tabs.create({ url: `${API_BASE_URL}/extension-auth` });
+    window.close();
   }
 }
 
-// Show login prompt
-function showLoginPrompt() {
-  loadingState.style.display = 'none';
-  saveForm.style.display = 'none';
-  
-  const loginPrompt = document.createElement('div');
-  loginPrompt.style.cssText = 'padding: 24px; text-align: center;';
-  loginPrompt.innerHTML = `
-    <h2 style="font-size: 20px; margin-bottom: 16px;">Login Required</h2>
-    <p style="margin-bottom: 24px; opacity: 0.9;">Please login to your BrainBox account to use the extension.</p>
-    <button id="login-btn" style="width: 100%; padding: 12px; background: white; color: #667eea; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;">
-      Login to BrainBox
-    </button>
-  `;
-  
-  document.querySelector('.content').appendChild(loginPrompt);
-  
-  document.getElementById('login-btn').addEventListener('click', () => {
-    chrome.tabs.create({ url: `${API_BASE_URL}/extension-auth` });
-    window.close();
+function showView(viewName) {
+  Object.keys(views).forEach(key => {
+    views[key].classList.toggle('active', key === viewName);
   });
 }
 
-// Fetch folders from API
-async function fetchFolders() {
+async function loadDashboard(token) {
   try {
-    const { accessToken } = await chrome.storage.local.get(['accessToken']);
-    
-    if (!accessToken) {
-      throw new Error('Not authenticated');
-    }
-
-    const response = await fetch(`${API_BASE_URL}/api/folders`, {
-      method: 'GET',
+    const response = await fetch(`${API_BASE_URL}/api/stats`, {
       headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
+        'Authorization': `Bearer ${token}`
       }
     });
 
     if (!response.ok) {
-      throw new Error('Failed to fetch folders');
+      if (response.status === 401) {
+        // Token expired
+        await handleLogout();
+        return;
+      }
+      throw new Error('Stats fetch failed');
     }
 
     const data = await response.json();
-    folders = data.folders || [];
 
-    // Populate folder dropdown
-    folderSelect.innerHTML = '<option value="">No folder</option>';
-    folders
-      .filter(f => f.type === 'chat' || !f.type)
-      .forEach(folder => {
-        const option = document.createElement('option');
-        option.value = folder.id;
-        option.textContent = folder.name;
-        folderSelect.appendChild(option);
-      });
-  } catch (error) {
-    console.error('Fetch folders error:', error);
-    // Continue without folders
-  }
-}
+    // Update UI
+    userElements.name.textContent = data.user.full_name;
+    userElements.email.textContent = data.user.email;
+    userElements.badge.style.display = 'flex';
 
-// Populate form with pending chat data
-function populateForm(chat) {
-  if (chat.title) titleInput.value = chat.title;
-  if (chat.url) urlInput.value = chat.url;
-  if (chat.platform) platformSelect.value = chat.platform;
-  if (chat.content) contentTextarea.value = chat.content.substring(0, 500) + '...';
-}
-
-// Detect platform from URL
-function detectPlatformFromUrl(url) {
-  if (!url) return 'Other';
-  if (url.includes('chatgpt.com') || url.includes('chat.openai.com')) return 'ChatGPT';
-  if (url.includes('claude.ai')) return 'Claude';
-  if (url.includes('gemini.google.com')) return 'Gemini';
-  return 'Other';
-}
-
-// Handle form submission
-saveForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-
-  const submitBtn = saveForm.querySelector('button[type="submit"]');
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Saving...';
-
-  try {
-    const chatData = {
-      title: titleInput.value.trim(),
-      url: urlInput.value.trim() || null,
-      platform: platformSelect.value,
-      folder_id: folderSelect.value || null,
-      content: pendingChat?.content || contentTextarea.value || '',
-      timestamp: pendingChat?.timestamp || new Date().toISOString()
-    };
-
-    // Validate required fields
-    if (!chatData.title) {
-      throw new Error('Title is required');
-    }
-
-    // Send to background script to save
-    const response = await chrome.runtime.sendMessage({
-      action: 'saveChat',
-      data: chatData
-    });
-
-    if (response.success) {
-      // Clear pending chat
-      await chrome.storage.local.remove(['pendingChat']);
-      
-      showMessage('Chat saved successfully!', 'success');
-      
-      // Close popup after short delay
-      setTimeout(() => {
-        window.close();
-      }, 1500);
+    if (data.user.avatar_url) {
+      userElements.avatar.innerHTML = `<img src="${data.user.avatar_url}" alt="Avatar">`;
     } else {
-      throw new Error(response.error || 'Failed to save chat');
+      userElements.avatar.textContent = data.user.full_name.charAt(0).toUpperCase();
     }
-  } catch (error) {
-    console.error('Save error:', error);
-    showMessage(error.message || 'Failed to save chat. Please try again.', 'error');
-    submitBtn.disabled = false;
-    submitBtn.textContent = 'Save Chat';
-  }
-});
 
-// Handle cancel button
-cancelBtn.addEventListener('click', () => {
-  chrome.storage.local.remove(['pendingChat']);
+    statElements.chats.textContent = data.stats.chats;
+    statElements.folders.textContent = data.stats.folders;
+    statElements.prompts.textContent = data.stats.prompts;
+    statElements.images.textContent = data.stats.images;
+
+    showView('dashboard');
+  } catch (err) {
+    console.error('Dashboard load error:', err);
+    showView('login');
+  }
+}
+
+async function checkPlatformStatus() {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab || !tab.url) return;
+
+  const url = tab.url;
+  const isAIPlatform = url.includes('chatgpt.com') ||
+    url.includes('chat.openai.com') ||
+    url.includes('claude.ai') ||
+    url.includes('gemini.google.com') ||
+    url.includes('lmarena.ai') ||
+    url.includes('lmsys.org');
+
+  if (isAIPlatform) {
+    document.getElementById('save-current-section').style.display = 'block';
+  }
+}
+
+// Event Listeners
+document.getElementById('btn-login').addEventListener('click', () => {
+  chrome.tabs.create({ url: `${API_BASE_URL}/extension-auth` });
   window.close();
 });
 
-// Show/hide loading state
-function showLoading(show) {
-  loadingState.style.display = show ? 'block' : 'none';
-}
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await handleLogout();
+});
 
-// Show message
-function showMessage(text, type = 'error') {
-  const messageDiv = document.createElement('div');
-  messageDiv.className = `message message-${type}`;
-  messageDiv.textContent = text;
-  messageContainer.innerHTML = '';
-  messageContainer.appendChild(messageDiv);
+document.getElementById('btn-open-app').addEventListener('click', () => {
+  chrome.tabs.create({ url: API_BASE_URL });
+  window.close();
+});
 
-  if (type === 'success') {
-    setTimeout(() => {
-      messageDiv.remove();
-    }, 3000);
+document.getElementById('btn-settings').addEventListener('click', () => {
+  chrome.tabs.create({ url: `${API_BASE_URL}/settings` });
+  window.close();
+});
+
+document.getElementById('btn-save-current').addEventListener('click', async () => {
+  // Trigger save in content script
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab) {
+    chrome.tabs.sendMessage(tab.id, { action: 'triggerSaveContent' });
+    window.close();
   }
+});
+
+async function handleLogout() {
+  await chrome.storage.local.remove(['accessToken', 'refreshToken', 'expiresAt']);
+  showView('login');
+  userElements.badge.style.display = 'none';
 }
 
-// Start initialization
+// Start
 init();

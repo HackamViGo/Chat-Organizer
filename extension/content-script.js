@@ -39,7 +39,7 @@
       return 'Claude';
     } else if (hostname.includes('gemini.google.com')) {
       return 'Gemini';
-    } else if (hostname.includes('lmarena.ai') || hostname.includes('lmsys.org')) {
+    } else if (hostname.includes('lmarena.ai') || hostname.includes('lmsys.org') || hostname.includes('arena.lmsys')) {
       return 'LMArena';
     }
     return 'Unknown';
@@ -270,6 +270,12 @@
 
   async function saveChatToFolder(url, title, folderId) {
     try {
+      // Direct auth check
+      const { accessToken } = await chrome.storage.local.get(['accessToken']);
+      if (!accessToken) {
+        showLoginRequiredModal();
+        return;
+      }
       const chatData = {
         title: title,
         url: url,
@@ -457,7 +463,11 @@
       case 'Gemini':
         return document.querySelector('header') || document.querySelector('.header-content');
       case 'LMArena':
-        return document.querySelector('header') || document.querySelector('.top-bar');
+        return document.querySelector('header') ||
+          document.querySelector('.top-bar') ||
+          document.querySelector('#notice-markdown')?.parentElement ||
+          document.querySelector('.gradio-container') ||
+          document.body;
       default:
         return null;
     }
@@ -478,6 +488,12 @@
   }
 
   async function handleSaveClick() {
+    // Direct auth check
+    const { accessToken } = await chrome.storage.local.get(['accessToken']);
+    if (!accessToken) {
+      showLoginRequiredModal();
+      return;
+    }
     const chatData = extractChatData();
 
     try {
@@ -683,16 +699,32 @@
 
   function extractLMArenaMessages() {
     const messages = [];
-    const messageElements = document.querySelectorAll('.message, [data-message], .chat-message');
+    // Gradio 4+ selectors
+    const messageElements = document.querySelectorAll('.chatbot .message, .message.user, .message.bot, .message-wrap .message, [data-testid="bot"], [data-testid="user"]');
 
-    messageElements.forEach(el => {
-      const isUser = el.classList.contains('user') || el.closest('.user');
-      const roleLabel = isUser ? 'USER' : 'ASSISTANT';
-      const content = el.innerText.trim();
-      if (content) {
-        messages.push(`**${roleLabel}:**\n${content}\n`);
-      }
-    });
+    if (messageElements.length > 0) {
+      messageElements.forEach(el => {
+        const isUser = el.classList.contains('user') || el.closest('.user') || el.getAttribute('data-testid') === 'user';
+        const roleLabel = isUser ? 'USER' : 'ASSISTANT';
+
+        // Extra content from .md or specific wrapper
+        const contentEl = el.querySelector('.md, .message-content, p') || el;
+        const content = contentEl.innerText.trim();
+
+        if (content) {
+          messages.push(`**${roleLabel}:**\n${content}\n`);
+        }
+      });
+    } else {
+      // Strategy 2: Tabular structure or legacy Gradio
+      const botMessages = document.querySelectorAll('.bot');
+      const userMessages = document.querySelectorAll('.user');
+      // Mix them logically if possible, or just dump
+      [...userMessages, ...botMessages].forEach(el => {
+        const role = el.classList.contains('user') ? 'USER' : 'ASSISTANT';
+        messages.push(`**${role}:**\n${el.innerText.trim()}\n`);
+      });
+    }
 
     return messages;
   }
@@ -847,57 +879,11 @@
 
   // Show centered modal for login required
   function showLoginRequiredModal() {
-    // Remove existing modal if any
-    const existing = document.querySelector('.ai-organizer-login-modal');
-    if (existing) existing.remove();
-
-    const modalOverlay = document.createElement('div');
-    modalOverlay.className = 'ai-organizer-login-modal';
-    modalOverlay.innerHTML = `
-      <div class="ai-organizer-login-content">
-        <div class="ai-organizer-login-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
-            <polyline points="10 17 15 12 10 7"/>
-            <line x1="15" x2="3" y1="12" y2="12"/>
-          </svg>
-        </div>
-        <h2>Login Required</h2>
-        <p>Please login to your BrainBox account to save chats.</p>
-        <button class="ai-organizer-login-btn" id="brainbox-login-btn">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10"/>
-            <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-            <line x1="9" x2="9.01" y1="9" y2="9"/>
-            <line x1="15" x2="15.01" y1="9" y2="9"/>
-          </svg>
-          Login to BrainBox
-        </button>
-        <button class="ai-organizer-cancel-btn" id="brainbox-cancel-btn">Maybe Later</button>
-      </div>
-    `;
-
-    document.body.appendChild(modalOverlay);
-
-    // Add event listeners
-    document.getElementById('brainbox-login-btn').addEventListener('click', () => {
-      // Change URL for local testing
-      window.open('http://localhost:3000/extension-auth', '_blank');
-      // window.open('https://brainbox-alpha.vercel.app/extension-auth', '_blank');
-      modalOverlay.remove();
-    });
-
-    document.getElementById('brainbox-cancel-btn').addEventListener('click', () => {
-      modalOverlay.remove();
-    });
-
-    // Close on overlay click
-    modalOverlay.addEventListener('click', (e) => {
-      if (e.target === modalOverlay) {
-        modalOverlay.remove();
-      }
-    });
+    // User requested: "да те праща директно в лог ин"
+    window.open('https://brainbox-alpha.vercel.app/extension-auth', '_blank');
   }
+
+
 
   // ===== MESSAGE LISTENER =====
 
@@ -906,6 +892,9 @@
       if (message.action === 'extractChatContext') {
         const chatData = extractChatData();
         sendResponse(chatData);
+      } else if (message.action === 'triggerSaveContent') {
+        handleSaveClick();
+        sendResponse({ success: true });
       } else if (message.action === 'showPromptSelector') {
         showPromptSelector(message.prompts);
         sendResponse({ success: true });

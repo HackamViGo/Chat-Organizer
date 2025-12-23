@@ -9,35 +9,25 @@ chrome.runtime.onInstalled.addListener(() => {
   // Right-click on selection: Add to Chat Organizer (direct to My Chats)
   chrome.contextMenus.create({
     id: 'add-to-chat-organizer',
-    title: 'Add to Chat Organizer',
-    contexts: ['selection', 'page']
-  });
-
-  // Right-click on page/selection: Add to Images (with submenu)
-  chrome.contextMenus.create({
-    id: 'add-to-images',
-    title: 'Add to Images',
-    contexts: ['image', 'page']
-  });
-
-  chrome.contextMenus.create({
-    id: 'add-single-image',
-    parentId: 'add-to-images',
-    title: 'Add Image',
-    contexts: ['image', 'page']
+    title: '🎯 Save Full Chat to BrainBox',
+    contexts: ['page']
   });
 
   chrome.contextMenus.create({
     id: 'add-all-images',
-    parentId: 'add-to-images',
-    title: 'Add All Images (Bulk)',
+    title: '📸 Save All Images to BrainBox',
     contexts: ['page']
   });
 
-  // Insert prompt in editable fields
+  chrome.contextMenus.create({
+    id: 'add-single-image',
+    title: '💾 Save Image to BrainBox',
+    contexts: ['image']
+  });
+
   chrome.contextMenus.create({
     id: 'insert-prompt',
-    title: 'Insert Prompt',
+    title: '⌨️ Insert BrainBox Prompt',
     contexts: ['editable']
   });
 
@@ -184,24 +174,38 @@ async function handleAddAllImages(info, tab) {
 
     // Save all images
     let savedCount = 0;
+    let failedCount = 0;
+
+    // Show initial notification
+    chrome.tabs.sendMessage(tab.id, {
+      action: 'showNotification',
+      message: `⏳ Saving ${images.length} images...`,
+      type: 'success'
+    });
+
     for (const imageUrl of images) {
       try {
         await handleSaveImage({
           url: imageUrl,
           source_url: tab.url,
-          title: `Image ${savedCount + 1} from ${tab.title}`,
+          title: `Image from ${tab.title}`,
           timestamp: new Date().toISOString()
         });
         savedCount++;
       } catch (error) {
         console.error('Error saving image:', imageUrl, error);
+        failedCount++;
       }
     }
 
+    const finalMessage = failedCount === 0
+      ? `✓ All ${savedCount} images saved!`
+      : `✓ ${savedCount} saved, ✗ ${failedCount} failed`;
+
     chrome.tabs.sendMessage(tab.id, {
       action: 'showNotification',
-      message: `✓ ${savedCount}/${images.length} images saved!`,
-      type: 'success'
+      message: finalMessage,
+      type: failedCount === 0 ? 'success' : 'error'
     });
   } catch (error) {
     console.error('Error adding all images:', error);

@@ -619,46 +619,78 @@
 
   function extractClaudeMessages() {
     const messages = [];
-    const messageElements = document.querySelectorAll('[data-testid^="message-"]');
+    // Claude uses data-testid="user-message" and "assistant-message" often, or generic message blocks
+    // Strategy 1: Specific testids
+    const messageElements = document.querySelectorAll('[data-testid*="message"]');
 
-    messageElements.forEach((el, index) => {
-      const isUser = el.getAttribute('data-testid').includes('user');
-      const roleLabel = isUser ? 'USER' : 'ASSISTANT';
-      const content = el.textContent.trim();
+    if (messageElements.length > 0) {
+      messageElements.forEach((el, index) => {
+        const isUser = el.getAttribute('data-testid')?.includes('user');
+        const roleLabel = isUser ? 'USER' : 'ASSISTANT';
 
-      if (content) {
-        messages.push(`${roleLabel}:\n${content}\n`);
-      }
-    });
+        // Content is usually in a .font-user-message or .font-claude-message div
+        const contentEl = el.querySelector('.font-user-message, .font-claude-message, .grid-cols-1') || el;
+        const content = contentEl.innerText.trim();
+
+        if (content) {
+          messages.push(`**${roleLabel}:**\n${content}\n`);
+        }
+      });
+    } else {
+      // Strategy 2: Fallback for newer UI changes
+      const gridItems = document.querySelectorAll('.font-claude-message, .font-user-message');
+      gridItems.forEach(el => {
+        const isUser = el.classList.contains('font-user-message');
+        const roleLabel = isUser ? 'USER' : 'ASSISTANT';
+        messages.push(`**${roleLabel}:**\n${el.innerText.trim()}\n`);
+      });
+    }
 
     return messages;
   }
 
   function extractGeminiMessages() {
     const messages = [];
-    const messageElements = document.querySelectorAll('[data-test-id*="message"]');
 
-    messageElements.forEach((el, index) => {
-      const isUser = el.getAttribute('data-test-id').includes('user');
-      const roleLabel = isUser ? 'USER' : 'MODEL';
-      const content = el.textContent.trim();
+    // Gemini structure involves 'conversation-container' and 'message-content'
+    // Strategy 1: Look for message containers with data-test-id
+    const messageElements = document.querySelectorAll('.message-content, [data-test-id^="message-"], message-content');
 
-      if (content) {
-        messages.push(`${roleLabel}:\n${content}\n`);
-      }
-    });
+    if (messageElements.length > 0) {
+      messageElements.forEach((el) => {
+        // Build role detection based on placement or attributes if available
+        // Often Gemini doesn't explicitly label user msg in attributes but in structure
+        // We'll rely on text heuristic or class
+        const isUser = el.closest('.user-message') || el.classList.contains('user-message') || el.innerText.startsWith('You\n');
+        const roleLabel = isUser ? 'USER' : 'MODEL';
+
+        const content = el.innerText.trim();
+
+        if (content) {
+          messages.push(`**${roleLabel}:**\n${content}\n`);
+        }
+      });
+    } else {
+      // Strategy 2: Angular specific selectors (often used by Google)
+      const legacyElements = document.querySelectorAll('[data-message-id]');
+      legacyElements.forEach(el => {
+        messages.push(`**MESSAGE:**\n${el.innerText.trim()}\n`);
+      });
+    }
 
     return messages;
   }
 
   function extractLMArenaMessages() {
     const messages = [];
-    const messageElements = document.querySelectorAll('.message, [data-message]');
+    const messageElements = document.querySelectorAll('.message, [data-message], .chat-message');
 
     messageElements.forEach(el => {
-      const content = el.textContent.trim();
+      const isUser = el.classList.contains('user') || el.closest('.user');
+      const roleLabel = isUser ? 'USER' : 'ASSISTANT';
+      const content = el.innerText.trim();
       if (content) {
-        messages.push(content);
+        messages.push(`**${roleLabel}:**\n${content}\n`);
       }
     });
 

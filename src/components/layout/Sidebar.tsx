@@ -143,13 +143,13 @@ const NavItem: React.FC<{
     <Link 
       href={to} 
       className={`
-        flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group
+        flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 group shadow-md
         ${isActive 
           ? colors.active
-          : `text-slate-500 dark:text-slate-400 ${colors.hover}`}
+          : `text-slate-500 dark:text-slate-400 ${colors.hover} dark:hover:text-white`}
       `}
     >
-      <Icon size={18} className={`transition-colors ${isActive ? colors.activeIcon : 'text-slate-400 group-hover:opacity-100'}`} />
+      <Icon size={18} className={`transition-colors ${isActive ? colors.activeIcon : 'text-slate-400 group-hover:text-white dark:group-hover:text-white group-hover:opacity-100'}`} />
       {label}
     </Link>
   );
@@ -234,10 +234,10 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
         <Link 
           href={targetLink}
           className={`
-            group flex items-center justify-between px-2 py-1.5 rounded-lg text-sm transition-all border relative my-0.5
+            group flex items-center justify-between px-2 py-1.5 rounded-lg text-sm transition-all border relative my-0.5 shadow-md
             ${isActiveItem 
               ? 'bg-white dark:bg-white/5 text-slate-900 dark:text-slate-200 border-slate-200 dark:border-transparent shadow-sm' 
-              : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-200'}
+              : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'}
             ${dragPosition === 'inside' ? 'bg-cyan-100 dark:bg-cyan-900/30 border-cyan-400 dark:border-cyan-500 ring-1 ring-cyan-400 z-10' : ''}
           `}
           style={{ paddingLeft: `${level * 12 + 8}px` }}
@@ -295,7 +295,7 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
                 href={`/chats?id=${chat.id}`}
                 draggable
                 onDragStart={(e) => onChatDragStart(e, chat.id)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-all text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 shadow-md"
                 style={{ paddingLeft: `${(level + 1) * 12 + 28}px` }}
              >
                 <MessageCircle size={12} className="opacity-70 shrink-0" />
@@ -474,7 +474,7 @@ function SidebarContent() {
           <div className="w-full max-w-sm bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
               <h3 className="font-semibold text-slate-900 dark:text-white capitalize">New Folder</h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={18} /></button>
+              <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white" aria-label="Close modal" title="Close"><X size={18} /></button>
             </div>
             
             <form onSubmit={handleAddFolder} className="p-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
@@ -501,6 +501,8 @@ function SidebarContent() {
                             onClick={() => { setSelectedIcon(iconKey); setSelectedColor(cat.color); }} 
                             className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? `bg-${cat.color}-500 text-white shadow-md scale-110` : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`} 
                             type="button"
+                            aria-label={`Select ${iconKey} icon`}
+                            title={iconKey}
                           >
                             <IconComp size={18} />
                           </button>
@@ -555,7 +557,7 @@ function SidebarContent() {
                </div>
                <button 
                  onClick={openCreateModal} 
-                 className="p-1 text-slate-400 hover:text-cyan-500 rounded hover:bg-slate-100 dark:hover:bg-white/5 transition-all" 
+                 className="p-1 text-slate-400 hover:text-cyan-500 rounded hover:bg-slate-100 dark:hover:bg-white/5 transition-all shadow-md" 
                  title="New Folder"
                >
                  <Plus size={14} />
@@ -570,9 +572,9 @@ function SidebarContent() {
                    value={searchTerm} 
                    onChange={(e) => setSearchTerm(e.target.value)} 
                    placeholder="Filter folders..." 
-                   className="w-full bg-slate-100 dark:bg-white/5 border-transparent focus:border-cyan-500/50 rounded-md pl-8 pr-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none transition-all"
+                   className="w-full bg-slate-100 dark:bg-white/5 border-transparent focus:border-cyan-500/50 rounded-md pl-8 pr-2 py-1.5 text-xs text-slate-700 dark:text-slate-300 focus:outline-none transition-all shadow-md"
                  />
-                 {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X size={10} /></button>}
+                 {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600" aria-label="Clear search" title="Clear search"><X size={10} /></button>}
              </div>
 
              {/* Folder Tree */}
@@ -604,7 +606,7 @@ function SidebarContent() {
                      href={`/chats?id=${chat.id}`} 
                      draggable 
                      onDragStart={(e) => handleChatDragStart(e, chat.id)}
-                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all border border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 ml-3"
+                     className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all border border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5 ml-3 shadow-md"
                    >
                       <MessageCircle size={14} className="opacity-70 shrink-0" />
                       <span className="truncate">{chat.title}</span>
@@ -646,7 +648,7 @@ function SidebarContent() {
                  await supabase.auth.signOut();
                  router.push('/auth/signin');
                }}
-               className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10"
+               className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 shadow-md"
              >
                <LogOut size={18} className="transition-colors" />
                Logout

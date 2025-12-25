@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useChatStore } from '@/store/useChatStore';
 import { ChatCard } from '@/components/features/chats/ChatCard';
 import { MessageSquarePlus } from 'lucide-react';
@@ -20,12 +20,7 @@ export default function ChatsPage() {
     content: ''
   });
 
-  useEffect(() => {
-    setMounted(true);
-    fetchChats();
-  }, []);
-
-  const fetchChats = async () => {
+  const fetchChats = useCallback(async () => {
     try {
       const response = await fetch('/api/chats', {
         credentials: 'include'
@@ -39,7 +34,12 @@ export default function ChatsPage() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [setChats]);
+
+  useEffect(() => {
+    setMounted(true);
+    fetchChats();
+  }, [fetchChats]);
 
   // Auto-detect platform from URL
   const detectPlatform = (url: string): string => {

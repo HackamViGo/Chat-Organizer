@@ -19,10 +19,11 @@ export default function ExtensionAuthPage() {
       
       if (error || !session) {
         setStatus('error');
-        setMessage('Not logged in. Redirecting...');
+        setMessage('Not logged in. Redirecting to login...');
+        // Faster redirect - 1 second instead of 2
         setTimeout(() => {
           router.push('/auth/signin?redirect=/extension-auth');
-        }, 2000);
+        }, 1000);
         return;
       }
 
@@ -55,12 +56,18 @@ export default function ExtensionAuthPage() {
       }
 
       setStatus('success');
-      setMessage('Extension connected successfully!');
+      setMessage('Extension connected successfully! You can close this tab.');
       
-      // Redirect to chats after 3 seconds
+      // Auto-close tab after 2 seconds (or redirect to chats)
       setTimeout(() => {
+        // Try to close the tab (works if opened by extension)
+        if (window.opener) {
+          window.close();
+        } else {
+          // If can't close, redirect to chats
         router.push('/chats');
-      }, 3000);
+        }
+      }, 2000);
 
     } catch (error: any) {
       console.error('Extension auth error:', error);
@@ -93,10 +100,10 @@ export default function ExtensionAuthPage() {
         </div>
 
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">
-          {status === 'checking' && 'Connecting Extension'}
-          {status === 'sending' && 'Syncing Credentials'}
-          {status === 'success' && 'Connected!'}
-          {status === 'error' && 'Connection Failed'}
+          {status === 'checking' && '🔗 Connecting Extension'}
+          {status === 'sending' && '🔄 Syncing Credentials'}
+          {status === 'success' && '✅ Connected!'}
+          {status === 'error' && '🔐 Login Required'}
         </h1>
 
         <p className="text-slate-600 dark:text-slate-400 mb-6">
@@ -105,19 +112,29 @@ export default function ExtensionAuthPage() {
 
         {status === 'success' && (
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4 mb-4">
-            <p className="text-sm text-green-800 dark:text-green-300">
-              Your BrainBox extension is now connected and ready to use!
+            <p className="text-sm text-green-800 dark:text-green-300 font-medium">
+              🎉 Your BrainBox extension is now connected!
+            </p>
+            <p className="text-xs text-green-700 dark:text-green-400 mt-2">
+              You can now save conversations from ChatGPT, Claude, and Gemini.
             </p>
           </div>
         )}
 
         {status === 'error' && (
+          <div className="space-y-4">
+            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4 mb-4">
+              <p className="text-sm text-blue-800 dark:text-blue-300">
+                Please login to connect your extension to your BrainBox account.
+              </p>
+            </div>
           <button
             onClick={() => router.push('/auth/signin?redirect=/extension-auth')}
-            className="px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all"
+              className="w-full px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all"
           >
             Login to Continue
           </button>
+          </div>
         )}
       </div>
     </div>

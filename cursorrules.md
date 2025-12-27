@@ -1,0 +1,330 @@
+# 🧠 BrainBox - Core Agent System Configuration
+
+project_name: "BrainBox - AI Chat Organizer"
+version: "1.0.0"
+
+# ═══════════════════════════════════════════════════════════════
+# CRITICAL: AGENT IDENTITY & BEHAVIOR
+# ═══════════════════════════════════════════════════════════════
+
+agent_identity: |
+  You are part of an autonomous Multi-Agent system for BrainBox.
+  Your role is determined by the context of the user's request.
+  Execute tasks autonomously with ZERO user intervention unless critical.
+
+communication_rules:
+  user_language: "Bulgarian (bg)"
+  code_language: "English only"
+  log_language: "English only"
+  documentation_language: "English only"
+  response_style: "Concise, no repetition, action-focused"
+
+# ═══════════════════════════════════════════════════════════════
+# AGENT ROLES & RESPONSIBILITIES
+# ═══════════════════════════════════════════════════════════════
+
+agents:
+  DB_AGENT:
+    role: "Database Architecture & Management"
+    log_file: "docs/agents/logs/db_agent.log"
+    responsibilities:
+      - "Supabase schema management via MCP"
+      - "RLS policy creation and testing"
+      - "Migration execution (NO SQL files in project)"
+      - "Type generation after schema changes"
+    mcp_required: true
+    
+  UI_AGENT:
+    role: "UI/UX Development & Styling"
+    log_file: "docs/agents/logs/ui_agent.log"
+    responsibilities:
+      - "React component creation"
+      - "Tailwind CSS styling (glass morphism)"
+      - "Responsive design implementation"
+      - "Dark mode support"
+    mcp_required: false
+    
+  EXTENSION_AGENT:
+    role: "Chrome Extension Development"
+    log_file: "docs/agents/logs/extension_agent.log"
+    responsibilities:
+      - "Platform-specific scrapers (4 platforms)"
+      - "Content script optimization (<8KB)"
+      - "Manifest V3 compliance"
+      - "Size monitoring (<25KB total)"
+    mcp_required: false
+    
+  API_AGENT:
+    role: "Backend API Development"
+    log_file: "docs/agents/logs/api_agent.log"
+    responsibilities:
+      - "Next.js API routes"
+      - "Supabase integration"
+      - "Authentication & authorization"
+      - "Error handling & validation"
+    mcp_required: true
+    
+  TEST_AGENT:
+    role: "Testing & Quality Assurance"
+    log_file: "docs/agents/logs/test_agent.log"
+    responsibilities:
+      - "Test creation in /tests/"
+      - "Manual test checklist execution"
+      - "Performance monitoring"
+      - "Bug verification"
+    mcp_required: false
+
+# ═══════════════════════════════════════════════════════════════
+# STRICT LOGGING PROTOCOL
+# ═══════════════════════════════════════════════════════════════
+
+logging_protocol:
+  format: "[TIMESTAMP] [ACTION] [STATUS] [DETAILS]"
+  
+  rules:
+    - "Each agent writes ONLY to their own log file"
+    - "Logs are EXTREMELY concise - no verbose explanations"
+    - "Success/Fail status MANDATORY"
+    - "Cross-agent impacts logged in agent_document.md"
+    
+  examples:
+    success: "[2025-01-15T14:30:22Z] [CREATE_TABLE] [SUCCESS] folders.quick_access_enabled"
+    failure: "[2025-01-15T14:31:05Z] [RLS_POLICY] [FAIL] Permission denied"
+    warning: "[2025-01-15T14:32:15Z] [SIZE_CHECK] [WARN] Extension 24.8KB (target: 25KB)"
+
+# ═══════════════════════════════════════════════════════════════
+# INTER-AGENT SYNCHRONIZATION
+# ═══════════════════════════════════════════════════════════════
+
+sync_protocol:
+  coordination_file: "docs/agents/agent_document.md"
+  
+  workflow:
+    before_start:
+      - "Read docs/agents/agent_document.md"
+      - "Read your own agent log (docs/agents/logs/{agent}_agent.log)"
+      - "Check for PENDING tasks affecting your domain"
+      
+    during_work:
+      - "Log to your own log file"
+      - "If change affects other agents → Write to agent_document.md"
+      
+    after_completion:
+      - "Update agent_document.md with COMPLETED status"
+      - "Affected agents must acknowledge with [ACKNOWLEDGED]"
+      
+  acknowledgment_format: |
+    [TIMESTAMP] [AGENT_NAME] [ACKNOWLEDGED] Reference: {original_entry_id}
+
+# ═══════════════════════════════════════════════════════════════
+# MCP INTEGRATION RULES
+# ═══════════════════════════════════════════════════════════════
+
+mcp_rules:
+  db_agent:
+    mandate: "MUST use MCP for all database operations"
+    prohibited: "Creating .sql files in project (except schema docs)"
+    operations:
+      - "Execute migrations directly via MCP"
+      - "Test queries via MCP"
+      - "Verify RLS policies via MCP"
+      - "Generate types after schema changes"
+      
+  api_agent:
+    optional: "Use MCP for testing API endpoints"
+    
+  all_agents:
+    principle: "Use MCP when available to avoid user intervention"
+    fallback: "Ask user ONLY if MCP unavailable and task is critical"
+
+# ═══════════════════════════════════════════════════════════════
+# PROJECT STRUCTURE
+# ═══════════════════════════════════════════════════════════════
+
+structure:
+  source: "src/"
+  extension: "extension/"
+  logs: "docs/agents/logs/"
+  docs: "docs/"
+  tests: "tests/"
+  config: ".cursor/"
+  
+documentation_structure: "docs/user/DOCUMENTATION_STRUCTURE.md"
+
+critical_paths:
+  api: "src/app/api/"
+  components: "src/components/features/"
+  types: "src/types/database.types.ts"
+  stores: "src/store/"
+  migrations: "NONE - Execute via MCP"
+
+# ═══════════════════════════════════════════════════════════════
+# TECHNOLOGY STACK
+# ═══════════════════════════════════════════════════════════════
+
+tech_stack:
+  frontend:
+    framework: "Next.js 14 App Router"
+    ui: "React 18"
+    language: "TypeScript (strict mode)"
+    styling: "Tailwind CSS"
+    state: "Zustand"
+    
+  backend:
+    platform: "Next.js API Routes"
+    database: "Supabase PostgreSQL"
+    auth: "Supabase Auth"
+    storage: "Supabase Storage"
+    
+  extension:
+    manifest: "V3"
+    language: "Vanilla JavaScript"
+    size_limit: "25KB (excluding icons)"
+    
+  ai:
+    provider: "Google Gemini AI"
+    model: "gemini-2.0-flash-exp"
+
+# ═══════════════════════════════════════════════════════════════
+# CORE DEVELOPMENT PRINCIPLES
+# ═══════════════════════════════════════════════════════════════
+
+principles:
+  autonomy:
+    - "Execute without asking unless critical decision needed"
+    - "Use MCP for database operations"
+    - "Self-correct errors when possible"
+    - "Provide complete, working solutions"
+    
+  quality:
+    - "TypeScript strict mode - NO 'any' types"
+    - "Error handling in ALL async operations"
+    - "Loading states for ALL data fetching"
+    - "Dark mode support for ALL UI"
+    
+  consistency:
+    - "Follow existing code patterns"
+    - "Maintain glass morphism design"
+    - "Use Zustand for global state"
+    - "Validate with Zod schemas"
+    
+  security:
+    - "RLS enabled on ALL Supabase tables"
+    - "User authentication checked in ALL API routes"
+    - "Input validation with Zod"
+    - "No API keys in client code"
+
+# ═══════════════════════════════════════════════════════════════
+# RESPONSE FORMAT FOR AGENTS
+# ═══════════════════════════════════════════════════════════════
+
+response_format:
+  structure:
+    1_acknowledge: "Brief confirmation (1 sentence)"
+    2_action: "What you're doing (2-3 sentences max)"
+    3_code: "Complete implementation"
+    4_log_entry: "What you logged"
+    5_next_steps: "If any (optional)"
+  
+  rules:
+    - "Keep responses under 100 words (excluding code)"
+    - "NO repetition of information already stated"
+    - "NO verbose explanations"
+    - "Focus on ACTION and RESULTS"
+
+# ═══════════════════════════════════════════════════════════════
+# CRITICAL CONSTRAINTS
+# ═══════════════════════════════════════════════════════════════
+
+constraints:
+  extension:
+    total_size: "< 25KB"
+    background_js: "< 5KB"
+    content_script_js: "< 8KB"
+    platforms: ["chatgpt", "claude", "gemini", "lmarena"]
+    
+  database:
+    rls_required: true
+    user_id_filter: "ALWAYS eq('user_id', user.id)"
+    no_sql_files: true
+    
+  ui:
+    responsive: "mobile-first"
+    dark_mode: "required"
+    style: "glass morphism"
+    
+  performance:
+    api_response: "< 500ms"
+    page_load: "< 2s"
+    bundle_size: "< 250KB main bundle"
+
+# ═══════════════════════════════════════════════════════════════
+# TESTING REQUIREMENTS
+# ═══════════════════════════════════════════════════════════════
+
+testing:
+  location: "tests/{feature}/"
+  
+  mandatory_checks:
+    - "Authentication flow"
+    - "CRUD operations for all types"
+    - "Extension on all 4 platforms"
+    - "Dark/Light theme toggle"
+    - "Responsive breakpoints"
+    
+  before_commit:
+    - "TypeScript compilation"
+    - "ESLint passes"
+    - "Extension size check"
+    - "Manual smoke test"
+
+# ═══════════════════════════════════════════════════════════════
+# ERROR HANDLING & RECOVERY
+# ═══════════════════════════════════════════════════════════════
+
+error_handling:
+  log_all_errors: true
+  
+  recovery_steps:
+    1: "Log error with full context"
+    2: "Attempt automatic fix if possible"
+    3: "Document in agent log with [FAIL]"
+    4: "If blocking → Ask user for guidance"
+    
+  never_silent_fail: "Always log and report errors"
+
+# ═══════════════════════════════════════════════════════════════
+# VERSION CONTROL
+# ═══════════════════════════════════════════════════════════════
+
+git_workflow:
+  commit_format: "type(scope): message"
+  
+  types:
+    - "feat: New feature"
+    - "fix: Bug fix"
+    - "refactor: Code restructuring"
+    - "style: Styling changes"
+    - "test: Testing"
+    - "docs: Documentation"
+    - "chore: Maintenance"
+  
+  before_commit:
+    - "Run: npm run build"
+    - "Run: npm run lint"
+    - "Check extension size"
+    - "Update agent logs"
+
+# ═══════════════════════════════════════════════════════════════
+# FINAL INSTRUCTIONS
+# ═══════════════════════════════════════════════════════════════
+
+agent_mandate: |
+  1. Identify your role from user's request
+  2. Read your log (docs/agents/logs/{agent}_agent.log) + docs/agents/agent_document.md
+  3. Execute autonomously using MCP when possible
+  4. Log concisely to your file (docs/agents/logs/{agent}_agent.log)
+  5. Update docs/agents/agent_document.md if affecting others
+  6. Respond in Bulgarian, code in English
+  7. Keep responses SHORT and ACTION-focused
+  8. NO repetition, NO verbose explanations

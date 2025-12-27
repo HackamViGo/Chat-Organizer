@@ -8,9 +8,36 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  // Validate Supabase environment variables
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  // Check if Supabase is properly configured
+  if (!supabaseUrl || !supabaseAnonKey || 
+      supabaseUrl === 'your_supabase_url_here' || 
+      supabaseAnonKey === 'your_supabase_anon_key_here' ||
+      !supabaseUrl.startsWith('http')) {
+    // If Supabase is not configured, allow public routes and API calls
+    const publicRoutes = ['/auth/signin', '/auth/signup', '/auth/callback', '/landing'];
+    const isPublicRoute = publicRoutes.some(route => request.nextUrl.pathname.startsWith(route));
+    
+    if (request.method === 'OPTIONS' || 
+        request.nextUrl.pathname.startsWith('/api/') ||
+        request.nextUrl.pathname.startsWith('/extension-auth') ||
+        isPublicRoute) {
+      return response;
+    }
+    
+    // Redirect to signin with configuration message
+    const redirectUrl = new URL('/auth/signin', request.url);
+    redirectUrl.searchParams.set('redirect', request.nextUrl.pathname);
+    redirectUrl.searchParams.set('config', 'missing');
+    return NextResponse.redirect(redirectUrl);
+  }
+
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         get(name: string) {

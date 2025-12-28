@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
     "chrome:debug": "./start-chrome-debug.sh",
     "chrome:monitor": "node cursor-chrome-composer.js"
   },

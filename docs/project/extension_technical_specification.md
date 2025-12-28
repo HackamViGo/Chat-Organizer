@@ -45,7 +45,27 @@ CHATGPT: {
   storage_key: "chatgpt_auth_token",
   endpoint_pattern: "https://chatgpt.com/backend-api/*",
   token_lifespan: "session_based",
-  refresh_strategy: "auto_detect_401_response"
+  refresh_strategy: "auto_detect_401_response",
+  
+  // IMPLEMENTATION DETAILS (2025-01-27):
+  hover_implementation: {
+    target_element: "<span> elements (title text) inside conversation links",
+    selector: "span.opacity-60, span.truncate span, div.truncate span",
+    reason: "Prevents buttons from disappearing when mouse moves from link to buttons",
+    parent_positioning: "Set parent <a> element to position: relative for absolute button positioning"
+  },
+  
+  style_injection: {
+    delay: "Wait 500-1000ms after page load to ensure forms are stable",
+    form_stability_check: "Check for form elements before injecting styles",
+    reason: "Prevents autofill duplicate form field ID errors (web.dev autofill best practices)",
+    reference: "https://web.dev/learn/forms/autofill/"
+  },
+  
+  cache_management: {
+    clear_on_init: "Clear claude_org_id from chrome.storage.local on init",
+    prevent_duplicates: "Use dataset.brainboxListeners to track attached listeners"
+  }
 }
 
 GEMINI: {
@@ -58,6 +78,38 @@ GEMINI: {
   additional_requirements: {
     cookies: "auto_attached_by_browser",
     csrf_header: "X-Same-Domain: 1"
+  },
+  
+  // IMPLEMENTATION DETAILS (2025-01-27):
+  hover_implementation: {
+    target_element: "<span> elements (title text) inside conversation links",
+    selector: "span[class*='text'], span[class*='title'], div[class*='text'] span, div[class*='title'] span, or first non-icon span",
+    reason: "Prevents buttons from disappearing when mouse moves from link to buttons (same as ChatGPT)",
+    parent_positioning: "Set parent <a> element to position: relative for absolute button positioning",
+    fade_animations: "fade_in 150ms ease-out per specification (animation_specs)"
+  },
+  
+  cache_management: {
+    clear_on_init: "Clear claude_org_id from chrome.storage.local on init",
+    prevent_duplicates: "Use dataset.brainboxListeners to track attached listeners"
+  },
+  
+  // IMPLEMENTATION DETAILS (2025-01-28):
+  title_extraction: {
+    function: "extractTitleFromConversationDiv",
+    target: ".conversation-title div inside conversation element",
+    methods: [
+      "Method 1: Clone element, remove all child <div> elements, extract textContent",
+      "Method 2: Traverse child nodes, extract text from TEXT_NODE and non-DIV ELEMENT_NODE",
+      "Method 3: Fallback to direct textContent"
+    ],
+    handling: {
+      nested_divs: "Removes child divs like .conversation-title-cover before extraction",
+      text_cleaning: "Removes 'Фиксиран чат' text and extra whitespace",
+      truncation: "Extracts only first line or first 100 characters (removes partial last word if cut off)"
+    },
+    priority: "domData.title has priority over request.title to prevent 'Google Gemini' generic title",
+    logging: "Extensive debug logging shows HTML structure, extraction methods, and final results"
   }
 }
 
@@ -67,7 +119,34 @@ CLAUDE: {
   storage_key: "claude_session",
   endpoint_pattern: "https://claude.ai/api/organizations/*/chat_conversations/*",
   token_lifespan: "persistent_cookie",
-  refresh_strategy: "browser_handles_automatically"
+  refresh_strategy: "browser_handles_automatically",
+  
+  // IMPLEMENTATION DETAILS (2025-01-27):
+  org_id_extraction: {
+    method: "webRequest listener intercepts API calls",
+    pattern: "/api/organizations/([^/]+)/",
+    storage: "chrome.storage.local (cache_per_session)",
+    fallback: "Extract from providedUrl parameter if cache miss"
+  },
+  
+  authentication_flow: {
+    check_before_save: "Validate accessToken and expiresAt before attempting save",
+    redirect_on_expired: "Use openLoginPage handler (chrome.runtime.sendMessage) instead of chrome.tabs.create",
+    error_handling: "Detect 'Could not extract organization ID' and trigger login redirect",
+    context_invalidation: "Handle 'Extension context invalidated' errors gracefully"
+  },
+  
+  url_saving: {
+    source: "providedUrl parameter (current Claude chat page URL)",
+    format: "https://claude.ai/chat/{conversationId}",
+    fallback: "Construct from conversationId if providedUrl missing"
+  },
+  
+  hover_implementation: {
+    target_element: "<a> elements directly (a[href^=\"/chat/\"])",
+    positioning: "Attach to parent <li> or parentElement, set position: relative",
+    note: "May need to migrate to <span> elements like ChatGPT for better stability"
+  }
 }
 ```
 
@@ -246,7 +325,15 @@ DESIGN_PHILOSOPHY: "native_integration_illusion"
 INJECTION_STRATEGY: {
   target: "conversation_list_sidebar",
   trigger: "mouseenter event on conversation item",
+  // IMPLEMENTATION NOTE (2025-01-27): ChatGPT uses <span> elements (title text) instead of <a> elements
+  // This prevents buttons from disappearing when mouse moves from link to buttons
+  // Selector: span.opacity-60, span.truncate span, div.truncate span
   positioning: "absolute, aligned to conversation title",
+  
+  // PLATFORM-SPECIFIC IMPLEMENTATIONS:
+  // ChatGPT: Hover on <span> elements inside <a> links (span.opacity-60)
+  // Claude: Hover on <a> elements directly (a[href^="/chat/"]) - May need migration to <span>
+  // Gemini: Hover on <span> elements inside <a> links (like ChatGPT) - IMPLEMENTED 2025-01-27
   
   button_structure: {
     primary_action: {
@@ -280,6 +367,19 @@ INJECTION_STRATEGY: {
     appear: "fade_in 150ms ease-out",
     disappear: "fade_out 100ms ease-in",
     save_success: "scale_down + translate_to_icon 300ms cubic-bezier"
+  },
+  
+  // IMPLEMENTATION DETAILS (2025-01-27):
+  stability_improvements: {
+    hide_other_buttons: "When showing buttons for one conversation, hide all other visible buttons",
+    parent_hover: "Attach mouseenter/mouseleave to parent <a> element to keep buttons visible",
+    container_hover: "Also attach listeners to button container itself to prevent flickering",
+    visibility_listener: "Disconnect observer when tab is inactive, reconnect when active (memory optimization)"
+  },
+  
+  cache_management: {
+    clear_on_init: "Clear cached org_id and other session data on extension init",
+    prevent_duplicates: "Use WeakMap to track button containers per conversation element"
   }
 }
 

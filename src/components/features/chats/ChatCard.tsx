@@ -9,7 +9,7 @@ import {
   MoreVertical, CheckSquare, Trash2, 
   Archive, ArchiveRestore, Sparkles, ExternalLink,
   FolderInput, Edit2, X, Check, AlertTriangle, FileText,
-  Folder as DefaultFolderIcon, Link as LinkIcon,
+  Folder as DefaultFolderIcon, Link as LinkIcon, Square,
   // Dev
   Code, Terminal, Cpu, Database, Server,
   // Art
@@ -73,9 +73,10 @@ const PlatformBadge: React.FC<{ platform: Platform }> = ({ platform }) => {
 };
 
 export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
-  const { updateChat, deleteChat } = useChatStore();
+  const { updateChat, deleteChat, selectedChatIds, toggleChatSelection } = useChatStore();
   const { folders } = useFolderStore();
   const pathname = usePathname();
+  const isSelected = selectedChatIds.has(chat.id);
   
   // State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -258,8 +259,28 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
         onClick={() => setShowViewModal(true)}
         className={`glass-card rounded-xl p-5 relative group flex flex-col h-full cursor-pointer text-slate-900 dark:text-white transition-all duration-500 hover:scale-[1.02]
           ${isHighlighted ? 'ring-2 ring-cyan-500 shadow-lg shadow-cyan-500/20 scale-[1.02]' : ''}
+          ${isSelected ? 'ring-2 ring-blue-500 shadow-lg shadow-blue-500/20' : ''}
         `}
       >
+        {/* Selection Checkbox */}
+        <div 
+          className="absolute top-3 left-3 z-10"
+          onClick={(e) => {
+            e.stopPropagation();
+            toggleChatSelection(chat.id);
+          }}
+        >
+          <button
+            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
+              ${isSelected 
+                ? 'bg-blue-600 border-blue-600 text-white' 
+                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-blue-500'
+              }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {isSelected && <Check size={14} className="text-white" />}
+          </button>
+        </div>
         {/* Delete Confirmation Overlay */}
         {showDeleteConfirm && (
           <div className="absolute inset-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center text-center p-4 animate-in fade-in duration-200">
@@ -274,7 +295,16 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
                 Cancel
               </button>
               <button 
-                onClick={(e) => { e.stopPropagation(); deleteChat(chat.id); }}
+                onClick={async (e) => { 
+                  e.stopPropagation(); 
+                  try {
+                    await deleteChat(chat.id);
+                    setShowDeleteConfirm(false);
+                  } catch (error) {
+                    console.error('Failed to delete chat:', error);
+                    alert('Failed to delete chat. Please try again.');
+                  }
+                }}
                 className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm text-white transition-colors"
               >
                 Delete

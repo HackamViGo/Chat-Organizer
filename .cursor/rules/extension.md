@@ -45,7 +45,7 @@ PLATFORMS = {
 ## Manifest V3 Compliance
 
 - `manifest_version: 3` (NON-NEGOTIABLE)
-- Minimal permissions only
+- Minimal permissions only (storage, webRequest, cookies, contextMenus, notifications, tabs)
 - Specific host_permissions (no wildcards)
 - Service worker for background (no persistent)
 
@@ -82,6 +82,36 @@ element.addEventListener('mouseleave', () => {
 chrome.storage.local.get(['quickAccessFolders'], (result) => {
   const folders = (result.quickAccessFolders || []).slice(0, 3);
 });
+```
+
+### Opening Tabs from Content Scripts
+```javascript
+// Content scripts CANNOT use chrome.tabs directly
+// Must request service worker to open tab
+await chrome.runtime.sendMessage({ action: 'openLoginPage' });
+
+// Service worker handler:
+if (request.action === 'openLoginPage') {
+  chrome.tabs.create({ url: `${DASHBOARD_URL}/extension-auth` });
+  sendResponse({ success: true });
+  return true;
+}
+```
+
+### Claude org_id Extraction
+```javascript
+// Pattern per specification: "/api/organizations/([^/]+)/"
+// Intercept API calls via webRequest listener
+chrome.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    const match = details.url.match(/\/api\/organizations\/([^\/]+)\//);
+    if (match) {
+      chrome.storage.local.set({ claude_org_id: match[1] });
+    }
+  },
+  { urls: ['https://claude.ai/api/organizations/*'] },
+  []
+);
 ```
 
 ---
@@ -189,6 +219,13 @@ Status: PENDING
 - Verify credentials: 'include'
 - Test with fresh login
 - Coordinate with API_AGENT
+- If accessToken expired → Use openLoginPage handler (not chrome.tabs.create in content script)
+
+**Claude org_id missing:**
+- org_id not always in page URL
+- Must intercept API calls via webRequest listener
+- Pattern: "/api/organizations/([^/]+)/"
+- Cache in chrome.storage.local per session
 
 ---
 

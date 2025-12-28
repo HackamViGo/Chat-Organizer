@@ -313,7 +313,15 @@ export const ChatStudio: React.FC = () => {
                  <div className="flex items-center justify-between">
                    <span className="text-[10px] opacity-60 truncate">{chat.created_at ? new Date(chat.created_at).toLocaleDateString() : 'N/A'}</span>
                    {activeChatId === chat.id && (
-                      <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); deleteChat(chat.id); handleNewChat(); }}>
+                      <div className="opacity-0 group-hover:opacity-100 transition-opacity" onClick={async (e) => { 
+                        e.stopPropagation(); 
+                        try {
+                          await deleteChat(chat.id);
+                          handleNewChat();
+                        } catch (error) {
+                          console.error('Failed to delete chat:', error);
+                        }
+                      }}>
                          <Trash2 size={12} className="text-red-400 hover:text-red-500" />
                       </div>
                    )}

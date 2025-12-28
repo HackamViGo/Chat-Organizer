@@ -6,7 +6,11 @@
   "permissions": [
     "storage",
     "webRequest",
-    "cookies"
+    "cookies",
+    "contextMenus",
+    "notifications",
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
     "https://brainbox-alpha.vercel.app/*",
@@ -47,10 +51,9 @@
         "https://gemini.google.com/*"
       ],
       "js": [
-        "lib/ui.js",
-        "content/content-gemini.js"
+        "content/brainbox_master.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_start"
     },
     {
       "matches": [

@@ -3,22 +3,34 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useChatStore } from '@/store/useChatStore';
 import { ChatCard } from '@/components/features/chats/ChatCard';
-import { MessageSquarePlus } from 'lucide-react';
+import { MessageSquarePlus, CheckSquare, Square, Trash2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ChatsPage() {
-  const { chats, setChats } = useChatStore();
+  const { 
+    chats, 
+    setChats, 
+    selectedChatIds, 
+    selectAllChats, 
+    deselectAllChats, 
+    deleteChats 
+  } = useChatStore();
   const [mounted, setMounted] = useState(false);
   const [showNewChatModal, setShowNewChatModal] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [customSource, setCustomSource] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [newChatData, setNewChatData] = useState({
     title: '',
     url: '',
     platform: 'ChatGPT',
     content: ''
   });
+
+  const selectedCount = selectedChatIds.size;
+  const allSelected = chats.length > 0 && selectedChatIds.size === chats.length;
 
   const fetchChats = useCallback(async () => {
     try {
@@ -111,6 +123,35 @@ export default function ChatsPage() {
     );
   }
 
+  const handleSelectAll = () => {
+    if (allSelected) {
+      deselectAllChats();
+    } else {
+      selectAllChats();
+    }
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedCount === 0) return;
+
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true);
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      const idsArray = Array.from(selectedChatIds);
+      await deleteChats(idsArray);
+      setShowDeleteConfirm(false);
+    } catch (error) {
+      console.error('Error deleting chats:', error);
+      alert('Failed to delete chats. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-8">
       <div className="flex justify-between items-center mb-8">
@@ -120,14 +161,95 @@ export default function ChatsPage() {
             Manage and organize your AI conversations
           </p>
         </div>
-        <button
-          onClick={() => setShowNewChatModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-        >
-          <MessageSquarePlus className="w-5 h-5" />
-          New Chat
-        </button>
+        <div className="flex items-center gap-3">
+          {selectedCount > 0 && (
+            <>
+              <span className="text-sm text-muted-foreground">
+                {selectedCount} {selectedCount === 1 ? 'chat' : 'chats'} selected
+              </span>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Trash2 className="w-4 h-4" />
+                {showDeleteConfirm ? 'Confirm Delete' : 'Delete Selected'}
+              </button>
+            </>
+          )}
+          <button
+            onClick={handleSelectAll}
+            className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
+          >
+            {allSelected ? (
+              <>
+                <CheckSquare className="w-5 h-5" />
+                Deselect All
+              </>
+            ) : (
+              <>
+                <Square className="w-5 h-5" />
+                Select All
+              </>
+            )}
+          </button>
+          <button
+            onClick={() => setShowNewChatModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            <MessageSquarePlus className="w-5 h-5" />
+            New Chat
+          </button>
+        </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowDeleteConfirm(false);
+            }
+          }}
+        >
+          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="text-red-500" size={32} />
+              <h2 className="text-xl font-bold">Delete {selectedCount} {selectedCount === 1 ? 'chat' : 'chats'}?</h2>
+            </div>
+            <p className="text-muted-foreground mb-6">
+              This action cannot be undone. All selected chats will be permanently deleted.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteSelected}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  'Delete'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {chats.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">

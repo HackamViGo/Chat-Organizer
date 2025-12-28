@@ -1,6 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
 
+const extensionPath = path.join(process.cwd(), 'extension');
+
 export default defineConfig({
     testDir: './tests/e2e',
     timeout: 30000,
@@ -14,20 +16,19 @@ export default defineConfig({
     reporter: 'html',
     use: {
         trace: 'on-first-retry',
-        headless: false, // Extensions only working in headed mode usually
+        headless: false,
+        launchOptions: {
+            args: [
+                `--disable-extensions-except=${extensionPath}`,
+                `--load-extension=${extensionPath}`
+            ]
+        }
     },
     projects: [
         {
             name: 'chromium',
             use: {
                 ...devices['Desktop Chrome'],
-                // Load extension
-                launchOptions: {
-                    args: [
-                        `--disable-extensions-except=${path.join(process.cwd(), 'extension')}`,
-                        `--load-extension=${path.join(process.cwd(), 'extension')}`
-                    ]
-                }
             },
         }
     ],

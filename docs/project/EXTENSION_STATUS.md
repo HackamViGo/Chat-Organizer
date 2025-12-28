@@ -1,6 +1,6 @@
 # 🎉 BrainBox Extension - Status Report
 
-**Last Updated:** 2025-12-27  
+**Last Updated:** 2025-01-27  
 **Version:** 2.0.1  
 **Status:** ✅ **PRODUCTION READY**
 
@@ -84,6 +84,43 @@ Open in browser for interactive test results with:
 - **Extension Overhead:** ~225ms (negligible)
 
 ---
+
+## 🔧 Recent Fixes
+
+### 2025-01-28 - Gemini Title Extraction
+
+1. **Title Extraction Function** ✅
+   - Problem: Generic "Google Gemini" title was being saved instead of actual conversation title
+   - Solution: Added new `extractTitleFromConversationDiv` function for precise title extraction
+   - Handles nested child divs (like `.conversation-title-cover`) by cloning and removing them
+   - Three extraction methods: clone+remove divs, child nodes traversal, textContent fallback
+   - Extracts only first line or first 100 characters to prevent extracting entire conversation text
+
+2. **Title Priority Logic** ✅
+   - Problem: Request title ("Google Gemini") was prioritized over extracted DOM title
+   - Solution: Changed priority to use `domData.title` first, then request title, then fallback
+   - Now correctly saves conversation-specific titles instead of generic platform name
+
+3. **Debug Logging** ✅
+   - Added extensive logging to `extractTitleFromConversationDiv`, `extractConversationDataFromDOM`, and `saveConversationFromContextMenu`
+   - Logs show HTML structure, textContent, extraction methods, and final results
+   - Helps troubleshoot title extraction issues
+
+### 2025-01-27 - Claude Integration Improvements
+1. **org_id Extraction** ✅
+   - Problem: org_id not always in page URL
+   - Solution: Implemented webRequest listener to intercept API calls
+   - Pattern: "/api/organizations/([^/]+)/" per specification
+   - Storage: Cached per session in chrome.storage.local
+
+2. **Authentication Redirect** ✅
+   - Problem: chrome.tabs.create not available in content scripts
+   - Solution: Added "tabs" permission and openLoginPage handler in service worker
+   - Content scripts now use chrome.runtime.sendMessage({ action: 'openLoginPage' })
+
+3. **Error Handling** ✅
+   - Added "Could not extract organization ID" to authentication error detection
+   - Improved expired token detection and redirect flow
 
 ## ⚠️ Known Limitations
 
@@ -281,5 +318,6 @@ The BrainBox AI Chat Organizer extension is **production-ready** with:
 ---
 
 *Generated: 2025-12-27*  
+*Last Updated: 2025-01-27*  
 *Status: PRODUCTION READY ✅*
 

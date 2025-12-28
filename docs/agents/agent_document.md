@@ -12,6 +12,18 @@
 *Tasks awaiting action from specific agents*
 
 ```
+[2025-01-27T15:20] [DB_AGENT] VERIFY: Check chats.url field in database
+Priority: HIGH (data integrity issue)
+Impact: EXTENSION_AGENT, API_AGENT - URL may be incorrectly saved
+Status: PENDING - Extension sends correct URL, but database may have wrong values
+
+Issue:
+- Extension correctly sends: https://claude.ai/chat/{conversationId}
+- But database may be storing: https://brainbox-alpha.vercel.app/... (dashboard URL)
+- Check: src/app/api/chats/route.ts POST handler
+- Verify: No logic that overwrites url field with request origin
+- Action: If URL is wrong in DB, check API route for URL overwriting logic
+
 [2025-12-27T20:45] [DB_AGENT] RECOMMEND: Convert folders.type from TEXT to ENUM
 Priority: LOW (non-breaking, validation exists in client)
 Impact: API_AGENT, UI_AGENT - No code changes needed
@@ -21,6 +33,185 @@ Status: OPTIONAL - Current TEXT implementation works
 ---
 
 ## Recent Changes
+
+### 2025-01-28
+
+#### 00:00:00 - [EXTENSION_AGENT] Gemini Title Extraction Fix
+**Action:** Fixed Gemini conversation title extraction to use correct title instead of "Google Gemini"  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- EXTENSION_AGENT: Gemini conversations now save with correct titles extracted from DOM
+- User experience improved - no more generic "Google Gemini" titles
+
+**Problem:**
+- Title extraction was working correctly but priority logic was wrong
+- Request title ("Google Gemini") was being used instead of extracted DOM title
+- Example: Title "Покажи обекта как е на 4 крака..." was extracted but "Google Gemini" was saved
+
+**Changes Made:**
+- Added new function `extractTitleFromConversationDiv` for precise title extraction
+- Function handles nested child divs (like `.conversation-title-cover`) by cloning and removing them
+- Implemented three extraction methods: clone+remove divs, child nodes traversal, and textContent fallback
+- Fixed title extraction to extract only first line or first 100 characters (prevents extracting entire conversation text)
+- Changed title priority logic: `domData.title` now has priority over `request.title`
+- Added extensive debug logging to all title extraction functions
+
+**Verified:**
+- ✅ Title extraction correctly extracts conversation titles from `.conversation-title` div
+- ✅ Nested child divs are properly handled and removed before extraction
+- ✅ Only first line or first 100 characters are extracted (prevents long text extraction)
+- ✅ domData.title is used instead of generic "Google Gemini" from request
+- ✅ Debug logging shows complete extraction process for troubleshooting
+
+**Technical Details:**
+- Function uses `cloneNode(true)` to avoid modifying original DOM
+- Removes all child `<div>` elements before text extraction
+- Falls back to child nodes traversal if clone method fails
+- Final fallback to direct `textContent` if needed
+- Cleans text by removing "Фиксиран чат" and extra whitespace
+- Truncates to first line or 100 characters max
+
+**Acknowledgments:**
+- [2025-01-28 00:00] [EXTENSION_AGENT] COMPLETED
+
+---
+
+### 2025-01-27
+
+#### 22:50:00 - [EXTENSION_AGENT] Gemini Simplification - MutationObserver Disabled
+**Action:** Disabled MutationObserver and DOM observation for Gemini  
+**Status:** ✅ COMPLETED  
+**Reason:** User requested to disable if not needed - Simplified approach  
+**Impact:**
+- EXTENSION_AGENT: Gemini now uses simple initial injection only
+- No dynamic observation for new conversations
+- Hover buttons only work for conversations already loaded on page
+
+**Changes Made:**
+- Removed MutationObserver setup
+- Removed visibility listener
+- Removed debounce function
+- Changed to simple setTimeout(1000ms) for initial button injection
+- Kept hover functionality on <span> elements
+- Kept fade animations (fade_in 150ms, fade_out 100ms)
+- Kept authentication check in handleSave
+
+**Trade-offs:**
+- ✅ Simpler code, less DOM observation overhead
+- ⚠️ Hover buttons won't appear on dynamically added conversations
+- ⚠️ User needs to refresh page to get hover buttons on new conversations
+
+**Next Steps:**
+- Monitor if users need dynamic conversation detection
+- Can re-enable MutationObserver if needed
+
+**Acknowledgments:**
+- [2025-01-27 22:50] [EXTENSION_AGENT] COMPLETED
+
+---
+
+#### 22:45:00 - [EXTENSION_AGENT] Gemini Hover & Authentication Fixes
+**Action:** Fixed Gemini hover not showing and login redirect not working  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- EXTENSION_AGENT: Gemini hover now works correctly
+- Authentication flow now redirects to login page when needed
+
+**Changes Made:**
+- Added initial injectHoverButtons() call in setupConversationListObserver
+- Added accessToken validation in handleSave before attempting save
+- Added authentication error handling (401, Session expired, etc.)
+- Fixed debounce delay: 500ms → 200ms per specification
+- Added fade_out animation (100ms ease-in) per specification
+
+**Verified:**
+- ✅ Hover buttons appear on conversation links
+- ✅ Login page opens when accessToken is missing/expired
+- ✅ Fade animations work correctly (fade_in 150ms, fade_out 100ms)
+
+**Acknowledgments:**
+- [2025-01-27 22:45] [EXTENSION_AGENT] COMPLETED
+
+---
+
+#### 22:30:00 - [EXTENSION_AGENT] Documentation Update - ChatGPT & Claude Implementation Details
+**Action:** Documented all implementation details for ChatGPT and Claude that were missing  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- ALL_AGENTS: Full visibility into ChatGPT and Claude implementations
+- Documentation now matches actual code
+
+**Changes Made:**
+- Added ChatGPT hover implementation details (span elements, style injection delays, cache management)
+- Added Claude org_id extraction, authentication flow, URL saving details
+- Added MutationObserver visibility optimization details
+- Added stability improvements documentation
+
+**Acknowledgments:**
+- [2025-01-27 22:30] [EXTENSION_AGENT] COMPLETED
+
+---
+
+#### 21:30:00 - [EXTENSION_AGENT] ChatGPT Hover Menu Removal
+**Action:** Removed all hover functionality from ChatGPT content script  
+**Status:** ✅ COMPLETED  
+**Reason:** Persistent issues with buttons disappearing and conversations "running away"  
+**Impact:**
+- EXTENSION_AGENT: Hover menu completely removed from ChatGPT
+- Context menu still works for saving conversations
+- Will be re-implemented from scratch in future iteration
+
+**Changes Made:**
+- Removed `hoverButtons` WeakMap and `hoverButtonsRegistry` Map
+- Removed `setupConversationListObserver()` function
+- Removed `handleConversationHover()` function
+- Removed `createButton()` function
+- Removed `setupVisibilityListener()` function
+- Removed `debounce()` function (only used by observer)
+- Removed all hover-related CSS styles
+- Updated `init()` to only call `injectStyles()`
+
+**Verified:**
+- ✅ Context menu still works for saving conversations
+- ✅ Toast notifications still work
+- ✅ No linting errors
+- ✅ File size reduced
+
+**Next Steps:**
+- Re-implement hover menu from scratch with better approach
+- Consider alternative UI patterns (e.g., inline buttons, dropdown menus)
+
+**Acknowledgments:**
+- [2025-01-27 21:30] [EXTENSION_AGENT] COMPLETED
+
+---
+
+#### 15:20:00 - [EXTENSION_AGENT] Claude URL Saving Fix
+**Action:** Fixed URL field to save correct Claude chat URL instead of dashboard URL  
+**Status:** ✅ COMPLETED (Extension side)  
+**Impact:**
+- EXTENSION_AGENT: URL now correctly extracted and sent
+- DB_AGENT: Need to verify database stores correct URL (see PENDING tasks)
+- API_AGENT: May need to check POST /api/chats route for URL overwriting
+
+**Changes Made:**
+- Added URL to conversationData in `fetchClaudeConversation` from `providedUrl` parameter
+- Updated `handleSaveToDashboard` to use `conversationData.url` instead of `conversationData.id`
+- Added debug logging to track URL through the save process
+
+**Verified:**
+- ✅ Extension extracts correct URL: `https://claude.ai/chat/{conversationId}`
+- ✅ Extension sends correct URL in request body
+- ⚠️ Database storage needs verification (may be overwritten by API)
+
+**Next Steps:**
+- DB_AGENT: Check database for incorrect URLs
+- API_AGENT: Verify POST /api/chats doesn't overwrite URL field
+
+**Acknowledgments:**
+- [2025-01-27 15:20] [EXTENSION_AGENT] COMPLETED
+
+---
 
 ### 2025-12-27
 
@@ -95,5 +286,5 @@ Status: OPTIONAL - Current TEXT implementation works
 
 ---
 
-*Last updated: 2025-12-27 20:30:00*  
-*Document version: 1.1.0*
+*Last updated: 2025-01-28 00:00:00*  
+*Document version: 1.1.3*

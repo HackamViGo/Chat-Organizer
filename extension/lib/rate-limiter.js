@@ -92,6 +92,11 @@ export class RateLimiter {
 export const limiters = {
     chatgpt: new RateLimiter({ maxTokens: 5, refillRate: 0.5, minDelay: 2127, maxDelay: 5341 }), // ~1 req/2s, max 5 burst
     claude: new RateLimiter({ maxTokens: 3, refillRate: 0.2, minDelay: 2413, maxDelay: 6897 }),  // Slower for Claude
-    gemini: new RateLimiter({ maxTokens: 5, refillRate: 0.5, minDelay: 2817, maxDelay: 4729 }),
+    gemini: new RateLimiter({ 
+        maxTokens: 3,           // Lower burst for stealth
+        refillRate: 0.5,        // 1 request per 2 seconds (as per spec)
+        minDelay: 2000,         // Minimum 2 seconds between requests
+        maxDelay: 3000          // Maximum 3 seconds (human-like jitter)
+    }),
     dashboard: new RateLimiter({ maxTokens: 20, refillRate: 5, minDelay: 127, maxDelay: 347 })   // Fast for our own backend
 };

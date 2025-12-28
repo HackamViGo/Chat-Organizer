@@ -5,26 +5,40 @@ import { test, expect } from '@playwright/test';
 // ============================================================================
 
 test.describe('Extension Loading', () => {
-    test('Extension loads successfully in browser', async ({ page }) => {
+    test('Extension loads successfully in browser', async ({ page, context }) => {
         // Navigate to a neutral page
-        await page.goto('https://example.com');
-        
+    await page.goto('https://example.com');
+
         // Verify browser works
-        await expect(page).toHaveTitle(/Example/);
+    await expect(page).toHaveTitle(/Example/);
+
+        // Verify extension path exists
+        const fs = require('fs');
+        const path = require('path');
+        const extensionPath = path.join(process.cwd(), 'extension');
+        const manifestPath = path.join(extensionPath, 'manifest.json');
+        const extensionExists = fs.existsSync(manifestPath);
         
-        console.log('✅ Browser launched with extension loaded');
+        console.log('✅ Browser launched');
+        console.log('✅ Extension path exists:', extensionExists);
+        console.log('   Extension path:', extensionPath);
+        
+        if (!extensionExists) {
+            throw new Error('Extension manifest not found at: ' + manifestPath);
+        }
     });
 
     test('Service worker initializes', async ({ page, context }) => {
         // Navigate to trigger extension
         await page.goto('https://example.com');
+        await page.waitForTimeout(2000);
         
-        // Check if we can access chrome.storage (indirect service worker check)
-        const hasStorage = await page.evaluate(() => {
-            return typeof chrome !== 'undefined' && typeof chrome.storage !== 'undefined';
-        });
-        
-        console.log('✅ Chrome APIs available:', hasStorage);
+        // In Playwright, chrome APIs are not accessible from page context
+        // Instead, we verify extension is loaded by checking if manifest exists
+        // The extension should be loaded via launchOptions in playwright.config.ts
+        console.log('✅ Extension should be loaded via Playwright config');
+        console.log('   (chrome APIs not accessible from page context in Playwright)');
+        console.log('   Note: Content scripts may take a few seconds to inject on target pages');
     });
 });
 
@@ -58,36 +72,74 @@ test.describe('ChatGPT Integration', () => {
         } else {
             console.log('✅ ChatGPT loaded without extension errors');
         }
-    });
+});
 
-    test('Content script injects on ChatGPT', async ({ page }) => {
+test('Content script injects on ChatGPT', async ({ page }) => {
         // Monitor for content script console logs
+        const consoleMessages: string[] = [];
         let contentScriptLoaded = false;
+        
         page.on('console', msg => {
-            if (msg.text().includes('[BrainBox] ChatGPT content script loaded')) {
+            const text = msg.text();
+            consoleMessages.push(text);
+            if (text.includes('[BrainBox] ChatGPT content script loaded')) {
                 contentScriptLoaded = true;
             }
         });
 
-        await page.goto('https://chatgpt.com');
-        await page.waitForTimeout(3000);
+        await page.goto('https://chatgpt.com', { waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(5000); // Longer timeout for extension to inject
+
+        // Also check DOM for BrainBox indicators
+        const hasBrainBoxIndicator = await page.evaluate(() => {
+            // Check for any BrainBox-related elements or styles
+            const styles = Array.from(document.querySelectorAll('style'));
+            const hasStyles = styles.some(style => 
+                style.textContent?.includes('brainbox') || 
+                style.textContent?.includes('BrainBox')
+            );
+            
+            // Check for any data attributes or classes
+            const hasElements = document.querySelector('[class*="brainbox"]') !== null;
+            
+            return hasStyles || hasElements;
+        });
 
         console.log('✅ Content script loaded:', contentScriptLoaded);
+        console.log('✅ BrainBox indicators in DOM:', hasBrainBoxIndicator);
+        
+        if (!contentScriptLoaded && !hasBrainBoxIndicator) {
+            console.warn('⚠️ Content script may not have loaded. Console messages:', 
+                consoleMessages.filter(m => m.includes('BrainBox')).slice(0, 5));
+        }
     });
 
     test('Hover button styles are injected', async ({ page }) => {
-        await page.goto('https://chatgpt.com');
-        await page.waitForTimeout(2000);
+        await page.goto('https://chatgpt.com', { waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(5000); // Longer timeout for styles to inject
 
         // Check if BrainBox styles exist
-        const hasStyles = await page.evaluate(() => {
+        const styleInfo = await page.evaluate(() => {
             const styles = Array.from(document.querySelectorAll('style'));
-            return styles.some(style => 
-                style.textContent?.includes('brainbox-hover-container')
+            const brainboxStyles = styles.filter(style => 
+                style.textContent?.includes('brainbox-hover-container') ||
+                style.textContent?.includes('brainbox') ||
+                style.textContent?.includes('BrainBox')
             );
+            
+            return {
+                hasStyles: brainboxStyles.length > 0,
+                styleCount: brainboxStyles.length,
+                sampleContent: brainboxStyles[0]?.textContent?.substring(0, 100) || null
+            };
         });
 
-        console.log('✅ BrainBox styles injected:', hasStyles);
+        console.log('✅ BrainBox styles injected:', styleInfo.hasStyles);
+        if (styleInfo.hasStyles) {
+            console.log('   Found', styleInfo.styleCount, 'BrainBox style block(s)');
+        } else {
+            console.warn('⚠️ BrainBox styles not found. Extension may not be loaded or content script not injected.');
+        }
     });
 });
 
@@ -124,82 +176,57 @@ test.describe('Claude Integration', () => {
     });
 
     test('Content script injects on Claude', async ({ page }) => {
+        const consoleMessages: string[] = [];
         let contentScriptLoaded = false;
+        
         page.on('console', msg => {
-            if (msg.text().includes('[BrainBox] Claude content script loaded')) {
+            const text = msg.text();
+            consoleMessages.push(text);
+            if (text.includes('[BrainBox] Claude content script loaded')) {
                 contentScriptLoaded = true;
             }
         });
 
-        await page.goto('https://claude.ai');
-        await page.waitForTimeout(3000);
+        await page.goto('https://claude.ai', { waitUntil: 'domcontentloaded' });
+        await page.waitForTimeout(5000); // Longer timeout for extension to inject
 
-        console.log('✅ Content script loaded:', contentScriptLoaded);
-    });
-});
-
-// ============================================================================
-// GEMINI TESTS
-// ============================================================================
-
-test.describe('Gemini Integration', () => {
-    test('Gemini page loads without errors', async ({ page }) => {
-        const errors: string[] = [];
-        page.on('console', msg => {
-            if (msg.type() === 'error') {
-                errors.push(msg.text());
-            }
+        // Check DOM for BrainBox indicators
+        const hasBrainBoxIndicator = await page.evaluate(() => {
+            const styles = Array.from(document.querySelectorAll('style'));
+            return styles.some(style => 
+                style.textContent?.includes('brainbox') || 
+                style.textContent?.includes('BrainBox')
+            );
         });
 
-        await page.goto('https://gemini.google.com');
-        await page.waitForTimeout(3000);
-
-        const title = await page.title();
-        console.log('Gemini page title:', title);
-        expect(title).toMatch(/Gemini|Google|Sign in|Before you continue/i);
-
-        const criticalErrors = errors.filter(e => 
-            e.includes('BrainBox') || e.includes('extension')
-        );
+        console.log('✅ Content script loaded:', contentScriptLoaded);
+        console.log('✅ BrainBox indicators in DOM:', hasBrainBoxIndicator);
         
-        if (criticalErrors.length > 0) {
-            console.warn('⚠️ Extension errors detected:', criticalErrors);
-        } else {
-            console.log('✅ Gemini loaded without extension errors');
+        if (!contentScriptLoaded && !hasBrainBoxIndicator) {
+            console.warn('⚠️ Content script may not have loaded. Console messages:', 
+                consoleMessages.filter(m => m.includes('BrainBox')).slice(0, 5));
         }
     });
-
-    test('Content script injects on Gemini', async ({ page }) => {
-        let contentScriptLoaded = false;
-        page.on('console', msg => {
-            if (msg.text().includes('[BrainBox] Gemini content script loaded')) {
-                contentScriptLoaded = true;
-            }
-        });
-
-        await page.goto('https://gemini.google.com');
-        await page.waitForTimeout(3000);
-
-        console.log('✅ Content script loaded:', contentScriptLoaded);
-    });
-
-    test('Gemini AT token extraction attempts', async ({ page }) => {
-        let tokenExtractionAttempted = false;
-        page.on('console', msg => {
-            if (msg.text().includes('BRAINBOX_GEMINI_TOKEN') || 
-                msg.text().includes('WIZ_global_data')) {
-                tokenExtractionAttempted = true;
-            }
-        });
-
-        await page.goto('https://gemini.google.com');
-        await page.waitForTimeout(3000);
-
-        // Token extraction happens via injected script
-        // We can't easily verify without being logged in
-        console.log('✅ Token extraction script executed');
-    });
 });
+
+// ============================================================================
+// GEMINI TESTS - DISABLED
+// ============================================================================
+// ⚠️ WARNING: Gemini tests are DISABLED to prevent account bans
+// Google detects automated tools like Playwright and may ban accounts
+// Gemini functionality should be tested manually only
+//
+// test.describe('Gemini Integration', () => {
+//     test.skip('Gemini page loads without errors', async ({ page }) => {
+//         // DISABLED - Manual testing only
+//     });
+//     test.skip('Content script injects on Gemini', async ({ page }) => {
+//         // DISABLED - Manual testing only
+//     });
+//     test.skip('Gemini AT token extraction attempts', async ({ page }) => {
+//         // DISABLED - Manual testing only
+//     });
+// });
 
 // ============================================================================
 // MANIFEST AND PERMISSIONS TESTS
@@ -274,21 +301,11 @@ test.describe('Token Interception', () => {
         console.log('✅ Extension monitoring ChatGPT API endpoints');
     });
 
-    test('Gemini batchexecute endpoint is monitored', async ({ page }) => {
-        let batchExecuteDetected = false;
-
-        page.on('request', request => {
-            if (request.url().includes('BardChatUi/data/batchexecute')) {
-                batchExecuteDetected = true;
-                console.log('📡 Gemini batchexecute request detected');
-            }
-        });
-
-        await page.goto('https://gemini.google.com');
-        await page.waitForTimeout(3000);
-
-        console.log('✅ Extension monitoring Gemini batchexecute endpoint');
-    });
+    // ⚠️ DISABLED: Gemini endpoint monitoring test
+    // Google detects automated tools and may ban accounts
+    // test.skip('Gemini batchexecute endpoint is monitored', async ({ page }) => {
+    //     // DISABLED - Manual testing only
+    // });
 });
 
 // ============================================================================
@@ -298,8 +315,8 @@ test.describe('Token Interception', () => {
 test.describe('Performance', () => {
     test('Extension does not significantly slow page load', async ({ page }) => {
         const startTime = Date.now();
-        
-        await page.goto('https://chatgpt.com');
+
+    await page.goto('https://chatgpt.com');
         await page.waitForLoadState('domcontentloaded');
         
         const loadTime = Date.now() - startTime;
@@ -312,15 +329,16 @@ test.describe('Performance', () => {
 
     test('Memory usage is reasonable', async ({ page }) => {
         await page.goto('https://chatgpt.com');
-        await page.waitForTimeout(2000);
+    await page.waitForTimeout(2000);
 
-        // Get memory metrics if available
+        // Get memory metrics if available (Chrome-specific API)
         const metrics = await page.evaluate(() => {
-            if (performance.memory) {
+            const perf = performance as any;
+            if (perf.memory) {
                 return {
-                    usedJSHeapSize: performance.memory.usedJSHeapSize,
-                    totalJSHeapSize: performance.memory.totalJSHeapSize,
-                    jsHeapSizeLimit: performance.memory.jsHeapSizeLimit
+                    usedJSHeapSize: perf.memory.usedJSHeapSize,
+                    totalJSHeapSize: perf.memory.totalJSHeapSize,
+                    jsHeapSizeLimit: perf.memory.jsHeapSizeLimit
                 };
             }
             return null;
@@ -356,8 +374,9 @@ test.describe('Error Handling', () => {
         await page.goto('https://claude.ai');
         await page.waitForTimeout(1000);
         
-        await page.goto('https://gemini.google.com');
-        await page.waitForTimeout(1000);
+        // ⚠️ DISABLED: Gemini navigation test to prevent account bans
+        // await page.goto('https://gemini.google.com');
+        // await page.waitForTimeout(1000);
 
         const criticalErrors = errors.filter(e => 
             e.includes('BrainBox') || e.includes('extension')
@@ -400,7 +419,7 @@ test.describe('Overall Health Check', () => {
             'Service Worker': true,
             'ChatGPT Content Script': true,
             'Claude Content Script': true,
-            'Gemini Content Script': true,
+            'Gemini Content Script': true, // ⚠️ Manual testing only (Playwright may cause bans)
             'Token Interception': true,
             'Rate Limiting': true,
             'Data Normalization': true,

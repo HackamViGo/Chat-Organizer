@@ -1,15 +1,9 @@
 // BrainBox AI Chat Organizer - Service Worker
 // Manifest V3 Background Script
 
-// Environment Configuration
-// Change this to 'development' for local testing
-const ENVIRONMENT = 'production'; // 'development' or 'production'
+// Environment Configuration - Production only (Vercel)
+const DASHBOARD_URL = 'https://brainbox-alpha.vercel.app';
 
-const DASHBOARD_URL = ENVIRONMENT === 'development' 
-    ? 'http://localhost:3000'
-    : 'https://brainbox-alpha.vercel.app';
-
-console.log('[BrainBox] Environment:', ENVIRONMENT);
 console.log('[BrainBox] Dashboard URL:', DASHBOARD_URL);
 
 // ============================================================================

@@ -13,56 +13,14 @@
   // ============================================================================
   
   // ============================================================================
-  // КОНФИГУРАЦИЯ - ПОДДРЪЖКА ЗА LOCALHOST И VERCEL
+  // КОНФИГУРАЦИЯ - VERCEL PRODUCTION
   // ============================================================================
   
   const CONFIG = {
-    DASHBOARD_URL_LOCAL: 'http://localhost:3000',
-    DASHBOARD_URL_PROD: 'https://brainbox-alpha.vercel.app',
+    DASHBOARD_URL: 'https://brainbox-alpha.vercel.app',
     API_ENDPOINT: '/api/prompts', // API endpoint за prompts
     DEBUG_MODE: true
   };
-  
-  // Функция за опит за заявка с fallback между localhost и Vercel
-  async function fetchWithFallback(urlLocal, urlProd, options) {
-    // Първо опитваме localhost
-    try {
-      console.log('[🧠 Prompt Inject] 🌐 Опит 1: Localhost -', urlLocal);
-      const response = await fetch(urlLocal, options);
-      
-      if (response.ok) {
-        console.log('[🧠 Prompt Inject] ✅ Успешно свързване с localhost');
-        return response;
-      }
-      
-      // Ако не е OK, но не е network error (0), пробваме Vercel
-      if (response.status !== 0 && response.status !== 200) {
-        console.log('[🧠 Prompt Inject] ⚠️ Localhost върна статус', response.status, '- опитваме Vercel...');
-        // Не хвърляме error тук, ако е 401/403 - може да е проблем с token
-        if (response.status === 401 || response.status === 403) {
-          // При 401/403 пробваме Vercel
-          throw new Error(`Localhost returned ${response.status}`);
-        }
-        // При други статуси също пробваме Vercel
-        throw new Error(`Localhost returned ${response.status}`);
-      }
-      
-      return response;
-    } catch (error) {
-      console.log('[🧠 Prompt Inject] ⚠️ Localhost не работи:', error.message);
-      console.log('[🧠 Prompt Inject] 🌐 Опит 2: Vercel -', urlProd);
-      
-      // Fallback към Vercel
-      try {
-        const response = await fetch(urlProd, options);
-        console.log('[🧠 Prompt Inject] 📡 Vercel response status:', response.status);
-        return response;
-      } catch (vercelError) {
-        console.error('[🧠 Prompt Inject] ❌ И двата URL-а не работят');
-        throw vercelError; // Хвърляме последната грешка
-      }
-    }
-  }
 
   // ============================================================================
   // СЪСТОЯНИЕ
@@ -143,8 +101,7 @@
 
     try {
       // Fetch only prompts marked for context menu
-      const urlLocal = `${CONFIG.DASHBOARD_URL_LOCAL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`;
-      const urlProd = `${CONFIG.DASHBOARD_URL_PROD}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`;
+      const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`;
       
       console.log('[🧠 Prompt Inject] 🔑 Access token:', STATE.accessToken ? `${STATE.accessToken.substring(0, 20)}...` : 'НЯМА');
       
@@ -156,7 +113,7 @@
         }
       };
       
-      const response = await fetchWithFallback(urlLocal, urlProd, options);
+      const response = await fetch(url, options);
 
       console.log('[🧠 Prompt Inject] 📡 Response status:', response.status, response.statusText);
 
@@ -204,18 +161,14 @@
         name: error?.name,
         message: error?.message,
         stack: error?.stack,
-        urlLocal: `${CONFIG.DASHBOARD_URL_LOCAL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`,
-        urlProd: `${CONFIG.DASHBOARD_URL_PROD}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`,
+        url: `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`,
         hasToken: !!STATE.accessToken
       });
       
       // По-подробна информация за грешката
       if (error instanceof TypeError && error.message.includes('fetch')) {
         console.error('[🧠 Prompt Inject] ❌ Network error - проверь дали dashboard URL е правилен');
-        console.error('[🧠 Prompt Inject] ❌ URLs:', {
-          localhost: `${CONFIG.DASHBOARD_URL_LOCAL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`,
-          vercel: `${CONFIG.DASHBOARD_URL_PROD}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`
-        });
+        console.error('[🧠 Prompt Inject] ❌ URL:', `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`);
       } else if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
         console.error('[🧠 Prompt Inject] ❌ Unauthorized - access token може да е изтекъл');
         // Опит за презареждане на token
@@ -223,8 +176,7 @@
         console.log('[🧠 Prompt Inject] 🔄 Token презареден, опит за повторна заявка...');
         // Опит за повторна заявка след презареждане на token
         try {
-          const urlLocal = `${CONFIG.DASHBOARD_URL_LOCAL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`;
-          const urlProd = `${CONFIG.DASHBOARD_URL_PROD}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`;
+          const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`;
           const retryOptions = {
             method: 'GET',
             headers: {
@@ -232,7 +184,7 @@
               'Content-Type': 'application/json'
             }
           };
-          const retryResponse = await fetchWithFallback(urlLocal, urlProd, retryOptions);
+          const retryResponse = await fetch(url, retryOptions);
           
           if (retryResponse.ok) {
             const retryData = await retryResponse.json();
@@ -612,8 +564,7 @@
     console.log('[🧠 Prompt Inject] 🔑 Access token след презареждане:', `${STATE.accessToken.substring(0, 30)}...`);
     
     try {
-      const urlLocal = `${CONFIG.DASHBOARD_URL_LOCAL}${CONFIG.API_ENDPOINT}`;
-      const urlProd = `${CONFIG.DASHBOARD_URL_PROD}${CONFIG.API_ENDPOINT}`;
+      const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}`;
       
       const options = {
         method: 'POST',
@@ -630,15 +581,14 @@
       };
       
       console.log('[🧠 Prompt Inject] 📋 Request details:', {
-        urlLocal,
-        urlProd,
+        url,
         title: promptData.title,
         contentLength: promptData.content.length,
         use_in_context_menu: promptData.use_in_context_menu,
         hasAuthHeader: !!options.headers['Authorization']
       });
       
-      const response = await fetchWithFallback(urlLocal, urlProd, options);
+      const response = await fetch(url, options);
       
       if (!response.ok) {
         // При 401, опитваме да презаредим token и да повторим
@@ -651,7 +601,7 @@
             options.headers['Authorization'] = `Bearer ${STATE.accessToken}`;
             console.log('[🧠 Prompt Inject] 🔄 Повторна заявка с нов token...');
             
-            const retryResponse = await fetchWithFallback(urlLocal, urlProd, options);
+            const retryResponse = await fetch(url, options);
             
             if (retryResponse.ok) {
               const retryData = await retryResponse.json();

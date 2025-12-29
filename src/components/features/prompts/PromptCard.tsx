@@ -5,7 +5,7 @@ import { Prompt } from '@/types';
 import { usePromptStore } from '@/store/usePromptStore';
 import { createClient } from '@/lib/supabase/client';
 import { 
-  MoreVertical, Trash2, Edit2, Copy, Check, X, AlertTriangle 
+  MoreVertical, Trash2, Edit2, Copy, Check, X, AlertTriangle, Menu
 } from 'lucide-react';
 
 interface PromptCardProps {
@@ -38,7 +38,8 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { deletePrompt } = usePromptStore();
+  const { deletePrompt, updatePrompt } = usePromptStore();
+  const useInContextMenu = (prompt as any).use_in_context_menu || false;
 
   const handleDelete = async () => {
     try {
@@ -68,6 +69,30 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
       console.error('Error copying:', error);
+    }
+  };
+
+  const handleToggleContextMenu = async () => {
+    try {
+      const supabase = createClient();
+      const newValue = !useInContextMenu;
+      
+      const { data, error } = await supabase
+        .from('prompts')
+        .update({ use_in_context_menu: newValue })
+        .eq('id', prompt.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('Error updating prompt:', error);
+        return;
+      }
+
+      updatePrompt(prompt.id, data);
+      setShowMenu(false);
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
@@ -129,7 +154,7 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
                   className="fixed inset-0 z-10"
                   onClick={() => setShowMenu(false)}
                 />
-                <div className="absolute right-0 mt-1 w-40 bg-popover border rounded-md shadow-lg z-20 py-1">
+                <div className="absolute right-0 mt-1 w-48 bg-popover border rounded-md shadow-lg z-20 py-1">
                   <button
                     onClick={() => {
                       onEdit(prompt);
@@ -157,6 +182,24 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
                         <Copy className="w-4 h-4" />
                         Copy
                       </>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleToggleContextMenu();
+                    }}
+                    className={`flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors ${
+                      useInContextMenu ? 'text-primary' : ''
+                    }`}
+                  >
+                    <Menu className="w-4 h-4" />
+                    {useInContextMenu ? (
+                      <>
+                        <Check className="w-4 h-4 text-green-500" />
+                        <span>В context менюто</span>
+                      </>
+                    ) : (
+                      <span>Добави в context меню</span>
                     )}
                   </button>
                   <button

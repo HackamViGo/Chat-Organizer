@@ -1031,18 +1031,25 @@
    */
   function extractConversationDataFromDOM(conversationId) {
     try {
+      console.log('[🧠 BrainBox Master] 🔍 ========== EXTRACT CONVERSATION DATA START ==========');
+      console.log('[🧠 BrainBox Master] 🔍 Conversation ID:', conversationId);
+      
       // Try to find conversation div by ID
       const element = findConversationDivById(conversationId);
       
       if (element) {
+        console.log('[🧠 BrainBox Master] ✅ Намерен conversation element');
         // Използваме новата функция за по-добро извличане на title
         const title = extractTitleFromConversationDiv(element);
-        return {
+        const result = {
           conversationId: conversationId,
           title: title,
           url: `https://gemini.google.com/u/0/app/${conversationId}`,
           extractedAt: Date.now()
         };
+        console.log('[🧠 BrainBox Master] ✅ Резултат от extractConversationDataFromDOM:', result);
+        console.log('[🧠 BrainBox Master] 🔍 ========== EXTRACT CONVERSATION DATA END ==========');
+        return result;
       }
       
       // Fallback: Try to extract from current page URL
@@ -1228,7 +1235,10 @@
             item.status === 'pending' && item.retries < CONFIG.MAX_RETRIES
           );
           
-          console.log(`[🧠 BrainBox Master] 📤 Синхронизация на ${pendingItems.length} разговора...`);
+          // Логваме само ако има разговори за синхронизация
+          if (pendingItems.length > 0) {
+            console.log(`[🧠 BrainBox Master] 📤 Синхронизация на ${pendingItems.length} разговора...`);
+          }
           
           // ВЗЕМИ ВСИЧКИ РАЗГОВОРИ ПРЕДИ ДА ПРИКЛЮЧИ ТРАНЗАКЦИЯТА
           const allConversations = await new Promise((resolve) => {
@@ -1370,9 +1380,9 @@
   function setupMessageListener() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.action === 'processBatchexecuteResponse') {
-        console.log('[🧠 BrainBox Master] 📨 Получено съобщение от service-worker за batchexecute response');
         // Content script вече хваща responses чрез interceptors,
         // но това съобщение може да се използва за допълнителна обработка
+        // Не логваме всеки път за да не нарушаваме конзолата
         sendResponse({ success: true });
         return true;
       }
@@ -1684,19 +1694,7 @@
     const stats = await getStats();
     if (!stats) return;
     
-    console.log(`
-╔════════════════════════════════════════════════╗
-║       🧠 BrainBox Master Statistics           ║
-╠════════════════════════════════════════════════╣
-║ Raw Batch Data:      ${stats.rawBatchData.toString().padStart(4)} records          ║
-║ Encryption Keys:     ${stats.encryptionKeys.toString().padStart(4)} keys            ║
-║ Conversations:       ${stats.conversations.toString().padStart(4)} total           ║
-║ Synced:              ${stats.synced.toString().padStart(4)} conversations    ║
-║ Sync Queue:          ${stats.pending.toString().padStart(4)} pending          ║
-║ Failed (processed):  ${STATE.failedCount.toString().padStart(4)} errors           ║
-║ Last Sync:           ${STATE.lastSync ? new Date(STATE.lastSync).toLocaleTimeString() : 'Never'.padStart(8)}      ║
-╚════════════════════════════════════════════════╝
-    `);
+    // Statistics log removed to reduce console noise
   }
 
   // ============================================================================
@@ -1735,16 +1733,7 @@
   // ============================================================================
   
   async function init() {
-    console.log(`
-╔════════════════════════════════════════════════╗
-║                                                ║
-║           🧠 BrainBox Master v3.0              ║
-║                                                ║
-║    Универсална система за хващане на           ║
-║    ВСИЧКИ Gemini разговори и ключове          ║
-║                                                ║
-╚════════════════════════════════════════════════╝
-    `);
+    // Init banner log removed to reduce console noise
     
     try {
       // 1. Инициализиране на IndexedDB

@@ -34,6 +34,46 @@ Status: OPTIONAL - Current TEXT implementation works
 
 ## Recent Changes
 
+### 2025-12-29
+
+#### 00:13:11 - [DB_AGENT] Add use_in_context_menu Column to Prompts
+**Action:** Added `use_in_context_menu` boolean column to prompts table via MCP  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- DB_AGENT: New column added with default false, index created for performance
+- EXTENSION_AGENT: Can now filter prompts for context menu display
+- API_AGENT: May need to handle new field in prompts endpoints
+- UI_AGENT: May need to add UI toggle for use_in_context_menu field
+
+**Changes Made:**
+- Added `use_in_context_menu BOOLEAN DEFAULT false` column to prompts table
+- Created partial index `idx_prompts_use_in_context_menu` on `use_in_context_menu WHERE use_in_context_menu = true`
+- Added column comment: "Whether this prompt should appear in the BrainBox extension context menu"
+- Generated TypeScript types: `database.types.ts` updated
+- Deleted SQL file: `supabase/migrations/add_use_in_context_menu_to_prompts.sql`
+
+**Verified:**
+- ✅ Column added successfully (boolean, default false, nullable)
+- ✅ Index created for efficient filtering
+- ✅ Types generated and saved to `src/types/database.types.ts`
+- ✅ SQL file removed (per database agent rules)
+
+**Technical Details:**
+- Column type: `boolean | null` in TypeScript
+- Default value: `false`
+- Index: Partial index (only indexes rows where `use_in_context_menu = true`)
+- RLS: No changes needed (existing policies apply)
+
+**Next Steps:**
+- EXTENSION_AGENT: Filter prompts by `use_in_context_menu = true` for context menu
+- API_AGENT: Consider adding filter parameter to GET /api/prompts endpoint
+- UI_AGENT: Add toggle/checkbox in prompt creation/editing UI
+
+**Acknowledgments:**
+- [2025-12-29 00:13] [DB_AGENT] COMPLETED
+
+---
+
 ### 2025-01-28
 
 #### 00:00:00 - [EXTENSION_AGENT] Gemini Title Extraction Fix

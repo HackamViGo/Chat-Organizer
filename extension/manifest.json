@@ -32,7 +32,8 @@
       ],
       "js": [
         "lib/ui.js",
-        "content/content-chatgpt.js"
+        "content/content-chatgpt.js",
+        "prompt-inject/prompt-inject.js"
       ],
       "run_at": "document_idle"
     },
@@ -42,7 +43,8 @@
       ],
       "js": [
         "lib/ui.js",
-        "content/content-claude.js"
+        "content/content-claude.js",
+        "prompt-inject/prompt-inject.js"
       ],
       "run_at": "document_idle"
     },
@@ -51,9 +53,22 @@
         "https://gemini.google.com/*"
       ],
       "js": [
-        "content/brainbox_master.js"
+        "content/brainbox_master.js",
+        "prompt-inject/prompt-inject.js"
       ],
       "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "prompt-inject/prompt-inject.js"
+      ],
+      "run_at": "document_idle",
+      "exclude_matches": [
+        "https://gemini.google.com/*"
+      ]
     },
     {
       "matches": [

@@ -814,12 +814,31 @@ chrome.runtime.onInstalled.addListener((details) => {
 // ============================================================================
 
 function createContextMenu() {
-    // Remove existing menu items if any
+    // Remove ALL existing menu items first (including any submenus)
     chrome.contextMenus.removeAll(() => {
-        // Create context menu item for all platforms
+        // Create 3 different context menu items with different contexts
+        // They won't show at the same time, so no submenu grouping
+        
+        // 1. Prompt Inject - shows ONLY in editable fields (textarea/input)
+        chrome.contextMenus.create({
+            id: 'brainbox-prompt-inject',
+            title: '💬 BrainBox Prompt Inject',
+            contexts: ['editable'],
+            documentUrlPatterns: ['<all_urls>']
+        });
+        
+        // 2. Create Prompt - shows ONLY when text is selected
+        chrome.contextMenus.create({
+            id: 'brainbox-create-prompt',
+            title: '➕ BrainBox Create Prompt',
+            contexts: ['selection'],
+            documentUrlPatterns: ['<all_urls>']
+        });
+        
+        // 3. Save Chat - shows on page/link (but not editable or selection)
         chrome.contextMenus.create({
             id: 'brainbox-save-chat',
-            title: '💾 Save Chat to BrainBox',
+            title: '💾 BrainBox Save Chat',
             contexts: ['page', 'link'],
             documentUrlPatterns: [
                 'https://chatgpt.com/*',
@@ -829,11 +848,110 @@ function createContextMenu() {
             ]
         });
         
-        console.log('[BrainBox] ✅ Context menu created');
+        console.log('[BrainBox] ✅ Context menu created (3 items with different contexts)');
     });
 }
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    // Prompt Inject handler - in editable fields (textarea)
+    if (info.menuItemId === 'brainbox-prompt-inject') {
+        try {
+            console.log('[BrainBox] Prompt Inject clicked on:', tab.url);
+            
+            // Send message to content script to show prompt menu
+            try {
+                await chrome.tabs.sendMessage(tab.id, {
+                    action: 'showPromptMenu'
+                });
+                console.log('[BrainBox] ✅ Prompt menu message sent');
+            } catch (error) {
+                console.log('[BrainBox] Content script not ready, injecting prompt-inject script...');
+                try {
+                    await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        files: ['prompt-inject/prompt-inject.js']
+                    });
+                    console.log('[BrainBox] ✅ Prompt inject script injected');
+                    
+                    setTimeout(async () => {
+                        try {
+                            await chrome.tabs.sendMessage(tab.id, {
+                                action: 'showPromptMenu'
+                            });
+                            console.log('[BrainBox] ✅ Prompt menu message sent after injection');
+                        } catch (e) {
+                            console.error('[BrainBox] ❌ Still failed after injection:', e);
+                        }
+                    }, 500);
+                } catch (injectError) {
+                    console.error('[BrainBox] ❌ Failed to inject prompt script:', injectError);
+                }
+            }
+        } catch (error) {
+            console.error('[BrainBox] ❌ Error in prompt inject handler:', error);
+        }
+        return;
+    }
+    
+    // Create Prompt handler - when text is selected
+    if (info.menuItemId === 'brainbox-create-prompt') {
+        try {
+            console.log('[BrainBox] Create Prompt from Selection clicked');
+            const selectedText = info.selectionText;
+            
+            if (!selectedText || selectedText.trim().length === 0) {
+                console.warn('[BrainBox] No text selected');
+                try {
+                    chrome.notifications.create({
+                        type: 'basic',
+                        iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+                        title: 'BrainBox',
+                        message: 'Моля, маркирай текст преди да създадеш промпт.'
+                    });
+                } catch (notifError) {
+                    console.warn('[BrainBox] Could not show notification:', notifError);
+                }
+                return;
+            }
+            
+            // Send message to content script to show create prompt dialog
+            try {
+                await chrome.tabs.sendMessage(tab.id, {
+                    action: 'showCreatePromptDialog',
+                    selectedText: selectedText
+                });
+                console.log('[BrainBox] ✅ Create prompt dialog message sent');
+            } catch (error) {
+                console.log('[BrainBox] Content script not ready, injecting prompt-inject script...');
+                try {
+                    await chrome.scripting.executeScript({
+                        target: { tabId: tab.id },
+                        files: ['prompt-inject/prompt-inject.js']
+                    });
+                    console.log('[BrainBox] ✅ Prompt inject script injected');
+                    
+                    setTimeout(async () => {
+                        try {
+                            await chrome.tabs.sendMessage(tab.id, {
+                                action: 'showCreatePromptDialog',
+                                selectedText: selectedText
+                            });
+                            console.log('[BrainBox] ✅ Create prompt dialog message sent after injection');
+                        } catch (e) {
+                            console.error('[BrainBox] ❌ Still failed after injection:', e);
+                        }
+                    }, 500);
+                } catch (injectError) {
+                    console.error('[BrainBox] ❌ Failed to inject prompt script:', injectError);
+                }
+            }
+        } catch (error) {
+            console.error('[BrainBox] ❌ Error in create prompt handler:', error);
+        }
+        return;
+    }
+    
+    // Save Chat handler - on page/link
     if (info.menuItemId === 'brainbox-save-chat') {
         try {
             // Check accessToken FIRST - this is the reliable way

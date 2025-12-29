@@ -52,6 +52,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
       title: '',
       content: '',
       color: '#6366f1',
+      use_in_context_menu: false,
     },
   });
 
@@ -62,6 +63,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
       setValue('title', editingPrompt.title);
       setValue('content', editingPrompt.content);
       setValue('color', editingPrompt.color || '#6366f1');
+      setValue('use_in_context_menu', (editingPrompt as any).use_in_context_menu || false);
     } else {
       reset();
     }
@@ -92,6 +94,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
           title: data.title,
           content: data.content,
           color: data.color,
+          use_in_context_menu: data.use_in_context_menu || false,
           updated_at: new Date().toISOString(),
         };
 
@@ -119,6 +122,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
           title: data.title,
           content: data.content,
           color: data.color,
+          use_in_context_menu: data.use_in_context_menu || false,
         };
 
         const result = await (supabase as any)
@@ -238,6 +242,19 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
             {errors.color && (
               <p className="text-sm text-destructive mt-2">{errors.color.message}</p>
             )}
+          </div>
+
+          {/* Use in Context Menu Checkbox */}
+          <div className="flex items-center gap-2">
+            <input
+              {...register('use_in_context_menu')}
+              type="checkbox"
+              id="use_in_context_menu"
+              className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
+            />
+            <label htmlFor="use_in_context_menu" className="text-sm font-medium cursor-pointer">
+              Използвай в context менюто (BrainBox Prompts)
+            </label>
           </div>
 
           {/* Actions */}

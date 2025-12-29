@@ -78,20 +78,27 @@
   // Download image as blob and convert to base64
   async function downloadImageAsBlob(imageUrl) {
     try {
-      console.log('[🖼️ Image Saver] 📥 Downloading image:', imageUrl);
+      console.log('[🖼️ Image Saver] 📥 Downloading image via proxy:', imageUrl);
       
-      // Fetch image with CORS handling
-      const response = await fetch(imageUrl, {
-        mode: 'cors',
-        credentials: 'omit'
+      // Use proxy endpoint to bypass CORS restrictions
+      // This is necessary for Google CDN images (lh3.googleusercontent.com) which block direct access
+      const proxyUrl = `${CONFIG.DASHBOARD_URL}/api/proxy-image`;
+      
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ imageUrl })
       });
       
       if (!response.ok) {
-        throw new Error(`Failed to download image: ${response.status} ${response.statusText}`);
+        const errorText = await response.text();
+        throw new Error(`Failed to download image via proxy: ${response.status} ${response.statusText}. ${errorText}`);
       }
       
       const blob = await response.blob();
-      console.log('[🖼️ Image Saver] ✅ Image downloaded:', {
+      console.log('[🖼️ Image Saver] ✅ Image downloaded via proxy:', {
         size: blob.size,
         type: blob.type
       });

@@ -1093,16 +1093,16 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                         console.log('[BrainBox] Conversation ID extracted:', conversationId);
                         
                         // Show notification
-                        try {
-                            chrome.notifications.create({
-                                type: 'basic',
-                                iconUrl: chrome.runtime.getURL('icons/icon48.png'),
-                                title: 'BrainBox',
+                try {
+                    chrome.notifications.create({
+                        type: 'basic',
+                        iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+                        title: 'BrainBox',
                                 message: `Saving Gemini chat: ${title}...`
-                            });
-                        } catch (notifError) {
-                            console.warn('[BrainBox] Could not show notification:', notifError);
-                        }
+                    });
+                } catch (notifError) {
+                    console.warn('[BrainBox] Could not show notification:', notifError);
+                }
                         
                         // Send message to content script to save the conversation
                         try {

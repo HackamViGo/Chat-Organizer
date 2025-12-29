@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Prompt } from '@/types';
+import { Prompt, PromptUpdate } from '@/types';
 import { usePromptStore } from '@/store/usePromptStore';
 import { createClient } from '@/lib/supabase/client';
 import { 
@@ -77,12 +77,15 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
       const supabase = createClient();
       const newValue = !useInContextMenu;
       
-      const { data, error } = await supabase
+      const updateData: PromptUpdate = { use_in_context_menu: newValue };
+      const result = await (supabase as any)
         .from('prompts')
-        .update({ use_in_context_menu: newValue })
+        .update(updateData)
         .eq('id', prompt.id)
         .select()
         .single();
+      
+      const { data, error } = result;
 
       if (error) {
         console.error('Error updating prompt:', error);

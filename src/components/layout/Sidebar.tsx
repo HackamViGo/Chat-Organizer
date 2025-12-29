@@ -28,6 +28,8 @@ import {
   Hand, Footprints,
   // Social Icons
   Glasses, Users, Share2, Shield,
+  // Health Icons
+  Stethoscope, Thermometer,
   // Extra Icons
   Smartphone, Box, Star, Flag, Zap, Lightbulb, Monitor, MousePointer,
   Eye, Lock, MessageSquare, Bot, Gamepad, Sparkles,
@@ -53,6 +55,8 @@ export const FOLDER_ICONS: Record<string, React.ElementType> = {
   Hand, Footprints, Body: User,
   // Social
   Glasses, Users, Share2, Shield,
+  // Health
+  Stethoscope, Thermometer,
   // Extras
   Smartphone, Box, Star, Flag, Zap, Lightbulb, Monitor, MousePointer,
   Eye, Lock, MessageSquare, Bot, Gamepad, Sparkles, CheckSquare, ListTodo, Activity, Pill,
@@ -74,11 +78,11 @@ export const ICON_CATEGORIES = [
   { name: 'Learn', color: 'cyan', icons: ['Globe', 'Search', 'Scroll'] },
   { name: 'Life', color: 'rose', icons: ['Heart', 'Home', 'Coffee'] },
   { name: 'Media', color: 'purple', icons: ['Image', 'Film', 'Music'] },
-  { name: 'Social', color: 'blue', icons: ['Glasses', 'Users', 'Share2', 'Hash'] },
+  { name: 'Social', color: 'blue', icons: ['Glasses', 'Users', 'Share2', 'Camera', 'Hash'] },
   { name: 'Admin', color: 'emerald', icons: ['Settings', 'Lock', 'Archive'] },
   { name: 'Lists', color: 'emerald', icons: ['CheckSquare', 'ListTodo', 'Target'] },
   { name: 'Body Parts', color: 'pink', icons: ['Body', 'Hand', 'Footprints', 'Eye'] },
-  { name: 'Health', color: 'red', icons: ['Shield', 'Zap', 'Activity', 'Pill'] }
+  { name: 'Health', color: 'red', icons: ['Stethoscope', 'Thermometer', 'Activity', 'Pill'] }
 ];
 
 export const getCategoryColor = (iconKey: string): string => {

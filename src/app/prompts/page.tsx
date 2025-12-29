@@ -478,13 +478,21 @@ function PromptsPageContent() {
               <div className="h-48 overflow-y-auto custom-scrollbar border border-slate-200 dark:border-white/10 rounded-lg p-2 bg-slate-50/50 dark:bg-black/20 space-y-3">
                 {[
                   { name: 'Dev', color: 'blue', icons: ['Code', 'Terminal', 'Database'] },
+                  { name: 'Ops', color: 'cyan', icons: ['Server', 'Cpu', 'Monitor'] },
                   { name: 'Design', color: 'purple', icons: ['Palette', 'Layers', 'PenTool'] },
                   { name: 'Product', color: 'rose', icons: ['Box', 'Target', 'Flag'] },
                   { name: 'Biz', color: 'emerald', icons: ['Briefcase', 'DollarSign', 'PieChart'] },
                   { name: 'Write', color: 'amber', icons: ['Feather', 'FileText', 'BookOpen'] },
                   { name: 'Comms', color: 'blue', icons: ['MessageSquare', 'Mic', 'Video'] },
+                  { name: 'Idea', color: 'amber', icons: ['Lightbulb', 'Sparkles', 'Wand2'] },
+                  { name: 'Learn', color: 'cyan', icons: ['Globe', 'Search', 'Scroll'] },
+                  { name: 'Life', color: 'rose', icons: ['Heart', 'Home', 'Coffee'] },
+                  { name: 'Media', color: 'purple', icons: ['Image', 'Film', 'Music'] },
+                  { name: 'Social', color: 'blue', icons: ['Glasses', 'Users', 'Share2', 'Camera', 'Hash'] },
+                  { name: 'Admin', color: 'emerald', icons: ['Settings', 'Lock', 'Archive'] },
+                  { name: 'Lists', color: 'emerald', icons: ['CheckSquare', 'ListTodo', 'Target'] },
                   { name: 'Body Parts', color: 'pink', icons: ['Body', 'Hand', 'Footprints', 'Eye'] },
-                  { name: 'Health', color: 'red', icons: ['Heart', 'Brain', 'Body', 'Footprints'] },
+                  { name: 'Health', color: 'red', icons: ['Stethoscope', 'Thermometer', 'Activity', 'Pill'] },
                 ].map((cat) => (
                   <div key={cat.name}>
                     <div className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">{cat.name}</div>

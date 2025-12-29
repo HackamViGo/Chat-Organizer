@@ -14,7 +14,7 @@
   
   const CONFIG = {
     DB_NAME: 'BrainBoxGeminiMaster',
-    DB_VERSION: 3,
+    DB_VERSION: 4, // Incremented to add images store
     AUTO_SAVE_ENABLED: true,
     SAVE_INTERVAL: 5000, // Проверка на всеки 5 секунди
     MAX_RETRIES: 3,
@@ -89,6 +89,16 @@
           store.createIndex('conversationId', 'conversationId', { unique: false });
           store.createIndex('retries', 'retries', { unique: false });
           console.log('[🧠 BrainBox Master] ✅ Създаден syncQueue store');
+        }
+        
+        // Store 5: IMAGES (запазени изображения)
+        if (!db.objectStoreNames.contains('images')) {
+          const store = db.createObjectStore('images', { keyPath: 'id', autoIncrement: true });
+          store.createIndex('url', 'url', { unique: false });
+          store.createIndex('timestamp', 'timestamp', { unique: false });
+          store.createIndex('synced', 'synced', { unique: false });
+          store.createIndex('source_url', 'source_url', { unique: false });
+          console.log('[🧠 BrainBox Master] ✅ Създаден images store');
         }
       };
     });

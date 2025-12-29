@@ -53,7 +53,8 @@
       ],
       "js": [
         "content/brainbox_master.js",
-        "prompt-inject/prompt-inject.js"
+        "prompt-inject/prompt-inject.js",
+        "image-saver/image-saver.js"
       ],
       "run_at": "document_start"
     },
@@ -62,7 +63,8 @@
         "<all_urls>"
       ],
       "js": [
-        "prompt-inject/prompt-inject.js"
+        "prompt-inject/prompt-inject.js",
+        "image-saver/image-saver.js"
       ],
       "run_at": "document_idle",
       "exclude_matches": [

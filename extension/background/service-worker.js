@@ -842,59 +842,69 @@ function createContextMenu() {
             ]
         });
         
-        console.log('[BrainBox] ✅ Context menu created (3 items with different contexts)');
+        // 4. Save Image - shows when right-clicking on an image
+        chrome.contextMenus.create({
+            id: 'brainbox-save-image',
+            title: '🖼️ BrainBox Save Image',
+            contexts: ['image'],
+            documentUrlPatterns: ['<all_urls>']
+        });
+        
+        console.log('[BrainBox] ✅ Context menu created (4 items with different contexts)');
     });
 }
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-    // Prompt Inject handler - in editable fields (textarea)
+    // Prompt Inject handler - in editable fields (textarea) - WORKS EVERYWHERE
     if (info.menuItemId === 'brainbox-prompt-inject') {
         try {
-            console.log('[BrainBox] Prompt Inject clicked on:', tab.url);
+            console.log('[💬 BrainBox] Prompt Inject clicked on:', tab.url);
+            
+            // Always try to inject script first for universal compatibility
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ['prompt-inject/prompt-inject.js']
+                });
+                console.log('[💬 BrainBox] ✅ Prompt inject script injected');
+            } catch (injectError) {
+                console.log('[💬 BrainBox] Script might already be loaded, continuing...', injectError.message);
+            }
             
             // Send message to content script to show prompt menu
             try {
                 await chrome.tabs.sendMessage(tab.id, {
                     action: 'showPromptMenu'
                 });
-                console.log('[BrainBox] ✅ Prompt menu message sent');
+                console.log('[💬 BrainBox] ✅ Prompt menu message sent');
             } catch (error) {
-                console.log('[BrainBox] Content script not ready, injecting prompt-inject script...');
-                try {
-                    await chrome.scripting.executeScript({
-                        target: { tabId: tab.id },
-                        files: ['prompt-inject/prompt-inject.js']
-                    });
-                    console.log('[BrainBox] ✅ Prompt inject script injected');
-                    
-                    setTimeout(async () => {
-                        try {
-                            await chrome.tabs.sendMessage(tab.id, {
-                                action: 'showPromptMenu'
-                            });
-                            console.log('[BrainBox] ✅ Prompt menu message sent after injection');
-                        } catch (e) {
-                            console.error('[BrainBox] ❌ Still failed after injection:', e);
-                        }
-                    }, 500);
-                } catch (injectError) {
-                    console.error('[BrainBox] ❌ Failed to inject prompt script:', injectError);
-                }
+                console.log('[💬 BrainBox] ⚠️ Message failed, retrying after delay...', error.message);
+                // Retry after a delay
+                setTimeout(async () => {
+                    try {
+                        await chrome.tabs.sendMessage(tab.id, {
+                            action: 'showPromptMenu'
+                        });
+                        console.log('[💬 BrainBox] ✅ Prompt menu message sent after retry');
+                    } catch (e) {
+                        console.error('[💬 BrainBox] ❌ Still failed after retry:', e);
+                    }
+                }, 800);
             }
         } catch (error) {
-            console.error('[BrainBox] ❌ Error in prompt inject handler:', error);
+            console.error('[💬 BrainBox] ❌ Error in prompt inject handler:', error);
         }
         return;
     }
     
-    // Create Prompt handler - when text is selected
+    // Create Prompt handler - when text is selected - WORKS EVERYWHERE
     if (info.menuItemId === 'brainbox-create-prompt') {
         try {
-            console.log('[BrainBox] Create Prompt from Selection clicked');
+            console.log('[➕ BrainBox] Create Prompt from Selection clicked on:', tab.url);
             const selectedText = info.selectionText;
             
             if (!selectedText || selectedText.trim().length === 0) {
-                console.warn('[BrainBox] No text selected');
+                console.warn('[➕ BrainBox] ⚠️ No text selected');
                 try {
                     chrome.notifications.create({
                         type: 'basic',
@@ -903,9 +913,22 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                         message: 'Моля, маркирай текст преди да създадеш промпт.'
                     });
                 } catch (notifError) {
-                    console.warn('[BrainBox] Could not show notification:', notifError);
+                    console.warn('[➕ BrainBox] Could not show notification:', notifError);
                 }
                 return;
+            }
+            
+            console.log('[➕ BrainBox] 📝 Selected text length:', selectedText.length);
+            
+            // Always try to inject script first for universal compatibility
+            try {
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ['prompt-inject/prompt-inject.js']
+                });
+                console.log('[➕ BrainBox] ✅ Prompt inject script injected');
+            } catch (injectError) {
+                console.log('[➕ BrainBox] Script might already be loaded, continuing...', injectError.message);
             }
             
             // Send message to content script to show create prompt dialog
@@ -914,33 +937,96 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     action: 'showCreatePromptDialog',
                     selectedText: selectedText
                 });
-                console.log('[BrainBox] ✅ Create prompt dialog message sent');
+                console.log('[➕ BrainBox] ✅ Create prompt dialog message sent');
             } catch (error) {
-                console.log('[BrainBox] Content script not ready, injecting prompt-inject script...');
+                console.log('[➕ BrainBox] ⚠️ Message failed, retrying after delay...', error.message);
+                // Retry after a delay
+                setTimeout(async () => {
+                    try {
+                        await chrome.tabs.sendMessage(tab.id, {
+                            action: 'showCreatePromptDialog',
+                            selectedText: selectedText
+                        });
+                        console.log('[➕ BrainBox] ✅ Create prompt dialog message sent after retry');
+                    } catch (e) {
+                        console.error('[➕ BrainBox] ❌ Still failed after retry:', e);
+                    }
+                }, 800);
+            }
+        } catch (error) {
+            console.error('[➕ BrainBox] ❌ Error in create prompt handler:', error);
+        }
+        return;
+    }
+    
+    // Save Image handler - when right-clicking on an image
+    if (info.menuItemId === 'brainbox-save-image') {
+        try {
+            console.log('[🖼️ BrainBox] Save Image context menu clicked');
+            console.log('[🖼️ BrainBox] Image info:', {
+                srcUrl: info.srcUrl,
+                altText: info.altText,
+                linkText: info.linkText,
+                pageUrl: info.pageUrl,
+                tabId: tab.id,
+                tabUrl: tab.url
+            });
+            
+            if (!info.srcUrl) {
+                console.error('[🖼️ BrainBox] ❌ No image URL found in context menu info');
+                return;
+            }
+            
+            // Send message to content script to save the image
+            try {
+                console.log('[🖼️ BrainBox] 📨 Attempting to send message to content script...');
+                const response = await chrome.tabs.sendMessage(tab.id, {
+                    action: 'saveImage',
+                    imageUrl: info.srcUrl,
+                    imageName: info.altText || info.linkText || 'Saved Image'
+                });
+                console.log('[🖼️ BrainBox] ✅ Save image message sent, response:', response);
+            } catch (error) {
+                console.log('[🖼️ BrainBox] ⚠️ Content script not ready, error:', error.message);
+                console.log('[🖼️ BrainBox] 🔧 Injecting image-saver script...');
                 try {
                     await chrome.scripting.executeScript({
                         target: { tabId: tab.id },
-                        files: ['prompt-inject/prompt-inject.js']
+                        files: ['image-saver/image-saver.js']
                     });
-                    console.log('[BrainBox] ✅ Prompt inject script injected');
+                    console.log('[🖼️ BrainBox] ✅ Image saver script injected successfully');
                     
                     setTimeout(async () => {
                         try {
-                            await chrome.tabs.sendMessage(tab.id, {
-                                action: 'showCreatePromptDialog',
-                                selectedText: selectedText
+                            console.log('[🖼️ BrainBox] 📨 Retrying message after injection...');
+                            const response = await chrome.tabs.sendMessage(tab.id, {
+                                action: 'saveImage',
+                                imageUrl: info.srcUrl,
+                                imageName: info.altText || info.linkText || 'Saved Image'
                             });
-                            console.log('[BrainBox] ✅ Create prompt dialog message sent after injection');
+                            console.log('[🖼️ BrainBox] ✅ Save image message sent after injection, response:', response);
                         } catch (e) {
-                            console.error('[BrainBox] ❌ Still failed after injection:', e);
+                            console.error('[🖼️ BrainBox] ❌ Still failed after injection:', e);
+                            console.error('[🖼️ BrainBox] Error details:', {
+                                message: e.message,
+                                stack: e.stack
+                            });
                         }
                     }, 500);
                 } catch (injectError) {
-                    console.error('[BrainBox] ❌ Failed to inject prompt script:', injectError);
+                    console.error('[🖼️ BrainBox] ❌ Failed to inject image saver script:', injectError);
+                    console.error('[🖼️ BrainBox] Inject error details:', {
+                        message: injectError.message,
+                        stack: injectError.stack
+                    });
                 }
             }
         } catch (error) {
-            console.error('[BrainBox] ❌ Error in create prompt handler:', error);
+            console.error('[🖼️ BrainBox] ❌ Error in save image handler:', error);
+            console.error('[🖼️ BrainBox] Error details:', {
+                message: error.message,
+                stack: error.stack
+            });
         }
         return;
     }
@@ -1001,7 +1087,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     });
                     
                     if (response && response.success && response.conversationId) {
-                        console.log('[BrainBox] Conversation ID extracted:', response.conversationId);
+                        const conversationId = response.conversationId;
+                        const title = response.title || conversationId;
+                        
+                        console.log('[BrainBox] Conversation ID extracted:', conversationId);
                         
                         // Show notification
                         try {
@@ -1009,19 +1098,23 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                                 type: 'basic',
                                 iconUrl: chrome.runtime.getURL('icons/icon48.png'),
                                 title: 'BrainBox',
-                                message: `Saving Gemini chat: ${response.title || response.conversationId}...`
+                                message: `Saving Gemini chat: ${title}...`
                             });
                         } catch (notifError) {
                             console.warn('[BrainBox] Could not show notification:', notifError);
                         }
                         
                         // Send message to content script to save the conversation
-                        await chrome.tabs.sendMessage(tab.id, {
-                            action: 'saveConversationFromContextMenu',
-                            conversationId: response.conversationId,
-                            title: response.title,
-                            url: response.url
-                        });
+                        try {
+                            await chrome.tabs.sendMessage(tab.id, {
+                                action: 'saveConversationFromContextMenu',
+                                conversationId: conversationId,
+                                title: title,
+                                url: response.url || tab.url
+                            });
+                        } catch (msgError) {
+                            console.error('[BrainBox] Failed to send save message:', msgError);
+                        }
                         
                         return;
                     } else {

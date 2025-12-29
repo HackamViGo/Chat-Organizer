@@ -67,6 +67,15 @@
       gap: 8px;
     }
     
+    .actions-row {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .actions-row .btn {
+      flex: 1;
+    }
+    
     .btn {
       padding: 12px;
       border: none;
@@ -75,6 +84,10 @@
       font-weight: 600;
       cursor: pointer;
       transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
     }
     
     .btn-primary {
@@ -94,6 +107,27 @@
     
     .btn-secondary:hover {
       background: rgba(255, 255, 255, 0.3);
+    }
+    
+    .btn-refresh {
+      background: rgba(255, 255, 255, 0.15);
+      color: white;
+      padding: 10px;
+      min-width: 48px;
+    }
+    
+    .btn-refresh:hover {
+      background: rgba(255, 255, 255, 0.25);
+    }
+    
+    .btn-refresh:active {
+      transform: rotate(180deg);
+      transition: transform 0.3s;
+    }
+    
+    .btn-refresh.loading {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
     
     .footer {
@@ -126,8 +160,17 @@
   </div>
   
   <div class="actions">
-    <button class="btn btn-primary" id="open-dashboard">
-      Open Dashboard
+    <div class="actions-row">
+      <button class="btn btn-primary" id="open-dashboard">
+        Open Dashboard
+      </button>
+      <button class="btn btn-refresh" id="refresh-status" title="Refresh status">
+        🔄
+      </button>
+    </div>
+    <button class="btn btn-secondary" id="toggle-batch-images">
+      <span id="batch-images-icon">📸</span>
+      <span id="batch-images-text">Batch Save Images</span>
     </button>
     <button class="btn btn-secondary" id="view-docs">
       View Documentation

@@ -75,6 +75,7 @@ export async function POST(request: NextRequest) {
   let user;
 
   if (token) {
+    // Extension request with Bearer token
     const { createClient } = await import('@supabase/supabase-js');
     supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -86,6 +87,7 @@ export async function POST(request: NextRequest) {
     const { data: { user: tokenUser } } = await supabase.auth.getUser();
     user = tokenUser;
   } else {
+    // Web app request with cookies
     supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -112,7 +114,8 @@ export async function POST(request: NextRequest) {
       hasImages: !!body.images,
       isArray: Array.isArray(body.images),
       imageCount: body.images?.length || 1,
-      source_url: body.source_url
+      source_url: body.source_url,
+      userId: user.id
     });
 
     // Handle both single and multiple image formats

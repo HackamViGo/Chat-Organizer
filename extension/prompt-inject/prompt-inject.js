@@ -28,8 +28,7 @@
   
   const STATE = {
     prompts: [],
-    isLoading: false,
-    accessToken: null
+    isLoading: false
   };
 
   // ============================================================================
@@ -39,9 +38,6 @@
   async function init() {
     console.log('[🧠 Prompt Inject] Инициализация...');
     
-    // Зареждане на access token
-    await loadAccessToken();
-    
     // Настройка на message listener
     setupMessageListener();
     
@@ -49,48 +45,10 @@
   }
 
   // ============================================================================
-  // ЗАРЕЖДАНЕ НА ACCESS TOKEN
-  // ============================================================================
-  
-  async function loadAccessToken() {
-    return new Promise((resolve) => {
-      try {
-        chrome.storage.local.get(['accessToken', 'expiresAt'], (result) => {
-          if (result.accessToken) {
-            // Проверка дали token е изтекъл
-            const isExpired = result.expiresAt && result.expiresAt < Date.now();
-            
-            if (isExpired) {
-              console.warn('[🧠 Prompt Inject] ⚠️ Access token е изтекъл');
-              STATE.accessToken = null;
-            } else {
-              STATE.accessToken = result.accessToken;
-              console.log('[🧠 Prompt Inject] ✅ Access token зареден');
-            }
-          } else {
-            console.warn('[🧠 Prompt Inject] ⚠️ Няма access token');
-            STATE.accessToken = null;
-          }
-          resolve();
-        });
-      } catch (error) {
-        console.error('[🧠 Prompt Inject] ❌ Грешка при зареждане на access token:', error);
-        STATE.accessToken = null;
-        resolve();
-      }
-    });
-  }
-
-  // ============================================================================
   // ИЗВЛИЧАНЕ НА ПРОМПТОВЕТЕ ОТ API
   // ============================================================================
   
   async function fetchPrompts(forceRefresh = false) {
-    if (!STATE.accessToken) {
-      console.error('[🧠 Prompt Inject] ❌ Няма access token');
-      return [];
-    }
-
     if (STATE.isLoading && !forceRefresh) {
       console.log('[🧠 Prompt Inject] ⏳ Вече се зареждат промптове...');
       return STATE.prompts;
@@ -100,15 +58,12 @@
     console.log('[🧠 Prompt Inject] 📥 Зареждане на промптове от API...');
 
     try {
-      // Fetch only prompts marked for context menu
+      // Fetch only prompts marked for context menu (no auth required)
       const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`;
-      
-      console.log('[🧠 Prompt Inject] 🔑 Access token:', STATE.accessToken ? `${STATE.accessToken.substring(0, 20)}...` : 'НЯМА');
       
       const options = {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${STATE.accessToken}`,
           'Content-Type': 'application/json'
         }
       };
@@ -162,7 +117,7 @@
         message: error?.message,
         stack: error?.stack,
         url: `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`,
-        hasToken: !!STATE.accessToken
+        hasToken: false // No auth required
       });
       
       // По-подробна информация за грешката
@@ -170,31 +125,7 @@
         console.error('[🧠 Prompt Inject] ❌ Network error - проверь дали dashboard URL е правилен');
         console.error('[🧠 Prompt Inject] ❌ URL:', `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`);
       } else if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
-        console.error('[🧠 Prompt Inject] ❌ Unauthorized - access token може да е изтекъл');
-        // Опит за презареждане на token
-        await loadAccessToken();
-        console.log('[🧠 Prompt Inject] 🔄 Token презареден, опит за повторна заявка...');
-        // Опит за повторна заявка след презареждане на token
-        try {
-          const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`;
-          const retryOptions = {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${STATE.accessToken}`,
-              'Content-Type': 'application/json'
-            }
-          };
-          const retryResponse = await fetch(url, retryOptions);
-          
-          if (retryResponse.ok) {
-            const retryData = await retryResponse.json();
-            STATE.prompts = Array.isArray(retryData.prompts) ? retryData.prompts : [];
-            console.log(`[🧠 Prompt Inject] ✅ Успешно заредени ${STATE.prompts.length} промпта след retry`);
-            return STATE.prompts;
-          }
-        } catch (retryError) {
-          console.error('[🧠 Prompt Inject] ❌ Retry също не успее:', retryError);
-        }
+        console.error('[🧠 Prompt Inject] ❌ Unauthorized - но това не трябва да се случва (no auth required)');
       } else if (error.message && error.message.includes('404')) {
         console.error('[🧠 Prompt Inject] ❌ API endpoint не е намерен');
         console.error('[🧠 Prompt Inject] ❌ Провери дали API endpoint е правилен:', CONFIG.API_ENDPOINT);
@@ -302,7 +233,7 @@
         
         try {
           // Презареждане на access token преди refresh
-          await loadAccessToken();
+          // No auth required
           
           const newPrompts = await fetchPrompts(true); // Force refresh
           
@@ -541,27 +472,7 @@
   // ============================================================================
   
   async function createPrompt(promptData) {
-    if (!STATE.accessToken) {
-      console.error('[🧠 Prompt Inject] ❌ Няма access token');
-      await loadAccessToken();
-      
-      if (!STATE.accessToken) {
-        return { success: false, error: 'No access token. Please log in to dashboard first.' };
-      }
-    }
-    
     console.log('[🧠 Prompt Inject] 📤 Създаване на промпт:', promptData.title);
-    console.log('[🧠 Prompt Inject] 🔑 Access token преди заявка:', STATE.accessToken ? `${STATE.accessToken.substring(0, 30)}...` : 'НЯМА');
-    
-    // Презареждане на token преди заявка (за всеки случай)
-    await loadAccessToken();
-    
-    if (!STATE.accessToken) {
-      console.error('[🧠 Prompt Inject] ❌ Все още няма access token след презареждане');
-      return { success: false, error: 'No access token. Please log in to dashboard first and refresh the page.' };
-    }
-    
-    console.log('[🧠 Prompt Inject] 🔑 Access token след презареждане:', `${STATE.accessToken.substring(0, 30)}...`);
     
     try {
       const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}`;
@@ -569,7 +480,6 @@
       const options = {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${STATE.accessToken}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
@@ -584,33 +494,12 @@
         url,
         title: promptData.title,
         contentLength: promptData.content.length,
-        use_in_context_menu: promptData.use_in_context_menu,
-        hasAuthHeader: !!options.headers['Authorization']
+        use_in_context_menu: promptData.use_in_context_menu
       });
       
       const response = await fetch(url, options);
       
       if (!response.ok) {
-        // При 401, опитваме да презаредим token и да повторим
-        if (response.status === 401) {
-          console.log('[🧠 Prompt Inject] ⚠️ 401 Unauthorized - опит за презареждане на token...');
-          await loadAccessToken();
-          
-          if (STATE.accessToken) {
-            // Опит за повторна заявка с новия token
-            options.headers['Authorization'] = `Bearer ${STATE.accessToken}`;
-            console.log('[🧠 Prompt Inject] 🔄 Повторна заявка с нов token...');
-            
-            const retryResponse = await fetch(url, options);
-            
-            if (retryResponse.ok) {
-              const retryData = await retryResponse.json();
-              console.log('[🧠 Prompt Inject] ✅ Промпт създаден успешно след retry:', retryData.id);
-              return { success: true, data: retryData };
-            }
-          }
-        }
-        
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
         try {
           const errorData = await response.text();
@@ -770,17 +659,7 @@
         (async () => {
           try {
             // Проверка за access token
-            if (!STATE.accessToken) {
-              console.log('[🧠 Prompt Inject] ⚠️ Няма access token, опит за зареждане...');
-              await loadAccessToken();
-              
-              if (!STATE.accessToken) {
-                console.error('[🧠 Prompt Inject] ❌ Все още няма access token');
-                showNotification('Няма access token. Моля, влезте в dashboard първо.', 'error');
-                sendResponse({ success: false, error: 'No access token' });
-                return;
-              }
-            }
+            // No auth required
             
             // Зареждане на промптове
             console.log('[🧠 Prompt Inject] 🔍 Зареждане на промптове...');

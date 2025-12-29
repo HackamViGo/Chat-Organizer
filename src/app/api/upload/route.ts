@@ -1,13 +1,46 @@
 import { NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 
+// CORS headers for Chrome extension
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+};
+
 export async function POST(request: Request) {
   try {
-    const supabase = createServerSupabaseClient();
+    // Check for Authorization header (for extension)
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+    let supabase;
+    let user;
+    
+    if (token) {
+      // Extension request with Bearer token
+      const { createClient } = await import('@supabase/supabase-js');
+      supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          global: { headers: { Authorization: `Bearer ${token}` } }
+        }
+      );
+      const { data: { user: tokenUser } } = await supabase.auth.getUser();
+      user = tokenUser;
+    } else {
+      // Web app request with cookies
+      supabase = createServerSupabaseClient();
+      const { data: { user: cookieUser }, error: authError } = await supabase.auth.getUser();
+      if (authError) {
+        return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders });
+      }
+      user = cookieUser;
+    }
+    
+    if (!user) {
+      return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders });
     }
 
     const formData = await request.formData();
@@ -15,17 +48,17 @@ export async function POST(request: Request) {
     const folderId = formData.get('folderId') as string | null;
     
     if (!file) {
-      return new NextResponse('No file provided', { status: 400 });
+      return new NextResponse('No file provided', { status: 400, headers: corsHeaders });
     }
 
     // Validation
     if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400, headers: corsHeaders });
     }
 
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/avif'];
     if (!allowedTypes.includes(file.type)) {
-      return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid file type' }, { status: 400, headers: corsHeaders });
     }
 
     // Upload to Supabase Storage
@@ -57,8 +90,8 @@ export async function POST(request: Request) {
 
     if (dbError) throw dbError;
 
-    return NextResponse.json(imageRecord);
+    return NextResponse.json(imageRecord, { headers: corsHeaders });
   } catch (error: any) {
-    return new NextResponse(error.message, { status: 500 });
+    return new NextResponse(error.message, { status: 500, headers: corsHeaders });
   }
 }

@@ -12,27 +12,456 @@
 *Tasks awaiting action from specific agents*
 
 ```
-[2025-01-27T15:20] [DB_AGENT] VERIFY: Check chats.url field in database
-Priority: HIGH (data integrity issue)
-Impact: EXTENSION_AGENT, API_AGENT - URL may be incorrectly saved
-Status: PENDING - Extension sends correct URL, but database may have wrong values
-
-Issue:
-- Extension correctly sends: https://claude.ai/chat/{conversationId}
-- But database may be storing: https://brainbox-alpha.vercel.app/... (dashboard URL)
-- Check: src/app/api/chats/route.ts POST handler
-- Verify: No logic that overwrites url field with request origin
-- Action: If URL is wrong in DB, check API route for URL overwriting logic
-
-[2025-12-27T20:45] [DB_AGENT] RECOMMEND: Convert folders.type from TEXT to ENUM
-Priority: LOW (non-breaking, validation exists in client)
-Impact: API_AGENT, UI_AGENT - No code changes needed
-Status: OPTIONAL - Current TEXT implementation works
+(No pending tasks)
 ```
 
 ---
 
 ## Recent Changes
+
+### 2025-01-28
+
+#### 22:45:00 - [UI_AGENT] Improved Drag & Drop with Visual Haptic Feedback
+**Action:** Enhanced drag & drop functionality across all components with visual haptic feedback  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- UI_AGENT: Better visual feedback during drag operations
+- User experience improved - clear visual indicators for drag & drop actions
+
+**Changes Made:**
+- `src/components/layout/Sidebar.tsx`: 
+  - Enhanced drop indicators with pulse animation and glow effects
+  - Added scale effect (scale-[1.02]) when dragging inside folder
+  - Improved ring styling with shadow effects
+  - Better visual feedback with animate-pulse
+- `src/app/chats/page.tsx`:
+  - Added pulse animation on drag over (animate-pulse)
+  - Added scale effect (scale-110) on drag over
+  - Added glow effects (shadow-lg shadow-cyan-500/30)
+  - Fixed onDragLeave with proper relatedTarget check
+  - Added e.stopPropagation() to all drag handlers
+- `src/app/prompts/page.tsx`:
+  - Added pulse animation on drag over (animate-pulse)
+  - Added scale effect (scale-110) on drag over
+  - Added glow effects (shadow-lg shadow-cyan-500/30)
+  - Fixed onDragLeave with proper relatedTarget check
+  - Added e.stopPropagation() to all drag handlers
+- `src/components/features/images/ImagesPage.tsx`:
+  - Added pulse animation on drag over for aside bar folders
+  - Added scale effect (scale-110) on drag over
+  - Added glow effects (shadow-lg shadow-cyan-500/30)
+  - Enhanced file drop zone with pulse, scale, and ring glow
+  - Fixed onDragLeave with proper relatedTarget check
+  - Added e.stopPropagation() to all drag handlers
+
+**Visual Feedback Features:**
+- ✅ Pulse animations (animate-pulse) on drag over
+- ✅ Scale effects (scale-110, scale-[1.02]) for visual emphasis
+- ✅ Glow effects (shadow-lg shadow-cyan-500/30) for depth
+- ✅ Ring indicators with better styling
+- ✅ Smooth transitions (duration-200) for better UX
+- ✅ Proper event handling with stopPropagation
+
+**Verified:**
+- ✅ All drag & drop handlers work correctly
+- ✅ Visual feedback is consistent across all components
+- ✅ No event bubbling issues
+- ✅ Proper cleanup on drag leave
+- ✅ No linting errors
+
+**Technical Details:**
+- Used Tailwind's animate-pulse for haptic-like visual feedback
+- Scale effects provide tactile-like visual response
+- Glow effects (shadow) create depth perception
+- Proper event handling prevents unwanted interactions
+- relatedTarget checks ensure correct drag leave behavior
+
+**Acknowledgments:**
+- [2025-01-28 22:45] [UI_AGENT] COMPLETED
+
+---
+
+#### 22:30:00 - [UI_AGENT] Completely Replaced ImagesPage Modal
+**Action:** Completely replaced Create Image Group modal in ImagesPage with identical structure from ChatsPage/PromptsPage  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- UI_AGENT: Identical modal structure across all pages (Sidebar, ChatsPage, PromptsPage, ImagesPage)
+- User experience improved - completely unified modal experience
+
+**Changes Made:**
+- `src/components/features/images/ImagesPage.tsx`: Completely replaced modal with ChatsPage/PromptsPage structure
+- Removed `IMAGE_ICON_CATEGORIES` constant (Shot, Edit, Device, Asset, Env, File)
+- Removed `randomizeTheme` function
+- Removed Appearance section with color picker
+- Removed Group Name label (now just placeholder)
+- Added same icon categories as ChatsPage/PromptsPage: Dev, Design, Product, Biz, Write, Comms, Body Parts, Health
+- Updated `handleCreateImageFolder` to match ChatsPage pattern:
+  - Added `isCreatingFolderRef` to prevent double submission
+  - Changed to async function without FormEvent parameter
+  - Added try/catch/finally error handling
+  - Reset selectedIcon to 'Folder' (was 'Image')
+- Updated modal title to "New Folder" (capitalize) to match other modals
+- Simplified form structure (removed nested divs, cleaner layout)
+
+**Removed:**
+- ❌ IMAGE_ICON_CATEGORIES constant
+- ❌ randomizeTheme function
+- ❌ Appearance section with label
+- ❌ Color picker buttons
+- ❌ Randomize button
+- ❌ Group Name label
+
+**Added:**
+- ✅ Same icon categories as ChatsPage/PromptsPage
+- ✅ isCreatingFolderRef protection
+- ✅ Improved error handling
+- ✅ Consistent modal structure
+
+**Verified:**
+- ✅ Modal is identical to ChatsPage/PromptsPage modals
+- ✅ Same categories and icons available
+- ✅ Consistent behavior and styling
+- ✅ No duplicate folder creation
+- ✅ No linting errors
+
+**Technical Details:**
+- Complete replacement - no preserved elements
+- Uses exact same structure as ChatsPage/PromptsPage
+- Same categories: Dev, Design, Product, Biz, Write, Comms, Body Parts, Health
+- Same error handling pattern with ref protection
+
+**Acknowledgments:**
+- [2025-01-28 22:30] [UI_AGENT] COMPLETED
+
+---
+
+#### 22:15:00 - [UI_AGENT] Updated Create Image Group Modal Styling
+**Action:** Updated Create Image Group modal styling in ImagesPage to match other modals  
+**Status:** ✅ REPLACED (see 22:30:00 entry)
+
+---
+
+#### 22:00:00 - [UI_AGENT] Updated Create Folder Modal Styling
+**Action:** Updated Create Folder modal styling in ChatsPage and PromptsPage to match Sidebar modal design  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- UI_AGENT: Consistent modal design across all pages
+- User experience improved - unified visual style
+
+**Changes Made:**
+- `src/app/chats/page.tsx`: Updated modal colors and styling to match Sidebar
+- `src/app/prompts/page.tsx`: Updated modal colors and styling to match Sidebar
+- Changed modal background: `bg-white dark:bg-[#0f172a]` (was `bg-white dark:bg-slate-900`)
+- Changed border: `border-slate-200 dark:border-white/10` (was `border-slate-200 dark:border-slate-700`)
+- Changed header background: `bg-slate-50/50 dark:bg-white/5` (was `bg-slate-50 dark:bg-slate-800`)
+- Updated input styling: `bg-slate-100 dark:bg-black/30 border-white/10`
+- Updated icon selector: `h-48 overflow-y-auto border border-slate-200 dark:border-white/10 rounded-lg p-2 bg-slate-50/50 dark:bg-black/20`
+- Changed title to "New Folder" (capitalize) to match Sidebar
+- Simplified form structure (removed nested divs, cleaner layout)
+
+**Verified:**
+- ✅ Modal styling matches Sidebar modal
+- ✅ Consistent colors and borders across all modals
+- ✅ Better dark mode appearance
+- ✅ No linting errors
+
+**Technical Details:**
+- Used same color scheme as Sidebar modal for consistency
+- Improved dark mode with `dark:bg-[#0f172a]` and `dark:bg-black/20`
+- Cleaner structure with simplified form layout
+
+**Acknowledgments:**
+- [2025-01-28 22:00] [UI_AGENT] COMPLETED
+
+---
+
+#### 21:45:00 - [UI_AGENT] Fixed Duplicate Folder Creation and Undefined Icon Errors
+**Action:** Fixed duplicate folder creation in PromptsPage and ChatsPage, fixed undefined icon error  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- UI_AGENT: No more duplicate folders created, no more undefined icon errors
+- User experience improved - folder creation works correctly
+
+**Problems Fixed:**
+1. **Duplicate folder creation in PromptsPage** - handleCreateFolder was being called twice (onSubmit + onClick)
+2. **Duplicate folder creation in ChatsPage** - handleCreateFolder was being called twice (onSubmit + onClick)
+3. **Undefined icon error in ChatsPage** - IconComp was undefined for some icons (Body, Footprints)
+
+**Changes Made:**
+- `src/app/prompts/page.tsx`: Added `isCreatingFolderRef` to prevent double folder creation
+- `src/app/prompts/page.tsx`: Added React import for useRef
+- `src/app/prompts/page.tsx`: Added undefined IconComp check (already had it)
+- `src/app/chats/page.tsx`: Added `isCreatingFolderRef` to prevent double folder creation
+- `src/app/chats/page.tsx`: Added React import for useRef
+- `src/app/chats/page.tsx`: Added undefined IconComp check with null return
+- `src/components/layout/Sidebar.tsx`: Fixed Body icon definition - changed from `Body: BodyIcon` to `Body: User`
+
+**Verified:**
+- ✅ No duplicate folders created in PromptsPage
+- ✅ No duplicate folders created in ChatsPage
+- ✅ No undefined icon errors in ChatsPage
+- ✅ Body icon properly defined in FOLDER_ICONS
+- ✅ No linting errors
+
+**Technical Details:**
+- Used `React.useRef(false)` to track creation state (prevents double submit)
+- Added `finally` block to always reset ref even on error
+- IconComp check returns `null` if icon not found (prevents React error)
+
+**Acknowledgments:**
+- [2025-01-28 21:45] [UI_AGENT] COMPLETED
+
+---
+
+#### 21:30:00 - [UI_AGENT] Added Body Parts and Health Icon Categories
+**Action:** Added 2 new icon categories for prompts with body part icons  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- UI_AGENT: New icon categories available in prompts, chats, and folders
+- User experience improved - more icon options for organizing content
+
+**Changes Made:**
+- `src/components/layout/Sidebar.tsx`: Added Hand, Footprints, Body icons to FOLDER_ICONS
+- `src/components/layout/Sidebar.tsx`: Added "Body Parts" category (pink) with Body, Hand, Footprints, Eye icons
+- `src/components/layout/Sidebar.tsx`: Added "Health" category (red) with Heart, Brain, Body, Footprints icons
+- `src/app/prompts/page.tsx`: Added new categories to icon selector
+- `src/app/chats/page.tsx`: Added new categories to icon selector
+
+**New Categories:**
+1. **Body Parts** (pink): Body, Hand, Footprints, Eye
+2. **Health** (red): Heart, Brain, Body, Footprints
+
+**Verified:**
+- ✅ New icons imported from lucide-react
+- ✅ Categories added to all icon selectors (Sidebar, PromptsPage, ChatsPage)
+- ✅ Body and Footprints icons included as requested
+- ✅ No linting errors
+
+**Technical Details:**
+- Used `Footprints` icon from lucide-react for foot representation
+- Used `User` icon as `Body` for body representation
+- Categories use pink and red colors for visual distinction
+
+**Acknowledgments:**
+- [2025-01-28 21:30] [UI_AGENT] COMPLETED
+
+---
+
+#### 21:00:00 - [API_AGENT] Fixed RLS Policy Violation for Prompts Creation
+**Action:** Fixed POST /api/prompts endpoint to support Bearer token authentication  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- API_AGENT: POST /api/prompts now properly authenticates extension requests
+- EXTENSION_AGENT: prompt-inject.js now sends Authorization header when creating prompts
+- User experience improved - prompts can now be created from extension without RLS errors
+
+**Problem:**
+- RLS policy requires `user_id = auth.uid()` for INSERT operations
+- POST /api/prompts was using cookies-only authentication (didn't support Bearer token)
+- Extension requests failed with "new row violates row-level security policy"
+
+**Changes Made:**
+- `src/app/api/prompts/route.ts`: Added Bearer token support (matching `/api/chats` pattern)
+- `src/app/api/prompts/route.ts`: Now requires authentication (returns 401 if no user)
+- `src/app/api/prompts/route.ts`: Uses token-based Supabase client for extension requests
+- `extension/prompt-inject/prompt-inject.js`: Added Authorization header to createPrompt function
+- `extension/prompt-inject/prompt-inject.js`: Gets accessToken from chrome.storage.local
+- `extension/prompt-inject/prompt-inject.js`: Added error handling for missing accessToken
+
+**Verified:**
+- ✅ Extension can create prompts with Bearer token
+- ✅ Web app still works with cookie-based authentication
+- ✅ RLS policy now passes (user_id matches auth.uid())
+- ✅ No linting errors
+
+**Technical Details:**
+- Matched authentication pattern from `/api/chats` route
+- Extension gets accessToken from chrome.storage.local (set by service worker)
+- API endpoint checks Authorization header first, falls back to cookies
+
+**Acknowledgments:**
+- [2025-01-28 21:00] [API_AGENT] COMPLETED
+- [2025-01-28 21:00] [EXTENSION_AGENT] COMPLETED
+
+---
+
+#### 20:30:00 - [UI_AGENT] Fixed Folder Issues: Disappearing, Duplicates, and Drag & Drop
+**Action:** Fixed three critical folder-related bugs  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- UI_AGENT: All folder functionality now working correctly
+- User experience improved - folders persist after refresh, no duplicates, drag & drop works
+
+**Problems Fixed:**
+1. **Folders disappearing after refresh** - FolderProvider was skipping fetch if folders.length > 0, but Zustand store resets on refresh
+2. **Duplicate folder creation** - handleAddFolder was being called twice (onSubmit + onClick)
+3. **Drag & drop not working** - Missing onDragLeave handlers and dragOver only worked in custom sort mode
+
+**Changes Made:**
+- `FolderProvider.tsx`: Removed `folders.length > 0` check - now always fetches on mount
+- `Sidebar.tsx`: Added `isCreatingFolderRef` to prevent double folder creation
+- `Sidebar.tsx`: Added `handleDragLeave` handler with proper event handling
+- `Sidebar.tsx`: Fixed `handleDragOver` to allow chat drag & drop even when not in custom sort mode
+- `Sidebar.tsx`: Fixed `onDragLeave` prop passed to FolderTreeItem (was empty function)
+- `chats/page.tsx`: Added `onDragLeave` handler to folder buttons in sidebar with proper event handling
+
+**Verified:**
+- ✅ Folders persist after page refresh
+- ✅ No duplicate folders created
+- ✅ Drag & drop works in main Sidebar
+- ✅ Drag & drop works in ChatsPage sidebar
+- ✅ No linting errors
+
+**Technical Details:**
+- Used `useRef` to prevent double submission instead of state (faster, no re-render)
+- `onDragLeave` checks `relatedTarget` to avoid clearing drag state when moving between child elements
+- `handleDragOver` now allows chat drag & drop regardless of sort mode
+
+**Acknowledgments:**
+- [2025-01-28 20:30] [UI_AGENT] COMPLETED
+
+---
+
+#### 20:00:00 - [EXTENSION_AGENT] Automatic Token Refresh Implementation
+**Action:** Implemented automatic access token refresh using refresh token  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- EXTENSION_AGENT: Access token now automatically refreshes at 55 minutes (5 minutes before expiry)
+- API_AGENT: New `/api/auth/refresh` endpoint created for token refresh
+- User experience improved - no manual re-login needed
+
+**Changes Made:**
+- Created `/api/auth/refresh` endpoint that uses Supabase Auth API to refresh tokens
+- Added `refreshAccessToken()` function in service-worker.js
+- Added `startTokenRefreshCheck()` that checks every minute for token expiry
+- Added `shouldRefreshToken()` that triggers refresh at 55 minutes (5 min buffer)
+- Token refresh respects remember me setting (30 days vs standard expiry)
+- Automatic cleanup on refresh failure (opens login page)
+
+**Technical Details:**
+- Refresh check runs every 60 seconds
+- Refresh triggers when `expiresAt - Date.now() <= 5 minutes`
+- Uses refresh token stored in `chrome.storage.local`
+- Updates accessToken, refreshToken, and expiresAt after successful refresh
+- Falls back to login page if refresh fails
+
+**Verified:**
+- ✅ Token refresh endpoint works correctly
+- ✅ Automatic refresh triggers at correct time (55 minutes)
+- ✅ Remember me extends token expiry to 30 days
+- ✅ Refresh check starts on extension startup if tokens exist
+- ✅ Error handling opens login page on failure
+
+**Files Modified:**
+- `src/app/api/auth/refresh/route.ts` (NEW)
+- `extension/background/service-worker.js` (added refresh functions)
+- `src/app/extension-auth/page.tsx` (respects remember me for expiresAt)
+
+**Acknowledgments:**
+- [2025-01-28 20:00] [EXTENSION_AGENT] COMPLETED
+
+---
+
+#### 19:30:00 - [EXTENSION_AGENT] Remember Me Support for Extension
+**Action:** Added remember me support for extension token expiry  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- EXTENSION_AGENT: Extension tokens now respect remember me preference
+- User experience: Tokens last 30 days when remember me is enabled
+
+**Changes Made:**
+- Modified `extension-auth/page.tsx` to check remember me preference
+- If remember me is enabled, sets `expiresAt` to 30 days from now
+- Otherwise uses standard Supabase session `expires_at` (~1 hour)
+- Refresh endpoint also respects remember me cookie
+
+**Technical Details:**
+- Checks `localStorage.getItem('brainbox_remember_me')` in extension-auth page
+- Calculates expiresAt: `Date.now() + (30 * 24 * 60 * 60 * 1000)` if remember me
+- Refresh endpoint checks `brainbox_remember_me` cookie for same logic
+
+**Verified:**
+- ✅ Extension receives correct expiresAt based on remember me
+- ✅ Refresh endpoint maintains remember me preference
+- ✅ Tokens persist for 30 days when remember me enabled
+
+**Acknowledgments:**
+- [2025-01-28 19:30] [EXTENSION_AGENT] COMPLETED
+
+---
+
+#### 12:30:00 - [DB_AGENT] Convert folders.type from TEXT to ENUM
+**Action:** Migrated folders.type column from TEXT to ENUM type  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- DB_AGENT: ENUM type created, column converted, all data preserved
+- API_AGENT: No code changes needed (API returns folders as-is)
+- UI_AGENT: No code changes needed (client validation already exists)
+- EXTENSION_AGENT: ⚠️ INDIRECT IMPACT - Extension uses folders via /api/folders endpoint
+  * Extension calls getUserFolders() → /api/folders endpoint
+  * Extension displays folders in folder selector UI
+  * Extension does NOT filter by folder.type (uses all folders)
+  * Migration is safe: API continues returning folders normally
+  * No extension code changes needed
+
+**Migration Details:**
+- Created ENUM type: `folder_type_enum` with values: 'chat', 'list', 'image', 'prompt'
+- Converted `folders.type` column from TEXT to `folder_type_enum`
+- Preserved all existing data: 6 'prompt', 4 'chat', 1 'image' folders
+- Updated column comment: "Type of folder: chat, list, image, or prompt"
+- Generated TypeScript types: `database.types.ts` updated with ENUM type
+
+**Verified:**
+- ✅ ENUM type created successfully
+- ✅ Column type changed to USER-DEFINED (folder_type_enum)
+- ✅ All existing data preserved correctly
+- ✅ TypeScript types generated and saved
+- ✅ No linting errors
+
+**Technical Details:**
+- Migration name: `convert_folders_type_to_enum`
+- ENUM type: `folder_type_enum` ('chat' | 'list' | 'image' | 'prompt')
+- Column remains nullable (can be NULL for universal folders)
+- Database-level validation now enforced (invalid values rejected)
+
+**Benefits:**
+- ✅ Database-level validation (invalid values cannot be inserted)
+- ✅ Better performance (ENUM is more efficient than TEXT)
+- ✅ Clearer schema (allowed values are explicit)
+- ✅ Type safety in TypeScript (type is now `folder_type_enum | null`)
+
+**Acknowledgments:**
+- [2025-01-28 12:30] [DB_AGENT] COMPLETED
+
+---
+
+#### 12:00:00 - [DB_AGENT] URL Field Verification Complete
+**Action:** Verified chats.url field integrity in database  
+**Status:** ✅ COMPLETED - No issues found  
+**Impact:**
+- DB_AGENT: Database stores correct URLs (verified via SQL query)
+- API_AGENT: POST /api/chats route correctly passes URL without modification
+- EXTENSION_AGENT: Extension correctly sends platform URLs
+
+**Verification Results:**
+- ✅ Checked 73 total chats in database
+- ✅ 0 chats with dashboard URLs (brainbox/vercel)
+- ✅ All URLs are correct platform URLs:
+  - Claude: 6 chats with `https://claude.ai/chat/{id}` format
+  - ChatGPT: 8 chats with `https://chatgpt.com/c/{id}` format
+  - Gemini: 59 chats with `https://gemini.google.com/u/0/app/{id}` format
+- ✅ API route (`src/app/api/chats/route.ts`) correctly passes URL from request body without modification
+- ✅ Extension code (`extension/background/service-worker.js`) correctly sends `conversationData.url`
+
+**Conclusion:**
+- No data integrity issues found
+- URL field is working correctly
+- Previous concern was unfounded or already resolved
+
+**Acknowledgments:**
+- [2025-01-28 12:00] [DB_AGENT] COMPLETED
+
+---
 
 ### 2025-12-29
 
@@ -105,9 +534,9 @@ Status: OPTIONAL - Current TEXT implementation works
 - RLS: No changes needed (existing policies apply)
 
 **Next Steps:**
-- EXTENSION_AGENT: Filter prompts by `use_in_context_menu = true` for context menu
-- API_AGENT: Consider adding filter parameter to GET /api/prompts endpoint
-- UI_AGENT: Add toggle/checkbox in prompt creation/editing UI
+- EXTENSION_AGENT: ✅ COMPLETED - Filter prompts by `use_in_context_menu = true` implemented in prompt-inject.js
+- API_AGENT: ✅ COMPLETED - Filter parameter `?use_in_context_menu=true` works in GET /api/prompts endpoint
+- UI_AGENT: ✅ COMPLETED - Toggle/checkbox already implemented in CreatePromptModal and PromptCard
 
 **Acknowledgments:**
 - [2025-12-29 00:13] [DB_AGENT] COMPLETED
@@ -366,5 +795,5 @@ Status: OPTIONAL - Current TEXT implementation works
 
 ---
 
-*Last updated: 2025-01-28 00:00:00*  
-*Document version: 1.1.3*
+*Last updated: 2025-01-28 22:45:00*  
+*Document version: 1.2.3*

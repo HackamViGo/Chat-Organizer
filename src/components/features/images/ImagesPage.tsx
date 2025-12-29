@@ -7,7 +7,7 @@ import {
   Upload, Image as ImageIcon, Download, Trash2, Folder as FolderIcon, 
   X, RefreshCw, LayoutGrid, Plus, ChevronLeft, ChevronRight, Play, Pause, Maximize2,
   Check, AlertTriangle, Dice5, Search, CheckSquare, Square, FolderInput, FileImage, 
-  Calendar, HardDrive, ArrowUpAZ, FolderPlus, FolderMinus
+  Calendar, HardDrive, ArrowUpAZ, FolderPlus, FolderMinus, Activity, Pill
 } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
 import { useImageStore } from '@/store/useImageStore';
@@ -15,14 +15,6 @@ import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
 import type { Image as ImageType } from '@/types';
 
-const IMAGE_ICON_CATEGORIES = [
-  { name: 'Shot', icons: ['Camera', 'Image', 'Film'] },
-  { name: 'Edit', icons: ['Palette', 'Layers', 'PenTool'] },
-  { name: 'Device', icons: ['Monitor', 'Smartphone', 'MousePointer'] },
-  { name: 'Asset', icons: ['Box', 'Star', 'Flag'] },
-  { name: 'Env', icons: ['Sun', 'Globe', 'Eye'] },
-  { name: 'File', icons: ['Database', 'Server', 'Folder'] },
-];
 
 interface SelectionBox {
   startX: number;
@@ -66,7 +58,7 @@ export function ImagesPage() {
   
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [newFolderName, setNewFolderName] = useState('');
-  const [selectedIcon, setSelectedIcon] = useState('Image');
+  const [selectedIcon, setSelectedIcon] = useState('Folder');
   const [selectedColor, setSelectedColor] = useState('cyan');
   
   const isSelectionMode = selectedImageIds.size > 0;
@@ -529,7 +521,6 @@ export function ImagesPage() {
 
   const handleBulkCreateGroup = () => {
     setIsCreatingGroupFromSelection(true);
-    randomizeTheme();
     setIsCreateModalOpen(true);
   };
 
@@ -544,21 +535,20 @@ export function ImagesPage() {
     resetSelection();
   };
 
-  const randomizeTheme = () => {
-    const allIcons = IMAGE_ICON_CATEGORIES.flatMap(cat => cat.icons);
-    const randomIcon = allIcons[Math.floor(Math.random() * allIcons.length)];
-    const colors = ['cyan', 'rose', 'purple', 'blue', 'emerald', 'amber'];
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    setSelectedIcon(randomIcon);
-    setSelectedColor(randomColor);
-  };
+  const isCreatingFolderRef = React.useRef(false);
 
-  const handleCreateImageFolder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (newFolderName.trim()) {
+  const handleCreateImageFolder = async () => {
+    if (!newFolderName.trim() || isCreatingFolderRef.current) return;
+
+    isCreatingFolderRef.current = true;
+
+    try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user) {
+        isCreatingFolderRef.current = false;
+        return;
+      }
 
       const { data, error } = await supabase.from('folders').insert({
         name: newFolderName.trim(),
@@ -568,24 +558,28 @@ export function ImagesPage() {
         type: 'image'
       } as any).select().single();
 
-      if (!error && data) {
-        addFolder(data as any);
-        if (isCreatingGroupFromSelection && selectedImageIds.size > 0) {
-          console.log('Moving selected images to new folder:', Array.from(selectedImageIds), 'folder:', (data as any).id);
-          await moveImages(Array.from(selectedImageIds), (data as any).id);
-          
-          // Refresh images after moving to new folder
-          await fetchImages(user.id, selectedFolderId || undefined);
-          resetSelection();
-        }
-      } else if (error) {
-        console.error('Failed to create folder:', error);
-        alert('Failed to create folder. Check console for details.');
+      if (error) throw error;
+
+      addFolder(data as any);
+      if (isCreatingGroupFromSelection && selectedImageIds.size > 0) {
+        console.log('Moving selected images to new folder:', Array.from(selectedImageIds), 'folder:', (data as any).id);
+        await moveImages(Array.from(selectedImageIds), (data as any).id);
+        
+        // Refresh images after moving to new folder
+        await fetchImages(user.id, selectedFolderId || undefined);
+        resetSelection();
       }
 
-      setNewFolderName('');
       setIsCreateModalOpen(false);
+      setNewFolderName('');
       setIsCreatingGroupFromSelection(false);
+      setSelectedIcon('Folder');
+      setSelectedColor('cyan');
+    } catch (error: any) {
+      console.error('Failed to create folder:', error);
+      alert('Failed to create folder');
+    } finally {
+      isCreatingFolderRef.current = false;
     }
   };
 
@@ -595,14 +589,27 @@ export function ImagesPage() {
           
           <button 
              onClick={() => setSelectedFolderId(null)}
-             onDragOver={(e) => { e.preventDefault(); setHoveredFolderId('root'); }}
-             onDragLeave={() => setHoveredFolderId(null)}
+             onDragOver={(e) => { 
+               e.preventDefault(); 
+               e.stopPropagation();
+               setHoveredFolderId('root'); 
+             }}
+             onDragLeave={(e) => {
+               e.preventDefault();
+               e.stopPropagation();
+               const relatedTarget = e.relatedTarget as HTMLElement;
+               if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+                 setHoveredFolderId(null);
+               }
+             }}
              onDrop={(e) => handleDropOnFolder(e, undefined)}
-             className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-300 relative group shrink-0
+             className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative group shrink-0
                ${!selectedFolderId 
                  ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30 scale-110' 
                  : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
-               ${hoveredFolderId === 'root' ? 'ring-2 ring-cyan-500 bg-cyan-100 dark:bg-white/10' : ''}  
+               ${hoveredFolderId === 'root' && selectedFolderId
+                 ? 'ring-2 ring-cyan-500 dark:ring-cyan-400 bg-cyan-100 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 
+                 : ''}  
              `}
              title="All Images"
           >
@@ -614,7 +621,6 @@ export function ImagesPage() {
           <button
              onClick={() => {
                setIsCreatingGroupFromSelection(false);
-               randomizeTheme();
                setIsCreateModalOpen(true);
              }}
              className="w-12 h-12 flex items-center justify-center rounded-2xl text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-500 transition-all duration-300 relative group shrink-0"
@@ -638,13 +644,27 @@ export function ImagesPage() {
                       onClick={() => setSelectedFolderId(f.id)}
                       onMouseEnter={() => setHoveredFolderId(f.id)}
                       onMouseLeave={() => setHoveredFolderId(null)}
-                      onDragOver={(e) => { e.preventDefault(); setHoveredFolderId(f.id); }} 
+                      onDragOver={(e) => { 
+                        e.preventDefault(); 
+                        e.stopPropagation();
+                        setHoveredFolderId(f.id); 
+                      }} 
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        const relatedTarget = e.relatedTarget as HTMLElement;
+                        if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+                          setHoveredFolderId(null);
+                        }
+                      }}
                       onDrop={(e) => handleDropOnFolder(e, f.id)}
-                      className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-300 relative shrink-0 z-20
+                      className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative shrink-0 z-20
                         ${isActive 
                           ? `bg-${f.color}-500 text-white shadow-lg scale-110` 
                           : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
-                        ${isHovered && !isActive ? 'ring-2 ring-cyan-400 bg-cyan-50 dark:bg-white/5' : ''}
+                        ${isHovered && !isActive 
+                          ? 'ring-2 ring-cyan-400 dark:ring-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 
+                          : ''}
                       `}
                     >
                       <Icon size={24} />
@@ -701,62 +721,64 @@ export function ImagesPage() {
 
        {isCreateModalOpen && (
          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-           <div className="bg-white dark:bg-slate-900 w-full max-w-sm rounded-xl border border-slate-200 dark:border-slate-700 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-              <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-800">
-                <h3 className="font-semibold text-slate-900 dark:text-white">
-                    {isCreatingGroupFromSelection ? 'Create Group from Selection' : 'Create Image Group'}
-                </h3>
-                <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={18} /></button>
-              </div>
-
-              <form onSubmit={handleCreateImageFolder} className="p-4 flex flex-col gap-4 overflow-y-auto">
-                <div>
-                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider mb-1.5 block">Group Name</label>
-                  <input 
-                    autoFocus
-                    type="text"
-                    placeholder="e.g. Assets, Wallpapers"
-                    className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent transition-all"
-                    value={newFolderName}
-                    onChange={(e) => setNewFolderName(e.target.value)}
-                  />
-                </div>
-                <div>
-                   <div className="flex items-center justify-between mb-2">
-                      <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">Appearance</label>
-                      <button type="button" onClick={randomizeTheme} className="text-xs flex items-center gap-1.5 text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 font-medium transition-colors">
-                        <Dice5 size={14} /> Randomize
-                      </button>
+           <div className="w-full max-w-sm bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+             <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+               <h3 className="font-semibold text-slate-900 dark:text-white capitalize">New Folder</h3>
+               <button onClick={() => setIsCreateModalOpen(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white" aria-label="Close modal" title="Close"><X size={18} /></button>
+             </div>
+             <form onSubmit={(e) => { e.preventDefault(); handleCreateImageFolder(); }} className="p-4 flex flex-col gap-4 overflow-y-auto custom-scrollbar">
+               <input 
+                 autoFocus 
+                 type="text" 
+                 placeholder="Folder Name" 
+                 className="w-full bg-slate-100 dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-lg px-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500/50" 
+                 value={newFolderName} 
+                 onChange={(e) => setNewFolderName(e.target.value)} 
+               />
+               <div className="h-48 overflow-y-auto custom-scrollbar border border-slate-200 dark:border-white/10 rounded-lg p-2 bg-slate-50/50 dark:bg-black/20 space-y-3">
+                 {[
+                   { name: 'Dev', color: 'blue', icons: ['Code', 'Terminal', 'Database'] },
+                   { name: 'Design', color: 'purple', icons: ['Palette', 'Layers', 'PenTool'] },
+                   { name: 'Product', color: 'rose', icons: ['Box', 'Target', 'Flag'] },
+                   { name: 'Biz', color: 'emerald', icons: ['Briefcase', 'DollarSign', 'PieChart'] },
+                   { name: 'Write', color: 'amber', icons: ['Feather', 'FileText', 'BookOpen'] },
+                   { name: 'Comms', color: 'blue', icons: ['MessageSquare', 'Mic', 'Video'] },
+                   { name: 'Body Parts', color: 'pink', icons: ['Body', 'Hand', 'Footprints', 'Eye'] },
+                   { name: 'Health', color: 'red', icons: ['Heart', 'Brain', 'Activity', 'Pill'] },
+                 ].map((cat) => (
+                   <div key={cat.name}>
+                     <div className="text-[10px] font-bold text-slate-400 uppercase mb-2 ml-1">{cat.name}</div>
+                     <div className="grid grid-cols-6 gap-2">
+                       {cat.icons.map(iconKey => {
+                         const IconComp = FOLDER_ICONS[iconKey];
+                         if (!IconComp) {
+                           console.warn(`Icon ${iconKey} not found in FOLDER_ICONS`);
+                           return null;
+                         }
+                         const isSelected = selectedIcon === iconKey;
+                         return (
+                           <button 
+                             key={iconKey} 
+                             onClick={() => { setSelectedIcon(iconKey); setSelectedColor(cat.color); }} 
+                             className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? `bg-${cat.color}-500 text-white shadow-md scale-110` : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`} 
+                             type="button"
+                             aria-label={`Select ${iconKey} icon`}
+                             title={iconKey}
+                           >
+                             <IconComp size={18} />
+                           </button>
+                         );
+                       })}
+                     </div>
                    </div>
-                   <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-                     {['cyan', 'rose', 'purple', 'blue', 'emerald', 'amber'].map(color => (
-                       <button key={color} type="button" onClick={() => setSelectedColor(color)} className={`w-6 h-6 rounded-full bg-${color}-500 transition-all shrink-0 ${selectedColor === color ? 'ring-2 ring-offset-2 ring-offset-white dark:ring-offset-slate-900 ring-cyan-500 scale-110' : 'hover:scale-110 opacity-70 hover:opacity-100'}`} />
-                     ))}
-                   </div>
-                   <div className="h-48 overflow-y-auto border border-slate-300 dark:border-slate-700 rounded-lg p-2 bg-slate-50 dark:bg-slate-800 space-y-3">
-                      {IMAGE_ICON_CATEGORIES.map(cat => (
-                        <div key={cat.name}>
-                          <div className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1.5">{cat.name}</div>
-                          <div className="grid grid-cols-6 gap-1.5">
-                            {cat.icons.map(iconKey => {
-                               const Icon = FOLDER_ICONS[iconKey];
-                               if (!Icon) return null;
-                               return (
-                                 <button key={iconKey} type="button" onClick={() => setSelectedIcon(iconKey)} className={`p-1.5 rounded-md flex items-center justify-center transition-all ${selectedIcon === iconKey ? `bg-${selectedColor}-500 text-white shadow-md scale-105` : 'text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-slate-700 dark:hover:text-slate-200'}`} title={iconKey}>
-                                    <Icon size={16} />
-                                 </button>
-                               )
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                   </div>
-                </div>
-              </form>
-              <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-end gap-2 bg-slate-50 dark:bg-slate-800">
-                <button type="button" onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Cancel</button>
-                <button onClick={handleCreateImageFolder} disabled={!newFolderName.trim()} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-colors">Create</button>
-              </div>
+                 ))}
+               </div>
+             </form>
+             
+             <div className="p-4 border-t border-slate-100 dark:border-white/5 flex justify-end gap-2 bg-slate-50/50 dark:bg-white/5">
+               <button onClick={() => setIsCreateModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10">Cancel</button>
+               <button onClick={handleCreateImageFolder} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-500 shadow-lg" disabled={!newFolderName}>Create</button>
+             </div>
            </div>
          </div>
        )}
@@ -929,9 +951,9 @@ export function ImagesPage() {
                onDragLeave={handleDragLeave}
                onDrop={handleDrop}
                className={`
-                 border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all cursor-pointer group
+                 border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center text-center transition-all duration-200 cursor-pointer group
                  ${isDragging 
-                    ? 'border-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 scale-[1.01]' 
+                    ? 'border-cyan-500 dark:border-cyan-400 bg-cyan-50 dark:bg-cyan-900/20 scale-[1.02] ring-2 ring-cyan-500/30 dark:ring-cyan-400/30 shadow-lg shadow-cyan-500/20 animate-pulse' 
                     : 'border-slate-300 dark:border-white/10 hover:border-cyan-400 dark:hover:border-cyan-500/50 bg-slate-50/50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10'}
                `}
              >

@@ -127,19 +127,68 @@
   }
 
   // Save image to IndexedDB (with blob data)
-  async function saveImageToIndexedDB(imageData) {
+  async function saveImageToIndexedDB({ imageUrl, imageName, blob, source_url }) {
     if (!STATE.db) {
       await initIndexedDB();
     }
     
-    // Download image as blob first
     let imageBlobData = null;
-    try {
-      imageBlobData = await downloadImageAsBlob(imageData.url);
-      console.log('[🖼️ Image Saver] ✅ Image downloaded and converted to base64');
-    } catch (error) {
-      console.warn('[🖼️ Image Saver] ⚠️ Failed to download image, saving URL only:', error);
-      // Fallback: save URL only if download fails
+    
+    // Ако вече имаме blob (от blob URL или директно подаден), използвай го
+    if (blob) {
+      console.log('[🖼️ Image Saver] 💾 Using provided blob data:', blob.size, 'bytes');
+      
+      // Convert blob to base64 for storage in IndexedDB
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64String = reader.result;
+          resolve(base64String);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+      
+      imageBlobData = {
+        blob: blob,
+        base64: base64,
+        mimeType: blob.type || 'image/jpeg',
+        size: blob.size
+      };
+    }
+    // Ако е HTTP/HTTPS URL, опитай да го свалиш чрез proxy
+    else if (imageUrl && (imageUrl.startsWith('http://') || imageUrl.startsWith('https://'))) {
+      try {
+        imageBlobData = await downloadImageAsBlob(imageUrl);
+        console.log('[🖼️ Image Saver] ✅ Image downloaded and converted to base64');
+      } catch (error) {
+        console.warn('[🖼️ Image Saver] ⚠️ Failed to download image, saving URL only:', error);
+        // Fallback: save URL only if download fails
+      }
+    }
+    // Ако е blob: URL, трябва да е обработен преди да стигне тук
+    else if (imageUrl && imageUrl.startsWith('blob:')) {
+      console.warn('[🖼️ Image Saver] ⚠️ Blob URL not converted, attempting to fetch...');
+      try {
+        const response = await fetch(imageUrl);
+        const fetchedBlob = await response.blob();
+        
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result);
+          reader.onerror = reject;
+          reader.readAsDataURL(fetchedBlob);
+        });
+        
+        imageBlobData = {
+          blob: fetchedBlob,
+          base64: base64,
+          mimeType: fetchedBlob.type || 'image/jpeg',
+          size: fetchedBlob.size
+        };
+      } catch (error) {
+        console.warn('[🖼️ Image Saver] ⚠️ Failed to fetch blob URL:', error);
+      }
     }
     
     return new Promise((resolve, reject) => {
@@ -147,9 +196,9 @@
       const store = transaction.objectStore('images');
       
       const imageRecord = {
-        url: imageData.url, // Keep original URL for reference
-        name: imageData.name || 'Saved Image',
-        source_url: imageData.source_url || window.location.href,
+        url: imageUrl, // Keep original URL for reference (може да е null за blob URL-и)
+        name: imageName || 'Saved Image',
+        source_url: source_url || window.location.href,
         timestamp: Date.now(),
         synced: false,
         // Store blob data
@@ -847,21 +896,44 @@
   // ============================================================================
   
   async function saveImage(imageUrl, imageName = null) {
-    console.log(`[🖼️ Image Saver] 💾 saveImage called:`, { imageUrl, imageName });
+    console.log('[🖼️ Image Saver] 💾 saveImage called:', { imageUrl, imageName });
     
     try {
-      const imageData = {
-        url: imageUrl,
-        name: imageName || 'Saved Image',
+      // Ако е blob URL, конвертирай го в реален blob
+      let finalImageUrl = imageUrl;
+      let blobData = null;
+
+      if (imageUrl && imageUrl.startsWith('blob:')) {
+        console.log('[🖼️ Image Saver] 🔄 Converting blob URL to blob data...');
+        
+        try {
+          // Fetch blob URL-а (работи само в същия браузър)
+          const response = await fetch(imageUrl);
+          blobData = await response.blob();
+          
+          console.log('[🖼️ Image Saver] ✅ Blob converted:', blobData.size, 'bytes', blobData.type);
+          
+          // За blob URL-и, не запазваме URL-а (той е временен)
+          finalImageUrl = null;
+        } catch (error) {
+          console.error('[🖼️ Image Saver] ❌ Failed to convert blob URL:', error);
+          throw new Error(`Failed to convert blob URL: ${error.message}`);
+        }
+      }
+
+      // Запази в IndexedDB
+      const savedImage = await saveImageToIndexedDB({
+        imageUrl: finalImageUrl,
+        imageName: imageName || 'Saved Image',
+        blob: blobData, // Подай blob-а директно ако е конвертиран от blob URL
         source_url: window.location.href
-      };
-      
-      const result = await saveImageToIndexedDB(imageData);
-      console.log(`[🖼️ Image Saver] ✅ Image saved to IndexedDB:`, result);
+      });
+
+      console.log('[🖼️ Image Saver] ✅ Image saved to IndexedDB:', savedImage);
       showNotification('✅ Image saved and synced', 'success');
-      return result;
+      return savedImage;
     } catch (error) {
-      console.error(`[🖼️ Image Saver] ❌ Error saving image:`, error);
+      console.error('[🖼️ Image Saver] ❌ Error in saveImage:', error);
       showNotification(`Error: ${error.message}`, 'error');
       throw error;
     }
@@ -908,7 +980,29 @@
       // Save all images to IndexedDB
       const savedImages = [];
       for (const imageData of images) {
-        const result = await saveImageToIndexedDB(imageData);
+        // Обработвай blob URL-и преди запазване
+        let finalImageUrl = imageData.url;
+        let blobData = null;
+
+        if (imageData.url && imageData.url.startsWith('blob:')) {
+          console.log('[🖼️ Image Saver] 🔄 Converting blob URL to blob data for batch save...');
+          try {
+            const response = await fetch(imageData.url);
+            blobData = await response.blob();
+            console.log('[🖼️ Image Saver] ✅ Blob converted:', blobData.size, 'bytes');
+            finalImageUrl = null; // Не запазваме blob URL-а
+          } catch (error) {
+            console.warn('[🖼️ Image Saver] ⚠️ Failed to convert blob URL, will try to download:', error);
+            // Продължи с оригиналния URL, функцията ще опита да го свали
+          }
+        }
+
+        const result = await saveImageToIndexedDB({
+          imageUrl: finalImageUrl,
+          imageName: imageData.name,
+          blob: blobData,
+          source_url: imageData.source_url
+        });
         savedImages.push(result);
       }
       

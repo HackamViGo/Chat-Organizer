@@ -39,7 +39,7 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
   const [copied, setCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const { deletePrompt, updatePrompt } = usePromptStore();
-  const useInContextMenu = (prompt as any).use_in_context_menu || false;
+  const useInContextMenu = prompt.use_in_context_menu ?? false;
 
   const handleDelete = async () => {
     try {
@@ -81,18 +81,15 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
       const result = await (supabase as any)
         .from('prompts')
         .update(updateData)
-        .eq('id', prompt.id)
-        .select()
-        .single();
-      
-      const { data, error } = result;
+        .eq('id', prompt.id);
 
-      if (error) {
-        console.error('Error updating prompt:', error);
+      if (result.error) {
+        console.error('Error updating prompt:', result.error);
         return;
       }
 
-      updatePrompt(prompt.id, data);
+      // Optimistic update - update store directly
+      updatePrompt(prompt.id, updateData);
       setShowMenu(false);
     } catch (error) {
       console.error('Error:', error);
@@ -104,8 +101,17 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
     ? prompt.content.substring(0, 200) + '...' 
     : prompt.content;
 
+  const handleDragStart = (e: React.DragEvent) => {
+    e.dataTransfer.setData('promptId', prompt.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
   return (
-    <div className="relative group">
+    <div 
+      className="relative group"
+      draggable
+      onDragStart={handleDragStart}
+    >
       {/* Delete Confirmation Overlay */}
       {showDeleteConfirm && (
         <div className="absolute inset-0 bg-background/95 backdrop-blur-sm z-20 rounded-lg flex flex-col items-center justify-center p-4 border-2 border-destructive">

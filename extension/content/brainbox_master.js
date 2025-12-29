@@ -14,7 +14,7 @@
   
   const CONFIG = {
     DB_NAME: 'BrainBoxGeminiMaster',
-    DB_VERSION: 4, // Incremented to add images store
+    DB_VERSION: 5, // Incremented to ensure all stores are created
     AUTO_SAVE_ENABLED: true,
     SAVE_INTERVAL: 5000, // Проверка на всеки 5 секунди
     MAX_RETRIES: 3,
@@ -1224,8 +1224,20 @@
     });
   }
   
+  // Helper function to check if stores exist
+  function storesExist(storeNames) {
+    if (!STATE.db) return false;
+    return storeNames.every(name => STATE.db.objectStoreNames.contains(name));
+  }
+
   async function processSyncQueue() {
     if (!STATE.db) return;
+    
+    // Check if required stores exist
+    if (!storesExist(['syncQueue', 'conversations'])) {
+      console.warn('[🧠 BrainBox Master] ⚠️ Required stores not found, skipping sync');
+      return;
+    }
     
     return new Promise((resolve) => {
       try {
@@ -1669,7 +1681,15 @@
         pending: 0
       };
       
-      const tx = STATE.db.transaction(['rawBatchData', 'encryptionKeys', 'conversations', 'syncQueue'], 'readonly');
+      // Check if all stores exist before accessing
+      const requiredStores = ['rawBatchData', 'encryptionKeys', 'conversations', 'syncQueue'];
+      if (!storesExist(requiredStores)) {
+        console.warn('[🧠 BrainBox Master] ⚠️ Some stores missing, returning empty stats');
+        resolve(stats);
+        return;
+      }
+      
+      const tx = STATE.db.transaction(requiredStores, 'readonly');
       
       // Count rawBatchData
       const rawReq = tx.objectStore('rawBatchData').count();

@@ -34,8 +34,22 @@ export default function ExtensionAuthPage() {
       // Extension ID should be dynamic or configurable
       const accessToken = session.access_token;
       const refreshToken = session.refresh_token;
-      // Convert expires_at from seconds to milliseconds
-      const expiresAt = session.expires_at ? session.expires_at * 1000 : null;
+      
+      // Check if remember me is enabled
+      const rememberMe = typeof window !== 'undefined' && localStorage.getItem('brainbox_remember_me') === 'true';
+      
+      // If remember me is enabled, extend expiresAt to 30 days from now
+      // Otherwise use the session's expires_at (usually 1 hour)
+      let expiresAt: number | null = null;
+      if (rememberMe) {
+        // 30 days from now in milliseconds
+        expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
+        console.log('[Extension Auth] Remember me enabled - extending token to 30 days');
+      } else if (session.expires_at) {
+        // Use session's expires_at (convert from seconds to milliseconds)
+        expiresAt = session.expires_at * 1000;
+        console.log('[Extension Auth] Using session expires_at:', new Date(expiresAt).toISOString());
+      }
 
       // Store in localStorage for extension to read
       if (typeof window !== 'undefined') {

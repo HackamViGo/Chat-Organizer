@@ -279,6 +279,50 @@ testing:
     - "Manual smoke test"
 
 # ═══════════════════════════════════════════════════════════════
+# CHROME EXTENSION TESTING PROTOCOL
+# ═══════════════════════════════════════════════════════════════
+
+chrome_extension_testing:
+  protocol: "ALWAYS test Chrome extensions in isolated environment before production"
+  
+  test_environment:
+    location: "dev/test-chrome.sh"
+    command: "npm run test:chrome or run task 'Test Chrome Extension'"
+    profile: "Temporary copy of production profile"
+    safety: "Original profile never touched"
+  
+  workflow:
+    before_adding_extensions:
+      - "Run test environment: bash dev/test-chrome.sh"
+      - "Install extension in test Chrome"
+      - "Verify IndexedDB writes work"
+      - "Check dashboard sync (Vercel)"
+      - "Only after verification → install in production"
+  
+  ai_agent_instructions:
+    - "When user mentions 'chrome extension', 'test extension', or 'indexdb' → suggest test environment"
+    - "Before modifying Chrome configs → warn about test-first approach"
+    - "If extension causes issues → recommend testing in isolated profile"
+    - "Auto-cleanup test profiles on completion"
+    - "When localStorage/IndexedDB errors appear → suggest testing in isolated profile first"
+  
+  environment_variables:
+    CHROME_TEST_DIR: "/tmp/chrome-extension-test-*"
+    ORIGINAL_PROFILE: "~/.config/google-chrome/Default"
+  
+  current_setup:
+    os: "Linux (Arch/Ubuntu based)"
+    browser: "Google Chrome (not snap/flatpak)"
+    dashboard: "Vercel hosted (brainbox-alpha.vercel.app)"
+    storage: "IndexedDB → Cloud sync"
+    extension: "BrainBox - AI Chat Organizer"
+  
+  error_handling:
+    localStorage_security_error: "From Google code (Bard/Gemini) → Normal, can be ignored"
+    indexeddb_permission_denied: "Test in isolated profile first"
+    extension_context_invalidated: "Reload extension or test in isolated profile"
+
+# ═══════════════════════════════════════════════════════════════
 # ERROR HANDLING & RECOVERY
 # ═══════════════════════════════════════════════════════════════
 
@@ -328,3 +372,4 @@ agent_mandate: |
   6. Respond in Bulgarian, code in English
   7. Keep responses SHORT and ACTION-focused
   8. NO repetition, NO verbose explanations
+  9. For Chrome extension work → Always suggest test environment first

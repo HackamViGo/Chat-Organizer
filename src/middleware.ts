@@ -44,6 +44,15 @@ export async function middleware(request: NextRequest) {
           return request.cookies.get(name)?.value;
         },
         set(name: string, value: string, options: CookieOptions) {
+          // Check if remember me cookie exists and extend session for auth tokens
+          const rememberMeCookie = request.cookies.get('brainbox_remember_me');
+          const isRememberMe = rememberMeCookie?.value === 'true';
+          
+          // If remember me is enabled and this is an auth token, extend expiry to 30 days
+          if (isRememberMe && name.includes('auth-token') && !options.maxAge) {
+            options.maxAge = 30 * 24 * 60 * 60; // 30 days in seconds
+          }
+          
           request.cookies.set({
             name,
             value,

@@ -282,7 +282,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             expiresAt: request.expiresAt
         });
         console.log('[BrainBox] ✅ Auth token received from dashboard');
+        // Start token refresh check
+        startTokenRefreshCheck();
         sendResponse({ success: true });
+        return true;
+    }
+
+    // Refresh auth token
+    if (request.action === 'refreshAuthToken') {
+        refreshAccessToken()
+            .then(result => sendResponse({ success: true, ...result }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
         return true;
     }
 
@@ -1321,6 +1331,121 @@ async function fetchConversationByPlatform(platform, conversationId, url = null)
 }
 
 // ============================================================================
+// TOKEN REFRESH MANAGEMENT
+// ============================================================================
+
+let tokenRefreshInterval = null;
+
+// Refresh access token using refresh token
+async function refreshAccessToken() {
+    try {
+        const { refreshToken } = await chrome.storage.local.get(['refreshToken']);
+        
+        if (!refreshToken) {
+            throw new Error('No refresh token available');
+        }
+
+        console.log('[BrainBox] 🔄 Refreshing access token...');
+        
+        const response = await fetch(`${DASHBOARD_URL}/api/auth/refresh`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ refreshToken }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to refresh token');
+        }
+
+        const data = await response.json();
+        
+        // Update stored tokens
+        await chrome.storage.local.set({
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            expiresAt: data.expiresAt,
+        });
+
+        console.log('[BrainBox] ✅ Access token refreshed successfully');
+        console.log('[BrainBox] New expiresAt:', new Date(data.expiresAt).toISOString());
+        
+        // Restart refresh check with new expiry
+        startTokenRefreshCheck();
+        
+        return {
+            accessToken: data.accessToken,
+            refreshToken: data.refreshToken,
+            expiresAt: data.expiresAt,
+        };
+    } catch (error) {
+        console.error('[BrainBox] ❌ Failed to refresh token:', error);
+        
+        // If refresh fails, clear tokens and open login page
+        await chrome.storage.local.remove(['accessToken', 'refreshToken', 'expiresAt']);
+        chrome.tabs.create({ url: `${DASHBOARD_URL}/extension-auth` });
+        
+        throw error;
+    }
+}
+
+// Check if token needs refresh (at 55 minutes)
+function shouldRefreshToken(expiresAt) {
+    if (!expiresAt) return false;
+    
+    // Refresh at 55 minutes (5 minutes before expiry)
+    // Standard Supabase token expires in 1 hour (3600 seconds)
+    const now = Date.now();
+    const timeUntilExpiry = expiresAt - now;
+    const fiveMinutes = 5 * 60 * 1000; // 5 minutes in milliseconds
+    
+    // If token expires in less than 5 minutes, refresh it
+    return timeUntilExpiry <= fiveMinutes;
+}
+
+// Start periodic check for token refresh
+function startTokenRefreshCheck() {
+    // Clear existing interval
+    if (tokenRefreshInterval) {
+        clearInterval(tokenRefreshInterval);
+        tokenRefreshInterval = null;
+    }
+
+    // Check every minute
+    tokenRefreshInterval = setInterval(async () => {
+        try {
+            const { accessToken, refreshToken, expiresAt } = await chrome.storage.local.get([
+                'accessToken',
+                'refreshToken',
+                'expiresAt',
+            ]);
+
+            // If no tokens, stop checking
+            if (!accessToken || !refreshToken) {
+                clearInterval(tokenRefreshInterval);
+                tokenRefreshInterval = null;
+                return;
+            }
+
+            // Check if token needs refresh
+            if (shouldRefreshToken(expiresAt)) {
+                console.log('[BrainBox] ⏰ Token expires soon, refreshing...');
+                await refreshAccessToken();
+            }
+        } catch (error) {
+            console.error('[BrainBox] ❌ Error in token refresh check:', error);
+            // Stop checking on error
+            clearInterval(tokenRefreshInterval);
+            tokenRefreshInterval = null;
+        }
+    }, 60 * 1000); // Check every minute
+
+    console.log('[BrainBox] ✅ Token refresh check started (checks every minute)');
+}
+
+// ============================================================================
 // INITIALIZATION
 // ============================================================================
 
@@ -1338,6 +1463,8 @@ chrome.storage.local.get([
     'gemini_dynamic_key',
     'claude_org_id',
     'accessToken',
+    'refreshToken',
+    'expiresAt',
     'onboarded'
 ], (result) => {
     if (result.chatgpt_token) tokens.chatgpt = result.chatgpt_token;
@@ -1353,4 +1480,9 @@ chrome.storage.local.get([
         dashboard: !!result.accessToken,
         onboarded: !!result.onboarded
     });
+
+    // Start token refresh check if we have tokens
+    if (result.accessToken && result.refreshToken) {
+        startTokenRefreshCheck();
+    }
 });

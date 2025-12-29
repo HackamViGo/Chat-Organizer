@@ -7,8 +7,8 @@ import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
 import { Chat, Folder } from '@/types';
-import { 
-  LayoutGrid, Archive, FileEdit, Settings, 
+import {
+  LayoutGrid, Archive, FileEdit, Settings,
   Folder as FolderIcon, Plus, ChevronRight, ChevronDown, Hash, User, X, Search,
   ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, GripVertical, ListTodo,
   MessageSquarePlus, MessageCircle, LogOut, Brain,
@@ -24,10 +24,14 @@ import {
   Music, Video, Mic, Film, Headphones,
   // Life Icons
   Globe, Heart, Coffee, Home, Sun,
+  // Body Parts Icons
+  Hand, Footprints,
+  // Social Icons
+  Glasses, Users, Share2, Shield,
   // Extra Icons
-  Smartphone, Box, Star, Flag, Zap, Lightbulb, Monitor, MousePointer, 
+  Smartphone, Box, Star, Flag, Zap, Lightbulb, Monitor, MousePointer,
   Eye, Lock, MessageSquare, Bot, Gamepad, Sparkles,
-  Dice5, CheckSquare, ImageIcon
+  Dice5, CheckSquare, ImageIcon, Activity, Pill
 } from 'lucide-react';
 
 // --- Configuration Constants ---
@@ -45,13 +49,17 @@ export const FOLDER_ICONS: Record<string, React.ElementType> = {
   Music, Video, Mic, Film, Headphones,
   // Life
   Globe, Heart, Coffee, Home, Sun,
+  // Body Parts
+  Hand, Footprints, Body: User,
+  // Social
+  Glasses, Users, Share2, Shield,
   // Extras
-  Smartphone, Box, Star, Flag, Zap, Lightbulb, Monitor, MousePointer, 
-  Eye, Lock, MessageSquare, Bot, Gamepad, Sparkles, CheckSquare, ListTodo,
+  Smartphone, Box, Star, Flag, Zap, Lightbulb, Monitor, MousePointer,
+  Eye, Lock, MessageSquare, Bot, Gamepad, Sparkles, CheckSquare, ListTodo, Activity, Pill,
   // System / Nav
   Settings, Archive, Search, User, Hash,
   // Fallback
-  Folder: FolderIcon 
+  Folder: FolderIcon
 };
 
 export const ICON_CATEGORIES = [
@@ -66,8 +74,11 @@ export const ICON_CATEGORIES = [
   { name: 'Learn', color: 'cyan', icons: ['Globe', 'Search', 'Scroll'] },
   { name: 'Life', color: 'rose', icons: ['Heart', 'Home', 'Coffee'] },
   { name: 'Media', color: 'purple', icons: ['Image', 'Film', 'Music'] },
+  { name: 'Social', color: 'blue', icons: ['Glasses', 'Users', 'Share2', 'Hash'] },
   { name: 'Admin', color: 'emerald', icons: ['Settings', 'Lock', 'Archive'] },
-  { name: 'Lists', color: 'emerald', icons: ['CheckSquare', 'ListTodo', 'Target'] }
+  { name: 'Lists', color: 'emerald', icons: ['CheckSquare', 'ListTodo', 'Target'] },
+  { name: 'Body Parts', color: 'pink', icons: ['Body', 'Hand', 'Footprints', 'Eye'] },
+  { name: 'Health', color: 'red', icons: ['Shield', 'Zap', 'Activity', 'Pill'] }
 ];
 
 export const getCategoryColor = (iconKey: string): string => {
@@ -205,7 +216,7 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
   }, [allChats, folder.id]);
 
   const hasChildren = children.length > 0 || folderChats.length > 0;
-  const FolderIconComp = FolderIcon; // TODO: Add icon field to folders table
+  const FolderIconComp = folder.icon && FOLDER_ICONS[folder.icon] ? FOLDER_ICONS[folder.icon] : FolderIcon;
   const isActiveItem = isActive(folder.id, 'chat');
   const targetLink = getFolderLink(folder);
   
@@ -228,17 +239,23 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
         className="relative"
       >
         {/* Drop Indicators */}
-        {dragPosition === 'before' && <div className="absolute top-0 left-0 right-0 h-0.5 bg-cyan-500 z-20 pointer-events-none rounded-full" />}
-        {dragPosition === 'after' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-500 z-20 pointer-events-none rounded-full" />}
+        {dragPosition === 'before' && (
+          <div className="absolute top-0 left-0 right-0 h-1 bg-cyan-500 z-20 pointer-events-none rounded-full animate-pulse shadow-lg shadow-cyan-500/50" />
+        )}
+        {dragPosition === 'after' && (
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-cyan-500 z-20 pointer-events-none rounded-full animate-pulse shadow-lg shadow-cyan-500/50" />
+        )}
 
         <Link 
           href={targetLink}
           className={`
-            group flex items-center justify-between px-2 py-1.5 rounded-lg text-sm transition-all border relative my-0.5 shadow-md
+            group flex items-center justify-between px-2 py-1.5 rounded-lg text-sm transition-all duration-200 border relative my-0.5 shadow-md
             ${isActiveItem 
               ? 'bg-white dark:bg-white/5 text-slate-900 dark:text-slate-200 border-slate-200 dark:border-transparent shadow-sm' 
               : 'border-transparent text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-white'}
-            ${dragPosition === 'inside' ? 'bg-cyan-100 dark:bg-cyan-900/30 border-cyan-400 dark:border-cyan-500 ring-1 ring-cyan-400 z-10' : ''}
+            ${dragPosition === 'inside' 
+              ? 'bg-cyan-100 dark:bg-cyan-900/30 border-cyan-400 dark:border-cyan-500 ring-2 ring-cyan-400 dark:ring-cyan-500 ring-offset-1 z-10 scale-[1.02] shadow-lg shadow-cyan-500/30 animate-pulse' 
+              : ''}
           `}
           style={{ paddingLeft: `${level * 12 + 8}px` }}
         >
@@ -327,6 +344,7 @@ function SidebarContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('custom');
   const [dragOverState, setDragOverState] = useState<DragState | null>(null);
+  const isCreatingFolderRef = React.useRef(false);
 
   // -- Determine Active Context --
   const getActiveType = (path: string): 'chat' | 'image' | 'prompt' | 'list' => {
@@ -392,13 +410,18 @@ function SidebarContent() {
 
   const handleAddFolder = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newFolderName.trim()) return;
+    if (!newFolderName.trim() || isCreatingFolderRef.current) return;
+    
+    isCreatingFolderRef.current = true;
     
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) return;
+      if (!user) {
+        isCreatingFolderRef.current = false;
+        return;
+      }
       
       const { data: newFolder, error } = await (supabase as any)
         .from('folders')
@@ -414,6 +437,7 @@ function SidebarContent() {
       
       if (error) {
         console.error('Error creating folder:', error);
+        isCreatingFolderRef.current = false;
         return;
       }
       
@@ -425,6 +449,8 @@ function SidebarContent() {
       setIsModalOpen(false);
     } catch (error) {
       console.error('Failed to create folder:', error);
+    } finally {
+      isCreatingFolderRef.current = false;
     }
   };
 
@@ -441,6 +467,15 @@ function SidebarContent() {
   const handleDragOver = (e: React.DragEvent, folderId: string) => {
     e.preventDefault(); 
     e.stopPropagation();
+    
+    // Allow drag over for chats even if not in custom sort mode
+    const chatId = e.dataTransfer.getData('chatId');
+    if (chatId) {
+      setDragOverState({ id: folderId, position: 'inside' });
+      return;
+    }
+    
+    // For folder reordering, only allow in custom sort mode
     if (sortMode !== 'custom') return;
     
     const rect = e.currentTarget.getBoundingClientRect();
@@ -450,6 +485,16 @@ function SidebarContent() {
     if (offsetY < height * 0.25) position = 'before';
     else if (offsetY > height * 0.75) position = 'after';
     setDragOverState({ id: folderId, position });
+  };
+  
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only clear drag state if we're leaving the folder element itself
+    const relatedTarget = e.relatedTarget as HTMLElement;
+    if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
+      setDragOverState(null);
+    }
   };
   
   const handleDrop = async (e: React.DragEvent, targetFolderId: string) => {
@@ -590,7 +635,7 @@ function SidebarContent() {
                     onToggle={toggleFolder} 
                     isExpanded={expandedFolders.has(f.id) || !!searchTerm}
                     onDragOver={handleDragOver} 
-                    onDragLeave={() => {}} 
+                    onDragLeave={handleDragLeave} 
                     onDrop={handleDrop} 
                     dragOverState={dragOverState}
                     onFolderDragStart={handleFolderDragStart} 

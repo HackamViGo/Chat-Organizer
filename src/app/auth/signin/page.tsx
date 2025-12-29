@@ -1,15 +1,16 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { LogIn, Mail, Lock, Loader2 } from 'lucide-react';
+import { LogIn, Mail, Lock, Loader2, Check } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignInPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -17,6 +18,16 @@ export default function SignInPage() {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
+
+  // Load remember me preference on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('brainbox_remember_me');
+      if (saved === 'true') {
+        setRememberMe(true);
+      }
+    }
+  }, []);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,6 +41,16 @@ export default function SignInPage() {
       });
 
       if (signInError) throw signInError;
+
+      // If remember me is checked, store preference in cookie and localStorage
+      if (rememberMe && typeof window !== 'undefined') {
+        localStorage.setItem('brainbox_remember_me', 'true');
+        // Set cookie for server-side middleware to read (30 days)
+        document.cookie = 'brainbox_remember_me=true; max-age=' + (30 * 24 * 60 * 60) + '; path=/; SameSite=Lax';
+      } else {
+        localStorage.removeItem('brainbox_remember_me');
+        document.cookie = 'brainbox_remember_me=; max-age=0; path=/';
+      }
 
       router.push('/');
       router.refresh();
@@ -106,6 +127,19 @@ export default function SignInPage() {
                 className="w-full pl-10 pr-4 py-3 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               />
             </div>
+          </div>
+
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="remember-me"
+              checked={rememberMe}
+              onChange={(e) => setRememberMe(e.target.checked)}
+              className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-cyan-600 focus:ring-cyan-500 bg-white dark:bg-black/30 cursor-pointer"
+            />
+            <label htmlFor="remember-me" className="ml-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+              Запази този профил
+            </label>
           </div>
 
           <button

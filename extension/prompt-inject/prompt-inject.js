@@ -475,13 +475,28 @@
     console.log('[🧠 Prompt Inject] 📤 Създаване на промпт:', promptData.title);
     
     try {
+      // Get access token from storage
+      const storage = await chrome.storage.local.get(['accessToken']);
+      const accessToken = storage.accessToken;
+      
+      if (!accessToken) {
+        throw new Error('Не сте автентикирани. Моля, влезте в BrainBox dashboard първо.');
+      }
+      
       const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}`;
+      
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+      
+      // Add Authorization header if access token is available
+      if (accessToken) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+      }
       
       const options = {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: headers,
         body: JSON.stringify({
           title: promptData.title,
           content: promptData.content,
@@ -494,7 +509,8 @@
         url,
         title: promptData.title,
         contentLength: promptData.content.length,
-        use_in_context_menu: promptData.use_in_context_menu
+        use_in_context_menu: promptData.use_in_context_menu,
+        hasAuth: !!accessToken
       });
       
       const response = await fetch(url, options);

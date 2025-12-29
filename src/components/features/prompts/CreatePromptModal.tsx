@@ -63,7 +63,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
       setValue('title', editingPrompt.title);
       setValue('content', editingPrompt.content);
       setValue('color', editingPrompt.color || '#6366f1');
-      setValue('use_in_context_menu', (editingPrompt as any).use_in_context_menu || false);
+      setValue('use_in_context_menu', editingPrompt.use_in_context_menu ?? false);
     } else {
       reset();
     }

@@ -81,7 +81,8 @@ export type Database = {
           icon: string | null
           id: string
           name: string
-          type: string | null
+          parent_id: string | null
+          type: Database["public"]["Enums"]["folder_type_enum"] | null
           updated_at: string | null
           user_id: string
         }
@@ -91,7 +92,8 @@ export type Database = {
           icon?: string | null
           id?: string
           name: string
-          type?: string | null
+          parent_id?: string | null
+          type?: Database["public"]["Enums"]["folder_type_enum"] | null
           updated_at?: string | null
           user_id: string
         }
@@ -101,11 +103,19 @@ export type Database = {
           icon?: string | null
           id?: string
           name?: string
-          type?: string | null
+          parent_id?: string | null
+          type?: Database["public"]["Enums"]["folder_type_enum"] | null
           updated_at?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "folders_user_id_fkey"
             columns: ["user_id"]
@@ -254,6 +264,7 @@ export type Database = {
           color: string | null
           content: string
           created_at: string | null
+          folder_id: string | null
           id: string
           title: string
           updated_at: string | null
@@ -264,6 +275,7 @@ export type Database = {
           color?: string | null
           content: string
           created_at?: string | null
+          folder_id?: string | null
           id?: string
           title: string
           updated_at?: string | null
@@ -274,6 +286,7 @@ export type Database = {
           color?: string | null
           content?: string
           created_at?: string | null
+          folder_id?: string | null
           id?: string
           title?: string
           updated_at?: string | null
@@ -281,6 +294,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "prompts_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "prompts_user_id_fkey"
             columns: ["user_id"]
@@ -325,7 +345,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      folder_type_enum: "chat" | "list" | "image" | "prompt"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -452,6 +472,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      folder_type_enum: ["chat", "list", "image", "prompt"],
+    },
   },
 } as const

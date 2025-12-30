@@ -53,28 +53,7 @@
         }
     });
 
-    // Also check localStorage on load (fallback)
-    setTimeout(() => {
-        try {
-            const storedAuth = localStorage.getItem('brainbox_extension_token');
-            if (storedAuth) {
-                const { accessToken, refreshToken, expiresAt } = JSON.parse(storedAuth);
-                
-                chrome.runtime.sendMessage({
-                    action: 'setAuthToken',
-                    accessToken,
-                    refreshToken,
-                    expiresAt
-                }).then(response => {
-                    if (response && response.success) {
-                        console.log('[BrainBox] ✅ Token loaded from localStorage');
-                    }
-                });
-            }
-        } catch (error) {
-            console.error('[BrainBox] Error reading localStorage:', error);
-        }
-    }, 1000);
+    // Note: localStorage is NOT used - all auth tokens are stored in chrome.storage.local only
 
 })();
 

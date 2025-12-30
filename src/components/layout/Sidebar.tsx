@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState, useMemo, Suspense } from 'react';
+import React, { useState, useMemo, Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
 import { Chat, Folder } from '@/types';
 import {
   LayoutGrid, Archive, FileEdit, Settings,
-  Folder as FolderIcon, Plus, ChevronRight, ChevronDown, Hash, User, X, Search,
+  Folder as FolderIcon, Plus, ChevronRight, ChevronDown, Hash, User, X, Search, Trash2,
   ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, GripVertical, ListTodo,
-  MessageSquarePlus, MessageCircle, LogOut, Brain,
+  MessageSquarePlus, MessageCircle, LogOut, Brain, Download,
   // Dev Icons
   Code, Terminal, Cpu, Database, Server,
   // Art Icons
@@ -23,7 +24,7 @@ import {
   // Media Icons
   Music, Video, Mic, Film, Headphones,
   // Life Icons
-  Globe, Heart, Coffee, Home, Sun,
+  Globe, Heart, Coffee, Home, Sun, Moon,
   // Body Parts Icons
   Hand, Footprints,
   // Social Icons
@@ -37,6 +38,30 @@ import {
 } from 'lucide-react';
 
 // --- Configuration Constants ---
+
+// Theme Toggle Component
+const ThemeToggle: React.FC = () => {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return null;
+  }
+
+  return (
+    <button
+      onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+      className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors"
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+    >
+      {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+    </button>
+  );
+};
 
 export const FOLDER_ICONS: Record<string, React.ElementType> = {
   // Dev
@@ -186,6 +211,7 @@ interface FolderTreeItemProps {
   onFolderDragStart: (e: React.DragEvent, id: string) => void;
   onChatDragStart: (e: React.DragEvent, id: string) => void;
   sortMode: SortMode;
+  onDeleteFolder: (id: string) => void;
 }
 
 const getFolderLink = (folder: Folder) => {
@@ -194,14 +220,15 @@ const getFolderLink = (folder: Folder) => {
     case 'image': return `/images?folder=${folder.id}`;
     case 'prompt': return `/prompts?folder=${folder.id}`;
     case 'list': return `/lists?folder=${folder.id}`;
-    default: return `/folder/${folder.id}`;
+    default: return `/chats?folder=${folder.id}`;
   }
 };
 
 const FolderTreeItem: React.FC<FolderTreeItemProps> = ({ 
   folder, level, allFolders, allChats, isActive, onToggle, isExpanded, 
-  onDragOver, onDragLeave, onDrop, dragOverState, onFolderDragStart, onChatDragStart, sortMode
+  onDragOver, onDragLeave, onDrop, dragOverState, onFolderDragStart, onChatDragStart, sortMode, onDeleteFolder
 }) => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   // Logic to find children folders
   const children = useMemo(() => {
     let kids = allFolders.filter(f => (f as any).parent_id === folder.id);
@@ -279,13 +306,33 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
             <span className="truncate font-medium">{folder.name}</span>
           </div>
           
-          {isActiveItem && !hasChildren && <ChevronRight size={14} className="text-cyan-500" />}
-          
-          {sortMode === 'custom' && (
-             <div className="opacity-0 group-hover:opacity-100 cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 dark:hover:text-slate-300 transition-opacity">
-               <GripVertical size={12} />
-             </div>
-          )}
+          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            {isActiveItem && !hasChildren && <ChevronRight size={14} className="text-cyan-500" />}
+            
+            {sortMode === 'custom' && (
+              <div className="cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 dark:hover:text-slate-300">
+                <GripVertical size={12} />
+              </div>
+            )}
+            
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (showDeleteConfirm) {
+                  onDeleteFolder(folder.id);
+                  setShowDeleteConfirm(false);
+                } else {
+                  setShowDeleteConfirm(true);
+                }
+              }}
+              onBlur={() => setTimeout(() => setShowDeleteConfirm(false), 200)}
+              className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/20 text-slate-400 hover:text-red-600 dark:hover:text-red-400 transition-colors"
+              title={showDeleteConfirm ? "Click again to confirm delete" : "Delete folder"}
+            >
+              <Trash2 size={12} />
+            </button>
+          </div>
         </Link>
       </div>
 
@@ -308,6 +355,7 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
               onFolderDragStart={onFolderDragStart}
               onChatDragStart={onChatDragStart}
               sortMode={sortMode}
+              onDeleteFolder={onDeleteFolder}
             />
           ))}
           {folderChats.map(chat => (
@@ -336,7 +384,7 @@ function SidebarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentFolderParam = searchParams.get('folder');
-  const { folders, addFolder } = useFolderStore();
+  const { folders, addFolder, deleteFolder, isLoading: foldersLoading } = useFolderStore();
   const { chats, updateChat } = useChatStore();
   
   // -- Local State --
@@ -362,7 +410,6 @@ function SidebarContent() {
   // -- Filters --
   const isActive = (path: string) => pathname === path;
   const isFolderActive = (folderId: string, type: string) => {
-    if (type === 'chat') return pathname === `/folder/${folderId}`;
     return currentFolderParam === folderId;
   };
 
@@ -472,9 +519,11 @@ function SidebarContent() {
     e.preventDefault(); 
     e.stopPropagation();
     
-    // Allow drag over for chats even if not in custom sort mode
+    // Allow drag over for chats and folders
     const chatId = e.dataTransfer.getData('chatId');
-    if (chatId) {
+    const folderIdDragged = e.dataTransfer.getData('folderId');
+    
+    if (chatId || folderIdDragged) {
       setDragOverState({ id: folderId, position: 'inside' });
       return;
     }
@@ -511,8 +560,43 @@ function SidebarContent() {
     
     if (chatId) {
       await updateChat(chatId, { folder_id: targetFolderId });
+    } else if (draggedFolderId) {
+      // Move folder into target folder
+      const { updateFolder } = useFolderStore.getState();
+      try {
+        await updateFolder(draggedFolderId, { parent_id: targetFolderId || null });
+        // Refresh folders to update UI
+        const { setFolders } = useFolderStore.getState();
+        const response = await fetch('/api/folders', { credentials: 'include' });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.folders) {
+            setFolders(data.folders);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to move folder:', error);
+        alert('Failed to move folder');
+      }
     }
-    // TODO: Add folder move logic when needed
+  };
+
+  const handleDeleteFolder = async (folderId: string) => {
+    try {
+      await deleteFolder(folderId);
+      // Refresh folders to update UI
+      const { setFolders } = useFolderStore.getState();
+      const response = await fetch('/api/folders', { credentials: 'include' });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.folders) {
+          setFolders(data.folders);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete folder:', error);
+      alert('Failed to delete folder');
+    }
   };
 
   return (
@@ -576,11 +660,14 @@ function SidebarContent() {
         <div className="flex flex-col h-full p-4">
           
           {/* 1. Header & Logo */}
-          <div className="flex items-center gap-2 px-2 mb-6 mt-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/20">
-              <Brain className="text-white" size={18} />
+          <div className="flex items-center justify-between px-2 mb-6 mt-2">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-900/20">
+                <Brain className="text-white" size={18} />
+              </div>
+              <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">BrainBox</h1>
             </div>
-            <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">BrainBox</h1>
+            <ThemeToggle />
           </div>
 
           {/* 2. Main Navigation Links */}
@@ -602,7 +689,13 @@ function SidebarContent() {
              {/* Context Header */}
              <div className="flex items-center justify-between px-2 mb-2 group">
                <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                 <span>Folders</span>
+                 <span>
+                   {activeType === 'chat' ? 'Chat Folders' : 
+                    activeType === 'image' ? 'Image Folders' : 
+                    activeType === 'prompt' ? 'Prompt Folders' : 
+                    activeType === 'list' ? 'List Folders' : 
+                    'Folders'}
+                 </span>
                </div>
                <button 
                  onClick={openCreateModal} 
@@ -628,6 +721,15 @@ function SidebarContent() {
 
              {/* Folder Tree */}
              <div className="flex-1 overflow-y-auto custom-scrollbar pr-1 pb-4 space-y-0.5" onDragLeave={() => setDragOverState(null)}>
+                {foldersLoading ? (
+                  <div className="px-4 py-8 text-center">
+                    <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 mb-2 text-slate-300 animate-pulse">
+                      <FolderIcon size={14} />
+                    </div>
+                    <p className="text-xs text-slate-400 italic">Loading folders...</p>
+                  </div>
+                ) : (
+                  <>
                 {getSortedFolders().map(f => (
                   <FolderTreeItem 
                     key={f.id} 
@@ -645,6 +747,7 @@ function SidebarContent() {
                     onFolderDragStart={handleFolderDragStart} 
                     onChatDragStart={handleChatDragStart} 
                     sortMode={sortMode}
+                    onDeleteFolder={handleDeleteFolder}
                   />
                 ))}
                 
@@ -662,7 +765,7 @@ function SidebarContent() {
                    </Link>
                 ))}
 
-                {getSortedFolders().length === 0 && (activeType !== 'chat' || rootChats.length === 0) && (
+                {getSortedFolders().length === 0 && (activeType !== 'chat' || rootChats.length === 0) && !foldersLoading && (
                    <div className="px-4 py-8 text-center">
                       <div className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-white/5 mb-2 text-slate-300">
                          <FolderIcon size={14} />
@@ -670,38 +773,16 @@ function SidebarContent() {
                       <p className="text-xs text-slate-400 italic">No folders yet</p>
                    </div>
                 )}
+                  </>
+                )}
              </div>
           </div>
 
           {/* 4. Bottom Tools */}
           <div className="pt-3 mt-2 border-t border-slate-200 dark:border-white/5 space-y-1">
-             <NavItem to="/archive" icon={Archive} label="Archive" isActive={isActive('/archive')} color="slate" />
+             <NavItem to="/profile" icon={User} label="Profile" isActive={isActive('/profile')} color="purple" />
              <NavItem to="/settings" icon={Settings} label="Settings" isActive={isActive('/settings')} color="indigo" />
-             
-             {/* Download Extension Button */}
-             <Link
-               href="/download"
-               className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-all ${
-                 isActive('/download')
-                   ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/30'
-                   : 'bg-gradient-to-r from-cyan-500 to-blue-600 dark:from-purple-500 dark:to-violet-600 text-white shadow-lg shadow-cyan-500/30 dark:shadow-purple-500/30 hover:from-purple-500 hover:to-violet-600 dark:hover:from-cyan-500 dark:hover:to-blue-600 hover:shadow-purple-500/30 dark:hover:shadow-cyan-500/30'
-               }`}
-             >
-               <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
-               <span className="font-semibold">Download</span>
-             </Link>
-             
-             <button
-               onClick={async () => {
-                 const supabase = createClient();
-                 await supabase.auth.signOut();
-                 router.push('/auth/signin');
-               }}
-               className="w-full flex items-center gap-3 px-3 py-2 rounded-xl transition-colors text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 shadow-md"
-             >
-               <LogOut size={18} className="transition-colors" />
-               Logout
-             </button>
+             <NavItem to="/archive" icon={Archive} label="Archive" isActive={isActive('/archive')} color="slate" />
           </div>
 
         </div>

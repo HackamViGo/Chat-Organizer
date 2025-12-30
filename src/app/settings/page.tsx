@@ -1,16 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useTheme } from 'next-themes';
-import { Moon, Sun, Monitor, User, Bell, Globe, Database, Folder, Star, Sparkles } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Bell, Globe, Database, Folder, Star, Sparkles, Download, Upload, FileText, FileJson, Trash2, X, AlertTriangle, LogOut } from 'lucide-react';
 import { useFolderStore } from '@/store/useFolderStore';
+import { useChatStore } from '@/store/useChatStore';
+import { createClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
-  const currentTheme = theme ?? 'system';
+  const router = useRouter();
   const { folders, setFolders } = useFolderStore();
+  const { chats, setChats } = useChatStore();
   const [quickAccessFolders, setQuickAccessFolders] = useState<string[]>([]);
   const [isLoadingFolders, setIsLoadingFolders] = useState(true);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     // Fetch folders from API
@@ -40,9 +51,9 @@ export default function SettingsPage() {
       // Remove from quick access
       newQuickAccess = newQuickAccess.filter(id => id !== folderId);
     } else {
-      // Add to quick access (max 3)
-      if (newQuickAccess.length >= 3) {
-        alert('You can only have 3 folders in quick access. Remove one first.');
+      // Add to quick access (max 5)
+      if (newQuickAccess.length >= 5) {
+        alert('You can only have 5 folders in quick access. Remove one first.');
         return;
       }
       newQuickAccess.push(folderId);
@@ -70,11 +81,262 @@ export default function SettingsPage() {
 
   const chatFolders = folders.filter(f => f.type === 'chat' || !f.type);
 
-  const themeOptions = [
-    { value: 'light', label: 'Light', icon: Sun },
-    { value: 'dark', label: 'Dark', icon: Moon },
-    { value: 'system', label: 'System', icon: Monitor },
-  ];
+  const handleExportJSON = async () => {
+    setIsExporting(true);
+    try {
+      const response = await fetch('/api/export', {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to export data');
+      }
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chats-export-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportMarkdown = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch chats
+      const response = await fetch('/api/chats', {
+        credentials: 'include',
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch chats');
+      }
+      
+      const data = await response.json();
+      const chats = data.chats || [];
+      
+      // Convert to Markdown
+      let markdown = `# Chats Export\n\n`;
+      markdown += `Exported on: ${new Date().toLocaleString()}\n`;
+      markdown += `Total chats: ${chats.length}\n\n`;
+      markdown += `---\n\n`;
+      
+      chats.forEach((chat: any, index: number) => {
+        markdown += `## ${index + 1}. ${chat.title || 'Untitled Chat'}\n\n`;
+        markdown += `**Platform:** ${chat.platform || 'Unknown'}\n`;
+        markdown += `**Date:** ${chat.created_at ? new Date(chat.created_at).toLocaleString() : 'Unknown'}\n`;
+        if (chat.url) {
+          markdown += `**URL:** ${chat.url}\n`;
+        }
+        markdown += `\n`;
+        
+        if (chat.summary) {
+          markdown += `### Summary\n\n${chat.summary}\n\n`;
+        }
+        
+        if (chat.content) {
+          markdown += `### Content\n\n${chat.content}\n\n`;
+        }
+        
+        markdown += `---\n\n`;
+      });
+      
+      // Download
+      const blob = new Blob([markdown], { type: 'text/markdown' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chats-export-${new Date().toISOString().split('T')[0]}.md`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Export error:', error);
+      alert('Failed to export data. Please try again.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    setIsImporting(true);
+    setImportError(null);
+    setImportSuccess(null);
+    
+    try {
+      const text = await file.text();
+      let jsonData;
+      
+      try {
+        jsonData = JSON.parse(text);
+      } catch (parseError) {
+        throw new Error('Invalid JSON file. Please check the file format.');
+      }
+      
+      // Validate structure
+      if (!jsonData.chats || !Array.isArray(jsonData.chats)) {
+        throw new Error('Invalid file format. Expected JSON with "chats" array.');
+      }
+      
+      // Check for conflicts (duplicates by title and platform)
+      const existingChats = chats;
+      const conflicts: string[] = [];
+      jsonData.chats.forEach((chat: any) => {
+        const duplicate = existingChats.find(
+          (c: any) => c.title === chat.title && c.platform === chat.platform
+        );
+        if (duplicate) {
+          conflicts.push(chat.title || 'Untitled');
+        }
+      });
+      
+      if (conflicts.length > 0) {
+        const proceed = confirm(
+          `Found ${conflicts.length} duplicate chat(s). They will be imported as new entries. Continue?`
+        );
+        if (!proceed) {
+          setIsImporting(false);
+          return;
+        }
+      }
+      
+      // Import chats and folders
+      const response = await fetch('/api/import', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ 
+          chats: jsonData.chats,
+          folders: jsonData.folders || []
+        }),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to import data' }));
+        throw new Error(errorData.message || 'Failed to import data');
+      }
+      
+      const result = await response.json();
+      const importedChats = result.imported?.chats || result.imported || jsonData.chats.length;
+      const importedFolders = result.imported?.folders || 0;
+      
+      let successMsg = `Successfully imported ${importedChats} chat(s)`;
+      if (importedFolders > 0) {
+        successMsg += ` and ${importedFolders} folder(s)`;
+      }
+      successMsg += '.';
+      setImportSuccess(successMsg);
+      
+      // Refresh chats and folders
+      const chatsResponse = await fetch('/api/chats', {
+        credentials: 'include',
+      });
+      if (chatsResponse.ok) {
+        const chatsData = await chatsResponse.json();
+        setChats(chatsData.chats || []);
+      }
+      
+      const foldersResponse = await fetch('/api/folders', {
+        credentials: 'include',
+      });
+      if (foldersResponse.ok) {
+        const foldersData = await foldersResponse.json();
+        setFolders(foldersData.folders || []);
+      }
+      
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setImportSuccess(null), 5000);
+    } catch (error: any) {
+      console.error('Import error:', error);
+      setImportError(error.message || 'Failed to import data. Please check the file format.');
+      
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      
+      // Clear remember me
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('brainbox_remember_me');
+        document.cookie = 'brainbox_remember_me=; max-age=0; path=/';
+      }
+
+      router.push('/auth/signin');
+      router.refresh();
+    } catch (error) {
+      console.error('Error signing out:', error);
+      alert('Failed to sign out');
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmText !== 'DELETE') {
+      setDeleteError('Please type DELETE to confirm');
+      return;
+    }
+
+    setIsDeleting(true);
+    setDeleteError('');
+
+    try {
+      // Call API to delete account and all data
+      const response = await fetch('/api/account/delete', {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'Failed to delete account' }));
+        throw new Error(errorData.message || 'Failed to delete account');
+      }
+
+      // Sign out and redirect
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      
+      // Clear remember me
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('brainbox_remember_me');
+        document.cookie = 'brainbox_remember_me=; max-age=0; path=/';
+      }
+
+      router.push('/auth/signin');
+      router.refresh();
+    } catch (error: any) {
+      console.error('Error deleting account:', error);
+      setDeleteError(error.message || 'Failed to delete account. Please try again.');
+      setIsDeleting(false);
+    }
+  };
 
   return (
     <div className="container mx-auto p-8 max-w-4xl">
@@ -86,52 +348,6 @@ export default function SettingsPage() {
       </div>
 
       <div className="space-y-6">
-        {/* Theme Settings */}
-        <div className="glass-card p-6 rounded-2xl">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-purple-500/10 dark:bg-purple-500/20 flex items-center justify-center">
-              <Sun className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">Appearance</h2>
-              <p className="text-sm text-muted-foreground">
-                Customize how the app looks on your device
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-3 gap-4">
-            {themeOptions.map((option) => {
-              const Icon = option.icon;
-              const isActive = currentTheme === option.value;
-
-              return (
-                <button
-                  key={option.value}
-                  onClick={() => setTheme(option.value)}
-                  className={`p-4 rounded-xl border-2 transition-all ${
-                    isActive
-                      ? 'border-primary bg-primary/5 shadow-lg'
-                      : 'border-border hover:border-primary/50 hover:bg-accent'
-                  }`}
-                >
-                  <Icon
-                    className={`w-6 h-6 mx-auto mb-2 ${
-                      isActive ? 'text-primary' : 'text-muted-foreground'
-                    }`}
-                  />
-                  <p
-                    className={`text-sm font-medium ${
-                      isActive ? 'text-primary' : 'text-foreground'
-                    }`}
-                  >
-                    {option.label}
-                  </p>
-                </button>
-              );
-            })}
-          </div>
-        </div>
 
         {/* Chrome Extension Quick Access */}
         <div className="glass-card p-6 rounded-2xl">
@@ -142,11 +358,11 @@ export default function SettingsPage() {
             <div className="flex-1">
               <h2 className="text-xl font-semibold">Extension Quick Access</h2>
               <p className="text-sm text-muted-foreground">
-                Select up to 3 folders to show in Chrome Extension hover menu
+                Select up to 5 folders to show in Chrome Extension hover menu
               </p>
             </div>
             <div className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white text-xs px-3 py-1 rounded-full font-semibold">
-              {quickAccessFolders.length}/3
+              {quickAccessFolders.length}/5
             </div>
           </div>
 
@@ -163,7 +379,7 @@ export default function SettingsPage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
               {chatFolders.map((folder) => {
                 const isInQuickAccess = quickAccessFolders.includes(folder.id);
                 
@@ -218,43 +434,6 @@ export default function SettingsPage() {
                   Quick Access folders are currently free! Soon we&apos;ll introduce PRO and ULTRA plans with even more amazing features. Enjoy this feature while it&apos;s in beta!
                 </p>
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Account Settings */}
-        <div className="glass-card p-6 rounded-2xl">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-lg bg-cyan-500/10 dark:bg-cyan-500/20 flex items-center justify-center">
-              <User className="w-5 h-5 text-cyan-600 dark:text-cyan-400" />
-            </div>
-            <div>
-              <h2 className="text-xl font-semibold">Account</h2>
-              <p className="text-sm text-muted-foreground">
-                Manage your account information
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent transition-colors cursor-pointer">
-              <div>
-                <p className="font-medium">Profile Settings</p>
-                <p className="text-sm text-muted-foreground">
-                  Update your personal information
-                </p>
-              </div>
-              <span className="text-muted-foreground">→</span>
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:bg-accent transition-colors cursor-pointer">
-              <div>
-                <p className="font-medium">Email & Password</p>
-                <p className="text-sm text-muted-foreground">
-                  Change your login credentials
-                </p>
-              </div>
-              <span className="text-muted-foreground">→</span>
             </div>
           </div>
         </div>
@@ -355,13 +534,36 @@ export default function SettingsPage() {
 
           <div className="space-y-4">
             <button className="w-full p-4 rounded-lg border border-border hover:bg-accent transition-colors text-left">
+              <p className="font-medium">Import Data</p>
+              <p className="text-sm text-muted-foreground">
+                Import chats and data from a file
+              </p>
+            </button>
+
+            <button className="w-full p-4 rounded-lg border border-border hover:bg-accent transition-colors text-left">
               <p className="font-medium">Export Data</p>
               <p className="text-sm text-muted-foreground">
                 Download all your chats and data
               </p>
             </button>
 
-            <button className="w-full p-4 rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors text-left">
+            <button 
+              onClick={handleSignOut}
+              className="w-full p-4 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-left flex items-center gap-3"
+            >
+              <LogOut size={18} />
+              <div>
+                <p className="font-medium">Sign Out</p>
+                <p className="text-sm text-muted-foreground">
+                  Sign out of your account
+                </p>
+              </div>
+            </button>
+
+            <button 
+              onClick={() => setShowDeleteModal(true)}
+              className="w-full p-4 rounded-lg border border-destructive text-destructive hover:bg-destructive/10 transition-colors text-left"
+            >
               <p className="font-medium">Delete Account</p>
               <p className="text-sm">
                 Permanently delete your account and all data
@@ -370,6 +572,83 @@ export default function SettingsPage() {
           </div>
         </div>
       </div>
+
+      {/* Delete Account Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-red-500/10 dark:bg-red-500/20 flex items-center justify-center">
+                  <AlertTriangle className="text-red-600 dark:text-red-400" size={20} />
+                </div>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white">
+                  Delete Account
+                </h3>
+              </div>
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                  setDeleteError('');
+                }}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-slate-600 dark:text-slate-400 mb-4">
+                This action cannot be undone. This will permanently delete your account and remove all of your data from our servers.
+              </p>
+              <p className="text-sm font-medium text-slate-900 dark:text-white mb-2">
+                Please type <span className="text-red-600 dark:text-red-400 font-mono">DELETE</span> to confirm:
+              </p>
+              <input
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                className="w-full px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-red-500 font-mono"
+                placeholder="Type DELETE to confirm"
+              />
+              {deleteError && (
+                <p className="text-sm text-red-600 dark:text-red-400 mt-2">{deleteError}</p>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmText('');
+                  setDeleteError('');
+                }}
+                className="flex-1 px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirmText !== 'DELETE' || isDeleting}
+                className="flex-1 px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <Trash2 size={18} />
+                    Delete Account
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

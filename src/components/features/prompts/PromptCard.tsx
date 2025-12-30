@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Prompt, PromptUpdate } from '@/types';
 import { usePromptStore } from '@/store/usePromptStore';
 import { createClient } from '@/lib/supabase/client';
 import { 
-  MoreVertical, Trash2, Edit2, Copy, Check, X, AlertTriangle, Menu
+  MoreVertical, Trash2, Edit2, Copy, Check, X, AlertTriangle, Menu, Square, CheckSquare
 } from 'lucide-react';
 
 interface PromptCardProps {
@@ -35,11 +35,55 @@ const BG_COLORS: Record<string, string> = {
 };
 
 export function PromptCard({ prompt, onEdit }: PromptCardProps) {
+  const { deletePrompt, updatePrompt, selectedPromptIds, togglePromptSelection } = usePromptStore();
   const [showMenu, setShowMenu] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const { deletePrompt, updatePrompt } = usePromptStore();
   const useInContextMenu = prompt.use_in_context_menu ?? false;
+  const isSelected = selectedPromptIds.includes(prompt.id);
+  
+  // Selection mode state
+  const [isLongPressing, setIsLongPressing] = useState(false);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close editing
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+        setShowMenu(false);
+      }
+    };
+
+    if (showMenu) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showMenu]);
+
+  // Handle long press for selection
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only left mouse button
+    
+    longPressTimerRef.current = setTimeout(() => {
+      setIsLongPressing(true);
+      togglePromptSelection(prompt.id);
+    }, 500); // 500ms hold
+  };
+
+  const handleMouseUp = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
 
   const handleDelete = async () => {
     try {
@@ -150,7 +194,7 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
           {/* Menu Button */}
           <div className="relative">
             <button
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
               className="p-1 hover:bg-muted rounded-md transition-colors"
             >
               <MoreVertical className="w-5 h-5" />
@@ -161,11 +205,15 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
               <>
                 <div
                   className="fixed inset-0 z-10"
-                  onClick={() => setShowMenu(false)}
+                  onClick={(e) => { e.stopPropagation(); setShowMenu(false); }}
                 />
-                <div className="absolute right-0 mt-1 w-48 bg-popover border rounded-md shadow-lg z-20 py-1">
+                <div 
+                  onClick={(e) => e.stopPropagation()}
+                  className="absolute right-0 mt-1 w-48 bg-popover border rounded-md shadow-lg z-20 py-1"
+                >
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       onEdit(prompt);
                       setShowMenu(false);
                     }}
@@ -175,7 +223,8 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
                     Edit
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       handleCopy();
                       setShowMenu(false);
                     }}
@@ -194,7 +243,8 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
                     )}
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       handleToggleContextMenu();
                     }}
                     className={`flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors ${
@@ -212,7 +262,8 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
                     )}
                   </button>
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setShowDeleteConfirm(true);
                       setShowMenu(false);
                     }}

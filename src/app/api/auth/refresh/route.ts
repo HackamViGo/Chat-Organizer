@@ -13,7 +13,15 @@ export async function OPTIONS() {
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
+    // Handle empty body gracefully
+    let body;
+    try {
+      const text = await request.text();
+      body = text ? JSON.parse(text) : {};
+    } catch (e) {
+      body = {};
+    }
+
     const { refreshToken } = body;
 
     if (!refreshToken) {

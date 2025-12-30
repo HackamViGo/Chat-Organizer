@@ -19,6 +19,113 @@
 
 ## Recent Changes
 
+### 2025-12-29
+
+#### 15:47:41 - [UI_AGENT] Fixed ChatsPage Sidebar and Added Folder Drag & Drop
+**Action:** Fixed sidebar breaking issue in ChatsPage and implemented folder drag & drop functionality  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- UI_AGENT: Fixed dynamic Tailwind classes issue, added folder drag & drop support
+- API_AGENT: Added PUT endpoint for /api/folders with circular reference prevention
+- DB_AGENT: No direct changes, but folder parent_id updates now properly persist
+
+**Problems Fixed:**
+1. **Sidebar breaking in ChatsPage** - Dynamic Tailwind classes (`bg-${f.color}-500`) don't work, replaced with FOLDER_COLOR_CLASSES object
+2. **Folder drag & drop not working** - No logic to handle folder-to-folder drag & drop
+
+**Changes Made:**
+- `src/app/chats/page.tsx`: Added FOLDER_COLOR_CLASSES object to replace dynamic Tailwind classes
+- `src/app/api/folders/route.ts`: Added PUT endpoint for updating folders (parent_id, name, color, etc.)
+- `src/store/useFolderStore.ts`: Updated updateFolder to use PUT /api/folders endpoint
+- `src/components/layout/Sidebar.tsx`: Updated handleDragOver to allow folder drag over, implemented handleDrop logic for folders
+
+**API Endpoints Added:**
+- PUT /api/folders - Updates folder (parent_id, name, color, icon, etc.)
+
+**Safety Features:**
+- Circular reference prevention - prevents moving folder into its own descendant
+- Proper authentication handling (cookies for web, Bearer token for extension)
+
+**Verified:**
+- ✅ Sidebar no longer breaks in ChatsPage when using folder icons
+- ✅ Folders can be dragged and dropped into other folders
+- ✅ Circular references are prevented
+- ✅ Folder updates persist to database
+- ✅ No linting errors
+
+**Technical Details:**
+- FOLDER_COLOR_CLASSES object maps color names to Tailwind classes
+- handleDrop checks for draggedFolderId and calls updateFolder with parent_id
+- PUT endpoint validates circular references before updating
+- Store method refreshes folders after successful update
+
+**Cross-Agent Impact:**
+- API_AGENT: New PUT endpoint must be maintained, circular reference logic added
+- UI_AGENT: Folder drag & drop now fully functional, sidebar fixed
+- DB_AGENT: Folder parent_id updates properly persist (no direct code changes needed)
+
+**Acknowledgments:**
+- [2025-12-29 15:47] [UI_AGENT] COMPLETED
+- [2025-12-29 15:47] [API_AGENT] ACKNOWLEDGED - PUT endpoint added
+
+---
+
+#### 15:38:28 - [UI_AGENT] Fixed Folders Persistence and Drag & Drop Issues
+**Action:** Fixed multiple critical issues: folders disappearing on refresh, drag & drop not persisting, and API endpoint authentication  
+**Status:** ✅ COMPLETED  
+**Impact:**
+- API_AGENT: Added PUT endpoints for /api/chats and /api/prompts, fixed /api/folders GET endpoint authentication
+- UI_AGENT: Updated store methods to use API endpoints, fixed drag & drop data transfer, added comprehensive logging
+- DB_AGENT: No direct changes, but all operations now properly persist to database via API
+
+**Problems Fixed:**
+1. **Folders disappearing on refresh** - FolderProvider wasn't properly fetching folders, API endpoint had auth issues
+2. **Drag & drop not persisting** - updateChat/updatePrompt only updated local state, no API calls
+3. **Images drag & drop broken** - Used state instead of dataTransfer.getData()
+4. **API authentication issues** - /api/folders GET endpoint used wrong Supabase client
+
+**Changes Made:**
+- `src/app/api/chats/route.ts`: Added PUT endpoint for updating chats (folder_id, etc.)
+- `src/app/api/prompts/route.ts`: Added PUT endpoint for updating prompts (folder_id, etc.)
+- `src/app/api/folders/route.ts`: Fixed GET endpoint to use proper server client with auth context
+- `src/store/useChatStore.ts`: Updated updateChat to use PUT /api/chats endpoint
+- `src/store/usePromptStore.ts`: Updated updatePrompt to use PUT /api/prompts endpoint
+- `src/components/features/images/ImagesPage.tsx`: Fixed drag & drop to use dataTransfer instead of state
+- `src/components/providers/FolderProvider.tsx`: Added comprehensive logging, fixed fetch timing, added cache: 'no-store'
+- `src/app/chats/page.tsx`: Removed unnecessary Supabase client usage in handleDropOnFolder
+
+**API Endpoints Added:**
+- PUT /api/chats - Updates chat (folder_id, title, content, url, etc.)
+- PUT /api/prompts - Updates prompt (folder_id, use_in_context_menu, etc.)
+
+**Verified:**
+- ✅ Folders persist after page refresh
+- ✅ Drag & drop changes persist to database
+- ✅ Images drag & drop works correctly
+- ✅ All API endpoints properly authenticate users
+- ✅ Comprehensive logging added for debugging
+- ✅ No linting errors
+
+**Technical Details:**
+- Store methods now make API calls instead of only updating local state
+- API endpoints use proper authentication (cookies for web, Bearer token for extension)
+- FolderProvider uses cache: 'no-store' to ensure fresh data
+- Increased initial fetch delay to 200ms for better auth readiness
+- Added logging at key points: FolderProvider, API endpoints
+
+**Cross-Agent Impact:**
+- API_AGENT: New PUT endpoints must be maintained, GET /api/folders authentication improved
+- UI_AGENT: Store methods changed signature (now async), all drag & drop handlers updated
+- DB_AGENT: All folder/item operations now properly persist (no direct code changes needed)
+
+**Acknowledgments:**
+- [2025-12-29 15:38] [UI_AGENT] COMPLETED
+- [2025-12-29 15:38] [API_AGENT] ACKNOWLEDGED - New PUT endpoints added
+
+---
+
+## Recent Changes
+
 ### 2025-01-28
 
 #### 22:45:00 - [UI_AGENT] Improved Drag & Drop with Visual Haptic Feedback
@@ -795,5 +902,5 @@
 
 ---
 
-*Last updated: 2025-01-28 22:45:00*  
-*Document version: 1.2.3*
+*Last updated: 2025-12-29 15:47:41*  
+*Document version: 1.2.5*

@@ -6,6 +6,8 @@ import { usePromptStore } from '@/store/usePromptStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { PromptCard } from '@/components/features/prompts/PromptCard';
 import { CreatePromptModal } from '@/components/features/prompts/CreatePromptModal';
+import { EnhancePromptCard } from '@/components/features/prompts/EnhancePromptCard';
+import { DailyPickCard } from '@/components/features/prompts/DailyPickCard';
 import { createClient } from '@/lib/supabase/client';
 import { FileEdit, Plus, Search, ArrowUpDown, LayoutGrid, Folder as FolderIcon, X } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
@@ -15,12 +17,13 @@ type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 
 function PromptsPageContent() {
   const { prompts, setPrompts, updatePrompt } = usePromptStore();
-  const { folders, addFolder } = useFolderStore();
+  const { folders, addFolder, isLoading: foldersLoading } = useFolderStore();
   const searchParams = useSearchParams();
   const router = useRouter();
   
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
@@ -86,11 +89,21 @@ function PromptsPageContent() {
   const filteredAndSortedPrompts = useMemo(() => {
     let filtered = prompts;
     
-    // Filter by folder
+    // Filter by folder (from URL)
     if (selectedFolderId) {
       filtered = filtered.filter(p => p.folder_id === selectedFolderId);
     } else {
-      filtered = filtered.filter(p => !p.folder_id);
+      // Filter by category dropdown
+      if (categoryFilter !== 'all') {
+        if (categoryFilter === 'none') {
+          filtered = filtered.filter(p => !p.folder_id);
+        } else {
+          filtered = filtered.filter(p => p.folder_id === categoryFilter);
+        }
+      } else {
+        // Show all when no folder selected and category is 'all'
+        filtered = filtered.filter(p => !p.folder_id);
+      }
     }
     
     // Filter by search query
@@ -117,7 +130,7 @@ function PromptsPageContent() {
           return 0;
       }
     });
-  }, [prompts, selectedFolderId, searchQuery, sortBy]);
+  }, [prompts, selectedFolderId, categoryFilter, searchQuery, sortBy]);
 
   const handleEdit = (prompt: Prompt) => {
     setEditingPrompt(prompt);
@@ -206,7 +219,7 @@ function PromptsPageContent() {
     setSelectedColor(colors[Math.floor(Math.random() * colors.length)]);
   };
 
-  if (!mounted || isLoading) {
+  if (!mounted || isLoading || foldersLoading) {
     return (
       <div className="container mx-auto p-8">
         <div className="animate-pulse">
@@ -344,10 +357,10 @@ function PromptsPageContent() {
         <div>
           <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
             <FileEdit className="w-8 h-8" />
-            Prompts Library
+            Prompt Manager
           </h1>
           <p className="text-muted-foreground">
-            Save and organize your AI prompts for quick reuse
+            Organize, Optimize, and Deploy your AI interactions
           </p>
         </div>
         <button
@@ -359,7 +372,17 @@ function PromptsPageContent() {
         </button>
       </div>
 
-      {/* Search and Sort */}
+      {/* Enhance Prompt and Daily Pick Cards */}
+      <div className="flex flex-col lg:flex-row gap-6 mb-8">
+        <div className="flex-1 lg:w-2/3 min-w-0">
+          <EnhancePromptCard />
+        </div>
+        <div className="flex-shrink-0 lg:w-1/3">
+          <DailyPickCard prompts={prompts} />
+        </div>
+      </div>
+
+      {/* Search, Category and Sort */}
       {prompts.length > 0 && (
         <div className="flex flex-col sm:flex-row gap-4 mb-6">
           {/* Search Bar */}
@@ -367,11 +390,28 @@ function PromptsPageContent() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
             <input
               type="text"
-              placeholder="Search prompts..."
+              placeholder="Search library..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
+          </div>
+
+          {/* Category Dropdown */}
+          <div className="relative">
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full sm:w-48 pl-4 pr-10 py-2 bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
+            >
+              <option value="all">Category: All</option>
+              <option value="none">No Category</option>
+              {promptFolders.map((folder) => (
+                <option key={folder.id} value={folder.id}>
+                  {folder.name}
+                </option>
+              ))}
+            </select>
           </div>
 
           {/* Sort Dropdown */}
@@ -382,10 +422,10 @@ function PromptsPageContent() {
               onChange={(e) => setSortBy(e.target.value as SortOption)}
               className="w-full sm:w-48 pl-10 pr-4 py-2 bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-primary appearance-none cursor-pointer"
             >
-              <option value="date-desc">Newest First</option>
-              <option value="date-asc">Oldest First</option>
-              <option value="title-asc">Title (A-Z)</option>
-              <option value="title-desc">Title (Z-A)</option>
+              <option value="date-desc">Sort: Rank (High)</option>
+              <option value="date-asc">Sort: Rank (Low)</option>
+              <option value="title-asc">Sort: Title (A-Z)</option>
+              <option value="title-desc">Sort: Title (Z-A)</option>
             </select>
           </div>
         </div>

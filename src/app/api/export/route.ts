@@ -10,16 +10,28 @@ export async function GET() {
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    const { data: chats, error } = await supabase
+    const { data: chats, error: chatsError } = await supabase
       .from('chats')
       .select('*')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false });
 
-    if (error) throw error;
+    if (chatsError) throw chatsError;
+
+    const { data: folders, error: foldersError } = await supabase
+      .from('folders')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+
+    if (foldersError) throw foldersError;
 
     // Format as JSON
-    const jsonData = JSON.stringify({ chats, exportedAt: new Date().toISOString() }, null, 2);
+    const jsonData = JSON.stringify({ 
+      chats: chats || [], 
+      folders: folders || [],
+      exportedAt: new Date().toISOString() 
+    }, null, 2);
 
     return new NextResponse(jsonData, {
       headers: {

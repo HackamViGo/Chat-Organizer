@@ -103,11 +103,56 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
   const [isEditingUrl, setIsEditingUrl] = useState(false);
   const [editedUrl, setEditedUrl] = useState(chat.url || '');
 
+  // Selection mode state
+  const [isLongPressing, setIsLongPressing] = useState(false);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (isEditingTitle && titleInputRef.current) {
       titleInputRef.current.focus();
     }
   }, [isEditingTitle]);
+
+  // Handle click outside to close editing
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+        if (isEditingTitle) setIsEditingTitle(false);
+        if (isEditingDesc) setIsEditingDesc(false);
+        if (isEditingUrl) setIsEditingUrl(false);
+      }
+    };
+
+    if (isEditingTitle || isEditingDesc || isEditingUrl) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [isEditingTitle, isEditingDesc, isEditingUrl]);
+
+  // Handle long press for selection
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0) return; // Only left mouse button
+    
+    longPressTimerRef.current = setTimeout(() => {
+      setIsLongPressing(true);
+      toggleChatSelection(chat.id);
+    }, 500); // 500ms hold
+  };
+
+  const handleMouseUp = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
 
   // Check for hash highlight
   useEffect(() => {
@@ -253,34 +298,45 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
   return (
     <>
       <div 
+        ref={cardRef}
         id={chat.id}
         draggable
         onDragStart={handleDragStart}
-        onClick={() => setShowViewModal(true)}
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onClick={() => {
+          if (!isLongPressing) {
+            setShowViewModal(true);
+          }
+          setIsLongPressing(false);
+        }}
         className={`glass-card rounded-xl p-5 relative group flex flex-col h-full cursor-pointer text-slate-900 dark:text-white transition-all duration-500 hover:scale-[1.02]
           ${isHighlighted ? 'ring-2 ring-cyan-500 shadow-lg shadow-cyan-500/20 scale-[1.02]' : ''}
           ${isSelected ? 'ring-2 ring-blue-500 shadow-lg shadow-blue-500/20' : ''}
         `}
       >
         {/* Selection Checkbox */}
-        <div 
-          className="absolute top-3 left-3 z-10"
-          onClick={(e) => {
-            e.stopPropagation();
-            toggleChatSelection(chat.id);
-          }}
-        >
-          <button
-            className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors
-              ${isSelected 
-                ? 'bg-blue-600 border-blue-600 text-white' 
-                : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-blue-500'
-              }`}
-            onClick={(e) => e.stopPropagation()}
+        {(isSelected || isLongPressing || selectedChatIds.size > 0) && (
+          <div 
+            className="absolute top-3 left-3 z-10"
+            onClick={(e) => {
+              e.stopPropagation();
+              toggleChatSelection(chat.id);
+            }}
           >
-            {isSelected && <Check size={14} className="text-white" />}
-          </button>
-        </div>
+            <button
+              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all
+                ${isSelected 
+                  ? 'bg-blue-600 border-blue-600 text-white opacity-100 scale-100' 
+                  : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-blue-500 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100'
+                }`}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {isSelected && <Check size={14} className="text-white" />}
+            </button>
+          </div>
+        )}
         {/* Delete Confirmation Overlay */}
         {showDeleteConfirm && (
           <div className="absolute inset-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center text-center p-4 animate-in fade-in duration-200">
@@ -362,40 +418,43 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
           
           <div className="relative">
             <button 
-              onClick={() => setShowMenu(!showMenu)}
+              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
               className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-md hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
             >
               <MoreVertical size={16} />
             </button>
             
             {showMenu && (
-              <div className="absolute right-0 top-8 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-xl z-10 overflow-hidden text-sm animate-in fade-in zoom-in-95 duration-200">
+              <div 
+                onClick={(e) => e.stopPropagation()}
+                className="absolute right-0 top-8 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-xl z-10 overflow-hidden text-sm animate-in fade-in zoom-in-95 duration-200"
+              >
                 <button 
-                  onClick={() => { setIsEditingDesc(true); setShowMenu(false); }}
+                  onClick={(e) => { e.stopPropagation(); setIsEditingDesc(true); setShowMenu(false); }}
                   className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
                 >
                   <FileText size={14} /> Edit Description
                 </button>
                 <button 
-                  onClick={() => { setIsEditingUrl(true); setShowMenu(false); }}
+                  onClick={(e) => { e.stopPropagation(); setIsEditingUrl(true); setShowMenu(false); }}
                   className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
                 >
                   <LinkIcon size={14} /> Edit Source URL
                 </button>
                 <button 
-                  onClick={() => { setShowMoveModal(true); setShowMenu(false); }}
+                  onClick={(e) => { e.stopPropagation(); setShowMoveModal(true); setShowMenu(false); }}
                   className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
                 >
                   <FolderInput size={14} /> Move to Folder
                 </button>
                 <button 
-                  onClick={() => { setIsEditingTitle(true); setShowMenu(false); }}
+                  onClick={(e) => { e.stopPropagation(); setIsEditingTitle(true); setShowMenu(false); }}
                   className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
                 >
                   <Edit2 size={14} /> Rename
                 </button>
                 <button 
-                  onClick={handleArchive}
+                  onClick={(e) => { e.stopPropagation(); handleArchive(); }}
                   className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
                 >
                   {chat.is_archived ? <ArchiveRestore size={14}/> : <Archive size={14}/>}
@@ -403,7 +462,7 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
                 </button>
                 <div className="h-px bg-slate-200 dark:bg-white/5 my-1" />
                 <button 
-                  onClick={() => { setShowDeleteConfirm(true); setShowMenu(false); }}
+                  onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); setShowMenu(false); }}
                   className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center gap-2"
                 >
                   <Trash2 size={14} /> Delete

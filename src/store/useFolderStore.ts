@@ -21,16 +21,61 @@ export const useFolderStore = create<FolderStore>((set) => ({
   
   setFolders: (folders) => set({ folders }),
   addFolder: (folder) => set((state) => ({ folders: [folder, ...state.folders] })),
-  updateFolder: (id, updates) => 
-    set((state) => ({
-      folders: state.folders.map((folder) =>
-        folder.id === id ? { ...folder, ...updates } : folder
-      ),
-    })),
-  deleteFolder: (id) => 
-    set((state) => ({
-      folders: state.folders.filter((folder) => folder.id !== id),
-    })),
+  updateFolder: async (id, updates) => {
+    try {
+      const response = await fetch('/api/folders', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id, ...updates }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update folder');
+      }
+
+      const updatedFolder = await response.json();
+      
+      set((state) => ({
+        folders: state.folders.map((folder) =>
+          folder.id === id ? { ...folder, ...updatedFolder } : folder
+        ),
+      }));
+    } catch (error) {
+      console.error('Error updating folder:', error);
+      // Optimistic update on error
+      set((state) => ({
+        folders: state.folders.map((folder) =>
+          folder.id === id ? { ...folder, ...updates } : folder
+        ),
+      }));
+      throw error;
+    }
+  },
+  deleteFolder: async (id) => {
+    try {
+      const response = await fetch(`/api/folders?id=${id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete folder');
+      }
+
+      // Remove from store
+      set((state) => ({
+        folders: state.folders.filter((folder) => folder.id !== id),
+      }));
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      // Optimistic delete on error
+      set((state) => ({
+        folders: state.folders.filter((folder) => folder.id !== id),
+      }));
+      throw error;
+    }
+  },
   selectFolder: (id) => set({ selectedFolderId: id }),
   setLoading: (loading) => set({ isLoading: loading }),
 }));

@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { ChatCard } from '@/components/features/chats/ChatCard';
-import { MessageSquarePlus, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight } from 'lucide-react';
+import { MessageSquarePlus, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight, Search, Calendar, Filter } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
 import { createClient } from '@/lib/supabase/client';
 import { getItemsInFolderAndNested, getChildFolders } from '@/lib/utils/folders';
@@ -21,7 +21,7 @@ function ChatsPageContent() {
     deleteChats,
     updateChat
   } = useChatStore();
-  const { folders, addFolder } = useFolderStore();
+  const { folders, addFolder, isLoading: foldersLoading } = useFolderStore();
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -44,6 +44,14 @@ function ChatsPageContent() {
   const [newFolderName, setNewFolderName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('Folder');
   const [selectedColor, setSelectedColor] = useState('cyan');
+  
+  // Search and Filters
+  const [searchQuery, setSearchQuery] = useState('');
+  const [platformFilter, setPlatformFilter] = useState<string>('all');
+  const [folderFilter, setFolderFilter] = useState<string>('all');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
+  const [showFilters, setShowFilters] = useState(false);
 
   const selectedFolderId = searchParams.get('folder');
   const setSelectedFolderId = (id: string | null) => {
@@ -59,27 +67,99 @@ function ChatsPageContent() {
   
   const chatFolders = useMemo(() => folders.filter(f => (f as any).type === 'chat' || !(f as any).type), [folders]);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const [openSidebars, setOpenSidebars] = useState<string[]>([]); // Track which folders have sidebars open
   
   const displayedChats = useMemo(() => {
-    if (selectedFolderId) {
-      return getItemsInFolderAndNested(selectedFolderId, chats, folders);
+    let result = chats;
+    
+    // Folder filter - prioritize selectedFolderId from URL, then folderFilter
+    const activeFolderId = selectedFolderId || (folderFilter !== 'all' && folderFilter !== 'none' ? folderFilter : null);
+    
+    if (activeFolderId) {
+      result = getItemsInFolderAndNested(activeFolderId, chats, folders);
+    } else if (folderFilter === 'none' || (!selectedFolderId && folderFilter === 'all')) {
+      result = chats.filter(c => !c.folder_id);
+    } else {
+      result = chats;
     }
-    return chats.filter(c => !c.folder_id);
-  }, [chats, selectedFolderId, folders]);
+    
+    // Search query
+    if (searchQuery) {
+      result = result.filter(c => 
+        c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.content?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.summary?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    
+    // Platform filter
+    if (platformFilter !== 'all') {
+      result = result.filter(c => {
+        const platform = c.platform?.toLowerCase() || '';
+        if (platformFilter === 'chatgpt') return platform.includes('chatgpt') || platform.includes('gpt');
+        if (platformFilter === 'claude') return platform.includes('claude');
+        if (platformFilter === 'gemini') return platform.includes('gemini');
+        if (platformFilter === 'other') {
+          return !platform.includes('chatgpt') && !platform.includes('gpt') && 
+                 !platform.includes('claude') && !platform.includes('gemini');
+        }
+        return true;
+      });
+    }
+    
+    // Date range filter
+    if (dateFrom || dateTo) {
+      result = result.filter(c => {
+        if (!c.created_at) return false;
+        const chatDate = new Date(c.created_at).getTime();
+        const fromDate = dateFrom ? new Date(dateFrom).getTime() : 0;
+        const toDate = dateTo ? new Date(dateTo).getTime() + 24 * 60 * 60 * 1000 : Date.now();
+        return chatDate >= fromDate && chatDate <= toDate;
+      });
+    }
+    
+    return result;
+  }, [chats, selectedFolderId, folders, searchQuery, platformFilter, folderFilter, dateFrom, dateTo]);
   
-  const toggleFolderExpansion = (folderId: string) => {
-    setExpandedFolders(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(folderId)) {
-        newSet.delete(folderId);
-      } else {
-        newSet.add(folderId);
-      }
-      return newSet;
-    });
+  const clearFilters = () => {
+    setSearchQuery('');
+    setPlatformFilter('all');
+    setFolderFilter('all');
+    setDateFrom('');
+    setDateTo('');
   };
   
-  const renderNestedFolders = (parentId: string | null, level: number = 0): React.ReactNode => {
+  const hasActiveFilters = searchQuery || platformFilter !== 'all' || folderFilter !== 'all' || dateFrom || dateTo;
+  
+  const toggleFolderExpansion = (folderId: string, level: number, sidebarIndex: number) => {
+    // Level 0 and 1: open sidebar on the right
+    // Level 2+: expand below in same sidebar
+    if (level < 2) {
+      setOpenSidebars(prev => {
+        const index = prev.indexOf(folderId);
+        if (index === -1) {
+          // Open sidebar - remove all sidebars after current position and add new one
+          return prev.slice(0, sidebarIndex + 1).concat(folderId);
+        } else {
+          // Close sidebar - remove this and all after it
+          return prev.slice(0, index);
+        }
+      });
+    } else {
+      // Level 2+: expand below
+      setExpandedFolders(prev => {
+        const newSet = new Set(prev);
+        if (newSet.has(folderId)) {
+          newSet.delete(folderId);
+        } else {
+          newSet.add(folderId);
+        }
+        return newSet;
+      });
+    }
+  };
+  
+  const renderNestedFolders = (parentId: string | null, level: number = 0, sidebarIndex: number = 0): React.ReactNode => {
     const childFolders = getChildFolders(chatFolders, parentId);
     
     return childFolders.map(f => {
@@ -87,27 +167,15 @@ function ChatsPageContent() {
       const isActive = selectedFolderId === f.id;
       const isHovered = hoveredFolderId === f.id;
       const isExpanded = expandedFolders.has(f.id);
-      const hasChildren = getChildFolders(chatFolders, f.id).length > 0;
+      // Level 2+: don't show subfolders, only files can be added
+      const hasChildren = level < 2 ? getChildFolders(chatFolders, f.id).length > 0 : false;
       const folderChats = getItemsInFolderAndNested(f.id, chats, folders);
+      const showChevron = hasChildren && level < 2; // Only show chevron for levels 0 and 1
+      const sidebarIsOpen = level < 2 && openSidebars.includes(f.id);
       
       return (
         <div key={f.id} className="relative flex items-center justify-center">
-          <div className="flex items-center gap-1" style={{ paddingLeft: `${level * 8}px` }}>
-            {hasChildren && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFolderExpansion(f.id);
-                }}
-                className="p-1 hover:bg-white/10 rounded transition-colors"
-              >
-                <ChevronRight 
-                  size={12} 
-                  className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                />
-              </button>
-            )}
-            {!hasChildren && <div className="w-4" />}
+          <div className="flex items-center gap-1">
             <button
               onClick={() => setSelectedFolderId(f.id)}
               onMouseEnter={() => setHoveredFolderId(f.id)}
@@ -137,6 +205,34 @@ function ChatsPageContent() {
             >
               <Icon size={24} />
             </button>
+            {showChevron && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFolderExpansion(f.id, level, sidebarIndex);
+                }}
+                className="p-1 hover:bg-white/10 rounded transition-colors"
+              >
+                <ChevronRight 
+                  size={12} 
+                  className={`transition-transform ${sidebarIsOpen ? 'rotate-90' : ''}`}
+                />
+              </button>
+            )}
+            {level >= 2 && hasChildren && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFolderExpansion(f.id, level, sidebarIndex);
+                }}
+                className="p-1 hover:bg-white/10 rounded transition-colors"
+              >
+                <ChevronRight 
+                  size={12} 
+                  className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                />
+              </button>
+            )}
           </div>
           
           {isHovered && (
@@ -164,14 +260,31 @@ function ChatsPageContent() {
             </div>
           )}
           
-          {isExpanded && hasChildren && (
+          {/* Level 2+: expand below in same sidebar */}
+          {level >= 2 && isExpanded && hasChildren && (
             <div className="w-full mt-2">
-              {renderNestedFolders(f.id, level + 1)}
+              {renderNestedFolders(f.id, level + 1, sidebarIndex)}
             </div>
           )}
         </div>
       );
     });
+  };
+  
+  const renderSidebar = (folderId: string, level: number, sidebarIndex: number) => {
+    const childFolders = getChildFolders(chatFolders, folderId);
+    if (childFolders.length === 0) return null;
+    
+    return (
+      <aside 
+        key={`sidebar-${folderId}-${sidebarIndex}`}
+        className="w-20 hidden md:flex flex-col items-center py-8 border-r border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-black/20 backdrop-blur-sm sticky top-0 h-screen gap-4 z-10 overflow-y-auto [&::-webkit-scrollbar]:hidden"
+      >
+        <div className="flex flex-col gap-3 w-full items-center pt-3">
+          {renderNestedFolders(folderId, level, sidebarIndex)}
+        </div>
+      </aside>
+    );
   };
 
   const fetchChats = useCallback(async () => {
@@ -256,7 +369,7 @@ function ChatsPageContent() {
     }
   };
 
-  if (!mounted || isLoading) {
+  if (!mounted || isLoading || foldersLoading) {
     return (
       <div className="container mx-auto p-8">
         <div className="animate-pulse">
@@ -309,7 +422,6 @@ function ChatsPageContent() {
       : [chatId];
 
     try {
-      const supabase = createClient();
       for (const id of idsToMove) {
         await updateChat(id, { folder_id: targetFolderId || null });
       }
@@ -373,7 +485,7 @@ function ChatsPageContent() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] md:min-h-screen relative">
-      {/* Sidebar */}
+      {/* Main Sidebar */}
       <aside className="w-20 hidden md:flex flex-col items-center py-8 border-r border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-black/20 backdrop-blur-sm sticky top-0 h-screen gap-4 z-10 overflow-y-auto [&::-webkit-scrollbar]:hidden">
         <button
           onClick={() => setSelectedFolderId(null)}
@@ -416,21 +528,51 @@ function ChatsPageContent() {
           <Plus size={24} />
         </button>
 
-        <div className="flex flex-col gap-3 w-full items-start">
-          {renderNestedFolders(null)}
+        <div className="flex flex-col gap-3 w-full items-center">
+          {renderNestedFolders(null, 0, 0)}
         </div>
       </aside>
+      
+      {/* Nested Sidebars */}
+      {openSidebars.map((folderId, index) => renderSidebar(folderId, index + 1, index + 1))}
 
       {/* Main Content */}
-      <div className="flex-1 container mx-auto p-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2">My Chats</h1>
-          <p className="text-muted-foreground">
-            Manage and organize your AI conversations
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
+      <div className="flex-1 p-6 md:p-10 overflow-y-auto flex flex-col gap-6 relative">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-1">My Chats</h1>
+            <p className="text-muted-foreground text-sm">
+              Manage and organize your AI conversations
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {/* Search */}
+            <div className="relative group min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-cyan-500" size={16} />
+              <input 
+                type="text" 
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search chats..." 
+                className="w-full bg-slate-100 dark:bg-white/5 border border-transparent focus:border-cyan-500/50 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none transition-all"
+              />
+              {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X size={14} /></button>}
+            </div>
+            
+            {/* Filter Toggle */}
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
+                hasActiveFilters
+                  ? 'border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
+                  : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-cyan-300 dark:hover:border-cyan-700'
+              }`}
+            >
+              <Filter size={16} />
+              Filters
+              {hasActiveFilters && <span className="w-2 h-2 rounded-full bg-cyan-500"></span>}
+            </button>
+            
           {selectedCount > 0 && (
             <>
               <span className="text-sm text-muted-foreground">
@@ -469,87 +611,165 @@ function ChatsPageContent() {
             <MessageSquarePlus className="w-5 h-5" />
             New Chat
           </button>
-        </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {showDeleteConfirm && (
-        <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowDeleteConfirm(false);
-            }
-          }}
-        >
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <AlertTriangle className="text-red-500" size={32} />
-              <h2 className="text-xl font-bold">Delete {selectedCount} {selectedCount === 1 ? 'chat' : 'chats'}?</h2>
-            </div>
-            <p className="text-muted-foreground mb-6">
-              This action cannot be undone. All selected chats will be permanently deleted.
-            </p>
-            <div className="flex gap-3 justify-end">
-              <button
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={isDeleting}
-                className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleDeleteSelected}
-                disabled={isDeleting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-              >
-                {isDeleting ? (
-                  <>
-                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Deleting...
-                  </>
-                ) : (
-                  'Delete'
-                )}
-              </button>
-            </div>
           </div>
         </div>
-      )}
+        
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="glass-card p-4 rounded-xl border border-slate-200 dark:border-white/10">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Platform Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Platform
+                </label>
+                <select
+                  value={platformFilter}
+                  onChange={(e) => setPlatformFilter(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                >
+                  <option value="all">All Platforms</option>
+                  <option value="chatgpt">ChatGPT</option>
+                  <option value="claude">Claude</option>
+                  <option value="gemini">Gemini</option>
+                  <option value="other">Other</option>
+                </select>
+              </div>
+              
+              {/* Folder Filter */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Folder
+                </label>
+                <select
+                  value={folderFilter}
+                  onChange={(e) => setFolderFilter(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                >
+                  <option value="all">All Folders</option>
+                  <option value="none">No Folder (Uncategorized)</option>
+                  {chatFolders.map(folder => (
+                    <option key={folder.id} value={folder.id}>{folder.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              {/* Date Range */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
+                  Date Range
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                    placeholder="From"
+                  />
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="flex-1 px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-cyan-500 text-sm"
+                    placeholder="To"
+                  />
+                </div>
+              </div>
+            </div>
+            
+            {/* Clear Filters Button */}
+            {hasActiveFilters && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-sm text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
-      {displayedChats.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <MessageSquarePlus className="w-16 h-16 text-muted-foreground mb-4" />
-          <h3 className="text-xl font-semibold mb-2">
-            {selectedFolderId ? 'No chats in this folder' : 'No saved chats'}
-          </h3>
-          <p className="text-muted-foreground mb-6">
-            {selectedFolderId
-              ? 'Move chats to this folder to organize them'
-              : 'Start a conversation in AI Studio to see it here'}
-          </p>
-          {!selectedFolderId && (
-            <Link
-              href="/studio"
-              className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-            >
-              Go to AI Studio
-            </Link>
-          )}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedChats.map((chat) => (
-            <ChatCard key={chat.id} chat={chat} />
-          ))}
-        </div>
-      )}
+        {/* Delete Confirmation Modal */}
+        {showDeleteConfirm && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setShowDeleteConfirm(false);
+              }
+            }}
+          >
+            <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-md w-full p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <AlertTriangle className="text-red-500" size={32} />
+                <h2 className="text-xl font-bold">Delete {selectedCount} {selectedCount === 1 ? 'chat' : 'chats'}?</h2>
+              </div>
+              <p className="text-muted-foreground mb-6">
+                This action cannot be undone. All selected chats will be permanently deleted.
+              </p>
+              <div className="flex gap-3 justify-end">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={isDeleting}
+                  className="px-4 py-2 border border-slate-300 dark:border-slate-700 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDeleteSelected}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                >
+                  {isDeleting ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Deleting...
+                    </>
+                  ) : (
+                    'Delete'
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
-      {/* New Chat Modal */}
-      {showNewChatModal && (
+        {displayedChats.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <MessageSquarePlus className="w-16 h-16 text-muted-foreground mb-4" />
+            <h3 className="text-xl font-semibold mb-2">
+              {selectedFolderId ? 'No chats in this folder' : 'No saved chats'}
+            </h3>
+            <p className="text-muted-foreground mb-6">
+              {selectedFolderId
+                ? 'Move chats to this folder to organize them'
+                : 'Start a conversation in AI Studio to see it here'}
+            </p>
+            {!selectedFolderId && (
+              <Link
+                href="/studio"
+                className="px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                Go to AI Studio
+              </Link>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {displayedChats.map((chat) => (
+              <ChatCard key={chat.id} chat={chat} />
+            ))}
+          </div>
+        )}
+
+        {/* New Chat Modal */}
+        {showNewChatModal && (
         <div
           className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
           onClick={(e) => {
@@ -682,8 +902,8 @@ function ChatsPageContent() {
         </div>
       )}
 
-      {/* Create Folder Modal */}
-      {isCreateFolderModalOpen && (
+        {/* Create Folder Modal */}
+        {isCreateFolderModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-sm bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">

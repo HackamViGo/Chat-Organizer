@@ -11,10 +11,26 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { chats } = body;
+    const { chats, folders } = body;
 
     if (!Array.isArray(chats)) {
-      return new NextResponse('Invalid data format', { status: 400 });
+      return new NextResponse('Invalid data format: chats must be an array', { status: 400 });
+    }
+
+    let importedChats = 0;
+    let importedFolders = 0;
+
+    // Import folders first (if provided)
+    if (folders && Array.isArray(folders)) {
+      const foldersToInsert = folders.map((folder: any) => ({
+        ...folder,
+        user_id: user.id,
+        id: undefined, // Let DB generate new IDs
+      }));
+
+      const { error: foldersError } = await supabase.from('folders').insert(foldersToInsert as any);
+      if (foldersError) throw foldersError;
+      importedFolders = foldersToInsert.length;
     }
 
     // Insert chats with user_id
@@ -24,11 +40,17 @@ export async function POST(request: Request) {
       id: undefined, // Let DB generate new IDs
     }));
 
-    const { error } = await supabase.from('chats').insert(chatsToInsert as any);
+    const { error: chatsError } = await supabase.from('chats').insert(chatsToInsert as any);
+    if (chatsError) throw chatsError;
+    importedChats = chatsToInsert.length;
 
-    if (error) throw error;
-
-    return NextResponse.json({ success: true, imported: chatsToInsert.length });
+    return NextResponse.json({ 
+      success: true, 
+      imported: {
+        chats: importedChats,
+        folders: importedFolders
+      }
+    });
   } catch (error: any) {
     return new NextResponse(error.message, { status: 500 });
   }

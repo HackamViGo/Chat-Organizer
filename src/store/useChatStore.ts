@@ -27,12 +27,37 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   
   setChats: (chats) => set({ chats }),
   addChat: (chat) => set((state) => ({ chats: [chat, ...state.chats] })),
-  updateChat: (id, updates) => 
-    set((state) => ({
-      chats: state.chats.map((chat) =>
-        chat.id === id ? { ...chat, ...updates } : chat
-      ),
-    })),
+  updateChat: async (id, updates) => {
+    try {
+      const response = await fetch('/api/chats', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id, ...updates }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update chat');
+      }
+
+      const updatedChat = await response.json();
+      
+      set((state) => ({
+        chats: state.chats.map((chat) =>
+          chat.id === id ? { ...chat, ...updatedChat } : chat
+        ),
+      }));
+    } catch (error) {
+      console.error('Error updating chat:', error);
+      // Optimistic update on error
+      set((state) => ({
+        chats: state.chats.map((chat) =>
+          chat.id === id ? { ...chat, ...updates } : chat
+        ),
+      }));
+      throw error;
+    }
+  },
   deleteChat: async (id: string) => {
     try {
       const response = await fetch(`/api/chats?ids=${id}`, {

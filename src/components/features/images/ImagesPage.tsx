@@ -39,7 +39,7 @@ export function ImagesPage() {
     removeFromUploadQueue,
   } = useImageStore();
   
-  const { folders, addFolder } = useFolderStore();
+  const { folders, addFolder, isLoading: foldersLoading } = useFolderStore();
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -195,8 +195,9 @@ export function ImagesPage() {
       e.preventDefault();
       return;
     }
-    setDraggedImageId(id);
+    e.dataTransfer.setData('imageId', id);
     e.dataTransfer.effectAllowed = 'move';
+    setDraggedImageId(id);
   };
 
   const handleRemoveFromFolder = async (imageId: string) => {
@@ -225,11 +226,12 @@ export function ImagesPage() {
     e.stopPropagation();
     setHoveredFolderId(null);
 
-    if (!draggedImageId) return;
+    const imageId = e.dataTransfer.getData('imageId');
+    if (!imageId) return;
 
-    const idsToMove = selectedImageIds.has(draggedImageId) 
+    const idsToMove = selectedImageIds.has(imageId) 
       ? Array.from(selectedImageIds) 
-      : [draggedImageId];
+      : [imageId];
 
     // Check if moving images from folders when in All Images view
     if (!selectedFolderId) {
@@ -250,7 +252,7 @@ export function ImagesPage() {
     // No images in folders, proceed directly
     await executeMoveImages(targetFolderId || null, idsToMove, false);
     
-    if (selectedImageIds.has(draggedImageId)) {
+    if (selectedImageIds.has(imageId)) {
       resetSelection();
     }
     setDraggedImageId(null);
@@ -582,6 +584,24 @@ export function ImagesPage() {
       isCreatingFolderRef.current = false;
     }
   };
+
+  if (foldersLoading) {
+    return (
+      <div className="flex min-h-[calc(100vh-4rem)] md:min-h-screen relative">
+        <div className="flex-1 container mx-auto p-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-slate-200 dark:bg-slate-800 rounded w-64 mb-4"></div>
+            <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-96 mb-8"></div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div key={i} className="h-56 bg-slate-200 dark:bg-slate-800 rounded-lg"></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] md:min-h-screen relative">
@@ -1224,12 +1244,60 @@ const ImageCard: React.FC<{
   onToggleSelect?: () => void
 }> = ({ image, folder, onDragStart, onConvert, onDownload, onDelete, onRemoveFromFolder, onClick, isConverting, selectable, isSelected, onToggleSelect }) => {
   const FolderIconComponent = folder?.icon && FOLDER_ICONS[folder.icon] ? FOLDER_ICONS[folder.icon] : FolderIcon;
+  const [isLongPressing, setIsLongPressing] = useState(false);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  // Handle long press for selection
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button !== 0 || !selectable) return; // Only left mouse button and if selectable
+    
+    longPressTimerRef.current = setTimeout(() => {
+      setIsLongPressing(true);
+      onToggleSelect?.();
+    }, 500); // 500ms hold
+  };
+
+  const handleMouseUp = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  const handleMouseLeave = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
+  // Handle click outside to close editing
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
+        // Close any editing states if needed
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
   
   return (
     <div 
+      ref={cardRef}
       draggable
       onDragStart={(e) => onDragStart(e, image.id)}
-      onClick={onClick}
+      onMouseDown={handleMouseDown}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseLeave}
+      onClick={() => {
+        if (!isLongPressing) {
+          onClick();
+        }
+        setIsLongPressing(false);
+      }}
       className={`
         glass-card p-4 rounded-xl group relative transition-all duration-200 cursor-pointer h-full
         ${isSelected ? 'ring-2 ring-cyan-500 bg-cyan-500/10' : 'hover:scale-[1.02]'}
@@ -1244,13 +1312,13 @@ const ImageCard: React.FC<{
         </div>
       )}
       
-      {selectable && (
+      {selectable && (isSelected || isLongPressing) && (
         <button 
           onClick={(e) => { e.stopPropagation(); onToggleSelect?.(); }}
           className={`absolute top-2 right-2 z-20 p-1.5 rounded-lg transition-all
             ${isSelected 
-              ? 'bg-cyan-500 text-white opacity-100' 
-              : 'bg-black/40 text-white/50 hover:bg-black/60 hover:text-white opacity-0 group-hover:opacity-100'}
+              ? 'bg-cyan-500 text-white opacity-100 scale-100' 
+              : 'bg-black/40 text-white/50 hover:bg-black/60 hover:text-white opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100'}
           `}
         >
           {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
@@ -1268,9 +1336,12 @@ const ImageCard: React.FC<{
         )}
         
         {!isSelected && (
-          <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-3">
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-3"
+          >
              <button 
-               onClick={(e) => onDownload(image.url, image.name || 'image', e)}
+               onClick={(e) => { e.stopPropagation(); onDownload(image.url, image.name || 'image', e); }}
                className="p-2.5 bg-white/10 hover:bg-white/30 backdrop-blur-md rounded-full text-white transition-colors" 
                title="Download"
              >
@@ -1278,7 +1349,7 @@ const ImageCard: React.FC<{
              </button>
              {folder && onRemoveFromFolder && (
                <button 
-                 onClick={(e) => onRemoveFromFolder(image.id, e)}
+                 onClick={(e) => { e.stopPropagation(); onRemoveFromFolder(image.id, e); }}
                  className="p-2.5 bg-orange-500/20 hover:bg-orange-500/40 backdrop-blur-md rounded-full text-orange-400 transition-colors" 
                  title="Remove from folder"
                >
@@ -1286,7 +1357,7 @@ const ImageCard: React.FC<{
                </button>
              )}
              <button 
-               onClick={(e) => onDelete(image.id, e)}
+               onClick={(e) => { e.stopPropagation(); onDelete(image.id, e); }}
                className="p-2.5 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-md rounded-full text-red-400 transition-colors" 
                title="Delete"
              >

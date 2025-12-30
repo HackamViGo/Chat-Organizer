@@ -16,7 +16,9 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
     <FolderProvider>
       <div className="flex relative">
         <Sidebar />
-        <main className="flex-1 ml-64 min-h-screen overflow-auto">{children}</main>
+        <main className="flex-1 ml-64 min-h-screen overflow-auto">
+          {children}
+        </main>
       </div>
     </FolderProvider>
   );

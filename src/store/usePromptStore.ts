@@ -21,12 +21,37 @@ export const usePromptStore = create<PromptStore>((set) => ({
   
   setPrompts: (prompts) => set({ prompts }),
   addPrompt: (prompt) => set((state) => ({ prompts: [prompt, ...state.prompts] })),
-  updatePrompt: (id, updates) => 
-    set((state) => ({
-      prompts: state.prompts.map((prompt) =>
-        prompt.id === id ? { ...prompt, ...updates } : prompt
-      ),
-    })),
+  updatePrompt: async (id, updates) => {
+    try {
+      const response = await fetch('/api/prompts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ id, ...updates }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update prompt');
+      }
+
+      const updatedPrompt = await response.json();
+      
+      set((state) => ({
+        prompts: state.prompts.map((prompt) =>
+          prompt.id === id ? { ...prompt, ...updatedPrompt } : prompt
+        ),
+      }));
+    } catch (error) {
+      console.error('Error updating prompt:', error);
+      // Optimistic update on error
+      set((state) => ({
+        prompts: state.prompts.map((prompt) =>
+          prompt.id === id ? { ...prompt, ...updates } : prompt
+        ),
+      }));
+      throw error;
+    }
+  },
   deletePrompt: (id) => 
     set((state) => ({
       prompts: state.prompts.filter((prompt) => prompt.id !== id),

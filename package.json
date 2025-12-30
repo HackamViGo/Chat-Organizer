@@ -10,6 +10,7 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
+    "test:api": "node scripts/test-api.js",
     "chrome:debug": "./start-chrome-debug.sh",
     "chrome:monitor": "node cursor-chrome-composer.js",
     "test:chrome": "bash dev/test-chrome.sh",

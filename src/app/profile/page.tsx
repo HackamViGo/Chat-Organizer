@@ -41,6 +41,10 @@ export default function ProfilePage() {
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState('');
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
+  // Avatar upload state
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -58,6 +62,20 @@ export default function ProfilePage() {
             language: currentUser.user_metadata?.language || 'en-US',
             emailNotifications: currentUser.user_metadata?.email_notifications !== false,
           });
+          
+          // Fetch user profile with avatar_url
+          const { data: profileData } = await supabase
+            .from('users')
+            .select('avatar_url')
+            .eq('id', currentUser.id)
+            .single();
+          
+          if (profileData) {
+            const avatarUrl = (profileData as { avatar_url?: string }).avatar_url;
+            if (avatarUrl) {
+              setAvatarUrl(avatarUrl);
+            }
+          }
         }
       } catch (error) {
         console.error('Error fetching user:', error);
@@ -68,6 +86,48 @@ export default function ProfilePage() {
 
     fetchUser();
   }, []);
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingAvatar(true);
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/avatar/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to upload avatar');
+      }
+
+      const { avatar_url } = await response.json();
+      setAvatarUrl(avatar_url);
+      
+      // Refresh user data
+      const { data: { user: updatedUser } } = await supabase.auth.getUser();
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
+    } catch (error: any) {
+      console.error('Error uploading avatar:', error);
+      alert(error.message || 'Failed to upload avatar');
+    } finally {
+      setIsUploadingAvatar(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -234,12 +294,31 @@ export default function ProfilePage() {
             <div className="glass-card p-6 rounded-2xl">
               <div className="flex flex-col items-center">
                 <div className="relative mb-4">
-                  <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold">
-                    {displayName.charAt(0).toUpperCase()}
-                  </div>
-                  <button className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-purple-600 dark:bg-purple-500 flex items-center justify-center text-white shadow-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors">
-                    <Pencil size={14} />
-                  </button>
+                  {avatarUrl ? (
+                    <img 
+                      src={avatarUrl} 
+                      alt={displayName}
+                      className="w-24 h-24 rounded-full object-cover border-4 border-purple-500 dark:border-purple-400"
+                    />
+                  ) : (
+                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold">
+                      {displayName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                  <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-purple-600 dark:bg-purple-500 flex items-center justify-center text-white shadow-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleAvatarUpload}
+                      disabled={isUploadingAvatar}
+                      className="hidden"
+                    />
+                    {isUploadingAvatar ? (
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Pencil size={14} />
+                    )}
+                  </label>
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                   {displayName}

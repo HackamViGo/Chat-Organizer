@@ -1,6 +1,6 @@
 #!/bin/bash
 # Start Chrome in Remote Debugging Mode
-# This allows the cursor-chrome-composer.js script to connect and monitor console/network
+# This allows the cursor-chrome-composer.js script (in same directory) to connect and monitor console/network
 
 set -e
 
@@ -46,7 +46,7 @@ mkdir -p "${USER_DATA_DIR}"
 # Start Chrome with remote debugging
 echo -e "${GREEN}✅ Starting Chrome...${NC}"
 echo -e "${YELLOW}Note: Chrome will open in a new window.${NC}"
-echo -e "${YELLOW}You can now run: node cursor-chrome-composer.js${NC}"
+echo -e "${YELLOW}You can now run: npm run chrome:monitor${NC}"
 echo ""
 
 exec "${CHROME_CMD}" \
@@ -75,7 +75,7 @@ if ps -p $CHROME_PID > /dev/null; then
     echo ""
     echo -e "${BLUE}Next steps:${NC}"
     echo "  1. Open a new terminal"
-    echo "  2. Run: node cursor-chrome-composer.js"
+    echo "  2. Run: npm run chrome:monitor"
     echo "  3. Navigate to your website in Chrome"
     echo "  4. Watch console logs and network activity in real-time"
     echo ""

@@ -11,8 +11,8 @@
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
     "test:api": "node scripts/test-api.js",
-    "chrome:debug": "./start-chrome-debug.sh",
-    "chrome:monitor": "node cursor-chrome-composer.js",
+    "chrome:debug": "./tests/start-chrome-debug.sh",
+    "chrome:monitor": "node tests/cursor-chrome-composer.js",
     "test:chrome": "bash dev/test-chrome.sh",
     "cleanup:chrome": "rm -rf /tmp/chrome-extension-test-* && echo '✅ Cleaned test profiles'",
     "dev:setup": "chmod +x dev/*.sh && echo '✅ Dev tools ready'"
@@ -53,5 +53,8 @@
     "typescript": "~5.8.2",
     "webpack-cli": "^6.0.1",
     "ws": "^8.18.3"
+  },
+  "overrides": {
+    "pify": "^5.0.0"
   }
 }

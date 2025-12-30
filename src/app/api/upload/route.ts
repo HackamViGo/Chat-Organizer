@@ -51,9 +51,9 @@ export async function POST(request: Request) {
       return new NextResponse('No file provided', { status: 400, headers: corsHeaders });
     }
 
-    // Validation
-    if (file.size > 10 * 1024 * 1024) {
-      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400, headers: corsHeaders });
+    // Validation (reduced to 2MB to fit within 50MB bucket limit)
+    if (file.size > 2 * 1024 * 1024) {
+      return NextResponse.json({ error: 'File too large (max 2MB)' }, { status: 400, headers: corsHeaders });
     }
 
     const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/avif'];

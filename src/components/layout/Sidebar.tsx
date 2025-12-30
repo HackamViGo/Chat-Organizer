@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo, Suspense, useEffect } from 'react';
+import React, { useState, useMemo, Suspense, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -12,7 +12,7 @@ import {
   LayoutGrid, Archive, FileEdit, Settings,
   Folder as FolderIcon, Plus, ChevronRight, ChevronDown, Hash, User, X, Search, Trash2,
   ArrowDownAZ, ArrowUpAZ, CalendarArrowDown, CalendarArrowUp, GripVertical, ListTodo,
-  MessageSquarePlus, MessageCircle, LogOut, Brain, Download,
+  MessageSquarePlus, MessageCircle, LogOut, Brain, Download, Menu,
   // Dev Icons
   Code, Terminal, Cpu, Database, Server,
   // Art Icons
@@ -397,6 +397,98 @@ function SidebarContent() {
   const [sortMode, setSortMode] = useState<SortMode>('custom');
   const [dragOverState, setDragOverState] = useState<DragState | null>(null);
   const isCreatingFolderRef = React.useRef(false);
+  
+  // -- Mobile Sidebar State --
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+  const touchStartX = useRef<number | null>(null);
+  const touchStartY = useRef<number | null>(null);
+  const sidebarRef = useRef<HTMLElement>(null);
+  
+  // -- Detect Mobile --
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024); // lg breakpoint
+      if (window.innerWidth >= 1024) {
+        setIsMobileOpen(false); // Close on resize to desktop
+      }
+    };
+    
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+  
+  // -- Swipe Gesture Handlers (Global) --
+  useEffect(() => {
+    if (!isMobile) return;
+    
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartX.current = e.touches[0].clientX;
+      touchStartY.current = e.touches[0].clientY;
+    };
+    
+    const handleTouchMove = (e: TouchEvent) => {
+      if (touchStartX.current === null || touchStartY.current === null) return;
+      
+      const touchX = e.touches[0].clientX;
+      const touchY = e.touches[0].clientY;
+      const deltaX = touchX - touchStartX.current;
+      const deltaY = touchY - touchStartY.current;
+      
+      // Only handle horizontal swipes (more horizontal than vertical)
+      if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 30) {
+        // Swipe right to open (from left edge)
+        if (deltaX > 0 && touchStartX.current < 50 && !isMobileOpen) {
+          setIsMobileOpen(true);
+          touchStartX.current = null;
+          touchStartY.current = null;
+        }
+        // Swipe left to close (when sidebar is open)
+        else if (deltaX < 0 && isMobileOpen) {
+          setIsMobileOpen(false);
+          touchStartX.current = null;
+          touchStartY.current = null;
+        }
+      }
+    };
+    
+    const handleTouchEnd = () => {
+      touchStartX.current = null;
+      touchStartY.current = null;
+    };
+    
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+    
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [isMobile, isMobileOpen]);
+  
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    if (!isMobile || !isMobileOpen) return;
+    
+    const handleClickOutside = (e: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(e.target as Node)) {
+        setIsMobileOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMobile, isMobileOpen]);
+  
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    if (isMobile) {
+      setIsMobileOpen(false);
+    }
+  }, [pathname, isMobile]);
 
   // -- Determine Active Context --
   const getActiveType = (path: string): 'chat' | 'image' | 'prompt' | 'list' => {
@@ -601,6 +693,32 @@ function SidebarContent() {
 
   return (
     <>
+      {/* Mobile Menu Button (visible when sidebar is closed) */}
+      {isMobile && !isMobileOpen && (
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          className="fixed top-4 left-4 z-30 p-2 rounded-lg bg-white/90 dark:bg-[#0B1121]/90 backdrop-blur-xl border border-slate-200 dark:border-white/5 shadow-lg lg:hidden"
+          aria-label="Open sidebar"
+        >
+          <Menu size={20} className="text-slate-700 dark:text-slate-300" />
+        </button>
+      )}
+      
+      {/* Mobile Overlay */}
+      {isMobile && isMobileOpen && (
+        <div 
+          className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+      
+      {/* Mobile Strip (always visible) */}
+      {isMobile && (
+        <div 
+          className="fixed inset-y-0 left-0 z-50 w-2 bg-gradient-to-b from-cyan-500/20 to-blue-600/20 lg:hidden pointer-events-none"
+        />
+      )}
+      
       {/* Creation Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
@@ -656,7 +774,15 @@ function SidebarContent() {
       )}
 
       {/* Main Sidebar Structure */}
-      <aside className="fixed inset-y-0 left-0 z-50 w-64 bg-white/90 dark:bg-[#0B1121]/90 backdrop-blur-xl border-r border-slate-200 dark:border-white/5">
+      <aside 
+        ref={sidebarRef}
+        className={`
+          fixed inset-y-0 left-0 z-50 w-64 bg-white/90 dark:bg-[#0B1121]/90 backdrop-blur-xl border-r border-slate-200 dark:border-white/5
+          transition-transform duration-300 ease-in-out
+          lg:translate-x-0
+          ${isMobile ? (isMobileOpen ? 'translate-x-0' : '-translate-x-full') : ''}
+        `}
+      >
         <div className="flex flex-col h-full p-4">
           
           {/* 1. Header & Logo */}
@@ -667,7 +793,18 @@ function SidebarContent() {
               </div>
               <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">BrainBox</h1>
             </div>
-            <ThemeToggle />
+            <div className="flex items-center gap-2">
+              {isMobile && (
+                <button
+                  onClick={() => setIsMobileOpen(false)}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-white/5 transition-colors lg:hidden"
+                  aria-label="Close sidebar"
+                >
+                  <X size={18} />
+                </button>
+              )}
+              <ThemeToggle />
+            </div>
           </div>
 
           {/* 2. Main Navigation Links */}

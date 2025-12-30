@@ -118,36 +118,126 @@ export async function POST(request: NextRequest) {
       userId: user.id
     });
 
+    // Helper function to download and upload image to Storage
+    const uploadImageToStorage = async (imageUrl: string, imageName: string): Promise<{ url: string; path: string; mime_type: string; size: number }> => {
+      try {
+        // Download image
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error(`Failed to fetch image: ${imageResponse.statusText}`);
+        }
+
+        const blob = await imageResponse.blob();
+        const arrayBuffer = await blob.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Validate size (max 2MB)
+        if (buffer.length > 2 * 1024 * 1024) {
+          throw new Error('Image too large (max 2MB)');
+        }
+
+        // Generate unique filename
+        const timestamp = Date.now();
+        const sanitizedName = imageName.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const fileExt = blob.type.split('/')[1] || 'jpg';
+        const fileName = `${user.id}/${timestamp}_${sanitizedName}.${fileExt}`;
+
+        // Upload to Storage
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from('images')
+          .upload(fileName, buffer, {
+            contentType: blob.type,
+            upsert: false,
+          });
+
+        if (uploadError) {
+          throw new Error(`Storage upload failed: ${uploadError.message}`);
+        }
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('images')
+          .getPublicUrl(fileName);
+
+        return {
+          url: publicUrl,
+          path: fileName,
+          mime_type: blob.type,
+          size: buffer.length
+        };
+      } catch (error: any) {
+        console.error('[BrainBox API] ❌ Error uploading image to Storage:', error);
+        throw error;
+      }
+    };
+
     // Handle both single and multiple image formats
     let imagesToInsert: Array<{
       user_id: string;
       url: string;
+      path: string;
       name: string;
+      mime_type: string;
+      size: number;
       source_url?: string;
     }> = [];
 
     if (body.images && Array.isArray(body.images)) {
       // Bulk format: { images: [src1, src2...] } or { images: [{url, name}...] }
-      imagesToInsert = body.images.map((img: any) => {
-        const url = typeof img === 'string' ? img : (img.url || img.src);
-        return {
-          user_id: user.id,
-          url: url,
-          name: img.name || img.title || 'Extracted Image',
-          source_url: body.source_url || img.source_url
-        };
-      });
+      for (const img of body.images) {
+        const imageUrl = typeof img === 'string' ? img : (img.url || img.src);
+        const imageName = img.name || img.title || 'Extracted Image';
+        
+        if (!imageUrl) continue;
+
+        try {
+          const storageData = await uploadImageToStorage(imageUrl, imageName);
+          imagesToInsert.push({
+            user_id: user.id,
+            url: storageData.url,
+            path: storageData.path,
+            name: imageName,
+            mime_type: storageData.mime_type,
+            size: storageData.size,
+            source_url: body.source_url || img.source_url || imageUrl
+          });
+        } catch (error: any) {
+          console.error(`[BrainBox API] ⚠️ Failed to upload image ${imageName}:`, error.message);
+          // Skip this image but continue with others
+        }
+      }
     } else {
       // Single format: { url, title, source_url... }
-      imagesToInsert = [{
-        user_id: user.id,
-        url: body.url || body.src,
-        name: body.title || body.name || 'Extracted Image',
-        source_url: body.source_url
-      }];
+      const imageUrl = body.url || body.src;
+      const imageName = body.title || body.name || 'Extracted Image';
+      
+      if (imageUrl) {
+        try {
+          const storageData = await uploadImageToStorage(imageUrl, imageName);
+          imagesToInsert.push({
+            user_id: user.id,
+            url: storageData.url,
+            path: storageData.path,
+            name: imageName,
+            mime_type: storageData.mime_type,
+            size: storageData.size,
+            source_url: body.source_url || imageUrl
+          });
+        } catch (error: any) {
+          console.error(`[BrainBox API] ❌ Failed to upload image:`, error.message);
+          throw error;
+        }
+      }
     }
 
-    console.log('[BrainBox API] 💾 Inserting', imagesToInsert.length, 'images');
+    if (imagesToInsert.length === 0) {
+      return NextResponse.json(
+        { error: 'No images were successfully uploaded' },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    console.log('[BrainBox API] 💾 Inserting', imagesToInsert.length, 'images to database');
 
     const { data, error } = await supabase
       .from('images')
@@ -159,7 +249,7 @@ export async function POST(request: NextRequest) {
       throw error;
     }
 
-    console.log('[BrainBox API] ✅ Images saved:', data?.length);
+    console.log('[BrainBox API] ✅ Images saved to Storage and database:', data?.length);
     return NextResponse.json(data, { headers: corsHeaders });
   } catch (error: any) {
     console.error('[BrainBox API] ❌ Failed to save images:', error.message);

@@ -12,6 +12,16 @@ export default function ExtensionAuthPage() {
 
   const handleExtensionAuth = useCallback(async () => {
     try {
+      // Clean up any old localStorage entries from previous versions
+      if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('brainbox_extension_token');
+        } catch (e) {
+          // Ignore errors if localStorage is not accessible
+          console.log('[Extension Auth] Could not clean up old localStorage entries:', e);
+        }
+      }
+
       const supabase = createClient();
       
       // Get current session
@@ -51,15 +61,13 @@ export default function ExtensionAuthPage() {
         console.log('[Extension Auth] Using session expires_at:', new Date(expiresAt).toISOString());
       }
 
-      // Store in localStorage for extension to read
+      // IMPORTANT: Do NOT store tokens in localStorage
+      // The extension content script (content-dashboard-auth.js) will receive the tokens
+      // via the custom event below and store them securely in chrome.storage.local
+      // localStorage is not secure and should never contain auth tokens
+      
+      // Dispatch custom event for extension content script
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem('brainbox_extension_token', JSON.stringify({
-          accessToken,
-          refreshToken,
-          expiresAt,
-        }));
-
-        // Dispatch custom event
         window.dispatchEvent(new CustomEvent('brainbox-auth-ready', {
           detail: {
             accessToken,

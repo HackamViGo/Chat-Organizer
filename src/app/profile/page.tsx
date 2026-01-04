@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { User, Shield, CreditCard, Bell, Code, Pencil, Mail, Moon, Sun, Monitor, Check, Settings, Download, LogOut, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Shield, CreditCard, Bell, Code, Pencil, Mail, Moon, Sun, Monitor, Check, Settings, Download, LogOut, Lock, Eye, EyeOff, X } from 'lucide-react';
 import Link from 'next/link';
 
 type ProfileSection = 'general' | 'security' | 'billing' | 'notifications' | 'api';
@@ -45,6 +45,11 @@ export default function ProfilePage() {
   // Avatar upload state
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
+  const [showUploadDialog, setShowUploadDialog] = useState(false);
+  const [showImageSelector, setShowImageSelector] = useState(false);
+  const [userImages, setUserImages] = useState<Array<{ id: string; url: string; name: string }>>([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -63,22 +68,29 @@ export default function ProfilePage() {
             emailNotifications: currentUser.user_metadata?.email_notifications !== false,
           });
           
-          // Fetch user profile with avatar_url
-          const { data: profileData } = await supabase
+          // Fetch user profile with avatar_url (only uploaded avatars, not Google)
+          const { data: profileData, error: profileError } = await supabase
             .from('users')
             .select('avatar_url')
             .eq('id', currentUser.id)
             .single();
           
-          if (profileData) {
-            const avatarUrl = (profileData as { avatar_url?: string }).avatar_url;
-            if (avatarUrl) {
-              setAvatarUrl(avatarUrl);
-            }
+          if (profileError) {
+            console.error('Error fetching profile:', profileError);
+          }
+          
+          // Set avatar URL from DB (if exists)
+          const profile = profileData as { avatar_url?: string | null } | null;
+          if (profile?.avatar_url) {
+            console.log('Loaded avatar_url from DB:', profile.avatar_url);
+            setAvatarUrl(profile.avatar_url);
+          } else {
+            console.log('No avatar_url in DB, setting to null');
+            setAvatarUrl(null);
           }
         }
-      } catch (error) {
-        console.error('Error fetching user:', error);
+      } catch (error: unknown) {
+        console.error('Error fetching user:', error instanceof Error ? error.message : error);
       } finally {
         setIsLoading(false);
       }
@@ -87,10 +99,37 @@ export default function ProfilePage() {
     fetchUser();
   }, []);
 
+  // Debug: Log avatarUrl changes
+  useEffect(() => {
+    console.log('avatarUrl state changed to:', avatarUrl);
+  }, [avatarUrl]);
+
+  // Handle ESC key to close avatar modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isAvatarModalOpen) {
+        setIsAvatarModalOpen(false);
+      }
+    };
+
+    if (isAvatarModalOpen) {
+      document.addEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape);
+      document.body.style.overflow = 'unset';
+    };
+  }, [isAvatarModalOpen]);
+
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    console.log('📤 Starting avatar upload, file:', file.name, 'size:', file.size, 'type:', file.type);
+    console.log('📤 Current avatarUrl before upload:', avatarUrl);
+    
     setIsUploadingAvatar(true);
     try {
       const formData = new FormData();
@@ -113,19 +152,132 @@ export default function ProfilePage() {
         throw new Error(error.error || 'Failed to upload avatar');
       }
 
-      const { avatar_url } = await response.json();
+      const responseData = await response.json();
+      console.log('Avatar upload response:', responseData);
+      const avatar_url = responseData.avatar_url;
+      
+      if (!avatar_url) {
+        console.error('No avatar_url in response:', responseData);
+        throw new Error('No avatar URL returned from server');
+      }
+      
+      console.log('Avatar uploaded, new URL:', avatar_url);
+      console.log('Setting avatarUrl state to:', avatar_url);
+      
+      // Set avatar URL immediately - trust the API response
       setAvatarUrl(avatar_url);
       
-      // Refresh user data
-      const { data: { user: updatedUser } } = await supabase.auth.getUser();
-      if (updatedUser) {
-        setUser(updatedUser);
-      }
+      // Force a small delay to ensure state update, then verify
+      setTimeout(() => {
+        console.log('Current avatarUrl state after update:', avatarUrl);
+      }, 100);
+      
+      // Refresh user data (optional, don't wait)
+      supabase.auth.getUser().then(({ data: { user: updatedUser } }) => {
+        if (updatedUser) {
+          setUser(updatedUser);
+        }
+      });
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
       alert(error.message || 'Failed to upload avatar');
     } finally {
       setIsUploadingAvatar(false);
+      setShowUploadDialog(false);
+    }
+  };
+
+  const fetchUserImages = async () => {
+    setIsLoadingImages(true);
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      const response = await fetch('/api/images', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch images');
+      }
+
+      const data = await response.json();
+      setUserImages(data.images || []);
+    } catch (error: any) {
+      console.error('Error fetching images:', error);
+    } finally {
+      setIsLoadingImages(false);
+    }
+  };
+
+  const handleSelectFromExisting = () => {
+    setShowUploadDialog(false);
+    setShowImageSelector(true);
+    if (userImages.length === 0) {
+      fetchUserImages();
+    }
+  };
+
+  const handleSelectImage = async (imageUrl: string) => {
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      // Update user record in database with the selected image URL
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          avatar_url: imageUrl,
+          updated_at: new Date().toISOString()
+        } as any)
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw new Error('Failed to update avatar');
+      }
+
+      setAvatarUrl(imageUrl);
+      setShowImageSelector(false);
+      setIsAvatarModalOpen(false);
+    } catch (error: any) {
+      console.error('Error setting avatar from image:', error);
+      alert(error.message || 'Failed to set avatar');
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!confirm('Are you sure you want to remove your avatar?')) {
+      return;
+    }
+
+    try {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error('Not authenticated');
+
+      // Update user record in database to remove avatar
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({ 
+          avatar_url: null,
+          updated_at: new Date().toISOString()
+        } as any)
+        .eq('id', user.id);
+
+      if (updateError) {
+        throw new Error('Failed to remove avatar');
+      }
+
+      setAvatarUrl(null);
+      setIsAvatarModalOpen(false);
+      setShowUploadDialog(false);
+    } catch (error: any) {
+      console.error('Error removing avatar:', error);
+      alert(error.message || 'Failed to remove avatar');
     }
   };
 
@@ -165,7 +317,13 @@ export default function ProfilePage() {
       await supabase.auth.signOut();
       // Clear remember me
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('brainbox_remember_me');
+        try {
+          localStorage.removeItem('brainbox_remember_me');
+        } catch (error) {
+          if (error instanceof DOMException) {
+            console.warn('Failed to remove remember me from localStorage:', error.name);
+          }
+        }
         document.cookie = 'brainbox_remember_me=; max-age=0; path=/';
       }
       router.push('/auth/signin');
@@ -258,6 +416,7 @@ export default function ProfilePage() {
 
   const displayEmail = user?.email || '';
 
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -295,30 +454,52 @@ export default function ProfilePage() {
               <div className="flex flex-col items-center">
                 <div className="relative mb-4">
                   {avatarUrl ? (
-                    <img 
-                      src={avatarUrl} 
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={avatarUrl} // Force re-render when URL changes
+                      src={avatarUrl} // Direct URL, no cache busting for now
                       alt={displayName}
-                      className="w-24 h-24 rounded-full object-cover border-4 border-purple-500 dark:border-purple-400"
+                      onClick={() => {
+                        setIsAvatarModalOpen(true);
+                      }}
+                      onError={(e) => {
+                        console.error('Failed to load avatar image. URL was:', avatarUrl);
+                        console.error('Image error event:', e);
+                        const img = e.target as HTMLImageElement;
+                        console.error('Image element:', img);
+                        console.error('Image src:', img.src);
+                        // Don't clear URL on error - let's see what the error is
+                        // img.style.display = 'none';
+                        // setAvatarUrl(null);
+                      }}
+                      onLoad={() => {
+                        console.log('✅ Avatar image loaded successfully! URL:', avatarUrl);
+                      }}
+                      className="w-24 h-24 rounded-full object-cover border-4 border-purple-500 dark:border-purple-400 cursor-pointer hover:opacity-90 transition-opacity"
+                      style={{ display: 'block' }} // Force display
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold">
+                    <div 
+                      onClick={() => setIsAvatarModalOpen(true)}
+                      className="w-24 h-24 rounded-full bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-white text-3xl font-bold cursor-pointer hover:opacity-90 transition-opacity border-4 border-purple-500 dark:border-purple-400"
+                    >
                       {displayName.charAt(0).toUpperCase()}
                     </div>
                   )}
-                  <label className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-purple-600 dark:bg-purple-500 flex items-center justify-center text-white shadow-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarUpload}
-                      disabled={isUploadingAvatar}
-                      className="hidden"
-                    />
+                  <button
+                    className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-purple-600 dark:bg-purple-500 flex items-center justify-center text-white shadow-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors cursor-pointer z-10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowUploadDialog(true);
+                    }}
+                    disabled={isUploadingAvatar}
+                  >
                     {isUploadingAvatar ? (
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
                       <Pencil size={14} />
                     )}
-                  </label>
+                  </button>
                 </div>
                 <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-1">
                   {displayName}
@@ -572,13 +753,14 @@ export default function ProfilePage() {
                           type={showPasswords.current ? 'text' : 'password'}
                           value={passwordData.currentPassword}
                           onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
-                          className="w-full px-4 py-2 pl-10 pr-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-4 py-2 pl-10 pr-12 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder="Enter current password"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPasswords({ ...showPasswords, current: !showPasswords.current })}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                          title={showPasswords.current ? 'Hide password' : 'Show password'}
                         >
                           {showPasswords.current ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
@@ -596,13 +778,14 @@ export default function ProfilePage() {
                           type={showPasswords.new ? 'text' : 'password'}
                           value={passwordData.newPassword}
                           onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
-                          className="w-full px-4 py-2 pl-10 pr-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-4 py-2 pl-10 pr-12 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder="Enter new password"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPasswords({ ...showPasswords, new: !showPasswords.new })}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                          title={showPasswords.new ? 'Hide password' : 'Show password'}
                         >
                           {showPasswords.new ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
@@ -646,13 +829,14 @@ export default function ProfilePage() {
                           type={showPasswords.confirm ? 'text' : 'password'}
                           value={passwordData.confirmPassword}
                           onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
-                          className="w-full px-4 py-2 pl-10 pr-10 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                          className="w-full px-4 py-2 pl-10 pr-12 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                           placeholder="Confirm new password"
                         />
                         <button
                           type="button"
                           onClick={() => setShowPasswords({ ...showPasswords, confirm: !showPasswords.confirm })}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                          className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                          title={showPasswords.confirm ? 'Hide password' : 'Show password'}
                         >
                           {showPasswords.confirm ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
@@ -749,6 +933,169 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {/* Avatar Modal */}
+      {isAvatarModalOpen && (
+        <div 
+          className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setIsAvatarModalOpen(false)}
+        >
+          <div className="absolute top-4 right-4 z-20">
+            <button
+              onClick={() => setIsAvatarModalOpen(false)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 backdrop-blur-sm"
+              aria-label="Close modal"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          
+          {avatarUrl ? (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 relative" onClick={(e) => e.stopPropagation()}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                key={avatarUrl} // Force re-render when URL changes
+                src={avatarUrl} // Direct URL
+                alt={displayName || 'Avatar'}
+                onClick={(e) => e.stopPropagation()}
+                onError={(e) => {
+                  console.error('Modal: Failed to load avatar image. URL:', avatarUrl);
+                  const img = e.target as HTMLImageElement;
+                  console.error('Modal: Image src:', img.src);
+                }}
+                onLoad={() => {
+                  console.log('✅ Modal: Avatar image loaded successfully! URL:', avatarUrl);
+                }}
+                className="w-[512px] h-[512px] object-cover rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-300"
+                style={{ display: 'block' }} // Force display
+              />
+              <button
+                onClick={handleRemoveAvatar}
+                className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Remove Avatar
+              </button>
+            </div>
+          ) : (
+            <div className="flex-1 flex items-center justify-center" onClick={(e) => e.stopPropagation()}>
+              <div className="glass-card p-8 rounded-2xl max-w-md w-full">
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Upload Avatar</h3>
+                <button
+                  onClick={() => setShowUploadDialog(true)}
+                  className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isUploadingAvatar}
+                >
+                  {isUploadingAvatar ? 'Uploading...' : 'Choose Image'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Upload Dialog */}
+      {showUploadDialog && (
+        <div 
+          className="fixed inset-0 z-[110] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setShowUploadDialog(false)}
+        >
+          <div 
+            className="glass-card p-6 rounded-2xl max-w-md w-full animate-in fade-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Choose Avatar</h3>
+            <div className="space-y-3">
+              <label className="block">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  disabled={isUploadingAvatar}
+                  className="hidden"
+                />
+                <div className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-center cursor-pointer transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isUploadingAvatar ? 'Uploading...' : 'Upload New Image'}
+                </div>
+              </label>
+              <button
+                onClick={handleSelectFromExisting}
+                className="w-full px-4 py-3 bg-slate-600 hover:bg-slate-700 text-white rounded-lg text-center transition-colors"
+              >
+                Choose from Existing Images
+              </button>
+              {avatarUrl && (
+                <button
+                  onClick={handleRemoveAvatar}
+                  className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg text-center transition-colors"
+                >
+                  Remove Avatar
+                </button>
+              )}
+            </div>
+            <button
+              onClick={() => setShowUploadDialog(false)}
+              className="mt-4 w-full px-4 py-2 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Image Selector Modal */}
+      {showImageSelector && (
+        <div 
+          className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-4"
+          onClick={() => setShowImageSelector(false)}
+        >
+          <div className="absolute top-4 right-4 z-20">
+            <button
+              onClick={() => setShowImageSelector(false)}
+              className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-all hover:scale-110 backdrop-blur-sm"
+              aria-label="Close modal"
+            >
+              <X size={24} />
+            </button>
+          </div>
+          
+          <div 
+            className="w-full max-w-4xl max-h-[85vh] overflow-y-auto glass-card p-6 rounded-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
+              Select Avatar from Your Images
+            </h3>
+            
+            {isLoadingImages ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-8 h-8 border-4 border-purple-500 border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : userImages.length === 0 ? (
+              <div className="text-center py-12 text-slate-600 dark:text-slate-400">
+                <p>No images found. Upload some images first!</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                {userImages.map((image) => (
+                  <button
+                    key={image.id}
+                    onClick={() => handleSelectImage(image.url)}
+                    className="relative aspect-square rounded-lg overflow-hidden border-2 border-transparent hover:border-purple-500 dark:hover:border-purple-400 transition-all hover:scale-105 group"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={image.url}
+                      alt={image.name}
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

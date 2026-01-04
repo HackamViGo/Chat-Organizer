@@ -98,7 +98,9 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       setNewListTitle('');
       setNewListColor('emerald');
       setIsCreatingList(false);
-      console.log('List created successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('List created successfully');
+      }
     } catch (error) {
       console.error('Failed to create list:', error);
     }
@@ -119,7 +121,9 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       updateList(listId, { title: editingTitle });
       setEditingListId(null);
       setEditingTitle('');
-      console.log('List updated successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('List updated successfully');
+      }
     } catch (error) {
       console.error('Failed to update list:', error);
     }
@@ -139,7 +143,9 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       
       deleteList(listId);
       if (selectedListId === listId) selectList(null);
-      console.log('List deleted successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('List deleted successfully');
+      }
     } catch (error) {
       console.error('Failed to delete list:', error);
     }
@@ -173,7 +179,9 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       
       addItemToList(listId, data);
       setNewItemTexts(prev => ({ ...prev, [listId]: '' }));
-      console.log('Item added successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Item added successfully');
+      }
     } catch (error) {
       console.error('Failed to add item:', error);
     }
@@ -215,7 +223,9 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       updateItemInList(listId, itemId, { text: editingItemText });
       setEditingItemId(null);
       setEditingItemText('');
-      console.log('Item updated successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Item updated successfully');
+      }
     } catch (error) {
       console.error('Failed to update item:', error);
     }
@@ -232,7 +242,9 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       if (error) throw error;
       
       deleteItemFromList(listId, itemId);
-      console.log('Item deleted successfully');
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Item deleted successfully');
+      }
     } catch (error) {
       console.error('Failed to delete item:', error);
     }

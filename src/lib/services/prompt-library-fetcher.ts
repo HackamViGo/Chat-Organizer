@@ -62,9 +62,13 @@ export class PromptLibraryFetcher {
         throw new Error('Empty response from GitHub');
       }
       
-      console.log(`Fetched CSV, length: ${csvText.length} characters`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Fetched CSV, length: ${csvText.length} characters`);
+      }
       const prompts = this.parseCSV(csvText);
-      console.log(`Parsed ${prompts.length} prompts from CSV`);
+      if (process.env.NODE_ENV === 'development') {
+        console.log(`Parsed ${prompts.length} prompts from CSV`);
+      }
       
       if (prompts.length === 0) {
         console.error('No prompts parsed from CSV');
@@ -84,7 +88,7 @@ export class PromptLibraryFetcher {
       }
       
       return prompts;
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to fetch prompts:', error);
       
       // Try to use cache as fallback
@@ -284,12 +288,20 @@ export class PromptLibraryFetcher {
       
       // Check if cache is still valid
       if (Date.now() - timestamp > this.CACHE_DURATION) {
-        localStorage.removeItem(this.CACHE_KEY);
+        try {
+          localStorage.removeItem(this.CACHE_KEY);
+        } catch (error) {
+          console.warn('Failed to remove cache from localStorage:', error);
+        }
         return null;
       }
 
       return data;
-    } catch {
+    } catch (error) {
+      // Handle both JSON parse errors and localStorage access errors
+      if (error instanceof DOMException && error.name === 'SecurityError') {
+        console.warn('localStorage access denied, skipping cache');
+      }
       return null;
     }
   }
@@ -303,7 +315,21 @@ export class PromptLibraryFetcher {
         timestamp: Date.now()
       }));
     } catch (error) {
-      console.warn('Failed to cache prompts:', error);
+      // Handle localStorage access errors (e.g., quota exceeded, access denied)
+      if (error instanceof DOMException) {
+        if (error.name === 'SecurityError') {
+          console.warn('localStorage access denied, skipping cache save');
+        } else if (error.name === 'QuotaExceededError') {
+          console.warn('localStorage quota exceeded, clearing cache');
+          try {
+            localStorage.removeItem(this.CACHE_KEY);
+          } catch {
+            // Ignore errors when clearing
+          }
+        }
+      } else {
+        console.warn('Failed to cache prompts:', error);
+      }
     }
   }
 }

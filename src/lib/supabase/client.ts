@@ -2,7 +2,16 @@ import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/types/database.types';
 
 export const createClient = () => {
-  const rememberMe = typeof window !== 'undefined' && localStorage.getItem('brainbox_remember_me') === 'true';
+  let rememberMe = false;
+  if (typeof window !== 'undefined') {
+    try {
+      rememberMe = localStorage.getItem('brainbox_remember_me') === 'true';
+    } catch (error) {
+      // localStorage access denied (e.g., in iframe with different origin)
+      console.warn('Failed to read remember me from localStorage:', error);
+      rememberMe = false;
+    }
+  }
   
   return createBrowserClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

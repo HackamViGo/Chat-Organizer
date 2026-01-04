@@ -1,4 +1,4 @@
-import { PromptLibraryFetcher } from './prompt-library-fetcher';
+import { PromptLibraryFetcher, type PromptEntry } from './prompt-library-fetcher';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 export class SmartPromptSearch {
@@ -7,16 +7,16 @@ export class SmartPromptSearch {
    * Find best matching prompt using AI
    */
   static async findBestMatch(userQuery: string, apiKey?: string): Promise<{
-    prompt: any;
+    prompt: PromptEntry;
     confidence: number;
     reasoning: string;
-    alternatives: any[];
+    alternatives: PromptEntry[];
   }> {
     // 1. Load all prompts
-    let allPrompts: any[];
+    let allPrompts: PromptEntry[];
     try {
       allPrompts = await PromptLibraryFetcher.fetchPrompts();
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to load prompts:', error);
       // Return empty result instead of throwing
       allPrompts = [];
@@ -51,12 +51,19 @@ Response:`;
     // Check if API key is available before trying AI
     const apiKeyToUse = apiKey || process.env.GEMINI_API_KEY;
     
+    // Validate API key format if provided
+    if (apiKeyToUse && (typeof apiKeyToUse !== 'string' || apiKeyToUse.length < 20)) {
+      console.warn('Invalid API key format, using keyword matching fallback');
+    }
+    
     // Skip AI if quota is likely exhausted - use keyword matching directly
     // This reduces API calls and improves performance
     const shouldUseAI = apiKeyToUse && relevantPrompts.length > 0 && false; // Disabled to avoid quota issues
 
     if (shouldUseAI) {
       try {
+        // Initialize client with proper API key configuration
+        // Follows Google Cloud best practices
         const genAI = new GoogleGenerativeAI(apiKeyToUse);
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
 
@@ -93,12 +100,29 @@ Response:`;
             alternatives
           };
         }
-      } catch (error: any) {
-        // Log error but continue with fallback
-        const isQuotaError = error?.status === 429 || error?.statusText === 'Too Many Requests';
-        const isApiKeyError = error?.status === 400 || error?.errorDetails?.some((d: any) => d.reason === 'API_KEY_INVALID');
+      } catch (error) {
+        // Enhanced error handling with proper error detection
+        const errorStatus = 'status' in error && typeof error.status === 'number' ? error.status : undefined;
+        const errorStatusText = 'statusText' in error && typeof error.statusText === 'string' ? error.statusText : undefined;
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorDetails = 'errorDetails' in error && Array.isArray(error.errorDetails) ? error.errorDetails : [];
+        const isQuotaError = errorStatus === 429 || errorStatusText === 'Too Many Requests';
+        const isApiKeyError = 
+          errorStatus === 400 || 
+          errorStatus === 403 ||
+          errorMessage.includes('API_KEY') ||
+          errorDetails.some((d: unknown) => 
+            typeof d === 'object' && d !== null && 'reason' in d && 
+            (d.reason === 'API_KEY_INVALID' || d.reason === 'API_KEY_NOT_FOUND')
+          );
         
-        console.warn('AI search error (using fallback):', isQuotaError ? 'Quota exceeded' : isApiKeyError ? 'Invalid API key' : error.message);
+        if (isApiKeyError) {
+          console.warn('AI search error: Invalid or missing API key. Using keyword matching fallback.');
+        } else if (isQuotaError) {
+          console.warn('AI search error: API quota exceeded. Using keyword matching fallback.');
+        } else {
+          console.warn('AI search error (using fallback):', errorMessage);
+        }
         
         // Fall through to keyword matching fallback
       }
@@ -133,7 +157,7 @@ Response:`;
   /**
    * Pre-filter prompts by keywords (faster, cheaper)
    */
-  private static preFilter(query: string, allPrompts: any[]): any[] {
+  private static preFilter(query: string, allPrompts: PromptEntry[]): PromptEntry[] {
     const queryLower = query.toLowerCase();
     const words = queryLower.split(/\s+/).filter(w => w.length > 2);
 
@@ -184,7 +208,7 @@ Response:`;
   /**
    * Get prompts by category
    */
-  static async getByCategory(category: string): Promise<any[]> {
+  static async getByCategory(category: string): Promise<PromptEntry[]> {
     const allPrompts = await PromptLibraryFetcher.fetchPrompts();
     return allPrompts.filter(p => p.category === category);
   }

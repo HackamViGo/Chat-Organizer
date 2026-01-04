@@ -5,6 +5,7 @@ import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
 import { useTheme } from 'next-themes';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 import { 
   Sun, Moon, User, TrendingUp, TrendingDown, 
   FolderKanban, Zap, MessageSquare, Clock,
@@ -17,7 +18,7 @@ export default function HomePage() {
   const { folders } = useFolderStore();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -28,8 +29,8 @@ export default function HomePage() {
         if (currentUser) {
           setUser(currentUser);
         }
-      } catch (error) {
-        console.error('Error fetching user:', error);
+      } catch (error: unknown) {
+        console.error('Error fetching user:', error instanceof Error ? error.message : error);
       }
     };
     fetchUser();

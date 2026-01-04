@@ -10,6 +10,7 @@ import {
   Calendar, HardDrive, ArrowUpAZ, FolderPlus, FolderMinus, Activity, Pill
 } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
+import { FOLDER_BG_COLORS, getFolderTextColorClass, getFolderTextColorClasses, getFolderBorderColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
 import { useImageStore } from '@/store/useImageStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
@@ -564,7 +565,9 @@ export function ImagesPage() {
 
       addFolder(data as any);
       if (isCreatingGroupFromSelection && selectedImageIds.size > 0) {
-        console.log('Moving selected images to new folder:', Array.from(selectedImageIds), 'folder:', (data as any).id);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Moving selected images to new folder:', Array.from(selectedImageIds), 'folder:', (data as any).id);
+        }
         await moveImages(Array.from(selectedImageIds), (data as any).id);
         
         // Refresh images after moving to new folder
@@ -680,7 +683,7 @@ export function ImagesPage() {
                       onDrop={(e) => handleDropOnFolder(e, f.id)}
                       className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative shrink-0 z-20
                         ${isActive 
-                          ? `bg-${f.color}-500 text-white shadow-lg scale-110` 
+                          ? `${FOLDER_BG_COLORS[f.color] || FOLDER_BG_COLORS['#6366f1']} text-white shadow-lg scale-110` 
                           : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
                         ${isHovered && !isActive 
                           ? 'ring-2 ring-cyan-400 dark:ring-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 
@@ -693,7 +696,7 @@ export function ImagesPage() {
                     {isHovered && (
                       <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 w-64 h-64 glass-panel rounded-xl shadow-2xl z-50 p-3 flex flex-col pointer-events-none animate-in fade-in slide-in-from-left-4 duration-200">
                          <div className="flex items-center gap-2 mb-3 border-b border-white/10 pb-2">
-                           <Icon size={16} className={`text-${f.color}-500`} />
+                           <Icon size={16} className={getFolderTextColorClass(f.color)} />
                            <span className="font-semibold text-slate-900 dark:text-white truncate">{f.name}</span>
                            <span className="ml-auto text-xs text-slate-500">{folderImages.length} items</span>
                          </div>
@@ -778,15 +781,15 @@ export function ImagesPage() {
                          const isSelected = selectedIcon === iconKey;
                          return (
                            <button 
-                             key={iconKey} 
-                             onClick={() => { setSelectedIcon(iconKey); setSelectedColor(cat.color); }} 
-                             className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? `bg-${cat.color}-500 text-white shadow-md scale-110` : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`} 
-                             type="button"
-                             aria-label={`Select ${iconKey} icon`}
-                             title={iconKey}
-                           >
-                             <IconComp size={18} />
-                           </button>
+                            key={iconKey} 
+                            onClick={() => { setSelectedIcon(iconKey); setSelectedColor(cat.color); }} 
+                            className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? getCategoryIconContainerClasses(cat.color, true) + ' scale-110' : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`} 
+                            type="button"
+                            aria-label={`Select ${iconKey} icon`}
+                            title={iconKey}
+                          >
+                            <IconComp size={18} />
+                          </button>
                          );
                        })}
                      </div>
@@ -820,7 +823,7 @@ export function ImagesPage() {
                   const Icon = f.icon && FOLDER_ICONS[f.icon] ? FOLDER_ICONS[f.icon] : FolderIcon;
                   return (
                     <button key={f.id} onClick={() => handleBulkMove(f.id)} className="w-full text-left px-3 py-2 rounded text-sm bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 flex items-center gap-2 text-slate-700 dark:text-slate-300 transition-colors">
-                      <Icon size={14} className={`text-${f.color}-500`} /> {f.name}
+                      <Icon size={14} className={getFolderTextColorClass(f.color)} /> {f.name}
                     </button>
                   )
                })}
@@ -1305,10 +1308,10 @@ const ImageCard: React.FC<{
     >
       {folder && (
         <div 
-          className={`absolute top-2 left-2 z-10 w-10 h-10 flex items-center justify-center rounded-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border border-${folder.color}-500/50 shadow-lg transition-all hover:scale-110 cursor-default`}
+          className={`absolute top-2 left-2 z-10 w-10 h-10 flex items-center justify-center rounded-lg bg-white/90 dark:bg-slate-900/90 backdrop-blur-md ${getFolderBorderColorClass(folder.color, '50')} shadow-lg transition-all hover:scale-110 cursor-default`}
           title={`In folder: ${folder.name}`}
         >
-          <FolderIconComponent size={18} className={`text-${folder.color}-600 dark:text-${folder.color}-400 group-hover:text-${folder.color}-500 dark:group-hover:text-${folder.color}-300 transition-colors`} />
+          <FolderIconComponent size={18} className={`${getFolderTextColorClasses(folder.color).base} ${getFolderTextColorClasses(folder.color).dark} ${getFolderTextColorClasses(folder.color).hover} ${getFolderTextColorClasses(folder.color).hoverDark} transition-colors`} />
         </div>
       )}
       

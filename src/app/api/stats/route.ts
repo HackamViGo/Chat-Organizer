@@ -52,20 +52,34 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // Parallel fetch for counts
-        const [chatsCount, foldersCount, promptsCount, imagesCount] = await Promise.all([
+        // Parallel fetch for counts and user profile
+        const [chatsCount, foldersCount, promptsCount, imagesCount, userProfile] = await Promise.all([
             supabase.from('chats').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
             supabase.from('folders').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
             supabase.from('prompts').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
             supabase.from('images').select('*', { count: 'exact', head: true }).eq('user_id', user.id),
+            supabase.from('users').select('avatar_url').eq('id', user.id).single(),
         ]);
+
+        // Only return uploaded avatar (from Supabase Storage), not Google avatars
+        let avatarUrl: string | null = null;
+        if (userProfile.data?.avatar_url) {
+            const url = userProfile.data.avatar_url;
+            // Check if it's an uploaded avatar (not Google)
+            const isGoogleUrl = url.includes('googleusercontent.com') || 
+                               url.includes('google.com') || 
+                               url.includes('googleapis.com');
+            if (!isGoogleUrl && url.includes('supabase.co') && url.includes('/storage/v1/object/public/avatars/')) {
+                avatarUrl = url;
+            }
+        }
 
         return NextResponse.json({
             user: {
                 id: user.id,
                 email: user.email,
                 full_name: user.user_metadata?.full_name || user.user_metadata?.name || 'User',
-                avatar_url: user.user_metadata?.avatar_url
+                avatar_url: avatarUrl // Only uploaded avatars, never Google
             },
             stats: {
                 chats: chatsCount.count || 0,

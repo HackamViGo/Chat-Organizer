@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { cookies } from 'next/headers';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -12,56 +12,37 @@ export async function OPTIONS() {
   return new NextResponse(null, { headers: corsHeaders });
 }
 
-async function getAuthenticatedUser(request: NextRequest) {
-  const cookieStore = cookies();
-  const authHeader = request.headers.get('Authorization');
-  
-  let supabase;
-  if (authHeader && authHeader.startsWith('Bearer ')) {
-    supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: authHeader,
-          },
-        },
-      }
-    );
-  } else {
-    const { createServerClient } = await import('@supabase/ssr');
-    supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: any) {
-            cookieStore.set({ name, value, ...options });
-          },
-          remove(name: string, options: any) {
-            cookieStore.set({ name, value: '', ...options });
-          },
-        },
-      }
-    );
-  }
-
-  const { data: { user }, error } = await supabase.auth.getUser();
-  return { data: { user }, error };
-}
-
 export async function POST(request: NextRequest) {
   try {
-    const { data: { user }, error: authError } = await getAuthenticatedUser(request);
-    if (authError || !user) {
-      return new NextResponse('Unauthorized', { 
-        status: 401,
-        headers: corsHeaders 
-      });
+    // Check for Authorization header (for extension)
+    const authHeader = request.headers.get('Authorization');
+    const token = authHeader?.replace('Bearer ', '');
+    
+    let supabase;
+    let user;
+    
+    if (token) {
+      // Extension request with Bearer token
+      supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          global: { headers: { Authorization: `Bearer ${token}` } }
+        }
+      );
+      const { data: { user: tokenUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !tokenUser) {
+        return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders });
+      }
+      user = tokenUser;
+    } else {
+      // Web app request with cookies
+      supabase = createServerSupabaseClient();
+      const { data: { user: cookieUser }, error: authError } = await supabase.auth.getUser();
+      if (authError || !cookieUser) {
+        return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders });
+      }
+      user = cookieUser;
     }
 
     const formData = await request.formData();
@@ -91,48 +72,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get authenticated Supabase client
-    const cookieStore = cookies();
-    const authHeader = request.headers.get('Authorization');
-    
-    let supabase;
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          global: {
-            headers: {
-              Authorization: authHeader,
-            },
-          },
-        }
-      );
-    } else {
-      const { createServerClient } = await import('@supabase/ssr');
-      supabase = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          cookies: {
-            get(name: string) {
-              return cookieStore.get(name)?.value;
-            },
-            set(name: string, value: string, options: any) {
-              cookieStore.set({ name, value, ...options });
-            },
-            remove(name: string, options: any) {
-              cookieStore.set({ name, value: '', ...options });
-            },
-          },
-        }
-      );
-    }
-
-    // Convert file to buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
     // Generate unique filename
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}/${Date.now()}.${fileExt}`;
@@ -141,7 +80,7 @@ export async function POST(request: NextRequest) {
     // Upload to Supabase Storage
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('avatars')
-      .upload(filePath, buffer, {
+      .upload(filePath, file, {
         contentType: file.type,
         upsert: true, // Replace if exists
       });
@@ -154,12 +93,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify file was uploaded successfully
+    const { data: fileData, error: fileError } = await supabase.storage
+      .from('avatars')
+      .list(user.id, {
+        limit: 1,
+        search: filePath.split('/').pop()
+      });
+
+    if (fileError) {
+      console.error('File verification error:', fileError);
+    }
+
     // Get public URL
     const { data: urlData } = supabase.storage
       .from('avatars')
       .getPublicUrl(filePath);
 
     const avatarUrl = urlData.publicUrl;
+    
+    console.log('Avatar uploaded successfully. URL:', avatarUrl);
+    console.log('File path:', filePath);
 
     // Update user record in database
     const { error: updateError } = await supabase

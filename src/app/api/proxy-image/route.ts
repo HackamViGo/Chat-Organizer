@@ -32,8 +32,6 @@ async function proxyImage(imageUrl: string) {
     );
   }
 
-  console.log('[Proxy Image] 📥 Fetching image from:', imageUrl);
-
   // Fetch image from the source URL (server-to-server, no CORS restrictions)
   const response = await fetch(imageUrl, {
     headers: {
@@ -45,7 +43,6 @@ async function proxyImage(imageUrl: string) {
   });
 
   if (!response.ok) {
-    console.error('[Proxy Image] ❌ Failed to fetch image:', response.status, response.statusText);
     return NextResponse.json(
       { error: `Failed to fetch image: ${response.status} ${response.statusText}` },
       { status: response.status, headers: corsHeaders }
@@ -58,11 +55,6 @@ async function proxyImage(imageUrl: string) {
 
   // Get content type from response or default to image/jpeg
   const contentType = response.headers.get('content-type') || 'image/jpeg';
-
-  console.log('[Proxy Image] ✅ Image fetched successfully:', {
-    size: buffer.length,
-    contentType,
-  });
 
   // Return image with proper headers
   return new NextResponse(buffer, {
@@ -89,10 +81,11 @@ export async function GET(request: NextRequest) {
     }
 
     return await proxyImage(imageUrl);
-  } catch (error: any) {
-    console.error('[Proxy Image] ❌ Error:', error);
+  } catch (error) {
+    console.error('[Proxy Image] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500, headers: corsHeaders }
     );
   }
@@ -111,10 +104,11 @@ export async function POST(request: NextRequest) {
     }
 
     return await proxyImage(imageUrl);
-  } catch (error: any) {
-    console.error('[Proxy Image] ❌ Error:', error);
+  } catch (error) {
+    console.error('[Proxy Image] Error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Internal server error';
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: errorMessage },
       { status: 500, headers: corsHeaders }
     );
   }

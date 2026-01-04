@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 // CORS headers for Chrome extension
 const corsHeaders = {
@@ -9,6 +10,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Credentials': 'true',
 };
+
+// Zod schemas for validation
+const updatePromptSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1).optional(),
+  content: z.string().optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  folder_id: z.string().uuid().nullable().optional(),
+  use_in_context_menu: z.boolean().optional(),
+});
+
+const createPromptSchema = z.object({
+  title: z.string().min(1),
+  content: z.string(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  folder_id: z.string().uuid().nullable().optional(),
+  use_in_context_menu: z.boolean().optional(),
+});
 
 // Handle OPTIONS request for CORS preflight
 export async function OPTIONS(request: NextRequest) {
@@ -84,8 +103,9 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json({ prompts: data || [] }, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, { 
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, { 
       status: 500,
       headers: corsHeaders 
     });
@@ -154,14 +174,8 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, ...updates } = body;
-
-    if (!id) {
-      return new NextResponse('Prompt ID is required', {
-        status: 400,
-        headers: corsHeaders
-      });
-    }
+    const validatedData = updatePromptSchema.parse(body);
+    const { id, ...updates } = validatedData;
 
     // Update prompt that belongs to the user
     const { data, error } = await supabase
@@ -175,10 +189,17 @@ export async function PUT(request: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json(data, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, {
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.errors },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, { 
       status: 500,
-      headers: corsHeaders
+      headers: corsHeaders 
     });
   }
 }
@@ -246,26 +267,33 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { title, content, color, folder_id, use_in_context_menu } = body;
+    const validatedData = createPromptSchema.parse(body);
 
     const { data, error } = await supabase
       .from('prompts')
       .insert({
         user_id: user.id,
-        title,
-        content,
-        color: color || '#6366f1',
-        folder_id,
-        use_in_context_menu: use_in_context_menu || false,
-      } as any)
+        title: validatedData.title,
+        content: validatedData.content,
+        color: validatedData.color || '#6366f1',
+        folder_id: validatedData.folder_id,
+        use_in_context_menu: validatedData.use_in_context_menu || false,
+      })
       .select()
       .single();
 
     if (error) throw error;
 
     return NextResponse.json(data, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, { 
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.errors },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, { 
       status: 500,
       headers: corsHeaders 
     });

@@ -1,10 +1,25 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+/**
+ * Get Google Generative AI client with proper API key configuration
+ * Follows Google Cloud best practices for API key usage
+ * @see https://docs.cloud.google.com/docs/authentication/api-keys-use#node.js
+ */
 const getClient = (apiKeyOverride?: string) => {
+  // Priority: override > environment variable
   const apiKey = apiKeyOverride || process.env.GEMINI_API_KEY;
+  
   if (!apiKey) {
-    throw new Error('GEMINI_API_KEY not found');
+    throw new Error('GEMINI_API_KEY not found. Please configure the API key in environment variables.');
   }
+  
+  // Validate API key format (basic check)
+  if (typeof apiKey !== 'string' || apiKey.length < 20) {
+    throw new Error('Invalid API key format. API keys should be at least 20 characters long.');
+  }
+  
+  // Initialize client with API key
+  // For @google/generative-ai, the API key is passed directly to constructor
   return new GoogleGenerativeAI(apiKey);
 };
 
@@ -44,6 +59,18 @@ export const analyzeChatContent = async (
 
     return JSON.parse(jsonText) as AIAnalysisResult;
   } catch (error) {
+    // Enhanced error handling for API key issues
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStatus = 'status' in error && typeof error.status === 'number' ? error.status : undefined;
+    if (errorMessage.includes('API_KEY')) {
+      throw new Error('Invalid or missing API key. Please check your GEMINI_API_KEY configuration.');
+    }
+    if (errorStatus === 429) {
+      throw new Error('API quota exceeded. Please try again later.');
+    }
+    if (errorStatus === 403) {
+      throw new Error('API access forbidden. Please check your API key permissions.');
+    }
     console.error('Gemini Analysis Error:', error);
     throw error;
   }
@@ -63,7 +90,16 @@ export const generatePromptImprovement = async (
     
     return result.response.text() || originalPrompt;
   } catch (error) {
-    console.error('Prompt Improvement Error:', error);
+    // Enhanced error handling
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorStatus = 'status' in error && typeof error.status === 'number' ? error.status : undefined;
+    if (errorMessage.includes('API_KEY')) {
+      console.error('Prompt Improvement Error: Invalid API key');
+    } else if (errorStatus === 429) {
+      console.error('Prompt Improvement Error: Quota exceeded');
+    } else {
+      console.error('Prompt Improvement Error:', error);
+    }
     return originalPrompt;
   }
 };

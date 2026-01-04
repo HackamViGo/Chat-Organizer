@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { FileEdit, Settings, Loader2, Copy, Check, Sparkles } from 'lucide-react';
+import { PromptEntry } from '@/lib/services/prompt-library-fetcher';
 
 interface SearchResult {
   prompt: {
@@ -13,7 +14,7 @@ interface SearchResult {
   };
   confidence: number;
   reasoning: string;
-  alternatives: any[];
+  alternatives: PromptEntry[];
 }
 
 export function EnhancePromptCard() {
@@ -90,7 +91,7 @@ export function EnhancePromptCard() {
           </h3>
         </div>
         <div className="px-3 py-1 bg-slate-100 dark:bg-white/10 rounded-full text-xs font-medium text-slate-600 dark:text-slate-400">
-          GPT-4 Turbo
+          Gemini 3.0 Pro
         </div>
       </div>
 

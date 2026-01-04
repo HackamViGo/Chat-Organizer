@@ -2,6 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 // CORS headers for Chrome extension
 const corsHeaders = {
@@ -10,6 +11,22 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Credentials': 'true',
 };
+
+// Zod schemas for validation
+const updateFolderSchema = z.object({
+  id: z.string().uuid(),
+  name: z.string().min(1).optional(),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
+  type: z.enum(['default', 'custom']).optional(),
+  icon: z.string().optional(),
+});
+
+const createFolderSchema = z.object({
+  name: z.string().min(1),
+  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  type: z.enum(['default', 'custom']).optional(),
+  icon: z.string().optional(),
+});
 
 // Helper to get user from either cookies or Authorization header
 async function getAuthenticatedUser(request: NextRequest) {
@@ -63,15 +80,11 @@ export async function GET(request: NextRequest) {
   try {
     const { data: { user }, error: authError } = await getAuthenticatedUser(request);
     if (authError || !user) {
-      console.log('[API /folders] Unauthorized:', authError?.message || 'No user');
       return new NextResponse('Unauthorized', { 
         status: 401,
         headers: corsHeaders 
       });
     }
-
-    console.log('[API /folders] Fetching folders for user:', user.id);
-    console.log('[API /folders] User email:', user.email);
 
     // Use server client with proper auth context
     const cookieStore = cookies();
@@ -80,7 +93,6 @@ export async function GET(request: NextRequest) {
     let supabase;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       // Extension request - use token-based client
-      console.log('[API /folders] Using Bearer token auth');
       supabase = createClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -94,7 +106,6 @@ export async function GET(request: NextRequest) {
       );
     } else {
       // Web app request - use cookie-based client
-      console.log('[API /folders] Using cookie-based auth');
       const { createServerClient } = await import('@supabase/ssr');
       supabase = createServerClient(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -118,7 +129,6 @@ export async function GET(request: NextRequest) {
     // Verify auth context by checking current user
     const { data: { user: verifiedUser }, error: authCheckError } = await supabase.auth.getUser();
     if (authCheckError || !verifiedUser) {
-      console.error('[API /folders] Auth context error:', authCheckError);
       return new NextResponse('Authentication context error', { 
         status: 401,
         headers: corsHeaders 
@@ -126,17 +136,11 @@ export async function GET(request: NextRequest) {
     }
     
     if (verifiedUser.id !== user.id) {
-      console.error('[API /folders] User ID mismatch:', {
-        requestUser: user.id,
-        verifiedUser: verifiedUser.id
-      });
       return new NextResponse('User ID mismatch', { 
         status: 403,
         headers: corsHeaders 
       });
     }
-
-    console.log('[API /folders] Verified user:', verifiedUser.id);
 
     const { data, error } = await supabase
       .from('folders')
@@ -146,18 +150,13 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error('[API /folders] Database error:', error);
-      console.error('[API /folders] Error details:', JSON.stringify(error, null, 2));
       throw error;
     }
-
-    console.log('[API /folders] Returning folders:', data?.length || 0);
-    if (data && data.length > 0) {
-      console.log('[API /folders] Sample folder:', { id: data[0].id, name: data[0].name, user_id: data[0].user_id });
-    }
     return NextResponse.json({ folders: data || [] }, { headers: corsHeaders });
-  } catch (error: any) {
+  } catch (error) {
     console.error('[API /folders] Error:', error);
-    return new NextResponse(error.message, { 
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, { 
       status: 500,
       headers: corsHeaders 
     });
@@ -175,14 +174,8 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, ...updates } = body;
-
-    if (!id) {
-      return new NextResponse('Folder ID is required', {
-        status: 400,
-        headers: corsHeaders
-      });
-    }
+    const validatedData = updateFolderSchema.parse(body);
+    const { id, ...updates } = validatedData;
 
     // Use server client with proper auth context
     const cookieStore = cookies();
@@ -225,7 +218,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Prevent circular references - check if target folder is a descendant
-    if (updates.parent_id) {
+    const updatesWithParent = updates as { parent_id?: string | null; [key: string]: any };
+    if (updatesWithParent.parent_id) {
       const { data: allFolders } = await supabase
         .from('folders')
         .select('id, parent_id')
@@ -239,7 +233,7 @@ export async function PUT(request: NextRequest) {
           return isDescendant(folder.parent_id, targetParentId);
         };
         
-        if (isDescendant(updates.parent_id, id)) {
+        if (isDescendant(updatesWithParent.parent_id, id)) {
           return new NextResponse('Cannot move folder into its own descendant', {
             status: 400,
             headers: corsHeaders
@@ -260,8 +254,15 @@ export async function PUT(request: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json(data, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, {
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.errors },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, {
       status: 500,
       headers: corsHeaders
     });
@@ -339,8 +340,9 @@ export async function DELETE(request: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json({ success: true }, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, {
       status: 500,
       headers: corsHeaders
     });
@@ -358,7 +360,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, color, type, icon } = body;
+    const validatedData = createFolderSchema.parse(body);
+    const { name, color, type, icon } = validatedData;
 
     // Use server client with proper auth context
     const cookieStore = cookies();
@@ -407,15 +410,22 @@ export async function POST(request: NextRequest) {
         color,
         type,
         icon,
-      } as any)
+      })
       .select()
       .single();
 
     if (error) throw error;
 
     return NextResponse.json(data, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, { 
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.errors },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, { 
       status: 500,
       headers: corsHeaders 
     });

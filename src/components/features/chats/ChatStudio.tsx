@@ -41,10 +41,20 @@ export const ChatStudio: React.FC = () => {
   // Load settings from localStorage on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const storedPro = localStorage.getItem('isPro') === 'true';
-      const storedKey = localStorage.getItem('geminiApiKey') || '';
-      setIsPro(storedPro);
-      setApiKey(storedKey);
+      try {
+        const storedPro = localStorage.getItem('isPro') === 'true';
+        const storedKey = localStorage.getItem('geminiApiKey') || '';
+        setIsPro(storedPro);
+        setApiKey(storedKey);
+      } catch (error) {
+        if (error instanceof DOMException) {
+          if (error.name === 'SecurityError') {
+            console.warn('localStorage access denied, skipping settings load');
+          } else if (error.name === 'QuotaExceededError') {
+            console.warn('localStorage quota exceeded');
+          }
+        }
+      }
     }
   }, []);
 
@@ -74,11 +84,6 @@ export const ChatStudio: React.FC = () => {
     e?.preventDefault();
     if (!input.trim() || isLoading) return;
 
-    if (!apiKey) {
-      alert("API Key missing. Please configure in settings.");
-      return;
-    }
-
     const userText = input;
     setInput('');
     const newHistory = [...messages, { role: 'user' as const, text: userText }];
@@ -98,7 +103,8 @@ export const ChatStudio: React.FC = () => {
         sysInstruction = "You are simulating Claude 3.5 Sonnet. Be warm and articulate.";
       }
 
-      // Call AI API
+      // Call AI API - API key is handled server-side from environment variables
+      // Following Google Cloud best practices: don't send API keys from client
       const response = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -106,13 +112,18 @@ export const ChatStudio: React.FC = () => {
           content: userText,
           history: messages,
           systemInstruction: sysInstruction,
+          // Note: API key is NOT sent from client for security
+          // Server uses GEMINI_API_KEY from environment variables
         }),
       });
 
-      if (!response.ok) throw new Error('AI generation failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ message: 'AI generation failed' }));
+        throw new Error(errorData.message || 'AI generation failed');
+      }
 
       const data = await response.json();
-      fullResponse = data.response || 'No response from AI';
+      fullResponse = data.response || data.title || 'No response from AI';
 
       // Add AI response
       setMessages(prev => [...prev, { role: 'model', text: fullResponse }]);
@@ -156,11 +167,22 @@ export const ChatStudio: React.FC = () => {
         await updateChat(currentChatId, { content: rawContent });
       }
 
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error('AI generation error:', error);
+      let errorMessage = "Error: Could not connect to the AI model.";
+      
+      // Provide more specific error messages
+      if (error?.message?.includes('API Key') || error?.message?.includes('GEMINI_API_KEY')) {
+        errorMessage = "Error: API key not configured. Please set GEMINI_API_KEY in environment variables.";
+      } else if (error?.message?.includes('quota') || error?.message?.includes('Quota')) {
+        errorMessage = "Error: API quota exceeded. Please try again later.";
+      } else if (error?.message) {
+        errorMessage = `Error: ${error.message}`;
+      }
+      
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: "Error: Could not connect to the AI model." 
+        text: errorMessage
       }]);
     } finally {
       setIsLoading(false);
@@ -175,15 +197,31 @@ export const ChatStudio: React.FC = () => {
 
   const saveKey = (e: React.FormEvent) => {
     e.preventDefault();
-    if (apiKeyInput.trim()) {
-      localStorage.setItem('geminiApiKey', apiKeyInput.trim());
-      setApiKey(apiKeyInput.trim());
+    if (apiKeyInput.trim() && typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('geminiApiKey', apiKeyInput.trim());
+        setApiKey(apiKeyInput.trim());
+      } catch (error) {
+        console.warn('Failed to save API key to localStorage:', error);
+        // Still set in state even if localStorage fails
+        setApiKey(apiKeyInput.trim());
+      }
     }
   };
 
   const activateUltra = () => {
-    localStorage.setItem('isPro', 'true');
-    setIsPro(true);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('isPro', 'true');
+        setIsPro(true);
+      } catch (error) {
+        console.warn('Failed to save Pro status to localStorage:', error);
+        // Still set in state even if localStorage fails
+        setIsPro(true);
+      }
+    } else {
+      setIsPro(true);
+    }
   };
 
   // --- ACCESS GATE: PRO CHECK ---

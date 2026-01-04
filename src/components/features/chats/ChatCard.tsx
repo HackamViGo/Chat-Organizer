@@ -9,7 +9,7 @@ import {
   MoreVertical, CheckSquare, Trash2, 
   Archive, ArchiveRestore, Sparkles, ExternalLink,
   FolderInput, Edit2, X, Check, AlertTriangle, FileText,
-  Folder as DefaultFolderIcon, Link as LinkIcon, Square,
+  Folder as DefaultFolderIcon, Link as LinkIcon, Square, Download,
   // Dev
   Code, Terminal, Cpu, Database, Server,
   // Art
@@ -289,6 +289,22 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
     setShowMenu(false);
   };
 
+  // Download Logic
+  const handleDownload = () => {
+    const content = `Title: ${chat.title}\nPlatform: ${chat.platform || 'Unknown'}\nDate: ${chat.created_at ? new Date(chat.created_at).toLocaleString() : 'Unknown'}\n${chat.url ? `URL: ${chat.url}\n` : ''}\n${chat.summary ? `Summary:\n${chat.summary}\n\n` : ''}${chat.content ? `Content:\n${chat.content}` : 'No content'}`;
+    
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${chat.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+    setShowMenu(false);
+  };
+
   const folder = folders.find(f => f.id === chat.folder_id);
   
   // Resolve Folder Icon (folders don't have icon field in DB, use default)
@@ -307,7 +323,12 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
         onMouseLeave={handleMouseLeave}
         onClick={() => {
           if (!isLongPressing) {
-            setShowViewModal(true);
+            // If in selection mode, toggle selection instead of opening
+            if (selectedChatIds.size > 0) {
+              toggleChatSelection(chat.id);
+            } else {
+              setShowViewModal(true);
+            }
           }
           setIsLongPressing(false);
         }}
@@ -430,16 +451,10 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
                 className="absolute right-0 top-8 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-xl z-10 overflow-hidden text-sm animate-in fade-in zoom-in-95 duration-200"
               >
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setIsEditingDesc(true); setShowMenu(false); }}
+                  onClick={(e) => { e.stopPropagation(); setShowViewModal(true); setShowMenu(false); }}
                   className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
                 >
-                  <FileText size={14} /> Edit Description
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setIsEditingUrl(true); setShowMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                >
-                  <LinkIcon size={14} /> Edit Source URL
+                  <Edit2 size={14} /> Edit
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); setShowMoveModal(true); setShowMenu(false); }}
@@ -448,10 +463,10 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
                   <FolderInput size={14} /> Move to Folder
                 </button>
                 <button 
-                  onClick={(e) => { e.stopPropagation(); setIsEditingTitle(true); setShowMenu(false); }}
+                  onClick={(e) => { e.stopPropagation(); handleDownload(); }}
                   className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
                 >
-                  <Edit2 size={14} /> Rename
+                  <Download size={14} /> Download
                 </button>
                 <button 
                   onClick={(e) => { e.stopPropagation(); handleArchive(); }}

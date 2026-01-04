@@ -8,6 +8,7 @@ import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
 import { Chat, Folder } from '@/types';
+import { getFolderIconContainerClasses, getCategoryColorClasses } from '@/lib/utils/colors';
 import {
   LayoutGrid, Archive, FileEdit, Settings,
   Folder as FolderIcon, Plus, ChevronRight, ChevronDown, Hash, User, X, Search, Trash2,
@@ -254,10 +255,7 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
   const isDragTarget = dragOverState?.id === folder.id;
   const dragPosition = isDragTarget ? dragOverState?.position : null;
 
-  const fColor = folder.color || 'blue';
-  const iconContainerClass = isActiveItem
-    ? `bg-${fColor}-500 text-white shadow-md` 
-    : `bg-${fColor}-100 text-${fColor}-600 dark:bg-${fColor}-500/20 dark:text-${fColor}-400 group-hover:bg-${fColor}-200 dark:group-hover:bg-${fColor}-500/30`;
+  const iconContainerClass = getFolderIconContainerClasses(folder.color, isActiveItem);
 
   return (
     <div className="select-none">
@@ -746,11 +744,12 @@ function SidebarContent() {
                       {cat.icons.map(iconKey => {
                         const IconComp = FOLDER_ICONS[iconKey];
                         const isSelected = selectedIcon === iconKey;
+                        const categoryColors = getCategoryColorClasses(cat.color);
                         return (
                           <button 
                             key={iconKey} 
                             onClick={() => { setSelectedIcon(iconKey); setSelectedColor(cat.color); }} 
-                            className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? `bg-${cat.color}-500 text-white shadow-md scale-110` : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`} 
+                            className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? `${categoryColors.bg} text-white shadow-md scale-110` : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`} 
                             type="button"
                             aria-label={`Select ${iconKey} icon`}
                             title={iconKey}

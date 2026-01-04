@@ -110,14 +110,6 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    console.log('[BrainBox API] 📸 Image save request:', {
-      hasImages: !!body.images,
-      isArray: Array.isArray(body.images),
-      imageCount: body.images?.length || 1,
-      source_url: body.source_url,
-      userId: user.id
-    });
-
     // Helper function to download and upload image to Storage
     const uploadImageToStorage = async (imageUrl: string, imageName: string): Promise<{ url: string; path: string; mime_type: string; size: number }> => {
       try {
@@ -166,7 +158,6 @@ export async function POST(request: NextRequest) {
           size: buffer.length
         };
       } catch (error: any) {
-        console.error('[BrainBox API] ❌ Error uploading image to Storage:', error);
         throw error;
       }
     };
@@ -202,7 +193,6 @@ export async function POST(request: NextRequest) {
             source_url: body.source_url || img.source_url || imageUrl
           });
         } catch (error: any) {
-          console.error(`[BrainBox API] ⚠️ Failed to upload image ${imageName}:`, error.message);
           // Skip this image but continue with others
         }
       }
@@ -224,7 +214,6 @@ export async function POST(request: NextRequest) {
             source_url: body.source_url || imageUrl
           });
         } catch (error: any) {
-          console.error(`[BrainBox API] ❌ Failed to upload image:`, error.message);
           throw error;
         }
       }
@@ -237,22 +226,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[BrainBox API] 💾 Inserting', imagesToInsert.length, 'images to database');
-
     const { data, error } = await supabase
       .from('images')
       .insert(imagesToInsert)
       .select();
 
     if (error) {
-      console.error('[BrainBox API] ❌ Insert error:', error);
+      console.error('[BrainBox API] Insert error:', error);
       throw error;
     }
-
-    console.log('[BrainBox API] ✅ Images saved to Storage and database:', data?.length);
     return NextResponse.json(data, { headers: corsHeaders });
   } catch (error: any) {
-    console.error('[BrainBox API] ❌ Failed to save images:', error.message);
+    console.error('[BrainBox API] Failed to save images:', error.message);
     return new NextResponse(error.message, { status: 500, headers: corsHeaders });
   }
 }

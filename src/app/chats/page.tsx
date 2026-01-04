@@ -5,11 +5,13 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { ChatCard } from '@/components/features/chats/ChatCard';
-import { MessageSquarePlus, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight, Search, Calendar, Filter } from 'lucide-react';
+import { MessageSquarePlus, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight, Search, Calendar, Filter, Download, ChevronDown } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
+import { FOLDER_BG_COLORS, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
 import { createClient } from '@/lib/supabase/client';
 import { getItemsInFolderAndNested, getChildFolders } from '@/lib/utils/folders';
 import Link from 'next/link';
+import JSZip from 'jszip';
 
 function ChatsPageContent() {
   const { 
@@ -32,6 +34,7 @@ function ChatsPageContent() {
   const [customSource, setCustomSource] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   const [newChatData, setNewChatData] = useState({
     title: '',
     url: '',
@@ -196,7 +199,7 @@ function ChatsPageContent() {
               onDrop={(e) => handleDropOnFolder(e, f.id)}
               className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative shrink-0 z-20
                 ${isActive 
-                  ? `bg-${f.color}-500 text-white shadow-lg scale-110` 
+                  ? `${FOLDER_BG_COLORS[f.color] || FOLDER_BG_COLORS['#6366f1']} text-white shadow-lg scale-110` 
                   : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
                 ${isHovered && !isActive 
                   ? 'ring-2 ring-cyan-400 dark:ring-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 
@@ -238,7 +241,7 @@ function ChatsPageContent() {
           {isHovered && (
             <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 w-64 glass-panel rounded-xl shadow-2xl z-50 p-3 flex flex-col pointer-events-none animate-in fade-in slide-in-from-left-4 duration-200">
               <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-                <Icon size={16} className={`text-${f.color}-500`} />
+                <Icon size={16} className={getFolderTextColorClass(f.color)} />
                 <span className="font-semibold text-slate-900 dark:text-white truncate">{f.name}</span>
                 <span className="ml-auto text-xs text-slate-500">{folderChats.length} chats</span>
               </div>
@@ -406,6 +409,128 @@ function ChatsPageContent() {
       alert('Failed to delete chats. Please try again.');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const getChatContent = (chat: any, format: 'txt' | 'md' | 'pdf'): string => {
+    const sanitizeFilename = (str: string) => {
+      if (!str) return 'untitled';
+      return str.replace(/[^a-z0-9\s-]/gi, '').replace(/\s+/g, '_').toLowerCase().substring(0, 50);
+    };
+    
+    if (format === 'txt') {
+      return `Title: ${chat.title || 'Untitled Chat'}\nPlatform: ${chat.platform || 'Unknown'}\nDate: ${chat.created_at ? new Date(chat.created_at).toLocaleString() : 'Unknown'}\n${chat.url ? `URL: ${chat.url}\n` : ''}\n${chat.summary ? `Summary:\n${chat.summary}\n\n` : ''}${chat.content ? `Content:\n${chat.content}` : 'No content'}`;
+    } else if (format === 'md') {
+      let content = `# ${chat.title || 'Untitled Chat'}\n\n`;
+      content += `**Platform:** ${chat.platform || 'Unknown'}\n`;
+      content += `**Date:** ${chat.created_at ? new Date(chat.created_at).toLocaleString() : 'Unknown'}\n`;
+      if (chat.url) {
+        content += `**URL:** ${chat.url}\n`;
+      }
+      content += `\n`;
+      if (chat.summary) {
+        content += `## Summary\n\n${chat.summary}\n\n`;
+      }
+      if (chat.content) {
+        content += `## Content\n\n${chat.content}\n`;
+      }
+      return content;
+    } else {
+      // PDF format - generate HTML
+      const escapeHtml = (text: string) => {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      };
+      
+      return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(chat.title || 'Untitled Chat')}</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 40px; line-height: 1.6; color: #333; max-width: 800px; margin: 0 auto; }
+    h1 { color: #1e40af; border-bottom: 2px solid #1e40af; padding-bottom: 10px; }
+    h2 { color: #3b82f6; margin-top: 30px; }
+    .meta { background: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0; }
+    .meta p { margin: 5px 0; }
+    .content { white-space: pre-wrap; background: #f9fafb; padding: 20px; border-radius: 5px; margin-top: 20px; }
+    @media print {
+      body { padding: 20px; }
+      @page { margin: 2cm; }
+    }
+  </style>
+</head>
+<body>
+  <h1>${escapeHtml(chat.title || 'Untitled Chat')}</h1>
+  <div class="meta">
+    <p><strong>Platform:</strong> ${escapeHtml(chat.platform || 'Unknown')}</p>
+    <p><strong>Date:</strong> ${escapeHtml(chat.created_at ? new Date(chat.created_at).toLocaleString() : 'Unknown')}</p>
+    ${chat.url ? `<p><strong>URL:</strong> <a href="${escapeHtml(chat.url)}">${escapeHtml(chat.url)}</a></p>` : ''}
+  </div>
+  ${chat.summary ? `<h2>Summary</h2><div class="content">${escapeHtml(chat.summary)}</div>` : ''}
+  ${chat.content ? `<h2>Content</h2><div class="content">${escapeHtml(chat.content)}</div>` : ''}
+</body>
+</html>`;
+    }
+  };
+
+  const handleDownloadSelected = async (format: 'txt' | 'md' | 'pdf') => {
+    if (selectedCount === 0) return;
+    
+    const selectedChats = chats.filter(c => selectedChatIds.has(c.id));
+    setShowDownloadMenu(false);
+    
+    try {
+      const zip = new JSZip();
+      const sanitizeFilename = (str: string) => {
+        if (!str) return 'untitled';
+        return str.replace(/[^a-z0-9\s-]/gi, '').replace(/\s+/g, '_').toLowerCase().substring(0, 50);
+      };
+      
+      const fileExtension = format === 'txt' ? 'txt' : format === 'md' ? 'md' : 'html';
+      
+      // Track used filenames to handle duplicates
+      const usedFilenames = new Map<string, number>();
+      
+      // Add all chats to ZIP with unique filenames
+      selectedChats.forEach((chat, index) => {
+        let baseFilename = sanitizeFilename(chat.title || 'untitled');
+        const uniqueId = chat.id.substring(0, 8);
+        
+        // If filename already used, add unique ID to ensure all files are included
+        if (usedFilenames.has(baseFilename)) {
+          const count = (usedFilenames.get(baseFilename) || 0) + 1;
+          usedFilenames.set(baseFilename, count);
+          // Use unique ID for duplicates to ensure all files are saved
+          baseFilename = `${baseFilename}_${uniqueId}`;
+        } else {
+          usedFilenames.set(baseFilename, 0);
+        }
+        
+        // Use chat ID if title is empty
+        const filename = baseFilename || `chat_${uniqueId}`;
+        
+        const content = getChatContent(chat, format);
+        zip.file(`${filename}.${fileExtension}`, content);
+      });
+      
+      // Generate ZIP file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      
+      // Download ZIP file
+      const url = URL.createObjectURL(zipBlob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chats-export-${new Date().toISOString().split('T')[0]}.zip`;
+      a.style.display = 'none';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error creating ZIP file:', error);
+      alert('Failed to create ZIP file. Please try again.');
     }
   };
 
@@ -578,6 +703,38 @@ function ChatsPageContent() {
               <span className="text-sm text-muted-foreground">
                 {selectedCount} {selectedCount === 1 ? 'chat' : 'chats'} selected
               </span>
+              <div className="relative">
+                <button
+                  onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                  className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Download Selected
+                  <ChevronDown className="w-4 h-4" />
+                </button>
+                {showDownloadMenu && (
+                  <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-xl z-20 overflow-hidden text-sm">
+                    <button
+                      onClick={() => handleDownloadSelected('txt')}
+                      className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                    >
+                      Download as TXT
+                    </button>
+                    <button
+                      onClick={() => handleDownloadSelected('md')}
+                      className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                    >
+                      Download as MD
+                    </button>
+                    <button
+                      onClick={() => handleDownloadSelected('pdf')}
+                      className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                    >
+                      Download as PDF
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleDeleteSelected}
                 disabled={isDeleting}
@@ -690,6 +847,14 @@ function ChatsPageContent() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Click outside to close download menu */}
+        {showDownloadMenu && (
+          <div
+            className="fixed inset-0 z-[5]"
+            onClick={() => setShowDownloadMenu(false)}
+          />
         )}
 
         {/* Delete Confirmation Modal */}
@@ -952,7 +1117,7 @@ function ChatsPageContent() {
                           <button
                             key={iconKey}
                             onClick={() => { setSelectedIcon(iconKey); setSelectedColor(cat.color); }}
-                            className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? `bg-${cat.color}-500 text-white shadow-md scale-110` : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`}
+                            className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? getCategoryIconContainerClasses(cat.color, true) + ' scale-110' : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`}
                             type="button"
                             aria-label={`Select ${iconKey} icon`}
                             title={iconKey}

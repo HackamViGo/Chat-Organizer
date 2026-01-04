@@ -11,7 +11,8 @@ import { DailyPickCard } from '@/components/features/prompts/DailyPickCard';
 import { createClient } from '@/lib/supabase/client';
 import { FileEdit, Plus, Search, ArrowUpDown, LayoutGrid, Folder as FolderIcon, X } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
-import { Prompt } from '@/types';
+import { FOLDER_BG_COLORS, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
+import { Prompt, Folder } from '@/types';
 
 type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 
@@ -43,7 +44,7 @@ function PromptsPageContent() {
     }
   };
 
-  const promptFolders = useMemo(() => folders.filter(f => (f as any).type === 'prompt' || !(f as any).type), [folders]);
+  const promptFolders = useMemo(() => folders.filter((f: Folder) => f.type === 'prompt' || !f.type), [folders]);
 
   useEffect(() => {
     setMounted(true);
@@ -73,8 +74,8 @@ function PromptsPageContent() {
         } else {
           setPrompts(data || []);
         }
-      } catch (error) {
-        console.error('Error:', error);
+      } catch (error: unknown) {
+        console.error('Error:', error instanceof Error ? error.message : error);
       } finally {
         setIsLoading(false);
       }
@@ -166,8 +167,8 @@ function PromptsPageContent() {
           setPrompts(data);
         }
       }
-    } catch (error) {
-      console.error('Failed to move prompt:', error);
+    } catch (error: unknown) {
+      console.error('Failed to move prompt:', error instanceof Error ? error.message : error);
       alert('Failed to move prompt');
     }
   };
@@ -204,8 +205,8 @@ function PromptsPageContent() {
       addFolder(data);
       setIsCreateFolderModalOpen(false);
       setNewFolderName('');
-    } catch (error) {
-      console.error('Failed to create folder:', error);
+    } catch (error: unknown) {
+      console.error('Failed to create folder:', error instanceof Error ? error.message : error);
       alert('Failed to create folder');
     } finally {
       isCreatingFolderRef.current = false;
@@ -310,7 +311,7 @@ function PromptsPageContent() {
                   onDrop={(e) => handleDropOnFolder(e, f.id)}
                   className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative shrink-0 z-20
                     ${isActive 
-                      ? `bg-${f.color}-500 text-white shadow-lg scale-110` 
+                      ? `${FOLDER_BG_COLORS[f.color] || FOLDER_BG_COLORS['#6366f1']} text-white shadow-lg scale-110` 
                       : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
                     ${isHovered && !isActive 
                       ? 'ring-2 ring-cyan-400 dark:ring-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 
@@ -323,7 +324,7 @@ function PromptsPageContent() {
                 {isHovered && (
                   <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 w-64 glass-panel rounded-xl shadow-2xl z-50 p-3 flex flex-col pointer-events-none animate-in fade-in slide-in-from-left-4 duration-200">
                     <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-                      <Icon size={16} className={`text-${f.color}-500`} />
+                      <Icon size={16} className={getFolderTextColorClass(f.color)} />
                       <span className="font-semibold text-slate-900 dark:text-white truncate">{f.name}</span>
                       <span className="ml-auto text-xs text-slate-500">{folderPrompts.length} prompts</span>
                     </div>
@@ -548,7 +549,7 @@ function PromptsPageContent() {
                           <button 
                             key={iconKey} 
                             onClick={() => { setSelectedIcon(iconKey); setSelectedColor(cat.color); }} 
-                            className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? `bg-${cat.color}-500 text-white shadow-md scale-110` : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`} 
+                            className={`p-1.5 rounded-lg transition-all flex items-center justify-center ${isSelected ? getCategoryIconContainerClasses(cat.color, true) + ' scale-110' : 'text-slate-400 bg-slate-100 dark:bg-white/5'}`} 
                             type="button"
                             aria-label={`Select ${iconKey} icon`}
                             title={iconKey}

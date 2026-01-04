@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { z } from 'zod';
 
 // CORS headers for Chrome extension
 const corsHeaders = {
@@ -9,6 +10,24 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Allow-Credentials': 'true',
 };
+
+// Zod schemas for validation
+const createChatSchema = z.object({
+  title: z.string().min(1),
+  content: z.string(),
+  platform: z.string().optional(),
+  url: z.string().url().optional().or(z.literal('')),
+  folder_id: z.string().uuid().nullable().optional(),
+});
+
+const updateChatSchema = z.object({
+  id: z.string().uuid(),
+  title: z.string().min(1).optional(),
+  content: z.string().optional(),
+  platform: z.string().optional(),
+  url: z.string().url().optional().or(z.literal('')),
+  folder_id: z.string().uuid().nullable().optional(),
+});
 
 // Handle OPTIONS request for CORS preflight
 export async function OPTIONS(request: NextRequest) {
@@ -52,8 +71,9 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json({ chats: data || [] }, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, {
       status: 500,
       headers: corsHeaders
     });
@@ -123,26 +143,33 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { title, content, platform, url, folder_id } = body;
+    const validatedData = createChatSchema.parse(body);
 
     const { data, error } = await supabase
       .from('chats')
       .insert({
         user_id: user.id,
-        title,
-        content,
-        platform,
-        url,
-        folder_id,
-      } as any)
+        title: validatedData.title,
+        content: validatedData.content,
+        platform: validatedData.platform,
+        url: validatedData.url,
+        folder_id: validatedData.folder_id,
+      })
       .select()
       .single();
 
     if (error) throw error;
 
     return NextResponse.json(data, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, {
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.errors },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, {
       status: 500,
       headers: corsHeaders
     });
@@ -211,14 +238,8 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { id, ...updates } = body;
-
-    if (!id) {
-      return new NextResponse('Chat ID is required', {
-        status: 400,
-        headers: corsHeaders
-      });
-    }
+    const validatedData = updateChatSchema.parse(body);
+    const { id, ...updates } = validatedData;
 
     // Update chat that belongs to the user
     const { data, error } = await supabase
@@ -232,8 +253,15 @@ export async function PUT(request: NextRequest) {
     if (error) throw error;
 
     return NextResponse.json(data, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, {
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: error.errors },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, {
       status: 500,
       headers: corsHeaders
     });
@@ -334,8 +362,9 @@ export async function DELETE(request: NextRequest) {
       success: true, 
       deletedCount: chatIds.length 
     }, { headers: corsHeaders });
-  } catch (error: any) {
-    return new NextResponse(error.message, {
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return new NextResponse(errorMessage, {
       status: 500,
       headers: corsHeaders
     });

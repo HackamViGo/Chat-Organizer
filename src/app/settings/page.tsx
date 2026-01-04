@@ -25,14 +25,20 @@ export default function SettingsPage() {
 
   useEffect(() => {
     // Fetch folders from API
-    fetch('/api/folders', { credentials: 'include' })
-      .then(res => res.json())
-      .then(data => {
+    const fetchFolders = async () => {
+      try {
+        const res = await fetch('/api/folders', { credentials: 'include' });
+        const data = await res.json();
         if (data.folders) {
           setFolders(data.folders);
         }
-      })
-      .finally(() => setIsLoadingFolders(false));
+      } catch (error: unknown) {
+        console.error('Error fetching folders:', error instanceof Error ? error.message : error);
+      } finally {
+        setIsLoadingFolders(false);
+      }
+    };
+    fetchFolders();
     
     // Load quick access folders from extension storage (client-side only)
     if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
@@ -74,7 +80,9 @@ export default function SettingsPage() {
       }).filter(Boolean);
       
       (window as any).chrome.storage.local.set({ customFolders }, () => {
-        console.log('Quick access folders updated:', customFolders);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Quick access folders updated:', customFolders);
+        }
       });
     }
   };
@@ -286,7 +294,13 @@ export default function SettingsPage() {
       
       // Clear remember me
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('brainbox_remember_me');
+        try {
+          localStorage.removeItem('brainbox_remember_me');
+        } catch (error) {
+          if (error instanceof DOMException) {
+            console.warn('Failed to remove remember me from localStorage:', error.name);
+          }
+        }
         document.cookie = 'brainbox_remember_me=; max-age=0; path=/';
       }
 
@@ -325,7 +339,13 @@ export default function SettingsPage() {
       
       // Clear remember me
       if (typeof window !== 'undefined') {
-        localStorage.removeItem('brainbox_remember_me');
+        try {
+          localStorage.removeItem('brainbox_remember_me');
+        } catch (error) {
+          if (error instanceof DOMException) {
+            console.warn('Failed to remove remember me from localStorage:', error.name);
+          }
+        }
         document.cookie = 'brainbox_remember_me=; max-age=0; path=/';
       }
 

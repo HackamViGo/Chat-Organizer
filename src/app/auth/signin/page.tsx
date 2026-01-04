@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { LogIn, Mail, Lock, Loader2, Check } from 'lucide-react';
+import { LogIn, Mail, Lock, Loader2, Check, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
 export default function SignInPage() {
@@ -13,6 +13,7 @@ export default function SignInPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,9 +23,17 @@ export default function SignInPage() {
   // Load remember me preference on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('brainbox_remember_me');
-      if (saved === 'true') {
-        setRememberMe(true);
+      try {
+        const saved = localStorage.getItem('brainbox_remember_me');
+        if (saved === 'true') {
+          setRememberMe(true);
+        }
+      } catch (error) {
+        if (error instanceof DOMException) {
+          if (error.name === 'SecurityError') {
+            console.warn('localStorage access denied, skipping remember me preference');
+          }
+        }
       }
     }
   }, []);
@@ -44,11 +53,19 @@ export default function SignInPage() {
 
       // If remember me is checked, store preference in cookie and localStorage
       if (rememberMe && typeof window !== 'undefined') {
-        localStorage.setItem('brainbox_remember_me', 'true');
+        try {
+          localStorage.setItem('brainbox_remember_me', 'true');
+        } catch (error) {
+          console.warn('Failed to save remember me to localStorage:', error);
+        }
         // Set cookie for server-side middleware to read (30 days)
         document.cookie = 'brainbox_remember_me=true; max-age=' + (30 * 24 * 60 * 60) + '; path=/; SameSite=Lax';
-      } else {
-        localStorage.removeItem('brainbox_remember_me');
+      } else if (typeof window !== 'undefined') {
+        try {
+          localStorage.removeItem('brainbox_remember_me');
+        } catch (error) {
+          console.warn('Failed to remove remember me from localStorage:', error);
+        }
         document.cookie = 'brainbox_remember_me=; max-age=0; path=/';
       }
 
@@ -119,13 +136,21 @@ export default function SignInPage() {
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                className="w-full pl-10 pr-12 py-3 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                title={showPassword ? 'Hide password' : 'Show password'}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
           </div>
 

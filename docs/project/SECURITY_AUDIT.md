@@ -161,8 +161,9 @@ if (supabaseUrl === 'your_supabase_url_here' ||
      ```
 
 2. **Git Hooks** (already in place)
-   - `cursor_hooks.sh` checks for secrets before commit
+   - `setup-hooks.sh` installs pre-commit hooks that check for secrets before commit
    - Pattern: Checks for `SUPABASE_SERVICE_ROLE_KEY` and `GEMINI_API_KEY` patterns
+   - ✅ Pre-commit hook validates TypeScript, ESLint, and prevents committing API keys
 
 ---
 

@@ -7,7 +7,7 @@ import { useFolderStore } from '@/store/useFolderStore';
 import { ChatCard } from '@/components/features/chats/ChatCard';
 import { MessageSquarePlus, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight, Search, Calendar, Filter, Download, ChevronDown } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
-import { FOLDER_BG_COLORS, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
+import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
 import { createClient } from '@/lib/supabase/client';
 import { getItemsInFolderAndNested, getChildFolders } from '@/lib/utils/folders';
 import Link from 'next/link';
@@ -199,7 +199,7 @@ function ChatsPageContent() {
               onDrop={(e) => handleDropOnFolder(e, f.id)}
               className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative shrink-0 z-20
                 ${isActive 
-                  ? `${FOLDER_BG_COLORS[f.color] || FOLDER_BG_COLORS['#6366f1']} text-white shadow-lg scale-110` 
+                  ? `${getFolderColorClass(f.color)} text-white shadow-lg scale-110` 
                   : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
                 ${isHovered && !isActive 
                   ? 'ring-2 ring-cyan-400 dark:ring-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 

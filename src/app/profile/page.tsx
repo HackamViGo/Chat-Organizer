@@ -129,7 +129,7 @@ export default function ProfilePage() {
 
     console.log('📤 Starting avatar upload, file:', file.name, 'size:', file.size, 'type:', file.type);
     console.log('📤 Current avatarUrl before upload:', avatarUrl);
-    
+
     setIsUploadingAvatar(true);
     try {
       const formData = new FormData();
@@ -174,9 +174,9 @@ export default function ProfilePage() {
       
       // Refresh user data (optional, don't wait)
       supabase.auth.getUser().then(({ data: { user: updatedUser } }) => {
-        if (updatedUser) {
-          setUser(updatedUser);
-        }
+      if (updatedUser) {
+        setUser(updatedUser);
+      }
       });
     } catch (error: any) {
       console.error('Error uploading avatar:', error);
@@ -228,17 +228,17 @@ export default function ProfilePage() {
       if (!session) throw new Error('Not authenticated');
 
       // Update user record in database with the selected image URL
-      const { error: updateError } = await supabase
-        .from('users')
+      const { error: updateError } = await (supabase
+        .from('users') as any)
         .update({ 
           avatar_url: imageUrl,
           updated_at: new Date().toISOString()
-        } as any)
+        })
         .eq('id', user.id);
 
       if (updateError) {
         throw new Error('Failed to update avatar');
-      }
+        }
 
       setAvatarUrl(imageUrl);
       setShowImageSelector(false);
@@ -260,12 +260,12 @@ export default function ProfilePage() {
       if (!session) throw new Error('Not authenticated');
 
       // Update user record in database to remove avatar
-      const { error: updateError } = await supabase
-        .from('users')
+      const { error: updateError } = await (supabase
+        .from('users') as any)
         .update({ 
           avatar_url: null,
           updated_at: new Date().toISOString()
-        } as any)
+        })
         .eq('id', user.id);
 
       if (updateError) {
@@ -455,12 +455,12 @@ export default function ProfilePage() {
                 <div className="relative mb-4">
                   {avatarUrl ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <img 
                       key={avatarUrl} // Force re-render when URL changes
                       src={avatarUrl} // Direct URL, no cache busting for now
                       alt={displayName}
                       onClick={() => {
-                        setIsAvatarModalOpen(true);
+                          setIsAvatarModalOpen(true);
                       }}
                       onError={(e) => {
                         console.error('Failed to load avatar image. URL was:', avatarUrl);
@@ -492,7 +492,7 @@ export default function ProfilePage() {
                       e.stopPropagation();
                       setShowUploadDialog(true);
                     }}
-                    disabled={isUploadingAvatar}
+                      disabled={isUploadingAvatar}
                   >
                     {isUploadingAvatar ? (
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -953,19 +953,19 @@ export default function ProfilePage() {
           {avatarUrl ? (
             <div className="flex-1 flex flex-col items-center justify-center gap-4 relative" onClick={(e) => e.stopPropagation()}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
+          <img 
                 key={avatarUrl} // Force re-render when URL changes
                 src={avatarUrl} // Direct URL
-                alt={displayName || 'Avatar'}
-                onClick={(e) => e.stopPropagation()}
-                onError={(e) => {
+            alt={displayName || 'Avatar'}
+            onClick={(e) => e.stopPropagation()}
+            onError={(e) => {
                   console.error('Modal: Failed to load avatar image. URL:', avatarUrl);
                   const img = e.target as HTMLImageElement;
                   console.error('Modal: Image src:', img.src);
-                }}
-                onLoad={() => {
+            }}
+            onLoad={() => {
                   console.log('✅ Modal: Avatar image loaded successfully! URL:', avatarUrl);
-                }}
+            }}
                 className="w-[512px] h-[512px] object-cover rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-300"
                 style={{ display: 'block' }} // Force display
               />
@@ -1087,7 +1087,7 @@ export default function ProfilePage() {
                       src={image.url}
                       alt={image.name}
                       className="w-full h-full object-cover"
-                    />
+          />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors" />
                   </button>
                 ))}

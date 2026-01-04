@@ -775,6 +775,7 @@ function SidebarContent() {
       {/* Main Sidebar Structure */}
       <aside 
         ref={sidebarRef}
+        onClick={(e) => e.stopPropagation()}
         className={`
           fixed inset-y-0 left-0 z-50 w-64 bg-white/90 dark:bg-[#0B1121]/90 backdrop-blur-xl border-r border-slate-200 dark:border-white/5
           transition-transform duration-300 ease-in-out

@@ -18,7 +18,7 @@ export default function HomePage() {
   const { folders } = useFolderStore();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
 
   useEffect(() => {
     setMounted(true);

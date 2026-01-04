@@ -10,11 +10,12 @@ import {
   Calendar, HardDrive, ArrowUpAZ, FolderPlus, FolderMinus, Activity, Pill
 } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
-import { FOLDER_BG_COLORS, getFolderTextColorClass, getFolderTextColorClasses, getFolderBorderColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
+import { getFolderColorClass, getFolderTextColorClass, getFolderTextColorClasses, getFolderBorderColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
 import { useImageStore } from '@/store/useImageStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
 import type { Image as ImageType } from '@/types';
+import JSZip from 'jszip';
 
 
 interface SelectionBox {
@@ -87,6 +88,10 @@ export function ImagesPage() {
   
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [slideshowSpeed, setSlideshowSpeed] = useState<2 | 4 | 6>(4); // 2=slow, 4=normal, 6=fast (in seconds)
+  const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadSuccess, setDownloadSuccess] = useState(false);
 
   useEffect(() => {
     const loadImages = async () => {
@@ -155,16 +160,16 @@ export function ImagesPage() {
 
   useEffect(() => {
     let interval: any;
-    if (isPlaying && lightboxIndex !== null) {
+    if (isPlaying && lightboxIndex !== null && displayedImages.length > 0) {
       interval = setInterval(() => {
         setLightboxIndex(prev => {
            if (prev === null) return null;
            return (prev + 1) % displayedImages.length;
         });
-      }, 3000);
+      }, slideshowSpeed * 1000);
     }
     return () => clearInterval(interval);
-  }, [isPlaying, lightboxIndex, displayedImages.length]);
+  }, [isPlaying, lightboxIndex, displayedImages.length, slideshowSpeed]);
 
   const resetSelection = () => {
     clearSelection();
@@ -189,7 +194,61 @@ export function ImagesPage() {
   const closeLightbox = () => {
     setLightboxIndex(null);
     setIsPlaying(false);
+    setShowSpeedMenu(false);
   };
+
+  const goToPreviousImage = useCallback(() => {
+    setLightboxIndex(prev => {
+      if (prev === null) return null;
+      // Don't stop slideshow on manual navigation
+      return prev > 0 ? prev - 1 : displayedImages.length - 1;
+    });
+  }, [displayedImages.length]);
+
+  const goToNextImage = useCallback(() => {
+    setLightboxIndex(prev => {
+      if (prev === null) return null;
+      // Don't stop slideshow on manual navigation
+      return prev < displayedImages.length - 1 ? prev + 1 : 0;
+    });
+  }, [displayedImages.length]);
+
+  // Keyboard navigation for lightbox
+  useEffect(() => {
+    if (lightboxIndex === null) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        goToPreviousImage();
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        goToNextImage();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        closeLightbox();
+        setShowSpeedMenu(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [lightboxIndex, displayedImages.length, goToPreviousImage, goToNextImage]);
+
+  // Close speed menu when clicking outside
+  useEffect(() => {
+    if (!showSpeedMenu) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-speed-menu]')) {
+        setShowSpeedMenu(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSpeedMenu]);
 
   const handleImageDragStart = (e: React.DragEvent, id: string) => {
     if (selectionBox) {
@@ -469,14 +528,39 @@ export function ImagesPage() {
     }
   };
 
-  const downloadImage = (url: string, name: string, e: React.MouseEvent) => {
+  const downloadImage = async (url: string, name: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    e.preventDefault();
+    setIsDownloading(true);
+    setDownloadSuccess(false);
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+      setDownloadSuccess(true);
+      setTimeout(() => {
+        setDownloadSuccess(false);
+        setIsDownloading(false);
+      }, 2000);
+    } catch (error) {
+      console.error('Download failed:', error);
+      setIsDownloading(false);
+      // Fallback to direct link
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
   };
 
   const deleteImageWrapper = async (id: string, e: React.MouseEvent) => {
@@ -527,15 +611,47 @@ export function ImagesPage() {
     setIsCreateModalOpen(true);
   };
 
-  const handleBulkConvert = async () => {
+  const handleBulkDownload = async () => {
     const ids = Array.from(selectedImageIds);
-    for (const id of ids) {
-       const img = images.find(i => i.id === id);
-       if (img && !img.mime_type?.includes('avif')) {
-          await convertToAvif(img, { stopPropagation: () => {} } as any);
-       }
+    const selectedImages = images.filter(img => ids.includes(img.id));
+    
+    if (selectedImages.length === 0) return;
+    
+    try {
+      const zip = new JSZip();
+      
+      // Fetch all images and add them to zip
+      for (const img of selectedImages) {
+        if (img.url) {
+          try {
+            const response = await fetch(img.url);
+            const blob = await response.blob();
+            const fileName = img.name || `image-${img.id}`;
+            zip.file(fileName, blob);
+          } catch (error) {
+            console.error(`Failed to fetch ${img.name}:`, error);
+          }
+        }
+      }
+      
+      // Generate zip file
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+      const zipUrl = window.URL.createObjectURL(zipBlob);
+      
+      // Download zip file
+      const a = document.createElement('a');
+      a.href = zipUrl;
+      a.download = `images-${new Date().toISOString().split('T')[0]}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(zipUrl);
+      
+      resetSelection();
+    } catch (error) {
+      console.error('Failed to create zip file:', error);
+      alert('Failed to download images. Please try again.');
     }
-    resetSelection();
   };
 
   const isCreatingFolderRef = React.useRef(false);
@@ -683,7 +799,7 @@ export function ImagesPage() {
                       onDrop={(e) => handleDropOnFolder(e, f.id)}
                       className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative shrink-0 z-20
                         ${isActive 
-                          ? `${FOLDER_BG_COLORS[f.color] || FOLDER_BG_COLORS['#6366f1']} text-white shadow-lg scale-110` 
+                          ? `${getFolderColorClass(f.color)} text-white shadow-lg scale-110` 
                           : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
                         ${isHovered && !isActive 
                           ? 'ring-2 ring-cyan-400 dark:ring-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 
@@ -957,8 +1073,8 @@ export function ImagesPage() {
                  <button onClick={() => setShowBulkMoveModal(true)} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg transition-colors text-slate-700 dark:text-white">
                    <FolderInput size={14} /> Move
                  </button>
-                 <button onClick={handleBulkConvert} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-slate-100 dark:bg-white/10 hover:bg-slate-200 dark:hover:bg-white/20 rounded-lg transition-colors text-slate-700 dark:text-white">
-                   <RefreshCw size={14} /> Convert
+                 <button onClick={handleBulkDownload} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-cyan-100 dark:bg-cyan-500/10 hover:bg-cyan-200 dark:hover:bg-cyan-500/20 rounded-lg transition-colors text-cyan-700 dark:text-cyan-400">
+                   <Download size={14} /> Download
                  </button>
                  <button onClick={handleBulkDelete} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-100 dark:bg-red-500/10 hover:bg-red-200 dark:hover:bg-red-500/20 rounded-lg transition-colors text-red-600 dark:text-red-400">
                    <Trash2 size={14} /> Delete
@@ -1048,14 +1164,12 @@ export function ImagesPage() {
                           image={img} 
                           folder={imgFolder}
                           onDragStart={handleImageDragStart}
-                          onConvert={convertToAvif}
                           onDownload={downloadImage}
                           onDelete={deleteImageWrapper}
                           onRemoveFromFolder={(id, e) => {
                             e.stopPropagation();
                             handleRemoveFromFolder(id);
                           }}
-                          isConverting={convertingId === img.id}
                           onClick={() => isSelectionMode ? toggleImageSelection(img.id) : openLightbox(index)}
                           selectable={true}
                           isSelected={selectedImageIds.has(img.id)}
@@ -1072,38 +1186,135 @@ export function ImagesPage() {
          <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col animate-in fade-in duration-200">
             <div className="absolute top-4 right-4 z-20 flex gap-4 items-center">
               <button 
-                onClick={() => setIsPlaying(!isPlaying)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setIsPlaying(!isPlaying);
+                }}
                 className={`p-2 rounded-full transition-all ${isPlaying ? 'bg-cyan-500 text-white' : 'bg-white/10 text-white hover:bg-white/20'}`}
                 title={isPlaying ? "Pause Slideshow" : "Play Slideshow"}
               >
                 {isPlaying ? <Pause size={20} /> : <Play size={20} />}
               </button>
-              <button onClick={(e) => downloadImage(displayedImages[lightboxIndex].url!, displayedImages[lightboxIndex].name || 'image', e as any)} className="text-white/70 hover:text-white transition-colors"><Download /></button>
+              <div className="relative" data-speed-menu>
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowSpeedMenu(!showSpeedMenu);
+                  }}
+                  className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-xs font-medium transition-all backdrop-blur-sm"
+                  title="Slideshow Speed"
+                >
+                  {slideshowSpeed}s
+                </button>
+                {showSpeedMenu && (
+                  <div 
+                    className="absolute right-0 top-full mt-2 bg-black/90 backdrop-blur-md rounded-lg p-2 shadow-xl border border-white/10 z-30"
+                    onClick={(e) => e.stopPropagation()}
+                    data-speed-menu
+                  >
+                    <div className="flex flex-col gap-1 min-w-[100px]">
+                      <button
+                        onClick={() => {
+                          setSlideshowSpeed(2);
+                          setShowSpeedMenu(false);
+                        }}
+                        className={`px-3 py-1.5 rounded text-xs text-left transition-all ${
+                          slideshowSpeed === 2 
+                            ? 'bg-cyan-500 text-white' 
+                            : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        Бързо (2s)
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSlideshowSpeed(4);
+                          setShowSpeedMenu(false);
+                        }}
+                        className={`px-3 py-1.5 rounded text-xs text-left transition-all ${
+                          slideshowSpeed === 4 
+                            ? 'bg-cyan-500 text-white' 
+                            : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        Нормално (4s)
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSlideshowSpeed(6);
+                          setShowSpeedMenu(false);
+                        }}
+                        className={`px-3 py-1.5 rounded text-xs text-left transition-all ${
+                          slideshowSpeed === 6 
+                            ? 'bg-cyan-500 text-white' 
+                            : 'text-white/70 hover:bg-white/10 hover:text-white'
+                        }`}
+                      >
+                        Бавно (6s)
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadImage(displayedImages[lightboxIndex].url!, displayedImages[lightboxIndex].name || 'image', e as any);
+                }} 
+                disabled={isDownloading}
+                className={`transition-all ${
+                  downloadSuccess 
+                    ? 'text-green-400 scale-110' 
+                    : isDownloading 
+                    ? 'text-white/50 cursor-not-allowed' 
+                    : 'text-white/70 hover:text-white'
+                }`}
+                title={downloadSuccess ? 'Downloaded!' : isDownloading ? 'Downloading...' : 'Download'}
+              >
+                {downloadSuccess ? (
+                  <Check size={20} className="animate-in zoom-in duration-200" />
+                ) : isDownloading ? (
+                  <RefreshCw size={20} className="animate-spin" />
+                ) : (
+                  <Download size={20} />
+                )}
+              </button>
               <button onClick={closeLightbox} className="text-white/70 hover:text-white transition-colors"><X size={24} /></button>
             </div>
             
-            <div className="flex-1 flex items-center justify-center p-4 relative" onClick={closeLightbox}>
+            <div className="flex-1 flex items-center justify-center relative" onClick={closeLightbox}>
+               {/* Left navigation area - 15% width, but exclude top area for buttons */}
                <button 
-                 className="absolute left-4 text-white/50 hover:text-white p-2 z-20 transition-all hover:scale-110 bg-black/20 rounded-full backdrop-blur-sm"
-                 onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => (prev !== null && prev > 0 ? prev - 1 : displayedImages.length - 1)); setIsPlaying(false); }}
+                 className="absolute left-0 top-20 bottom-0 w-[15%] flex items-center justify-start pl-4 text-white/50 hover:text-white z-10 transition-all group"
+                 onClick={(e) => { e.stopPropagation(); goToPreviousImage(); }}
+                 aria-label="Previous image"
                >
-                 <ChevronLeft size={32} />
+                 <div className="p-3 bg-black/20 hover:bg-black/40 rounded-full backdrop-blur-sm transition-all group-hover:scale-110">
+                   <ChevronLeft size={32} />
+                 </div>
                </button>
                
-               {/* eslint-disable-next-line @next/next/no-img-element */}
-               <img 
-                 key={displayedImages[lightboxIndex].id}
-                 onClick={(e) => e.stopPropagation()}
-                 src={displayedImages[lightboxIndex].url} 
-                 className="max-h-[85vh] max-w-[90vw] object-contain shadow-2xl animate-in fade-in zoom-in-95 duration-300" 
-                 alt={displayedImages[lightboxIndex].name || 'image'} 
-               />
+               {/* Center image area - 70% width */}
+               <div className="flex-1 flex items-center justify-center p-4" onClick={(e) => e.stopPropagation()}>
+                 {/* eslint-disable-next-line @next/next/no-img-element */}
+                 <img 
+                   key={displayedImages[lightboxIndex].id}
+                   onClick={(e) => e.stopPropagation()}
+                   src={displayedImages[lightboxIndex].url} 
+                   className="max-h-[85vh] max-w-[70vw] object-contain shadow-2xl animate-in fade-in zoom-in-95 duration-300" 
+                   alt={displayedImages[lightboxIndex].name || 'image'} 
+                 />
+               </div>
                
+               {/* Right navigation area - 15% width, but exclude top area for buttons */}
                <button 
-                 className="absolute right-4 text-white/50 hover:text-white p-2 z-20 transition-all hover:scale-110 bg-black/20 rounded-full backdrop-blur-sm"
-                 onClick={(e) => { e.stopPropagation(); setLightboxIndex(prev => (prev !== null && prev < displayedImages.length - 1 ? prev + 1 : 0)); setIsPlaying(false); }}
+                 className="absolute right-0 top-20 bottom-0 w-[15%] flex items-center justify-end pr-4 text-white/50 hover:text-white z-10 transition-all group"
+                 onClick={(e) => { e.stopPropagation(); goToNextImage(); }}
+                 aria-label="Next image"
                >
-                 <ChevronRight size={32} />
+                 <div className="p-3 bg-black/20 hover:bg-black/40 rounded-full backdrop-blur-sm transition-all group-hover:scale-110">
+                   <ChevronRight size={32} />
+                 </div>
                </button>
             </div>
             
@@ -1118,7 +1329,12 @@ export function ImagesPage() {
                </div>
                {isPlaying && (
                  <div className="w-full h-0.5 bg-white/20 mt-1 rounded-full overflow-hidden">
-                    <div className="h-full bg-cyan-500 w-full animate-[shrink_3s_linear_infinite]" />
+                    <div 
+                      className="h-full bg-cyan-500 w-full" 
+                      style={{
+                        animation: `shrink ${slideshowSpeed}s linear infinite`
+                      }}
+                    />
                  </div>
                )}
             </div>
@@ -1236,16 +1452,14 @@ const ImageCard: React.FC<{
   image: ImageType, 
   folder?: any,
   onDragStart: (e: React.DragEvent, id: string) => void,
-  onConvert: (img: ImageType, e: React.MouseEvent) => void,
   onDownload: (url: string, name: string, e: React.MouseEvent) => void,
   onDelete: (id: string, e: React.MouseEvent) => void,
   onRemoveFromFolder?: (id: string, e: React.MouseEvent) => void,
   onClick: () => void,
-  isConverting: boolean,
   selectable?: boolean,
   isSelected?: boolean,
   onToggleSelect?: () => void
-}> = ({ image, folder, onDragStart, onConvert, onDownload, onDelete, onRemoveFromFolder, onClick, isConverting, selectable, isSelected, onToggleSelect }) => {
+}> = ({ image, folder, onDragStart, onDownload, onDelete, onRemoveFromFolder, onClick, selectable, isSelected, onToggleSelect }) => {
   const FolderIconComponent = folder?.icon && FOLDER_ICONS[folder.icon] ? FOLDER_ICONS[folder.icon] : FolderIcon;
   const [isLongPressing, setIsLongPressing] = useState(false);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -1255,6 +1469,7 @@ const ImageCard: React.FC<{
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0 || !selectable) return; // Only left mouse button and if selectable
     
+    setIsLongPressing(false);
     longPressTimerRef.current = setTimeout(() => {
       setIsLongPressing(true);
       onToggleSelect?.();
@@ -1273,6 +1488,7 @@ const ImageCard: React.FC<{
       clearTimeout(longPressTimerRef.current);
       longPressTimerRef.current = null;
     }
+    setIsLongPressing(false);
   };
 
   // Handle click outside to close editing
@@ -1296,6 +1512,7 @@ const ImageCard: React.FC<{
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseLeave}
       onClick={() => {
+        // Only call onClick if it wasn't a long press
         if (!isLongPressing) {
           onClick();
         }
@@ -1340,12 +1557,17 @@ const ImageCard: React.FC<{
         
         {!isSelected && (
           <div 
-            onClick={(e) => e.stopPropagation()}
-            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-3"
+            onClick={(e) => {
+              // If clicking on overlay (not buttons), open lightbox
+              if (e.target === e.currentTarget || (e.target as HTMLElement).closest('.absolute.bottom-2')) {
+                onClick();
+              }
+            }}
+            className="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-200 flex items-center justify-center gap-3 pointer-events-none"
           >
              <button 
                onClick={(e) => { e.stopPropagation(); onDownload(image.url, image.name || 'image', e); }}
-               className="p-2.5 bg-white/10 hover:bg-white/30 backdrop-blur-md rounded-full text-white transition-colors" 
+               className="p-2.5 bg-white/10 hover:bg-white/30 backdrop-blur-md rounded-full text-white transition-colors pointer-events-auto" 
                title="Download"
              >
                <Download size={18} />
@@ -1353,7 +1575,7 @@ const ImageCard: React.FC<{
              {folder && onRemoveFromFolder && (
                <button 
                  onClick={(e) => { e.stopPropagation(); onRemoveFromFolder(image.id, e); }}
-                 className="p-2.5 bg-orange-500/20 hover:bg-orange-500/40 backdrop-blur-md rounded-full text-orange-400 transition-colors" 
+                 className="p-2.5 bg-orange-500/20 hover:bg-orange-500/40 backdrop-blur-md rounded-full text-orange-400 transition-colors pointer-events-auto" 
                  title="Remove from folder"
                >
                  <FolderMinus size={18} />
@@ -1361,12 +1583,12 @@ const ImageCard: React.FC<{
              )}
              <button 
                onClick={(e) => { e.stopPropagation(); onDelete(image.id, e); }}
-               className="p-2.5 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-md rounded-full text-red-400 transition-colors" 
+               className="p-2.5 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-md rounded-full text-red-400 transition-colors pointer-events-auto" 
                title="Delete"
              >
                <Trash2 size={18} />
              </button>
-             <div className="absolute bottom-2 text-[10px] text-white/70 flex items-center gap-1">
+             <div className="absolute bottom-2 text-[10px] text-white/70 flex items-center gap-1 pointer-events-auto cursor-pointer" onClick={onClick}>
                <Maximize2 size={10} /> View
              </div>
           </div>
@@ -1387,16 +1609,16 @@ const ImageCard: React.FC<{
           </p>
         </div>
 
-        {!image.mime_type?.includes('avif') && (
-          <button 
-            onClick={(e) => onConvert(image, e)}
-            disabled={isConverting}
-            className="w-full py-1.5 px-3 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 border border-slate-200 dark:border-white/5 transition-all text-xs font-medium flex items-center justify-center gap-2"
-          >
-             {isConverting ? <RefreshCw size={12} className="animate-spin" /> : <RefreshCw size={12} />}
-             To AVIF
-          </button>
-        )}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onDownload(image.url, image.name || 'image', e);
+          }}
+          className="w-full py-1.5 px-3 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-cyan-50 dark:hover:bg-cyan-500/10 text-slate-600 dark:text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 border border-slate-200 dark:border-white/5 transition-all text-xs font-medium flex items-center justify-center gap-2"
+        >
+          <Download size={12} />
+          Download
+        </button>
       </div>
     </div>
   );

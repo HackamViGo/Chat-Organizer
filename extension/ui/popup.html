@@ -3,184 +3,190 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>BrainBox</title>
+  <title>Chat Organizer</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { 
+      width: 350px; 
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #fafafa;
     }
     
-    body {
-      width: 320px;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    .header { 
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-    }
-    
-    .header {
+      color: white; 
+      padding: 16px; 
       text-align: center;
-      margin-bottom: 20px;
     }
     
-    .header h1 {
-      font-size: 24px;
-      margin-bottom: 4px;
+    .auth-section { 
+      padding: 16px; 
+      border-bottom: 1px solid #eee;
+      text-align: center;
     }
     
-    .header p {
-      font-size: 12px;
-      opacity: 0.9;
-    }
-    
-    .status {
-      background: rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      padding: 12px;
-      margin-bottom: 16px;
-    }
-    
-    .status-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 8px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    
-    .status-item:last-child {
-      border-bottom: none;
-    }
-    
-    .status-label {
-      font-size: 14px;
-    }
-    
-    .status-value {
-      font-size: 20px;
-    }
-    
-    .actions {
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    
-    .actions-row {
-      display: flex;
-      gap: 8px;
-    }
-    
-    .actions-row .btn {
-      flex: 1;
-    }
-    
-    .btn {
-      padding: 12px;
-      border: none;
-      border-radius: 8px;
-      font-size: 14px;
-      font-weight: 600;
+    .login-btn { 
+      background: #007acc; 
+      color: white; 
+      border: none; 
+      padding: 10px 20px; 
+      border-radius: 6px; 
       cursor: pointer;
-      transition: all 0.2s;
-      display: flex;
+      font-weight: 500;
+    }
+    
+    .login-btn:hover {
+      background: #005fa3;
+    }
+    
+    .user-info { 
+      display: flex; 
+      align-items: center; 
+      justify-content: space-between;
+      padding: 8px 0;
+    }
+    
+    .modules { 
+      padding: 12px 16px; 
+      border-bottom: 1px solid #eee;
+    }
+    
+    .module-toggle { 
+      display: flex; 
+      justify-content: space-between; 
       align-items: center;
-      justify-content: center;
-      gap: 6px;
+      margin: 8px 0;
     }
     
-    .btn-primary {
-      background: white;
-      color: #667eea;
+    .toggle-switch {
+      position: relative; width: 44px; height: 24px;
     }
     
-    .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider {
+      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: #ccc; border-radius: 24px; transition: .4s;
+      cursor: pointer;
     }
-    
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.2);
-      color: white;
+    .slider:before {
+      content: ""; position: absolute; height: 18px; width: 18px;
+      left: 3px; bottom: 3px; background: white; border-radius: 50%;
+      transition: .4s;
     }
+    input:checked + .slider { background: #4CAF50; }
+    input:checked + .slider:before { transform: translateX(20px); }
     
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.3);
+    .sync-btn {
+      background: #28a745; color: white; border: none;
+      padding: 6px 12px; border-radius: 4px; font-size: 12px;
+      cursor: pointer;
+      font-weight: 500;
     }
-    
-    .btn-refresh {
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-      padding: 10px;
-      min-width: 48px;
+    .sync-btn:hover {
+      background: #218838;
     }
-    
-    .btn-refresh:hover {
-      background: rgba(255, 255, 255, 0.25);
-    }
-    
-    .btn-refresh:active {
-      transform: rotate(180deg);
-      transition: transform 0.3s;
-    }
-    
-    .btn-refresh.loading {
-      opacity: 0.6;
+    .sync-btn.syncing { 
+      background: #ffc107;
       cursor: not-allowed;
     }
     
-    .footer {
-      margin-top: 16px;
-      text-align: center;
-      font-size: 11px;
-      opacity: 0.8;
+    .quick-links { 
+      padding: 16px; 
     }
+    
+    .quick-links h3 { 
+      margin-bottom: 12px; 
+      font-size: 14px; 
+      color: #666;
+    }
+    
+    .link-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+    }
+    
+    .quick-link {
+      padding: 10px 8px; text-align: center;
+      background: white; border-radius: 8px; border: 1px solid #eee;
+      text-decoration: none; color: #333; font-size: 13px;
+      transition: all .2s;
+    }
+    
+    .quick-link:hover { 
+      background: #f0f8ff; 
+      border-color: #007acc; 
+      transform: translateY(-1px);
+    }
+    
+    .status { 
+      padding: 8px 16px; 
+      font-size: 12px; 
+      color: #666;
+    }
+    
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
+  <!-- Header -->
   <div class="header">
-    <h1>🧠 BrainBox</h1>
-    <p>AI Chat Organizer</p>
+    <h2>📋 Chat Organizer</h2>
   </div>
-  
-  <div class="status">
-    <div class="status-item">
-      <span class="status-label">ChatGPT</span>
-      <span class="status-value" id="chatgpt-status">⚪</span>
-    </div>
-    <div class="status-item">
-      <span class="status-label">Gemini</span>
-      <span class="status-value" id="gemini-status">⚪</span>
-    </div>
-    <div class="status-item">
-      <span class="status-label">Claude</span>
-      <span class="status-value" id="claude-status">⚪</span>
+
+  <!-- Auth Section -->
+  <div id="login-section" class="auth-section">
+    <p>🔐 Not logged in</p>
+    <button class="login-btn" id="login-btn">LOG IN</button>
+  </div>
+
+  <div id="user-section" class="auth-section hidden">
+    <div class="user-info">
+      <span>👤 <strong id="user-name">Loading...</strong></span>
+      <button class="login-btn" id="logout-btn" style="background: #dc3545;">LOGOUT</button>
     </div>
   </div>
-  
-  <div class="actions">
-    <div class="actions-row">
-    <button class="btn btn-primary" id="open-dashboard">
-      Open Dashboard
-      </button>
-      <button class="btn btn-refresh" id="refresh-status" title="Refresh status">
-        🔄
-      </button>
+
+  <!-- Modules Toggle (только для залогиненных) -->
+  <div id="modules-section" class="modules hidden">
+    <div class="module-toggle">
+      <span>📱 Chats Module</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="chat-toggle" checked>
+        <span class="slider"></span>
+      </label>
     </div>
-    <button class="btn btn-secondary" id="toggle-batch-images">
-      <span id="batch-images-icon">📸</span>
-      <span id="batch-images-text">Batch Save Images</span>
-    </button>
-    <button class="btn btn-secondary" id="view-docs">
-      View Documentation
-    </button>
+    <div class="module-toggle">
+      <span>💡 Prompts Module</span>
+      <label class="toggle-switch">
+        <input type="checkbox" id="prompt-toggle" checked>
+        <span class="slider"></span>
+      </label>
+    </div>
+    <div class="module-toggle">
+      <span>🔄 Prompts Sync</span>
+      <button id="sync-btn" class="sync-btn">SYNC</button>
+    </div>
   </div>
-  
-  <div class="footer">
-    <p>Hover over conversations to save them</p>
+
+  <!-- Quick Links -->
+  <div class="quick-links">
+    <h3>🚀 Quick Access</h3>
+    <div class="link-grid">
+      <a href="https://chat.openai.com" class="quick-link" title="ChatGPT" target="_blank">🗣️ ChatGPT</a>
+      <a href="https://gemini.google.com" class="quick-link" title="Gemini" target="_blank">⭐ Gemini</a>
+      <a href="https://claude.ai" class="quick-link" title="Claude" target="_blank">🤖 Claude</a>
+      <a href="https://lmarena.ai" class="quick-link" title="LMArena" target="_blank">🏆 LMArena</a>
+      <a href="https://chat.deepseek.com" class="quick-link" title="DeepSeek" target="_blank">⚡ DeepSeek</a>
+      <a href="https://chat.qwen.ai" class="quick-link" title="Qwen" target="_blank">🐲 Qwen</a>
+      <a href="https://chat.perplexity.ai" class="quick-link" title="Perplexity" target="_blank">🔍 Perplexity</a>
+      <a href="https://grok.x.ai" class="quick-link" title="Grok" target="_blank">🦙 Grok</a>
+      <a href="https://chatgpt.com/g/g-12345678-chat-organizer" class="quick-link" title="Custom GPT" target="_blank">🎯 Custom GPT</a>
+      <a href="https://github.com/HackamViGo/Chat-Organizer" class="quick-link" title="GitHub" target="_blank">📂 GitHub</a>
+    </div>
   </div>
-  
+
+  <!-- Status -->
+  <div id="status" class="status">Ready</div>
+
   <script src="popup.js"></script>
 </body>
 </html>

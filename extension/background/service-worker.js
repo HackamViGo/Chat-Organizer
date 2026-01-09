@@ -13,6 +13,9 @@ console.log('[BrainBox] Dashboard URL:', DASHBOARD_URL);
 import { normalizeChatGPT, normalizeClaude, normalizeGemini } from '../lib/normalizers.js';
 import { validateConversation } from '../lib/schemas.js';
 import { limiters } from '../lib/rate-limiter.js';
+import { SimpleDynamicMenus } from './dynamicMenus.js';
+import { PromptSyncManager } from './promptSync.js';
+import { AuthManager } from './authManager.js';
 
 // ============================================================================
 // TOKEN STORAGE
@@ -273,6 +276,30 @@ console.log('[BrainBox] ✅ Batchexecute response interceptor registered');
 // ============================================================================
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+
+    // Login action (from popup)
+    if (request.action === 'login') {
+        AuthManager.login()
+            .then(() => sendResponse({ success: true }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    }
+
+    // Logout action (from popup)
+    if (request.action === 'logout') {
+        AuthManager.logout()
+            .then(() => sendResponse({ success: true }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    }
+
+    // Sync prompts (from popup or context menu)
+    if (request.action === 'sync_prompts') {
+        PromptSyncManager.syncPrompts()
+            .then(result => sendResponse(result))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    }
 
     // Set auth token (from dashboard auth page)
     if (request.action === 'setAuthToken') {
@@ -819,9 +846,11 @@ chrome.runtime.onInstalled.addListener((details) => {
 
 function createContextMenu() {
     // Remove ALL existing menu items first (including any submenus)
-    chrome.contextMenus.removeAll(() => {
-        // Create 3 different context menu items with different contexts
-        // They won't show at the same time, so no submenu grouping
+    chrome.contextMenus.removeAll(async () => {
+        // Initialize new dynamic menus (2x3 structure)
+        await SimpleDynamicMenus.init();
+        
+        // Keep existing BrainBox menu items
         
         // 1. Prompt Inject - shows ONLY in editable fields (textarea/input)
         chrome.contextMenus.create({
@@ -865,8 +894,82 @@ function createContextMenu() {
 }
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
+    // Handle dynamic menu items
+    
+    // Chat menu items
+    if (info.menuItemId === 'chat_0') { // Add Tag
+        console.log('[BrainBox] Add Tag clicked');
+        // TODO: Implement tag functionality
+    } else if (info.menuItemId === 'chat_1') { // Sync Now
+        console.log('[BrainBox] Sync Now clicked');
+        // TODO: Implement chat sync functionality
+    } else if (info.menuItemId === 'chat_2') { // Search Chats
+        console.log('[BrainBox] Search Chats clicked');
+        // Open dashboard search
+        chrome.tabs.create({ url: `${DASHBOARD_URL}?search=true` });
+    }
+    
+    // Prompt menu items - static actions
+    else if (info.menuItemId === 'prompt_static_0') { // Insert Prompt
+        console.log('[BrainBox] Insert Prompt clicked');
+        // Show prompt selection dialog
+        try {
+            await chrome.tabs.sendMessage(tab.id, {
+                action: 'showPromptMenu'
+            });
+        } catch (error) {
+            console.error('[BrainBox] Failed to show prompt menu:', error);
+        }
+    } else if (info.menuItemId === 'prompt_static_1') { // Quick Prompt
+        console.log('[BrainBox] Quick Prompt clicked');
+        // TODO: Implement quick prompt functionality
+    } else if (info.menuItemId === 'prompt_static_2') { // Suggest
+        console.log('[BrainBox] Suggest clicked');
+        // TODO: Implement suggestion functionality
+    }
+    
+    // Prompt menu items - recent prompts
+    else if (info.menuItemId.startsWith('prompt_recent_')) {
+        const index = parseInt(info.menuItemId.split('_')[2]);
+        console.log('[BrainBox] Recent prompt clicked:', index);
+        
+        // Get the prompt and insert it
+        const { local_prompts } = await chrome.storage.local.get('local_prompts');
+        if (local_prompts && local_prompts[index]) {
+            const prompt = local_prompts[index];
+            try {
+                await chrome.tabs.sendMessage(tab.id, {
+                    action: 'insertPrompt',
+                    content: prompt.content
+                });
+            } catch (error) {
+                console.error('[BrainBox] Failed to insert prompt:', error);
+            }
+        }
+    }
+    
+    // Sync prompts
+    else if (info.menuItemId === 'sync_prompts') {
+        console.log('[BrainBox] Sync Prompts clicked from context menu');
+        const result = await PromptSyncManager.syncPrompts();
+        
+        // Show notification
+        try {
+            chrome.notifications.create({
+                type: 'basic',
+                iconUrl: chrome.runtime.getURL('icons/icon48.png'),
+                title: 'BrainBox',
+                message: result.success 
+                    ? `✅ Synced ${result.count || 0} prompts` 
+                    : `❌ Sync failed: ${result.error}`
+            });
+        } catch (notifError) {
+            console.warn('[BrainBox] Could not show notification:', notifError);
+        }
+    }
+    
     // Prompt Inject handler - in editable fields (textarea) - WORKS EVERYWHERE
-    if (info.menuItemId === 'brainbox-prompt-inject') {
+    else if (info.menuItemId === 'brainbox-prompt-inject') {
         try {
             console.log('[💬 BrainBox] Prompt Inject clicked on:', tab.url);
             
@@ -1486,3 +1589,17 @@ chrome.storage.local.get([
         startTokenRefreshCheck();
     }
 });
+
+// ============================================================================
+// PROMPT AUTO-SYNC
+// ============================================================================
+
+// Auto-sync prompts hourly with 10% chance
+setInterval(() => {
+    if (Math.random() < 0.1) { // 10% chance hourly
+        console.log('[BrainBox] 🔄 Auto-syncing prompts (hourly check)');
+        PromptSyncManager.syncPrompts();
+    }
+}, 3600000); // hourly (1 hour = 3600000 ms)
+
+console.log('[BrainBox] ✅ Prompt auto-sync initialized (hourly with 10% chance)');

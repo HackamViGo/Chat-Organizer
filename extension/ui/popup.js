@@ -1,147 +1,115 @@
-// BrainBox - Popup Script
+// BrainBox - Popup Manager
+// Handles popup UI logic, auth state, and module toggles
 
-// Function to update status indicators
-async function updateStatusIndicators() {
-    // Check token status for all platforms
-    const { 
-        chatgpt_token, 
-        gemini_at_token, 
-        gemini_dynamic_key,
-        claude_org_id,
-        accessToken 
-    } = await chrome.storage.local.get([
-        'chatgpt_token',
-        'gemini_at_token',
-        'gemini_dynamic_key',
-        'claude_org_id',
-        'accessToken'
-    ]);
+class PopupManager {
+  constructor() {
+    this.init();
+  }
 
-    // Check if user is logged into dashboard (required for all platforms)
-    const hasDashboardAccess = !!accessToken;
+  async init() {
+    await this.checkAuth();
+    this.setupEventListeners();
+    this.loadSettings();
+  }
 
-    // Update status indicators - green only if platform token AND dashboard access are ready
-    // ChatGPT: needs chatgpt_token + accessToken
-    const chatgptReady = chatgpt_token && hasDashboardAccess;
-    document.getElementById('chatgpt-status').textContent = chatgptReady ? '🟢' : '⚪';
+  async checkAuth() {
+    const auth = await chrome.storage.sync.get(['user', 'isLoggedIn']);
+    const { accessToken } = await chrome.storage.local.get(['accessToken']);
     
-    // Gemini: needs gemini_at_token + gemini_dynamic_key + accessToken
-    const geminiReady = gemini_at_token && gemini_dynamic_key && hasDashboardAccess;
-    document.getElementById('gemini-status').textContent = geminiReady ? '🟢' : '⚪';
+    // Check if user is logged in (either sync storage or local storage)
+    const isLoggedIn = auth.isLoggedIn || !!accessToken;
     
-    // Claude: needs claude_org_id + accessToken (cookies are handled automatically)
-    const claudeReady = claude_org_id && hasDashboardAccess;
-    document.getElementById('claude-status').textContent = claudeReady ? '🟢' : '⚪';
+    if (isLoggedIn) {
+      document.getElementById('login-section').classList.add('hidden');
+      document.getElementById('user-section').classList.remove('hidden');
+      document.getElementById('modules-section').classList.remove('hidden');
+      
+      // Set user name
+      if (auth.user && auth.user.name) {
+        document.getElementById('user-name').textContent = auth.user.name;
+      } else {
+        document.getElementById('user-name').textContent = 'User';
+      }
+    } else {
+      document.getElementById('login-section').classList.remove('hidden');
+      document.getElementById('user-section').classList.add('hidden');
+      document.getElementById('modules-section').classList.add('hidden');
+    }
+  }
+
+  setupEventListeners() {
+    // Login button
+    document.getElementById('login-btn').onclick = () => {
+      chrome.runtime.sendMessage({ action: 'login' });
+      window.close();
+    };
+    
+    // Logout button
+    document.getElementById('logout-btn').onclick = async () => {
+      await chrome.runtime.sendMessage({ action: 'logout' });
+      location.reload();
+    };
+
+    // Chat module toggle
+    document.getElementById('chat-toggle').onchange = (e) => {
+      chrome.storage.sync.set({ enableChats: e.target.checked });
+      this.updateStatus(`Chats ${e.target.checked ? 'enabled' : 'disabled'}`);
+    };
+    
+    // Prompts module toggle
+    document.getElementById('prompt-toggle').onchange = (e) => {
+      chrome.storage.sync.set({ enablePrompts: e.target.checked });
+      this.updateStatus(`Prompts ${e.target.checked ? 'enabled' : 'disabled'}`);
+    };
+    
+    // Sync prompts button
+    document.getElementById('sync-btn').onclick = async () => {
+      const btn = document.getElementById('sync-btn');
+      const originalText = btn.textContent;
+      
+      btn.textContent = 'SYNCING...';
+      btn.classList.add('syncing');
+      btn.disabled = true;
+      
+      try {
+        const result = await chrome.runtime.sendMessage({ action: 'sync_prompts' });
+        
+        if (result && result.success) {
+          btn.textContent = 'SYNCED ✓';
+          this.updateStatus(`Synced ${result.count || 0} prompts`);
+        } else {
+          btn.textContent = 'FAILED ✗';
+          this.updateStatus(`Sync failed: ${result?.error || 'Unknown error'}`);
+        }
+      } catch (error) {
+        btn.textContent = 'ERROR ✗';
+        this.updateStatus(`Sync error: ${error.message}`);
+      }
+      
+      setTimeout(() => {
+        btn.textContent = originalText;
+        btn.classList.remove('syncing');
+        btn.disabled = false;
+      }, 2000);
+    };
+  }
+
+  async loadSettings() {
+    const settings = await chrome.storage.sync.get(['enableChats', 'enablePrompts']);
+    document.getElementById('chat-toggle').checked = settings.enableChats !== false;
+    document.getElementById('prompt-toggle').checked = settings.enablePrompts !== false;
+  }
+
+  updateStatus(message) {
+    const statusEl = document.getElementById('status');
+    statusEl.textContent = message;
+    setTimeout(() => {
+      statusEl.textContent = 'Ready';
+    }, 2000);
+  }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
-    // Initial status update
-    await updateStatusIndicators();
-
-    // Refresh button
-    const refreshBtn = document.getElementById('refresh-status');
-    refreshBtn.addEventListener('click', async () => {
-        // Add loading state
-        refreshBtn.classList.add('loading');
-        refreshBtn.textContent = '⏳';
-        
-        // Small delay for visual feedback
-        await new Promise(resolve => setTimeout(resolve, 300));
-        
-        // Update status
-        await updateStatusIndicators();
-        
-        // Remove loading state
-        refreshBtn.classList.remove('loading');
-        refreshBtn.textContent = '🔄';
-    });
-
-    // Open dashboard button
-    document.getElementById('open-dashboard').addEventListener('click', () => {
-        chrome.tabs.create({ url: 'https://brainbox-alpha.vercel.app' });
-    });
-
-    // Batch images toggle button
-    let batchModeActive = false;
-    const batchBtn = document.getElementById('toggle-batch-images');
-    const batchIcon = document.getElementById('batch-images-icon');
-    const batchText = document.getElementById('batch-images-text');
-    
-    batchBtn.addEventListener('click', async () => {
-        console.log('[🖼️ Popup] Batch button clicked, current state:', batchModeActive);
-        batchModeActive = !batchModeActive;
-        console.log('[🖼️ Popup] New batch mode state:', batchModeActive);
-        
-        // Update button appearance
-        if (batchModeActive) {
-            batchBtn.style.background = 'rgba(16, 185, 129, 0.3)';
-            batchIcon.textContent = '✅';
-            batchText.textContent = 'Batch Mode ON';
-        } else {
-            batchBtn.style.background = 'rgba(255, 255, 255, 0.2)';
-            batchIcon.textContent = '📸';
-            batchText.textContent = 'Batch Save Images';
-        }
-        
-        // Get current active tab
-        const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-        console.log('[🖼️ Popup] Active tab:', tab?.id, tab?.url);
-        
-        if (!tab) {
-            console.error('[🖼️ Popup] ❌ No active tab found');
-            return;
-        }
-        
-        // Send message to content script
-        try {
-            console.log('[🖼️ Popup] 📨 Sending toggleBatchMode message to tab:', tab.id);
-            const response = await chrome.tabs.sendMessage(tab.id, {
-                action: 'toggleBatchMode',
-                enabled: batchModeActive
-            });
-            console.log('[🖼️ Popup] ✅ Message sent successfully, response:', response);
-        } catch (error) {
-            console.log('[🖼️ Popup] ⚠️ Content script not ready, error:', error.message);
-            console.log('[🖼️ Popup] 🔧 Attempting to inject image-saver script...');
-            
-            // Content script might not be loaded, try to inject it
-            try {
-                await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    files: ['image-saver/image-saver.js']
-                });
-                console.log('[🖼️ Popup] ✅ Image saver script injected');
-                
-                setTimeout(async () => {
-                    try {
-                        console.log('[🖼️ Popup] 📨 Retrying message after injection...');
-                        const response = await chrome.tabs.sendMessage(tab.id, {
-                            action: 'toggleBatchMode',
-                            enabled: batchModeActive
-                        });
-                        console.log('[🖼️ Popup] ✅ Message sent after injection, response:', response);
-                    } catch (e) {
-                        console.error('[🖼️ Popup] ❌ Failed to toggle batch mode after injection:', e);
-                        console.error('[🖼️ Popup] Error details:', {
-                            message: e.message,
-                            stack: e.stack
-                        });
-                    }
-                }, 500);
-            } catch (injectError) {
-                console.error('[🖼️ Popup] ❌ Failed to inject image saver script:', injectError);
-                console.error('[🖼️ Popup] Inject error details:', {
-                    message: injectError.message,
-                    stack: injectError.stack
-                });
-            }
-        }
-    });
-
-    // View docs button
-    document.getElementById('view-docs').addEventListener('click', () => {
-        chrome.tabs.create({
-            url: 'https://github.com/yourusername/brainbox-extension/blob/main/README.md'
-        });
-    });
+// Initialize popup manager when DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+  new PopupManager();
 });

@@ -1,0 +1,16 @@
+{
+  "name": "brainbox-extension",
+  "version": "2.0.1",
+  "description": "BrainBox Chrome Extension",
+  "scripts": {
+    "chrome:debug": "google-chrome --load-extension=$(pwd) --user-data-dir=/tmp/brainbox-debug --no-first-run",
+    "chrome:monitor": "npx web-ext run --target=chromium --source-dir=.",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "web-ext": "^8.10.0"
+  }
+}

@@ -14,7 +14,7 @@
   
   const CONFIG = {
     DB_NAME: 'BrainBoxGeminiMaster',
-    DB_VERSION: 5, // Incremented to ensure all stores are created
+    DB_VERSION: 6, // Нарочно вдигаме версията за да сме сигурни, че схемата се обновява
     AUTO_SAVE_ENABLED: true,
     SAVE_INTERVAL: 5000, // Проверка на всеки 5 секунди
     MAX_RETRIES: 3,
@@ -45,19 +45,20 @@
       const request = indexedDB.open(CONFIG.DB_NAME, CONFIG.DB_VERSION);
       
       request.onerror = () => {
-        console.error('[🧠 BrainBox Master] IndexedDB грешка:', request.error);
+        console.error('[🧠 BrainBox Master] ❌ IndexedDB грешка:', request.error);
         reject(request.error);
       };
       
       request.onsuccess = () => {
         STATE.db = request.result;
-        console.log('[🧠 BrainBox Master] ✅ IndexedDB свързана');
+        console.log('[🧠 BrainBox Master] ✅ IndexedDB свързана. Налични stores:', Array.from(STATE.db.objectStoreNames));
         resolve(STATE.db);
       };
       
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
-        console.log('[🧠 BrainBox Master] Създаване на схема...');
+        console.log('[🧠 BrainBox Master] 🆙 Upgrade Needed (v' + event.oldVersion + ' -> v' + event.newVersion + ')');
+
         
         // Store 1: RAW BATCHEXECUTE DATA (както идва от мрежата)
         if (!db.objectStoreNames.contains('rawBatchData')) {
@@ -823,13 +824,19 @@
       
       // Parse jslog - it contains JSON array with conversation ID
       // Pattern: ["c_CONVERSATION_ID",null,1,2]
-      const match = jslog.match(/\["c_([a-zA-Z0-9_]+)"/);
+      const match = jslog.match(/\["c_([a-zA-Z0-9_-]+)"/);
       if (match && match[1]) {
         return match[1];
       }
       
-      // Fallback: try to extract any c_* pattern
-      const fallbackMatch = jslog.match(/c_([a-zA-Z0-9_]+)/);
+      // Fallback 1: match conversation inside BardVeMetadataKey
+      const metadataMatch = jslog.match(/BardVeMetadataKey:\[[^\]]*"c_([a-zA-Z0-9_-]+)"/);
+      if (metadataMatch && metadataMatch[1]) {
+        return metadataMatch[1];
+      }
+
+      // Fallback 2: try to extract any c_* pattern
+      const fallbackMatch = jslog.match(/c_([a-zA-Z0-9_-]+)/);
       if (fallbackMatch && fallbackMatch[1]) {
         return fallbackMatch[1];
       }
@@ -1003,21 +1010,24 @@
   function findAllConversationDivs() {
     const selectors = [
       '[data-test-id="conversation"]',
-      '.conversation',
+      '.conversation-container',
       'div[jslog*="c_"]',
-      'div.mat-ripple.conversation'
+      'div.mat-ripple.conversation',
+      'a[jslog*="c_"]',
+      'a.conversation-link'
     ];
     
     let elements = [];
     
     for (const selector of selectors) {
-      elements = Array.from(document.querySelectorAll(selector));
-      if (elements.length > 0) {
-        break;
+      const found = Array.from(document.querySelectorAll(selector));
+      if (found.length > 0) {
+        elements = [...elements, ...found];
       }
     }
     
-    return elements;
+    // Remove duplicates
+    return [...new Set(elements)];
   }
   
   /**
@@ -1235,9 +1245,11 @@
     
     // Check if required stores exist
     if (!storesExist(['syncQueue', 'conversations'])) {
-      console.warn('[🧠 BrainBox Master] ⚠️ Required stores not found, skipping sync');
+      console.warn('[🧠 BrainBox Master] ⚠️ Required stores not found! Exist:', Array.from(STATE.db.objectStoreNames));
       return;
     }
+    
+    console.log('[🧠 BrainBox Master] 🔄 Начало на processSyncQueue...');
     
     return new Promise((resolve) => {
       try {
@@ -1296,6 +1308,7 @@
                   }));
                   
                   // Изпращане към service worker за запазване
+                  console.log('[🧠 BrainBox Master] 📤 Изпращане към Worker (saveToDashboard):', conversation.conversationId);
                   const response = await chrome.runtime.sendMessage({
                     action: 'saveToDashboard',
                     data: {
@@ -1314,6 +1327,8 @@
                     },
                     folderId: null
                   });
+                  
+                  console.log('[🧠 BrainBox Master] 📥 Отговор от Worker за', conversation.conversationId, ':', response);
                   
                   if (response && response.success) {
                     // ✅ УСПЕХ
@@ -1401,10 +1416,10 @@
   
   function setupMessageListener() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+      console.log('[🧠 BrainBox Master] 📨 Получено съобщение от Background:', request.action);
+      
       if (request.action === 'processBatchexecuteResponse') {
-        // Content script вече хваща responses чрез interceptors,
-        // но това съобщение може да се използва за допълнителна обработка
-        // Не логваме всеки път за да не нарушаваме конзолата
+        console.log('[🧠 BrainBox Master] 📡 Обработка на batchexecute съобщение...');
         sendResponse({ success: true });
         return true;
       }
@@ -1785,6 +1800,9 @@
       // 4. Готово
       STATE.isInitialized = true;
       console.log('[🧠 BrainBox Master] ✅ Системата е активна!');
+
+      // 5. Notify service worker that we are ready
+      chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'gemini' }).catch(() => {});
       
       // Покажи статистика след 5 секунди
       setTimeout(printStats, 5000);

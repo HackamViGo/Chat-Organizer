@@ -1,4 +1,4 @@
-// BrainBox AI Chat Organizer - Service Worker
+ // BrainBox AI Chat Organizer - Service Worker
 // Manifest V3 Background Script
 
 // Environment Configuration - Production only (Vercel)
@@ -243,18 +243,11 @@ chrome.webRequest.onCompleted.addListener(
         
         // Send message to content script to process this response
         if (details.tabId && details.tabId > 0) {
-            try {
-                chrome.tabs.sendMessage(details.tabId, {
-                    action: 'processBatchexecuteResponse',
-                    url: details.url,
-                    timestamp: Date.now()
-                }).catch(err => {
-                    // Content script might not be ready yet, that's OK
-                    console.log('[BrainBox] Content script not ready:', err.message);
-                });
-            } catch (error) {
-                console.error('[BrainBox] Error sending message to content script:', error);
-            }
+            sendMessageToTab(details.tabId, {
+                action: 'processBatchexecuteResponse',
+                url: details.url,
+                timestamp: Date.now()
+            });
         }
     },
     { 
@@ -273,6 +266,8 @@ console.log('[BrainBox] ✅ Batchexecute response interceptor registered');
 // ============================================================================
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    console.log('[BrainBox Worker] 📨 Message received:', request.action, 'from', sender.tab ? 'tab ' + sender.tab.id : 'extension');
+
 
     // Set auth token (from dashboard auth page)
     if (request.action === 'setAuthToken') {
@@ -353,7 +348,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     // Inject Gemini MAIN world script
     if (request.action === 'injectGeminiMainScript') {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (tabs[0] && tabs[0].url && tabs[0].url.includes('gemini.google.com')) {
+            if (tabs[0] && tabs[0].id) {
                 console.log('[BrainBox] Injecting Gemini MAIN world script into tab:', tabs[0].id);
                 chrome.scripting.executeScript({
                     target: { tabId: tabs[0].id },
@@ -367,13 +362,45 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     sendResponse({ success: false, error: err.message });
                 });
             } else {
-                console.warn('[BrainBox] Not a Gemini page, skipping script injection');
-                sendResponse({ success: false, error: 'Not a Gemini page' });
+                sendResponse({ success: false, error: 'No active tab found' });
             }
         });
-        return true; // Keep channel open for async response
+        return true;
+    }
+
+    // Content script readiness signal
+    if (request.action === 'contentScriptReady') {
+        console.log(`[BrainBox] 🚀 Content script ready signal from tab ${sender.tab?.id || 'unknown'} (${request.platform})`);
+        return true;
+    }
+
+    // Fetch Prompts (Delegate to background to bypass CSP)
+    if (request.action === 'fetchPrompts') {
+        handleFetchPrompts()
+            .then(data => sendResponse({ success: true, data }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
     }
 });
+
+/**
+ * Robust message sending with retries
+ */
+async function sendMessageToTab(tabId, message, retries = 3, delay = 500) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            await chrome.tabs.sendMessage(tabId, message);
+            return true;
+        } catch (error) {
+            if (i === retries - 1) {
+                console.log(`[BrainBox] ⚠️ Message failed after ${retries} attempts:`, message.action);
+                return false;
+            }
+            await new Promise(r => setTimeout(r, delay));
+        }
+    }
+    return false;
+}
 
 // ============================================================================
 // API EXTRACTION FUNCTIONS (Rate Limited)
@@ -725,10 +752,11 @@ async function handleSaveToDashboard(conversationData, folderId) {
              conversationData.platform === 'gemini' ? `https://gemini.google.com/app/${conversationData.id}` :
              `https://${conversationData.platform}/chat/${conversationData.id}`);
 
-        console.log('[BrainBox] Saving to dashboard with URL:', chatUrl);
-        console.log('[BrainBox] conversationData.url:', conversationData.url);
-        console.log('[BrainBox] conversationData.id:', conversationData.id);
-        console.log('[BrainBox] conversationData.platform:', conversationData.platform);
+        console.log('[BrainBox Worker] 💾 Saving to dashboard:', conversationData.id);
+        console.log('[BrainBox Worker] Platform:', conversationData.platform);
+        console.log('[BrainBox Worker] URL:', chatUrl);
+        console.log('[BrainBox Worker] Messages count:', conversationData.messages?.length || 0);
+
 
         const requestBody = {
             title: conversationData.title || 'Untitled Chat',
@@ -1383,9 +1411,9 @@ async function refreshAccessToken() {
     } catch (error) {
         console.error('[BrainBox] ❌ Failed to refresh token:', error);
         
-        // If refresh fails, clear tokens and open login page
+        // Just clear tokens silently. Do NOT open a new tab automatically.
+        // Let the user initiate login when they actually try to use a feature.
         await chrome.storage.local.remove(['accessToken', 'refreshToken', 'expiresAt']);
-        chrome.tabs.create({ url: `${DASHBOARD_URL}/extension-auth` });
         
         throw error;
     }
@@ -1486,3 +1514,57 @@ chrome.storage.local.get([
         startTokenRefreshCheck();
     }
 });
+
+// ============================================================================
+// PROMPTS API
+// ============================================================================
+
+async function handleFetchPrompts() {
+    const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
+
+    // Check auth
+    const isTokenValid = accessToken && 
+                        accessToken !== null && 
+                        accessToken !== undefined && 
+                        (!expiresAt || expiresAt > Date.now());
+    
+    // Determine headers
+    const headers = {
+        'Content-Type': 'application/json'
+    };
+    
+    if (isTokenValid) {
+        headers['Authorization'] = `Bearer ${accessToken}`;
+    }
+
+    // Always fetch with use_in_context_menu=true
+    const url = `${DASHBOARD_URL}/api/prompts?use_in_context_menu=true&_=${Date.now()}`;
+    
+    console.log('[BrainBox Worker] 📋 Fetching prompts from:', url);
+    
+    try {
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: headers
+        });
+
+        if (response.status === 401) {
+            // Token expired, try refresh?
+            // For now just error out, client will handle login redirect if needed
+            throw new Error('Unauthorized');
+        }
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
+        }
+
+        const data = await response.json();
+        console.log('[BrainBox Worker] ✅ Prompts fetched:', Array.isArray(data) ? data.length : (data.prompts?.length || 0));
+        return data; // Return full data, client handles parsing
+        
+    } catch (error) {
+        console.error('[BrainBox Worker] ❌ Error fetching prompts:', error);
+        throw error;
+    }
+}

@@ -1,0 +1,96 @@
+# knowledge_injection.yml
+# Context Package Generation Workflow
+# Version: 2.0 - Superior Meta-Architect+
+
+version: "2.0"
+name: "Knowledge Injection Workflow"
+description: "Generate and inject context packages into sub-agents"
+
+trigger:
+  event: agent_assignment
+  source: main_orchestration
+
+inputs:
+  agent_role: string
+  requirements: list[string]
+  mcp_tools: list[string]
+
+steps:
+  - id: load_graph
+    action: python_exec
+    script: scripts/graph_query.py
+    function: load_graph
+    args:
+      path: "./knowledge_graph.json"
+    
+  - id: query_nodes
+    action: python_exec
+    script: scripts/graph_query.py
+    function: query_by_category_and_priority
+    args:
+      category: "${role_category_map[inputs.agent_role]}"
+      priority_threshold: 2
+      max_depth: 1
+    depends_on: load_graph
+    
+  - id: filter_nodes
+    action: python_exec
+    script: scripts/graph_query.py
+    function: filter_by_keywords
+    args:
+      nodes: "${steps.query_nodes.output}"
+      keywords: "${inputs.requirements}"
+    depends_on: query_nodes
+    
+  - id: check_coverage
+    action: validate
+    condition: "len(steps.filter_nodes.output) >= 1"
+    on_fail:
+      action: escalate
+      message: "HALT: No Graph data for ${inputs.requirements}"
+    depends_on: filter_nodes
+    
+  - id: get_locked_nodes
+    action: python_exec
+    script: scripts/graph_query.py
+    function: get_locked_nodes
+    args:
+      category: "${role_category_map[inputs.agent_role]}"
+    depends_on: load_graph
+    
+  - id: generate_package
+    action: python_exec
+    script: scripts/knowledge_injector.py
+    function: generate_context_package
+    args:
+      agent_role: "${inputs.agent_role}"
+      nodes: "${steps.filter_nodes.output}"
+      locked_nodes: "${steps.get_locked_nodes.output}"
+      mcp_tools: "${inputs.mcp_tools}"
+    depends_on: [filter_nodes, get_locked_nodes]
+    
+  - id: render_markdown
+    action: python_exec
+    script: scripts/knowledge_injector.py
+    function: render_as_markdown
+    args:
+      package: "${steps.generate_package.output}"
+    depends_on: generate_package
+    
+  - id: save_package
+    action: write_file
+    path: "./context_packages/${inputs.agent_role}_${timestamp}.md"
+    content: "${steps.render_markdown.output}"
+    depends_on: render_markdown
+
+outputs:
+  package_path: "${steps.save_package.path}"
+  node_count: "${len(steps.filter_nodes.output)}"
+  locked_nodes: "${steps.get_locked_nodes.output}"
+
+role_category_map:
+  frontend_specialist: "Programming Languages & Frameworks"
+  backend_specialist: "Programming Languages & Frameworks"
+  db_architect: "Databases & Data Infrastructure"
+  devops_engineer: "Cloud Platforms & DevOps"
+  ai_integrator: "AI Models & LLM Development"

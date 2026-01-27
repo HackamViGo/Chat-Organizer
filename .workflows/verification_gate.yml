@@ -1,0 +1,131 @@
+# verification_gate.yml
+# Output Verification & Quality Gate Workflow
+# Version: 2.0 - Superior Meta-Architect+
+
+version: "2.0"
+name: "Verification Gate"
+description: "Validate agent outputs against Graph compliance and quality standards"
+
+trigger:
+  event: all_agents_completed
+  source: execution_monitoring
+
+inputs:
+  task_id: string
+  agents: list[agent_state]
+  artifacts: list[artifact]
+
+quality_gates:
+  - name: graph_compliance
+    description: "All references must exist in knowledge graph"
+    severity: critical
+    check: all_urls_in_graph
+    
+  - name: identity_lock_compliance
+    description: "No unauthorized modifications to priority=1 nodes"
+    severity: critical
+    check: no_locked_node_modifications
+    
+  - name: cross_agent_consistency
+    description: "API contracts match between frontend/backend"
+    severity: high
+    check: api_contracts_match
+    
+  - name: code_syntax_validity
+    description: "All generated code files have valid syntax"
+    severity: high
+    check: syntax_validation
+    
+  - name: documentation_citation
+    description: "Code comments reference source documentation"
+    severity: medium
+    check: citations_present
+
+steps:
+  - id: collect_artifacts
+    action: gather_files
+    sources:
+      - "${agents[*].output_artifacts}"
+    output: artifact_bundle
+    
+  - id: extract_references
+    action: python_exec
+    script: scripts/verification.py
+    function: extract_all_references
+    args:
+      artifacts: "${steps.collect_artifacts.output}"
+    depends_on: collect_artifacts
+    
+  - id: check_graph_compliance
+    action: python_exec
+    script: scripts/verification.py
+    function: verify_graph_compliance
+    args:
+      references: "${steps.extract_references.output}"
+      graph_path: "./knowledge_graph.json"
+    depends_on: extract_references
+    gate: graph_compliance
+    
+  - id: check_identity_locks
+    action: python_exec
+    script: scripts/verification.py
+    function: verify_identity_locks
+    args:
+      artifacts: "${steps.collect_artifacts.output}"
+      locked_nodes: "${identity_locked_nodes}"
+    depends_on: collect_artifacts
+    gate: identity_lock_compliance
+    
+  - id: check_api_contracts
+    action: python_exec
+    script: scripts/verification.py
+    function: verify_api_contracts
+    args:
+      frontend_artifacts: "${filter(artifacts, role='frontend')}"
+      backend_artifacts: "${filter(artifacts, role='backend')}"
+    depends_on: collect_artifacts
+    gate: cross_agent_consistency
+    when: "count_agents_by_role(['frontend', 'backend']) >= 2"
+    
+  - id: validate_syntax
+    action: python_exec
+    script: scripts/verification.py
+    function: validate_all_syntax
+    args:
+      artifacts: "${steps.collect_artifacts.output}"
+    depends_on: collect_artifacts
+    gate: code_syntax_validity
+    
+  - id: aggregate_results
+    action: merge_results
+    inputs:
+      - graph_compliance: "${steps.check_graph_compliance.output}"
+      - identity_locks: "${steps.check_identity_locks.output}"
+      - api_contracts: "${steps.check_api_contracts.output}"
+      - syntax: "${steps.validate_syntax.output}"
+    depends_on: [check_graph_compliance, check_identity_locks, check_api_contracts, validate_syntax]
+    
+  - id: evaluate_pass_fail
+    action: decide
+    condition: "all(gate.passed for gate in steps.aggregate_results.output)"
+    on_true: finalization
+    on_false: rework_required
+    depends_on: aggregate_results
+
+  # Rework path
+  - id: rework_required
+    action: generate_rework_instructions
+    failed_gates: "${filter(steps.aggregate_results.output, passed=false)}"
+    
+  - id: reassign_agents
+    action: update_agent_context
+    agents: "${agents_needing_rework}"
+    new_context: "${steps.rework_required.output}"
+    depends_on: rework_required
+
+outputs:
+  passed: "${steps.evaluate_pass_fail.result}"
+  verification_report:
+    gates: "${steps.aggregate_results.output}"
+    critical_failures: "${filter(steps.aggregate_results.output, severity='critical', passed=false)}"
+    recommendations: "${steps.rework_required.output if not passed else []}"

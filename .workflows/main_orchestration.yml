@@ -1,0 +1,125 @@
+# main_orchestration.yml
+# Superior Meta-Architect+ Main Pipeline
+# Version: 2.0 - Production Standard
+
+version: "2.0"
+name: "Meta-Architect Main Orchestration"
+description: "End-to-end pipeline from user request to final validation"
+
+global:
+  knowledge_graph: "./knowledge_graph.json"
+  agent_states_dir: "./agent_states/"
+  context_packages_dir: "./context_packages/"
+  logs_dir: "./logs/"
+
+pipeline:
+  # Stage 1: Request Intake
+  - stage: intake
+    name: "Request Reception"
+    owner: meta_architect
+    actions:
+      - parse_user_intent
+      - validate_requirements
+      - estimate_complexity
+    outputs:
+      - validated_request.json
+    
+  # Stage 2: Graph Query
+  - stage: graph_query
+    name: "Graph-RAG Knowledge Extraction"
+    owner: meta_architect
+    actions:
+      - load_knowledge_graph
+      - query_by_category
+      - filter_by_priority
+      - check_coverage
+    on_insufficient_data: mcp_fallback
+    outputs:
+      - graph_knowledge_package.json
+    
+  # Stage 3: MCP Fallback (Conditional)
+  - stage: mcp_fallback
+    name: "External Knowledge Retrieval"
+    owner: meta_architect
+    enabled: conditional
+    actions:
+      - identify_knowledge_gaps
+      - invoke_web_search
+      - validate_sources
+      - merge_with_graph_package
+    outputs:
+      - augmented_knowledge_package.json
+    
+  # Stage 4: Context Injection
+  - stage: context_injection
+    name: "Build Agent Context Packages"
+    owner: meta_architect
+    actions:
+      - determine_required_agents
+      - generate_injection_packages
+      - apply_identity_locks
+      - save_packages_to_disk
+    outputs:
+      - context_packages/*.md
+    
+  # Stage 5: Agent Assignment
+  - stage: agent_assignment
+    name: "Spawn & Assign Builder Agents"
+    owner: meta_architect
+    actions:
+      - load_agent_configs
+      - create_state_files
+      - inject_context
+      - activate_agents
+    outputs:
+      - agent_states/*.yml
+    
+  # Stage 6: Execution Monitoring
+  - stage: execution_monitoring
+    name: "Monitor Agent Progress"
+    owner: meta_architect
+    loop: true
+    interval_seconds: 30
+    actions:
+      - poll_agent_states
+      - check_for_escalations
+      - handle_blocked_agents
+      - update_progress_report
+    exit_condition: "all agents COMPLETED or FAILED"
+    
+  # Stage 7: Verification
+  - stage: verification
+    name: "Quality Gates"
+    owner: meta_architect
+    actions:
+      - collect_artifacts
+      - cross_check_consistency
+      - validate_graph_compliance
+      - check_identity_locks
+    on_failure: rework_loop
+    outputs:
+      - verification_report.json
+    
+  # Stage 8: Finalization
+  - stage: finalization
+    name: "Cleanup & Archive"
+    owner: meta_architect
+    actions:
+      - mark_task_complete
+      - archive_states
+      - update_graph_if_needed
+      - generate_summary
+    outputs:
+      - final_report.json
+
+error_handling:
+  on_graph_failure:
+    retry: 3
+    fallback: mcp_web_search
+  on_agent_crash:
+    capture_state: true
+    restart: true
+    max_restarts: 2
+  on_verification_failure:
+    rollback: true
+    reassign_with_updated_context: true

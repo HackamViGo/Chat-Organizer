@@ -6,7 +6,14 @@
 (function () {
   'use strict';
 
-  console.log('[🧠 Prompt Inject] Зареждане...');
+  // Prevent multiple executions
+  if (window.BRAINBOX_PROMPT_INJECT_LOADED) {
+    console.log('[🧠 Prompt Inject] ⏹️ Script already loaded, skipping init.');
+    return;
+  }
+  window.BRAINBOX_PROMPT_INJECT_LOADED = true;
+
+  console.log('[🧠 Prompt Inject] Зареждане (v2.0.2)...');
 
   // ============================================================================
   // КОНФИГУРАЦИЯ
@@ -41,6 +48,9 @@
     // Настройка на message listener
     setupMessageListener();
     
+    // Notify background that we are ready
+    chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'universal' }).catch(() => {});
+    
     console.log('[🧠 Prompt Inject] ✅ Готово');
   }
 
@@ -49,90 +59,34 @@
   // ============================================================================
   
   async function fetchPrompts(forceRefresh = false) {
-    if (STATE.isLoading && !forceRefresh) {
-      console.log('[🧠 Prompt Inject] ⏳ Вече се зареждат промптове...');
-      return STATE.prompts;
-    }
-
+    if (STATE.isLoading && !forceRefresh) return STATE.prompts;
     STATE.isLoading = true;
-    console.log('[🧠 Prompt Inject] 📥 Зареждане на промптове от API...');
 
     try {
-      // Fetch only prompts marked for context menu (no auth required)
-      const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`;
+      console.log('[🧠 Prompt Inject] 📥 Fetching via Background (CSP Bypass)...');
       
-      const options = {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json'
+      const response = await chrome.runtime.sendMessage({ action: 'fetchPrompts' });
+      
+      if (!response || !response.success) {
+        console.error('[🧠 Prompt Inject] ❌ Background fetch failed:', response?.error);
+        if (response?.error === 'Unauthorized') {
+             console.log('[🧠 Prompt Inject] ⚠️ Auth failed (Background)');
         }
-      };
-      
-      const response = await fetch(url, options);
-
-      console.log('[🧠 Prompt Inject] 📡 Response status:', response.status, response.statusText);
-
-      if (!response.ok) {
-        // Опит за четене на error message от response
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.text();
-          console.error('[🧠 Prompt Inject] ❌ Error response body:', errorData);
-          if (errorData) {
-            errorMessage += ` - ${errorData}`;
-          }
-        } catch (e) {
-          console.error('[🧠 Prompt Inject] ❌ Не може да се прочете error response:', e);
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      
-      // Проверка за правилна структура на response
-      if (!data || typeof data !== 'object') {
-        console.warn('[🧠 Prompt Inject] ⚠️ Неочакван response формат:', data);
-        STATE.prompts = [];
         return [];
       }
+
+      const data = response.data;
+      console.log('[🧠 Prompt Inject] 📦 Received data from background:', typeof data);
+
+      // Handle { prompts: [...] } structure vs [...]
+      const promptsList = Array.isArray(data.prompts) ? data.prompts : (Array.isArray(data) ? data : []);
+      STATE.prompts = promptsList;
       
-      STATE.prompts = Array.isArray(data.prompts) ? data.prompts : (Array.isArray(data) ? data : []);
-      
-      console.log(`[🧠 Prompt Inject] ✅ Заредени ${STATE.prompts.length} промпта (за context menu)`);
-      
-      if (CONFIG.DEBUG_MODE && STATE.prompts.length > 0) {
-        console.log('[🧠 Prompt Inject] 📋 Първи промпт:', {
-          id: STATE.prompts[0].id,
-          title: STATE.prompts[0].title,
-          use_in_context_menu: STATE.prompts[0].use_in_context_menu
-        });
-      }
-      
+      console.log(`[🧠 Prompt Inject] 📡 OK | Count: ${STATE.prompts.length}`);
       return STATE.prompts;
 
     } catch (error) {
-      console.error('[🧠 Prompt Inject] ❌ Грешка при зареждане на промптове:', error);
-      console.error('[🧠 Prompt Inject] ❌ Error details:', {
-        name: error?.name,
-        message: error?.message,
-        stack: error?.stack,
-        url: `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`,
-        hasToken: false // No auth required
-      });
-      
-      // По-подробна информация за грешката
-      if (error instanceof TypeError && error.message.includes('fetch')) {
-        console.error('[🧠 Prompt Inject] ❌ Network error - проверь дали dashboard URL е правилен');
-        console.error('[🧠 Prompt Inject] ❌ URL:', `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}?use_in_context_menu=true`);
-      } else if (error.message && (error.message.includes('401') || error.message.includes('Unauthorized'))) {
-        console.error('[🧠 Prompt Inject] ❌ Unauthorized - но това не трябва да се случва (no auth required)');
-      } else if (error.message && error.message.includes('404')) {
-        console.error('[🧠 Prompt Inject] ❌ API endpoint не е намерен');
-        console.error('[🧠 Prompt Inject] ❌ Провери дали API endpoint е правилен:', CONFIG.API_ENDPOINT);
-      } else {
-        console.error('[🧠 Prompt Inject] ❌ Неочаквана грешка:', error);
-      }
-      
+      console.error('[🧠 Prompt Inject] ❌ Error in fetchPrompts:', error);
       return [];
     } finally {
       STATE.isLoading = false;
@@ -262,11 +216,13 @@
                 });
               });
               
-              showNotification(`Обновено: ${newPrompts.length} промпта`, 'success');
+              // Only notify if prompts are found
+              // (Redundant success notification removed here to prevent double toast)
             }
           } else {
-            showNotification('Няма промптове за context menu', 'warning');
-            console.log('[🧠 Prompt Inject] ⚠️ Няма промптове с use_in_context_menu=true');
+            // Only show warning if explicitly 0 prompts found
+             console.log('[🧠 Prompt Inject] ⚠️ No prompts found via refresh');
+             showNotification('Няма намерени промптове за менюто.', 'warning');
           }
         } catch (error) {
           console.error('[🧠 Prompt Inject] ❌ Грешка при refresh:', error);
@@ -319,40 +275,65 @@
     
     if (isContentEditable) {
       // За contenteditable div-ове
-      textarea.textContent = content;
-      textarea.innerText = content;
-      
-      // Тригериране на input event
-      const inputEvent = new Event('input', { bubbles: true, cancelable: true });
-      textarea.dispatchEvent(inputEvent);
-      
-      // Тригериране на compositionend (за някои frameworks)
-      const compositionEndEvent = new Event('compositionend', { bubbles: true });
-      textarea.dispatchEvent(compositionEndEvent);
-      
-      // Тригериране на keydown и keyup (за някои frameworks)
-      const keydownEvent = new KeyboardEvent('keydown', { bubbles: true, cancelable: true });
-      const keyupEvent = new KeyboardEvent('keyup', { bubbles: true, cancelable: true });
-      textarea.dispatchEvent(keydownEvent);
-      textarea.dispatchEvent(keyupEvent);
+      // Имитираме по-деликатна поредица от събития за Gemini/React
+      try {
+        // 1. Първоначално фокусиране
+        const focusEvent = new FocusEvent('focus', { bubbles: true });
+        textarea.dispatchEvent(focusEvent);
+
+        // 2. Симулираме започване на писане (за React/Gemini е важно)
+        textarea.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+
+        // 3. Използваме execCommand за вмъкване - това е най-нативния начин за React
+        // Не използваме selectAll, за да позволим добавяне към съществуващ текст
+        document.execCommand('insertText', false, content);
+        
+        // 4. Изпращаме стандартни събития
+        const inputEvent = new InputEvent('input', {
+          bubbles: true,
+          inputType: 'insertText',
+          data: content
+        });
+        textarea.dispatchEvent(inputEvent);
+
+        // 5. Приключваме писането
+        textarea.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: content }));
+        
+        // 6. Симулираме вдигане на клавиш
+        const keyUpEvent = new KeyboardEvent('keyup', {
+          key: ' ',
+          code: 'Space',
+          bubbles: true
+        });
+        textarea.dispatchEvent(keyUpEvent);
+        
+      } catch (e) {
+        console.warn('[🧠 Prompt Inject] ⚠️ Injection failed, falling back:', e);
+        textarea.innerText = content;
+        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      }
     } else {
-      // За обикновени textarea
-      textarea.value = content;
+      // За обикновени textarea (ChatGPT/Claude)
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const value = textarea.value;
       
-      // Тригериране на input event за да се актуализира UI-то на Gemini
-      const inputEvent = new Event('input', { bubbles: true });
-      textarea.dispatchEvent(inputEvent);
+      textarea.value = value.substring(0, start) + content + value.substring(end);
+      textarea.selectionStart = textarea.selectionEnd = start + content.length;
       
-      // Тригериране на change event
-      const changeEvent = new Event('change', { bubbles: true });
-      textarea.dispatchEvent(changeEvent);
+      textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    // Фокус на textarea
-    textarea.focus();
-    
-    // Скролване до textarea
-    textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Синхронизация на стейта
+    setTimeout(() => {
+      textarea.dispatchEvent(new Event('change', { bubbles: true }));
+      textarea.blur();
+      setTimeout(() => {
+        textarea.focus();
+        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        console.log('[🧠 Prompt Inject] ✅ Инжектирането приключи');
+      }, 50);
+    }, 100);
 
     console.log('[🧠 Prompt Inject] ✅ Промпт инжектиран успешно');
     showNotification(`Промпт "${prompt.title}" инжектиран`, 'success');
@@ -383,16 +364,16 @@
         </div>
         <div class="brainbox-create-prompt-dialog-body">
           <div class="brainbox-create-prompt-field">
-            <label>Заглавие <span class="required">*</span></label>
+            <label for="brainbox-prompt-title">Заглавие <span class="required">*</span></label>
             <input type="text" id="brainbox-prompt-title" placeholder="Въведи заглавие за промпта..." maxlength="200" />
           </div>
           <div class="brainbox-create-prompt-field">
-            <label>Съдържание</label>
+            <label for="brainbox-prompt-content">Съдържание</label>
             <textarea id="brainbox-prompt-content" readonly rows="6">${escapeHtml(selectedText)}</textarea>
           </div>
           <div class="brainbox-create-prompt-field">
-            <label>
-              <input type="checkbox" id="brainbox-prompt-use-in-context-menu" checked />
+            <label for="brainbox-prompt-use-in-context-menu" style="display: flex; align-items: center; cursor: pointer;">
+              <input type="checkbox" id="brainbox-prompt-use-in-context-menu" checked style="margin-right: 8px;" />
               Използвай в context менюто (BrainBox Prompts)
             </label>
           </div>
@@ -480,7 +461,9 @@
       const accessToken = storage.accessToken;
       
       if (!accessToken) {
-        throw new Error('Не сте автентикирани. Моля, влезте в BrainBox dashboard първо.');
+        const errorMsg = 'Не сте свързали разширението. Моля, посетете <a href="' + CONFIG.DASHBOARD_URL + '/extension-auth" target="_blank" style="color:white;text-decoration:underline;">тази страница</a> за синхронизация.';
+        showNotification(errorMsg, 'warning');
+        throw new Error('Missing access token');
       }
       
       const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}`;
@@ -568,6 +551,11 @@
         'textarea[placeholder*="Message"]',
         'div[contenteditable="true"][role="textbox"]',
         'div[contenteditable="true"]'
+      ],
+      'x.com': [
+        'div[contenteditable="true"][role="textbox"]',
+        'div[data-testid="post-input"]',
+        'textarea'
       ]
     };
     
@@ -1278,7 +1266,8 @@
   function showNotification(message, type = 'info') {
     const notification = document.createElement('div');
     notification.className = `brainbox-prompt-notification brainbox-prompt-notification-${type}`;
-    notification.textContent = message;
+    // Use innerHTML to support links in messages
+    notification.innerHTML = message;
     notification.style.cssText = `
       position: fixed;
       top: 20px;

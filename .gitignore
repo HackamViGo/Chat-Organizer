@@ -37,3 +37,4 @@ out/
 gemini-share-exporter/
 
 .vercel
+.env

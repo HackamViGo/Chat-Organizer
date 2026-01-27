@@ -18,9 +18,10 @@
     DASHBOARD_URL: 'https://brainbox-alpha.vercel.app',
     API_ENDPOINT: '/api/images',
     DB_NAME: 'BrainBoxGeminiMaster',
-    DB_VERSION: 4,
+    DB_VERSION: 6, // Match with brainbox_master.js
     DEBUG_MODE: true,
-    SYNC_ENABLED: true
+    SYNC_ENABLED: true,
+    SCRAPING_ENABLED: false // Изолираме изображенията (спряно по желание на потребителя)
   };
 
   // ============================================================================
@@ -46,6 +47,7 @@
   
   async function initIndexedDB() {
     return new Promise((resolve, reject) => {
+      console.log('[🖼️ Image Saver] Opening IndexedDB:', CONFIG.DB_NAME, 'v', CONFIG.DB_VERSION);
       const request = indexedDB.open(CONFIG.DB_NAME, CONFIG.DB_VERSION);
       
       request.onerror = () => {
@@ -55,14 +57,15 @@
       
       request.onsuccess = () => {
         STATE.db = request.result;
-        console.log('[🖼️ Image Saver] ✅ IndexedDB свързана');
+        console.log('[🖼️ Image Saver] ✅ IndexedDB свързана (v' + STATE.db.version + ')');
         resolve(STATE.db);
       };
       
       request.onupgradeneeded = (event) => {
         const db = event.target.result;
-        // Images store will be created by brainbox_master.js
-        // If it doesn't exist, create it here as fallback
+        console.log('[🖼️ Image Saver] 🆙 Upgrade needed to version', CONFIG.DB_VERSION);
+        
+        // Images store
         if (!db.objectStoreNames.contains('images')) {
           const store = db.createObjectStore('images', { keyPath: 'id', autoIncrement: true });
           store.createIndex('url', 'url', { unique: false });
@@ -462,13 +465,16 @@
             if (isExpired) {
               console.warn('[🖼️ Image Saver] ⚠️ Access token е изтекъл или скоро ще изтече');
               STATE.accessToken = null;
+              STATE.isExpired = true;
             } else {
               STATE.accessToken = result.accessToken;
+              STATE.isExpired = false;
               console.log('[🖼️ Image Saver] ✅ Access token зареден');
             }
           } else {
             console.warn('[🖼️ Image Saver] ⚠️ Няма access token');
             STATE.accessToken = null;
+            STATE.isExpired = false;
           }
           resolve();
         });
@@ -499,9 +505,26 @@
   async function ensureValidToken() {
     await loadAccessToken();
     
+    // If token is missing or expired, try to refresh it
     if (!STATE.accessToken) {
-      console.log('[🖼️ Image Saver] 🔑 No valid token, opening login page...');
-      await openLoginPage();
+      console.log('[🖼️ Image Saver] 🔄 Attempting to refresh token...');
+      try {
+        const response = await chrome.runtime.sendMessage({ action: 'refreshAuthToken' });
+        if (response && response.success) {
+          STATE.accessToken = response.accessToken;
+          console.log('[🖼️ Image Saver] ✅ Token refreshed successfully');
+          return true;
+        }
+      } catch (refreshError) {
+        console.error('[🖼️ Image Saver] ❌ Token refresh failed:', refreshError);
+      }
+    }
+
+    // Still no token? Show notification with link
+    if (!STATE.accessToken) {
+      const authUrl = `${CONFIG.DASHBOARD_URL}/extension-auth`;
+      const errorMsg = 'Не сте свързали разширението. Моля, посетете <a href="' + authUrl + '" target="_blank" style="color:white;text-decoration:underline;font-weight:bold;">тази страница</a> за синхронизация.';
+      showNotification(errorMsg, 'warning');
       return false;
     }
     
@@ -609,6 +632,8 @@
   };
 
   function addCheckboxesToImages() {
+    if (!CONFIG.SCRAPING_ENABLED) return;
+    
     // For Gemini: prioritize specific image classes
     const isGemini = window.location.hostname.includes('gemini.google.com');
     let images;
@@ -868,6 +893,8 @@
   // Observe new images
   let imageObserver = null;
   function observeImages() {
+    if (!CONFIG.SCRAPING_ENABLED) return;
+    
     if (imageObserver) {
       imageObserver.disconnect();
     }
@@ -1051,7 +1078,8 @@
       max-width: 300px !important;
     `;
     
-    notification.textContent = message;
+    // Use innerHTML to support links
+    notification.innerHTML = message;
     document.body.appendChild(notification);
     
     setTimeout(() => {

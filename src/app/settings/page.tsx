@@ -40,17 +40,24 @@ export default function SettingsPage() {
     };
     fetchFolders();
     
-    // Load quick access folders from extension storage (client-side only)
-    if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
-      (window as any).chrome.storage.local.get(['customFolders'], (result: any) => {
-        if (result.customFolders) {
-          setQuickAccessFolders(result.customFolders.map((f: any) => f.id));
+    // Fetch user settings (including quick access folders)
+    const fetchSettings = async () => {
+      try {
+        const res = await fetch('/api/user/settings', { credentials: 'include' });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.settings?.quickAccessFolders) {
+            setQuickAccessFolders(data.settings.quickAccessFolders);
+          }
         }
-      });
-    }
+      } catch (error) {
+        console.error('Error fetching settings:', error);
+      }
+    };
+    fetchSettings();
   }, [setFolders]);
 
-  const toggleQuickAccess = (folderId: string) => {
+  const toggleQuickAccess = async (folderId: string) => {
     let newQuickAccess = [...quickAccessFolders];
     
     if (newQuickAccess.includes(folderId)) {
@@ -67,24 +74,23 @@ export default function SettingsPage() {
     
     setQuickAccessFolders(newQuickAccess);
     
-    // Update extension storage (client-side only)
-    if (typeof window !== 'undefined' && (window as any).chrome?.storage) {
-      const customFolders = newQuickAccess.map(id => {
-        const folder = folders.find(f => f.id === id);
-        return folder ? {
-          id: folder.id,
-          name: folder.name,
-          color: folder.color || '#667eea',
-          type: folder.type || 'chat'
-        } : null;
-      }).filter(Boolean);
-      
-      (window as any).chrome.storage.local.set({ customFolders }, () => {
-        if (process.env.NODE_ENV === 'development') {
-          console.log('Quick access folders updated:', customFolders);
-        }
+    // Save to database
+    try {
+      await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            quickAccessFolders: newQuickAccess
+          }
+        })
       });
+    } catch (error) {
+      console.error('Error saving settings:', error);
     }
+
+    // Update extension storage (if available via message passing or if extension context)
+    // Note: Provide visual feedback or sync mechanism in extension side
   };
 
   const chatFolders = folders.filter(f => f.type === 'chat' || !f.type);
@@ -553,18 +559,41 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-4">
-            <button className="w-full p-4 rounded-lg border border-border hover:bg-accent transition-colors text-left">
-              <p className="font-medium">Import Data</p>
-              <p className="text-sm text-muted-foreground">
-                Import chats and data from a file
-              </p>
+            <button 
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full p-4 rounded-lg border border-border hover:bg-accent transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <Upload className="w-5 h-5 text-slate-500" />
+                <div>
+                  <p className="font-medium">Import Data</p>
+                  <p className="text-sm text-muted-foreground">
+                    Import chats and data from a file
+                  </p>
+                </div>
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleImport}
+                className="hidden"
+                accept=".json"
+              />
             </button>
 
-            <button className="w-full p-4 rounded-lg border border-border hover:bg-accent transition-colors text-left">
-              <p className="font-medium">Export Data</p>
-              <p className="text-sm text-muted-foreground">
-                Download all your chats and data
-              </p>
+            <button 
+              onClick={handleExportJSON}
+              className="w-full p-4 rounded-lg border border-border hover:bg-accent transition-colors text-left"
+            >
+              <div className="flex items-center gap-3">
+                <Download className="w-5 h-5 text-slate-500" />
+                <div>
+                  <p className="font-medium">Export Data</p>
+                  <p className="text-sm text-muted-foreground">
+                    Download all your chats and data
+                  </p>
+                </div>
+              </div>
             </button>
 
             <button 

@@ -28,16 +28,12 @@ sandbox:
   allowed_extensions: [".py", ".js", ".ts", ".json", ".yaml", ".sql", ".md"]
 
 mcp_tools:
+  efficiency_policy: "LAZY_EXECUTION"
   filesystem:
     enabled: true
     root: "./project/"
   web_search:
     enabled: true
-    allowed_domains:
-      - "fastapi.tiangolo.com"
-      - "docs.python.org"
-      - "expressjs.com"
-      - "nestjs.com"
   github:
     enabled: false
 
@@ -66,6 +62,7 @@ rules:
   - "Checkpoint after every API route implementation"
   - "Validate all input with documented patterns"
   - "Coordinate with db_architect on data models"
+  - "Minimise active tool footprint"
 
 graph_categories:
   primary: "Programming Languages & Frameworks"

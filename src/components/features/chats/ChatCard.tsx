@@ -5,6 +5,8 @@ import { Chat, Platform } from '@/types';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { usePathname } from 'next/navigation';
+import { marked } from 'marked';
+import DOMPurify from 'dompurify';
 import { 
   MoreVertical, CheckSquare, Trash2, 
   Archive, ArchiveRestore, Sparkles, ExternalLink,
@@ -267,7 +269,7 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
         textareaRef.current.focus();
         textareaRef.current.setSelectionRange(newStart, newEnd);
       }
-    }, 0);
+    }, 10);
   };
 
   // URL Editing Logic
@@ -662,23 +664,54 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
               </button>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900/50">
               {isEditingInModal ? (
                 <textarea
                   ref={textareaRef}
                   value={modalContent}
                   onChange={(e) => setModalContent(e.target.value)}
-                  className="w-full h-full min-h-[400px] font-mono text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  className="w-full h-full min-h-[400px] font-mono text-sm bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
                 />
               ) : (
-                <div 
-                  className="prose dark:prose-invert max-w-none cursor-text"
-                  onClick={() => setIsEditingInModal(true)}
-                >
-                  <pre className="whitespace-pre-wrap font-mono text-sm bg-slate-50 dark:bg-slate-800 p-4 rounded-lg">
-                    {chat.content || 'No content available'}
-                  </pre>
-                </div>
+                <>
+                  {chat.messages && Array.isArray(chat.messages) && chat.messages.length > 0 ? (
+                    <div className="space-y-6">
+                      {(chat.messages as any[]).map((msg, idx) => (
+                        <div key={msg.id || idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                          <div className={`max-w-[85%] rounded-2xl p-4 ${
+                            msg.role === 'user' 
+                              ? 'bg-purple-600 text-white rounded-tr-none' 
+                              : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-none shadow-sm'
+                          }`}>
+                            <div className="text-[10px] uppercase tracking-wider font-bold mb-1 opacity-70">
+                              {msg.role === 'user' ? 'You' : (chat.platform || 'Assistant').toUpperCase()}
+                            </div>
+                            <div className="prose dark:prose-invert prose-sm max-w-none break-words"
+                              dangerouslySetInnerHTML={{ 
+                                __html: DOMPurify.sanitize(marked.parse(msg.content || '') as string) 
+                              }}
+                            />
+                            {msg.metadata?.images && Array.isArray(msg.metadata.images) && msg.metadata.images.length > 0 && (
+                                <div className="mt-3 grid grid-cols-2 gap-2">
+                                    {msg.metadata.images.map((img: string, i: number) => (
+                                        <img key={i} src={img} alt="Gemini generated" className="rounded-lg w-full h-auto border border-white/10" />
+                                    ))}
+                                </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div 
+                      className="prose dark:prose-invert max-w-none cursor-text markdown-content"
+                      onClick={() => setIsEditingInModal(true)}
+                      dangerouslySetInnerHTML={{ 
+                        __html: DOMPurify.sanitize(marked.parse(chat.content || 'No content available') as string) 
+                      }}
+                    />
+                  )}
+                </>
               )}
             </div>
 

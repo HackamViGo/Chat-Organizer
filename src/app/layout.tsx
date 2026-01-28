@@ -1,10 +1,10 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { JetBrains_Mono } from 'next/font/google';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'] });
+const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Mega-Pack AI Studio',
@@ -27,7 +27,7 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#000000" />
       </head>
-      <body className={inter.className} suppressHydrationWarning>
+      <body className={jetbrainsMono.className} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

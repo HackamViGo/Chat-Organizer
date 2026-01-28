@@ -38,3 +38,5 @@ gemini-share-exporter/
 
 .vercel
 .env
+.genkit/
+

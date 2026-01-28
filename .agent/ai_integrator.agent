@@ -29,19 +29,15 @@ sandbox:
   forbidden_paths: ["api_keys/", ".env"]
 
 mcp_tools:
+  efficiency_policy: "LAZY_EXECUTION"
   filesystem:
     enabled: true
     root: "./project/"
   web_search:
     enabled: true
-    allowed_domains:
-      - "platform.openai.com"
-      - "docs.anthropic.com"
-      - "ai.google.dev"
-      - "docs.langchain.com"
-      - "modelcontextprotocol.io"
   fetch:
     enabled: true
+    strictly_prohibited: ["mcp_fetch_get_rendered_html"]
 
 escalation_logic:
   trigger_conditions:
@@ -70,6 +66,7 @@ rules:
   - "Follow MCP specification 2025-11-25"
   - "Document all prompt engineering decisions"
   - "Escalate on model selection or architecture changes"
+  - "Use tools only when strictly necessary for the task"
 
 graph_categories:
   primary: "AI Models & LLM Development"

@@ -25,6 +25,8 @@ export type Database = {
           summary: string | null
           tasks: Json | null
           title: string
+          source_id: string | null
+          messages: Json | null
           updated_at: string | null
           url: string | null
           user_id: string
@@ -39,6 +41,8 @@ export type Database = {
           summary?: string | null
           tasks?: Json | null
           title: string
+          source_id?: string | null
+          messages?: Json | null
           updated_at?: string | null
           url?: string | null
           user_id: string
@@ -53,6 +57,8 @@ export type Database = {
           summary?: string | null
           tasks?: Json | null
           title?: string
+          source_id?: string | null
+          messages?: Json | null
           updated_at?: string | null
           url?: string | null
           user_id?: string

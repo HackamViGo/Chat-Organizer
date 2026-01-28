@@ -28,6 +28,7 @@ sandbox:
   allowed_extensions: [".sql", ".py", ".json", ".yaml", ".md"]
 
 mcp_tools:
+  efficiency_policy: "LAZY_EXECUTION"
   filesystem:
     enabled: true
     root: "./project/"
@@ -59,6 +60,7 @@ rules:
   - "Never invent column types or constraints not in documentation"
   - "Checkpoint after every migration script"
   - "Escalate on any production database change"
+  - "Execute SQL/Migrations only when confirmed"
 
 graph_categories:
   primary: "Databases & Data Infrastructure"

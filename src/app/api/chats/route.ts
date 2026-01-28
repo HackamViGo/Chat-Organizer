@@ -18,6 +18,8 @@ const createChatSchema = z.object({
   platform: z.string().optional(),
   url: z.string().url().optional().or(z.literal('')),
   folder_id: z.string().uuid().nullable().optional(),
+  source_id: z.string().optional(),
+  messages: z.array(z.any()).optional(),
 });
 
 const updateChatSchema = z.object({
@@ -27,7 +29,29 @@ const updateChatSchema = z.object({
   platform: z.string().optional(),
   url: z.string().url().optional().or(z.literal('')),
   folder_id: z.string().uuid().nullable().optional(),
+  source_id: z.string().optional(),
+  messages: z.array(z.any()).optional(),
 });
+
+// Helper to extract source_id from URL if not provided
+function extractSourceId(url: string | undefined, platform: string | undefined): string | null {
+  if (!url) return null;
+  
+  try {
+    const chatgptMatch = url.match(/chatgpt\.com\/c\/([^/#?]+)/);
+    if (chatgptMatch) return chatgptMatch[1];
+    
+    const claudeMatch = url.match(/claude\.ai\/chat\/([^/#?]+)/);
+    if (claudeMatch) return claudeMatch[1];
+    
+    const geminiMatch = url.match(/gemini\.google\.com\/(?:app|gem|u\/\d+\/app)\/([^/#?]+)/);
+    if (geminiMatch) return geminiMatch[1];
+  } catch (e) {
+    // Ignore URL parsing errors
+  }
+  
+  return url; // Fallback to full URL
+}
 
 // Handle OPTIONS request for CORS preflight
 export async function OPTIONS(request: NextRequest) {
@@ -145,15 +169,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = createChatSchema.parse(body);
 
+    const sourceId = validatedData.source_id || extractSourceId(validatedData.url, validatedData.platform);
+
     const { data, error } = await supabase
       .from('chats')
-      .insert({
+      .upsert({
         user_id: user.id,
         title: validatedData.title,
         content: validatedData.content,
         platform: validatedData.platform,
         url: validatedData.url,
         folder_id: validatedData.folder_id,
+        source_id: sourceId,
+        messages: validatedData.messages,
+        updated_at: new Date().toISOString(),
+      }, {
+        onConflict: 'user_id, source_id',
+        ignoreDuplicates: false,
       })
       .select()
       .single();

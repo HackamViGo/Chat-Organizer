@@ -10,7 +10,7 @@ agent_metadata:
 
 runtime:
   model: claude-sonnet-4-20250514
-  temperature: 0.1  # Very low for infrastructure precision
+  temperature: 0.1
   max_tokens: 8000
   thinking_mode: standard
 
@@ -29,20 +29,14 @@ sandbox:
   forbidden_paths: [".env", "secrets/", "credentials/"]
 
 mcp_tools:
+  efficiency_policy: "LAZY_EXECUTION"
   filesystem:
     enabled: true
     root: "./project/"
   web_search:
     enabled: true
-    allowed_domains:
-      - "cloud.google.com"
-      - "docs.aws.amazon.com"
-      - "learn.microsoft.com"
-      - "docs.docker.com"
-      - "kubernetes.io"
   github:
     enabled: true
-    allowed_actions: ["read_issue", "read_pr", "comment"]
 
 escalation_logic:
   trigger_conditions:
@@ -55,7 +49,7 @@ escalation_logic:
   escalation_target: meta_architect
   escalation_format: "@meta-architect [ESCALATION]: {issue_description}"
   timeout_seconds: 600
-  max_retries_before_escalate: 2  # Lower threshold for infra
+  max_retries_before_escalate: 2
 
 identity_lock:
   enabled: true
@@ -69,6 +63,7 @@ rules:
   - "Checkpoint after every infrastructure change"
   - "ALWAYS escalate production deployments"
   - "Cost estimation required for resource scaling"
+  - "Deactivate infrastructure management tools when idle"
 
 graph_categories:
   primary: "Cloud Platforms & DevOps"

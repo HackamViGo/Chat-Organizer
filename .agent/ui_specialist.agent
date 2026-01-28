@@ -10,7 +10,7 @@ agent_metadata:
 
 runtime:
   model: claude-sonnet-4-20250514
-  temperature: 0.3  # Slightly higher for creative UI work
+  temperature: 0.3
   max_tokens: 8000
   thinking_mode: standard
 
@@ -28,16 +28,15 @@ sandbox:
   allowed_extensions: [".js", ".jsx", ".ts", ".tsx", ".css", ".scss", ".html", ".json", ".md"]
 
 mcp_tools:
+  efficiency_policy: "LAZY_EXECUTION"  # Tools remain inactive/closed unless specifically called.
   filesystem:
     enabled: true
     root: "./project/"
   web_search:
     enabled: true
-    allowed_domains:
-      - "react.dev"
-      - "nextjs.org"
-      - "tailwindcss.com"
-      - "developer.mozilla.org"
+  fetch:
+    enabled: true
+    strictly_prohibited: ["mcp_fetch_get_rendered_html"]
   playwright:
     enabled: true
 
@@ -66,6 +65,7 @@ rules:
   - "Checkpoint after every component implementation"
   - "Cite source documentation in code comments"
   - "Follow accessibility best practices (WCAG 2.1)"
+  - "Close browser tabs/Playwright immediately after use"
 
 graph_categories:
   primary: "Programming Languages & Frameworks"

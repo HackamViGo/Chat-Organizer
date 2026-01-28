@@ -31,7 +31,8 @@
 ### 5. **Settings** (`/settings`)
 - Theme настройки (Light/Dark/System)
 - Avatar upload (PRO feature)
-- Export/Import данни
+- Export/Import данни (JSON/Markdown) - ✅ Implemented
+- Extension Quick Access (Synced across devices) - ✅ Implemented
 - Account deletion
 
 ### 6. **Folders** (в Sidebar)
@@ -291,11 +292,9 @@
 - Save Chat функционалност
 - Интеграция с Gemini API (започва с Gemini, после OpenAI/Anthropic)
 
-### Images Feature (T48-T55)
-- **Images раздел** - Отделен раздел за изображения
-- **Image Folders** - Папки за изображения
-- **Right-click Save** - Запазване на изображения от extension
-- **AVIF Conversion** - Автоматична конверсия в AVIF формат
+### ❌ Images Feature (ПРЕМАХНАТО - 2026-01-27)
+- Тази функционалност е премахната от текущата версия на проекта.
+- Всички референции в разширението и таблото са изтрити или скрити.
 
 ### Dropdown Menu (T56-T57)
 - **Три точки меню** - Dropdown меню в ChatCard
@@ -338,6 +337,12 @@
 - Password validation
 - File upload validation (magic bytes)
 - XSS protection
+
+### Data Integrity & Sync
+- **Rich Data Storage (JSONB)** - ✅ Implemented: Съхраняване на пълна хронология (roles, timestamps, content)
+- **Duplicate Prevention** - ✅ Implemented: Използване на `source_id` и `upsert` логика
+- **Settings Sync** - ✅ Implemented: Синхронизиране на Quick Access папки между Dashboard и Extension
+
 
 ---
 

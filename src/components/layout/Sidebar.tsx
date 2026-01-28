@@ -812,7 +812,6 @@ function SidebarContent() {
             <NavItem to="/studio" icon={MessageSquarePlus} label="AI Studio" isActive={isActive('/studio')} color="purple" />
             <NavItem to="/chats" icon={MessageSquare} label="My Chats" isActive={isActive('/chats')} color="cyan" />
             <NavItem to="/prompts" icon={FileEdit} label="Prompts" isActive={isActive('/prompts')} color="amber" />
-            <NavItem to="/images" icon={ImageIcon} label="Images" isActive={isActive('/images')} color="rose" />
             <NavItem to="/lists" icon={CheckSquare} label="Lists" isActive={isActive('/lists')} color="orange" />
           </nav>
 

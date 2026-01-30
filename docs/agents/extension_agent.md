@@ -46,11 +46,8 @@ const platform =
 
 ---
 
-### Issue: ChatGPT hover menu re-implemented on <span> elements (2025-01-27)
-**Problem:** ChatGPT hover menu had persistent issues with buttons disappearing and conversations "running away" when attached to <a> elements  
-**Solution:** Re-implemented hover menu to work on <span> elements (title text) inside conversation links instead of <a> elements  
-**Status:** ✅ WORKING - Hover listeners attached to `span.opacity-60` elements, buttons stay visible when hovering over parent <a> or buttons  
-**Note:** ⚠️ Minor visual improvements needed (button styling/positioning), but target elements (<span>) should NOT be changed
+### Issue: Context Menu Integration (2025-01-28)
+**Status:** ✅ WORKING - Conversations are saved via the universal Context Menu ("Save to BrainBox"). This avoids issues with breaking platform UIs by injecting buttons.
 
 ---
 
@@ -72,9 +69,7 @@ Target: < 25KB
 - Fastest DOM structure
 - Message streaming supported
 - Code blocks well-formatted
-- Hover menu works on <span> elements (2025-01-27) - attached to title text spans inside conversation links
 - Context menu available for saving conversations
-- ⚠️ Minor visual improvements needed (fade animations per spec), but target elements (<span>) should NOT be changed
 
 ### Claude
 - Clean HTML structure
@@ -87,10 +82,8 @@ Target: < 25KB
 - Similar to ChatGPT
 - Different class names
 - Good image support
-- Hover menu works on <span> elements (2025-01-27) - attached to title text spans inside conversation links (like ChatGPT)
-- Fade animations implemented per specification (fade_in 150ms ease-out, fade_out 100ms ease-in)
-- ⚠️ MutationObserver DISABLED (2025-01-27) - Only initial button injection on page load, no dynamic observation
-- ⚠️ Hover buttons only work for conversations already loaded - New conversations added dynamically won't get hover buttons
+- Context menu available for saving conversations
+- ⚠️ Context Menu works based on clicked element (jslog/ID) or current URL fallback
 - Authentication check added in handleSave - Opens login page if accessToken missing/expired
 - ✅ Title extraction improved (2025-01-28) - New function `extractTitleFromConversationDiv` precisely extracts titles from `.conversation-title` div, handling nested child divs
 - ✅ Title priority fixed (2025-01-28) - domData.title now has priority over request title to prevent "Google Gemini" generic title

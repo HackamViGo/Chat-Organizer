@@ -57,6 +57,7 @@ exec "${CHROME_CMD}" \
     --no-first-run \
     --no-default-browser-check \
     --disable-default-apps \
+    --load-extension="/home/stefanov/Projects/Chat Organizer Cursor/extension" \
     "$@" \
     > /dev/null 2>&1 &
 

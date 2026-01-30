@@ -253,7 +253,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
               className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
             />
             <label htmlFor="use_in_context_menu" className="text-sm font-medium cursor-pointer">
-              Използвай в context менюто (BrainBox Prompts)
+              Use in context menu (BrainBox Prompts)
             </label>
           </div>
 

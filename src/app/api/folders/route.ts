@@ -16,16 +16,18 @@ const corsHeaders = {
 const updateFolderSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1).optional(),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
-  type: z.enum(['default', 'custom']).optional(),
+  color: z.string().min(1).optional(),
+  type: z.enum(['chat', 'image', 'prompt', 'list', 'default', 'custom']).optional(),
   icon: z.string().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
 });
 
 const createFolderSchema = z.object({
   name: z.string().min(1),
-  color: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
-  type: z.enum(['default', 'custom']).optional(),
+  color: z.string().min(1),
+  type: z.enum(['chat', 'image', 'prompt', 'list', 'default', 'custom']).optional(),
   icon: z.string().optional(),
+  parent_id: z.string().uuid().nullable().optional(),
 });
 
 // Helper to get user from either cookies or Authorization header

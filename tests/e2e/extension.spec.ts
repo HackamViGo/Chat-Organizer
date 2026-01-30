@@ -74,7 +74,7 @@ test.describe('ChatGPT Integration', () => {
         }
 });
 
-test('Content script injects on ChatGPT', async ({ page }) => {
+    test('Content script injects on ChatGPT', async ({ page }) => {
         // Monitor for content script console logs
         const consoleMessages: string[] = [];
         let contentScriptLoaded = false;
@@ -99,10 +99,7 @@ test('Content script injects on ChatGPT', async ({ page }) => {
                 style.textContent?.includes('BrainBox')
             );
             
-            // Check for any data attributes or classes
-            const hasElements = document.querySelector('[class*="brainbox"]') !== null;
-            
-            return hasStyles || hasElements;
+            return hasStyles;
         });
 
         console.log('✅ Content script loaded:', contentScriptLoaded);
@@ -114,31 +111,28 @@ test('Content script injects on ChatGPT', async ({ page }) => {
         }
     });
 
-    test('Hover button styles are injected', async ({ page }) => {
+    test('UI components styles are injected (Modal/Toast)', async ({ page }) => {
         await page.goto('https://chatgpt.com', { waitUntil: 'domcontentloaded' });
-        await page.waitForTimeout(5000); // Longer timeout for styles to inject
+        await page.waitForTimeout(5000);
 
         // Check if BrainBox styles exist
         const styleInfo = await page.evaluate(() => {
             const styles = Array.from(document.querySelectorAll('style'));
             const brainboxStyles = styles.filter(style => 
-                style.textContent?.includes('brainbox-hover-container') ||
-                style.textContent?.includes('brainbox') ||
+                style.textContent?.includes('brainbox-modal') ||
+                style.textContent?.includes('brainbox-toast') ||
                 style.textContent?.includes('BrainBox')
             );
             
             return {
                 hasStyles: brainboxStyles.length > 0,
-                styleCount: brainboxStyles.length,
-                sampleContent: brainboxStyles[0]?.textContent?.substring(0, 100) || null
+                styleCount: brainboxStyles.length
             };
         });
 
-        console.log('✅ BrainBox styles injected:', styleInfo.hasStyles);
+        console.log('✅ BrainBox UI styles injected:', styleInfo.hasStyles);
         if (styleInfo.hasStyles) {
             console.log('   Found', styleInfo.styleCount, 'BrainBox style block(s)');
-        } else {
-            console.warn('⚠️ BrainBox styles not found. Extension may not be loaded or content script not injected.');
         }
     });
 });

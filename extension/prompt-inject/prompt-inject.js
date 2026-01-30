@@ -1,18 +1,18 @@
 // ============================================================================
 // BrainBox Prompt Inject
-// Инжектиране на промптове от dashboard в Gemini textarea
+// Injecting prompts from dashboard into Gemini textarea
 // ============================================================================
-
+    
 (function () {
   'use strict';
 
   // ============================================================================
-  // КОНФИГУРАЦИЯ
+  // CONFIGURATION
   // ============================================================================
-  
+      
   const CONFIG = {
     DASHBOARD_URL: window.BRAINBOX_CONFIG ? window.BRAINBOX_CONFIG.DASHBOARD_URL : 'https://brainbox-alpha.vercel.app',
-    API_ENDPOINT: '/api/prompts', // API endpoint за prompts
+    API_ENDPOINT: '/api/prompts', // API endpoint for prompts
     DEBUG_MODE: false
   };
 
@@ -23,10 +23,10 @@
   }
   window.BRAINBOX_PROMPT_INJECT_LOADED = true;
 
-  if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] Зареждане (v2.0.2)...');
+  if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] Loading (v2.0.2)...');
 
   // ============================================================================
-  // СЪСТОЯНИЕ
+  // STATE
   // ============================================================================
   
   const STATE = {
@@ -35,23 +35,23 @@
   };
 
   // ============================================================================
-  // ИНИЦИАЛИЗАЦИЯ
+  // INITIALIZATION
   // ============================================================================
-  
+      
   async function init() {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] Инициализация...');
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] Initializing...');
     
-    // Настройка на message listener
+    // Setup message listener
     setupMessageListener();
-    
+        
     // Notify background that we are ready
     chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'universal' }).catch(() => {});
-    
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Готово');
+        
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Ready');
   }
 
   // ============================================================================
-  // ИЗВЛИЧАНЕ НА ПРОМПТОВЕТЕ ОТ API
+  // FETCH PROMPTS FROM API
   // ============================================================================
   
   async function fetchPrompts(forceRefresh = false) {
@@ -90,64 +90,95 @@
   }
 
   // ============================================================================
-  // ПОКАЗВАНЕ НА МЕНЮ ЗА ИЗБОР НА ПРОМПТ
+  // SHOW PROMPT SELECTION MENU
   // ============================================================================
   
   function showPromptMenu(prompts) {
-    // Премахване на старо меню, ако съществува
+    // Remove old menu if exists
     const existingMenu = document.getElementById('brainbox-prompt-menu');
     if (existingMenu) {
       existingMenu.remove();
     }
 
-    // Показваме менюто дори ако няма промптове, за да може да се използва refresh бутонът
+    // Show menu even if no prompts found to allow refresh button usage
     // if (prompts.length === 0) {
-    //   showNotification('Няма налични промптове', 'warning');
+    //   showNotification('No prompts available', 'warning');
     //   return;
     // }
 
-    // Създаване на меню контейнер
+    // Create menu container
     const menu = document.createElement('div');
     menu.id = 'brainbox-prompt-menu';
     menu.innerHTML = `
       <div class="brainbox-prompt-menu-overlay"></div>
       <div class="brainbox-prompt-menu-content">
         <div class="brainbox-prompt-menu-header">
-          <h3>Избери промпт</h3>
-          <div class="brainbox-prompt-menu-header-actions">
-            <button class="brainbox-prompt-menu-refresh" aria-label="Refresh" title="Обнови списъка с промптове">🔄</button>
-            <button class="brainbox-prompt-menu-close" aria-label="Затвори">×</button>
+          <div class="brainbox-prompt-menu-header-main">
+            <h3>Select a prompt</h3>
+            <div class="brainbox-prompt-menu-header-actions">
+              <button class="brainbox-prompt-menu-refresh" aria-label="Refresh" title="Refresh prompt list">🔄</button>
+              <button class="brainbox-prompt-menu-close" aria-label="Close">×</button>
+            </div>
+          </div>
+          <div class="brainbox-prompt-menu-search-container">
+            <input type="text" class="brainbox-prompt-menu-search" placeholder="Search prompts by name or content..." autofocus />
           </div>
         </div>
         <div class="brainbox-prompt-menu-list">
-          ${prompts.length > 0 ? prompts.map((prompt, index) => `
-            <div class="brainbox-prompt-menu-item" data-prompt-id="${prompt.id}" data-index="${index}">
-              <div class="brainbox-prompt-menu-item-title">${escapeHtml(prompt.title)}</div>
-              ${prompt.content ? `<div class="brainbox-prompt-menu-item-preview">${escapeHtml(prompt.content.substring(0, 100))}${prompt.content.length > 100 ? '...' : ''}</div>` : ''}
-            </div>
-          `).join('') : `
-            <div class="brainbox-prompt-menu-empty">
-              <p>Няма налични промптове</p>
-              <p class="brainbox-prompt-menu-empty-hint">Използвайте refresh бутона (🔄) за да заредите промптове от dashboard</p>
-            </div>
-          `}
+          ${renderPromptList(prompts)}
         </div>
       </div>
     `;
 
-    // Добавяне на стилове
+    function renderPromptList(promptsToRender) {
+      if (promptsToRender.length === 0) {
+        return `
+          <div class="brainbox-prompt-menu-empty">
+            <p>No prompts available</p>
+            <p class="brainbox-prompt-menu-empty-hint">Use the refresh button (🔄) to load prompts from the dashboard</p>
+          </div>
+        `;
+      }
+
+      return promptsToRender.map((prompt, index) => `
+        <div class="brainbox-prompt-menu-item" data-prompt-id="${prompt.id}" data-index="${index}">
+          <div class="brainbox-prompt-menu-item-title">${escapeHtml(prompt.title)}</div>
+          ${prompt.content ? `<div class="brainbox-prompt-menu-item-preview">${escapeHtml(prompt.content.substring(0, 100))}${prompt.content.length > 100 ? '...' : ''}</div>` : ''}
+        </div>
+      `).join('');
+    }
+
+    // Add styles
     injectStyles();
 
-    // Добавяне на event listeners
-    menu.querySelectorAll('.brainbox-prompt-menu-item').forEach(item => {
-      item.addEventListener('click', () => {
-        const promptId = item.dataset.promptId;
-        const prompt = prompts.find(p => p.id === promptId);
-        if (prompt) {
-          injectPrompt(prompt);
-          menu.remove();
-        }
+    // Add event listeners
+    function attachItemListeners() {
+      menu.querySelectorAll('.brainbox-prompt-menu-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const promptId = item.dataset.promptId;
+          const prompt = prompts.find(p => p.id === promptId);
+          if (prompt) {
+            injectPrompt(prompt);
+            menu.remove();
+          }
+        });
       });
+    }
+
+    attachItemListeners();
+
+    // Search logic
+    const searchInput = menu.querySelector('.brainbox-prompt-menu-search');
+    const listContainer = menu.querySelector('.brainbox-prompt-menu-list');
+
+    searchInput.addEventListener('input', (e) => {
+      const query = e.target.value.toLowerCase();
+      const filtered = prompts.filter(p => 
+        p.title.toLowerCase().includes(query) || 
+        (p.content && p.content.toLowerCase().includes(query))
+      );
+      listContainer.innerHTML = renderPromptList(filtered);
+      attachItemListeners();
     });
 
     menu.querySelector('.brainbox-prompt-menu-close').addEventListener('click', () => {
@@ -169,25 +200,25 @@
         
         // Prevent multiple simultaneous refreshes
         if (isRefreshing) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⏳ Refresh вече е в процес...');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⏳ Refresh already in progress...');
           return;
         }
-        
+                        
         isRefreshing = true;
         refreshButton.style.animation = 'spin 1s linear infinite';
         refreshButton.style.pointerEvents = 'none';
         refreshButton.style.opacity = '0.7';
-        
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 🔄 Стартиране на refresh...');
-        showNotification('Обновяване на списъка...', 'info');
+                        
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 🔄 Starting refresh...');
+        showNotification('Refreshing list...', 'info');
         
         try {
-          // Презареждане на access token преди refresh
+          // Reload access token before refresh
           // No auth required
-          
+                              
           const newPrompts = await fetchPrompts(true); // Force refresh
-          
-          if (CONFIG.DEBUG_MODE) console.log(`[🧠 Prompt Inject] ✅ Refresh завършен: ${newPrompts.length} промпта`);
+                              
+          if (CONFIG.DEBUG_MODE) console.log(`[🧠 Prompt Inject] ✅ Refresh complete: ${newPrompts.length} prompts`);
           
           if (newPrompts.length > 0) {
             // Update menu with new prompts
@@ -218,11 +249,11 @@
           } else {
             // Only show warning if explicitly 0 prompts found
              if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ No prompts found via refresh');
-             showNotification('Няма намерени промптове за менюто.', 'warning');
+             showNotification('No prompts found for the menu.', 'warning');
           }
         } catch (error) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Грешка при refresh:', error);
-          showNotification('Грешка при обновяване. Провери конзолата.', 'error');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error during refresh:', error);
+          showNotification('Error refreshing. Check console.', 'error');
         } finally {
           isRefreshing = false;
           refreshButton.style.animation = '';
@@ -230,16 +261,16 @@
           refreshButton.style.opacity = '1';
         }
       });
-      
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Refresh бутон инициализиран');
+                      
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Refresh button initialized');
     } else {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Refresh бутон не е намерен в менюто');
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Refresh button not found in menu');
     }
 
-    // Добавяне на менюто в DOM
+    // Add menu to DOM
     document.body.appendChild(menu);
 
-    // Фокус на първия елемент
+    // Focus first item
     const firstItem = menu.querySelector('.brainbox-prompt-menu-item');
     if (firstItem) {
       firstItem.focus();
@@ -247,72 +278,72 @@
   }
 
   // ============================================================================
-  // ИНЖЕКТИРАНЕ НА ПРОМПТ В TEXTAREA
+  // INJECT PROMPT INTO TEXTAREA
   // ============================================================================
   
   function injectPrompt(prompt) {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 💉 Инжектиране на промпт:', prompt.title);
-
-    // Търсене на textarea (универсално за всички платформи)
-    const textarea = findTextarea();
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 💉 Injecting prompt:', prompt.title);
     
+    // Search for textarea (universal for all platforms)
+    const textarea = findTextarea();
+        
     if (!textarea) {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Не е намерен textarea. Проверка на document.activeElement:', document.activeElement?.tagName);
-      showNotification('Не е намерен textarea за инжектиране', 'error');
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Textarea not found. Checking document.activeElement:', document.activeElement?.tagName);
+      showNotification('No textarea found for injection', 'error');
       return;
     }
 
-    // Инжектиране на content
+    // Inject content
     const content = prompt.content || '';
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📝 Съдържание за инжектиране (дължина):', content.length);
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📝 Content for injection (length):', content.length);
 
-    // Проверка дали е textarea или contenteditable div
+    // Check if it's a textarea or contenteditable div
     const isContentEditable = textarea.contentEditable === 'true' || 
                               textarea.getAttribute('contenteditable') === 'true';
     
     if (isContentEditable) {
-      // За contenteditable div-ове
-      // Имитираме по-деликатна поредица от събития за Gemini/React
+      // For contenteditable divs
+      // Imitating a delicate sequence of events for Gemini/React
       try {
-        // 1. Първоначално фокусиране и подготовка на селекцията
+        // 1. Initial focus and selection preparation
         textarea.focus();
         const selection = window.getSelection();
         const range = document.createRange();
         range.selectNodeContents(textarea);
-        range.collapse(false); // Отиди в края
+        range.collapse(false); // Move to end
         selection.removeAllRanges();
         selection.addRange(range);
 
-        // 2. Симулираме започване на писане (за React/Gemini е важно)
+        // 2. Simulate typing start (important for React/Gemini)
         textarea.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
         textarea.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
 
-        // 3. Използваме execCommand за вмъкване - това е най-нативния начин за React
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⌨️ Изпълнение на execCommand...');
+        // 3. Use execCommand for insertion - this is the most native way for React
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⌨️ Executing execCommand...');
         const success = document.execCommand('insertText', false, content);
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ execCommand резултат:', success, 'Нов текст:', textarea.innerText.substring(0, 30) + '...');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ execCommand result:', success, 'New text:', textarea.innerText.substring(0, 30) + '...');
         
-        // 4. Изпращаме стандартни събития
+        // 4. Send standard events
         const inputEvent = new InputEvent('input', {
           bubbles: true,
           inputType: 'insertText',
           data: content
         });
         textarea.dispatchEvent(inputEvent);
-        
-        // Стандартно събитие за текст (някои по-стари версии го ползват)
+                
+        // Standard text input event
         textarea.dispatchEvent(new Event('textInput', { bubbles: true }));
-
-        // 5. Приключваме писането
+    
+        // 5. Finishing typing
         textarea.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: content }));
-        
-        // Малка принудителна синхронизация за Gemini
+                
+        // Forced sync for Gemini if needed
         if (textarea.innerText.length === 0 && content.length > 0) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ execCommand не промени текста, опит с innerText...');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ execCommand did not change text, trying innerText...');
           textarea.innerText = content;
         }
         
-        // 6. Симулираме вдигане на клавиш
+        // 6. Simulate key up
         const keyUpEvent = new KeyboardEvent('keyup', {
           key: ' ',
           code: 'Space',
@@ -326,81 +357,81 @@
         textarea.dispatchEvent(new Event('input', { bubbles: true }));
       }
     } else {
-      // За обикновени textarea (ChatGPT/Claude)
+      // For standard textareas (ChatGPT/Claude)
       const start = textarea.selectionStart;
       const end = textarea.selectionEnd;
       const value = textarea.value;
       
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⌨️ Вмъкване в стандартно textarea...');
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⌨️ Inserting into standard textarea...');
       textarea.value = value.substring(0, start) + content + value.substring(end);
       textarea.selectionStart = textarea.selectionEnd = start + content.length;
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Стойност обновена. Нова дължина:', textarea.value.length);
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Value updated. New length:', textarea.value.length);
       
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    // Синхронизация на стейта
+    // Sync state
     setTimeout(() => {
       textarea.dispatchEvent(new Event('change', { bubbles: true }));
       textarea.blur();
       setTimeout(() => {
         textarea.focus();
         textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Инжектирането приключи');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Injection complete');
       }, 50);
     }, 100);
-
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Промпт инжектиран успешно');
-    showNotification(`Промпт "${prompt.title}" инжектиран`, 'success');
+    
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Prompt injected successfully');
+    showNotification(`Prompt "${prompt.title}" injected`, 'success');
   }
 
   // ============================================================================
-  // СЪЗДАВАНЕ НА ПРОМПТ ОТ МАРКИРАН ТЕКСТ
+  // CREATE PROMPT FROM SELECTED TEXT
   // ============================================================================
   
   function showCreatePromptDialog(selectedText) {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📝 Показване на диалог за създаване на промпт');
-    
-    // Премахване на стар диалог, ако съществува
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📝 Showing create prompt dialog');
+        
+    // Remove old dialog if exists
     const existingDialog = document.getElementById('brainbox-create-prompt-dialog');
     if (existingDialog) {
       existingDialog.remove();
     }
-    
-    // Създаване на диалог контейнер
+        
+    // Create dialog container
     const dialog = document.createElement('div');
     dialog.id = 'brainbox-create-prompt-dialog';
     dialog.innerHTML = `
       <div class="brainbox-prompt-menu-overlay"></div>
       <div class="brainbox-create-prompt-dialog-content">
         <div class="brainbox-create-prompt-dialog-header">
-          <h3>Създай промпт</h3>
-          <button class="brainbox-create-prompt-dialog-close" aria-label="Затвори">×</button>
+          <h3>Create Prompt</h3>
+          <button class="brainbox-create-prompt-dialog-close" aria-label="Close">×</button>
         </div>
         <div class="brainbox-create-prompt-dialog-body">
           <div class="brainbox-create-prompt-field">
-            <label for="brainbox-prompt-title">Заглавие <span class="required">*</span></label>
-            <input type="text" id="brainbox-prompt-title" placeholder="Въведи заглавие за промпта..." maxlength="200" />
+            <label for="brainbox-prompt-title">Title <span class="required">*</span></label>
+            <input type="text" id="brainbox-prompt-title" placeholder="Enter prompt title..." maxlength="200" />
           </div>
           <div class="brainbox-create-prompt-field">
-            <label for="brainbox-prompt-content">Съдържание</label>
+            <label for="brainbox-prompt-content">Content</label>
             <textarea id="brainbox-prompt-content" readonly rows="6">${escapeHtml(selectedText)}</textarea>
           </div>
           <div class="brainbox-create-prompt-field">
             <label for="brainbox-prompt-use-in-context-menu" style="display: flex; align-items: center; cursor: pointer;">
               <input type="checkbox" id="brainbox-prompt-use-in-context-menu" checked style="margin-right: 8px;" />
-              Използвай в context менюто (BrainBox Prompts)
+              Use in context menu (BrainBox Prompts)
             </label>
           </div>
         </div>
         <div class="brainbox-create-prompt-dialog-footer">
-          <button class="brainbox-create-prompt-cancel">Отказ</button>
-          <button class="brainbox-create-prompt-save">Запази</button>
+          <button class="brainbox-create-prompt-cancel">Cancel</button>
+          <button class="brainbox-create-prompt-save">Save</button>
         </div>
       </div>
     `;
     
-    // Добавяне на стилове
+    // Add styles
     injectStyles();
     
     // Event listeners
@@ -420,18 +451,18 @@
     
     saveButton.addEventListener('click', async () => {
       const title = titleInput.value.trim();
-      
+          
       if (!title || title.length === 0) {
-        showNotification('Моля, въведи заглавие', 'warning');
+        showNotification('Please enter a title', 'warning');
         titleInput.focus();
         return;
       }
       
       const useInContextMenu = dialog.querySelector('#brainbox-prompt-use-in-context-menu').checked;
       
-      // Деактивиране на бутона по време на запазване
+      // Disable button during save
       saveButton.disabled = true;
-      saveButton.textContent = 'Запазване...';
+      saveButton.textContent = 'Saving...';
       
       try {
         const result = await createPrompt({
@@ -441,34 +472,34 @@
         });
         
         if (result.success) {
-          showNotification(`Промпт "${title}" създаден успешно!`, 'success');
+          showNotification(`Prompt "${title}" created successfully!`, 'success');
           closeDialog();
         } else {
           throw new Error(result.error || 'Failed to create prompt');
         }
       } catch (error) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Грешка при създаване на промпт:', error);
-        showNotification(`Грешка: ${error.message}`, 'error');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error creating prompt:', error);
+        showNotification(`Error: ${error.message}`, 'error');
         saveButton.disabled = false;
-        saveButton.textContent = 'Запази';
+        saveButton.textContent = 'Save';
       }
     });
     
-    // Добавяне на диалога в DOM
+    // Add dialog to DOM
     document.body.appendChild(dialog);
     
-    // Фокус на input полето
+    // Focus on input field
     setTimeout(() => {
       titleInput.focus();
     }, 100);
   }
   
   // ============================================================================
-  // СЪЗДАВАНЕ НА ПРОМПТ В API
+  // CREATE PROMPT IN API
   // ============================================================================
   
   async function createPrompt(promptData) {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📤 Създаване на промпт:', promptData.title);
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📤 Creating prompt:', promptData.title);
     
     try {
       // Get access token from storage
@@ -476,7 +507,7 @@
       const accessToken = storage.accessToken;
       
       if (!accessToken) {
-        const errorMsg = 'Не сте свързали разширението. Моля, посетете <a href="' + CONFIG.DASHBOARD_URL + '/extension-auth" target="_blank" style="color:white;text-decoration:underline;">тази страница</a> за синхронизация.';
+        const errorMsg = 'Extension not linked. Please visit <a href="' + CONFIG.DASHBOARD_URL + '/extension-auth" target="_blank" style="color:white;text-decoration:underline;">this page</a> to sync.';
         showNotification(errorMsg, 'warning');
         throw new Error('Missing access token');
       }
@@ -527,25 +558,25 @@
       }
       
       const data = await response.json();
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Промпт създаден успешно:', data.id);
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Prompt created successfully:', data.id);
       
       return { success: true, data: data };
       
     } catch (error) {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Грешка при създаване на промпт:', error);
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error creating prompt:', error);
       return { success: false, error: error.message };
     }
   }
 
   // ============================================================================
-  // НАМИРАНЕ НА TEXTAREA (Универсално за всички платформи)
+  // FIND TEXTAREA (Universal for all platforms)
   // ============================================================================
   
   function findTextarea() {
     const hostname = window.location.hostname;
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 🔍 Търсене на textarea на:', hostname);
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 🔍 Searching for textarea on:', hostname);
     
-    // Платформо-специфични селектори
+    // Platform-specific selectors
     const platformSelectors = {
       'gemini.google.com': [
         'textarea[aria-label*="Enter a prompt"]',
@@ -574,7 +605,7 @@
       ]
     };
     
-    // Универсални селектори (работи навсякъде)
+    // Universal selectors (works everywhere)
     const universalSelectors = [
       'textarea[placeholder*="prompt"]',
       'textarea[placeholder*="message"]',
@@ -587,7 +618,7 @@
       'textarea[id*="input"]',
       'textarea[id*="message"]',
       'textarea[id*="prompt"]',
-      'textarea:focus', // Активното textarea
+      'textarea:focus', // Active textarea
       'textarea',
       'div[contenteditable="true"][role="textbox"]',
       'div[contenteditable="true"]',
@@ -595,58 +626,58 @@
       'input[type="textarea"]'
     ];
     
-    // Първо опитваме платформо-специфични селектори
+    // First try platform-specific selectors
     if (platformSelectors[hostname]) {
       for (const selector of platformSelectors[hostname]) {
         const element = document.querySelector(selector);
         if (element && isElementVisible(element)) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Намерен textarea (platform-specific):', selector);
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Found textarea (platform-specific):', selector);
           return element;
         }
       }
     }
     
-    // След това опитваме универсални селектори
+    // Then try universal selectors
     for (const selector of universalSelectors) {
       const element = document.querySelector(selector);
       if (element && isElementVisible(element)) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Намерен textarea (universal):', selector);
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Found textarea (universal):', selector);
         return element;
       }
     }
     
-    // Fallback: Търсене на всички textarea и contenteditable и избиране на най-подходящия
+    // Fallback: Search all textareas and contenteditables and choose the best fit
     const allTextareas = Array.from(document.querySelectorAll('textarea, div[contenteditable="true"], input[type="text"]'));
     if (allTextareas.length > 0) {
-      // Филтрираме само видимите
+      // Filter only visible ones
       const visibleTextareas = allTextareas.filter(ta => isElementVisible(ta));
       
       if (visibleTextareas.length > 0) {
-        // Приоритизираме:
-        // 1. Активното поле (focused)
+        // Prioritize:
+        // 1. Active field (focused)
         const focused = visibleTextareas.find(ta => ta === document.activeElement);
         if (focused) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Намерен textarea (focused)');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Found textarea (focused)');
           return focused;
         }
         
-        // 2. Най-долното textarea (обикновено е input полето)
+        // 2. Bottom-most textarea (usually the input field)
         visibleTextareas.sort((a, b) => {
           const rectA = a.getBoundingClientRect();
           const rectB = b.getBoundingClientRect();
           return rectB.bottom - rectA.bottom;
         });
         
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Намерен textarea (fallback)');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Found textarea (fallback)');
         return visibleTextareas[0];
       }
     }
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Не е намерен textarea');
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Textarea not found');
     return null;
   }
   
-  // Helper функция за проверка дали елементът е видим
+  // Helper function to check if element is visible
   function isElementVisible(element) {
     if (!element) return false;
     
@@ -656,7 +687,7 @@
     return (
       rect.width > 0 &&
       rect.height > 0 &&
-      rect.top >= -100 && // Позволяваме малко извън viewport
+      rect.top >= -100 && // Allow a bit outside viewport
       rect.left >= -100 &&
       rect.bottom <= window.innerHeight + 100 &&
       rect.right <= window.innerWidth + 100 &&
@@ -673,30 +704,30 @@
   function setupMessageListener() {
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (request.action === 'showPromptMenu') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Получено съобщение за показване на меню');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to show menu');
         
         (async () => {
           try {
-            // Проверка за access token
+            // Check access token
             // No auth required
-            
-            // Зареждане на промптове
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 🔍 Зареждане на промптове...');
+                                
+            // Loading prompts
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 🔍 Loading prompts...');
             const prompts = await fetchPrompts();
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📊 Заредени промптове:', prompts.length);
-            
-            // Показване на меню (дори ако няма промптове, за да се вижда refresh бутонът)
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📊 Loaded prompts:', prompts.length);
+                                
+            // Show menu even if no prompts found to allow refresh button usage
             showPromptMenu(prompts);
-            
+                                
             if (prompts.length === 0) {
-              showNotification('Няма налични промптове. Използвайте refresh бутона за да заредите нови.', 'warning');
+              showNotification('No prompts available. Use the refresh button to load new ones.', 'warning');
             }
             
             sendResponse({ success: true, count: prompts.length });
           } catch (error) {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Грешка:', error);
-            showNotification(`Грешка: ${error.message}`, 'error');
-            // Показваме менюто дори при грешка, за да може да се опита refresh
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error:', error);
+            showNotification(`Error: ${error.message}`, 'error');
+            // Show menu even on error to allow refresh attempt
             showPromptMenu([]);
             sendResponse({ success: false, error: error.message });
           }
@@ -706,7 +737,7 @@
       }
 
       if (request.action === 'injectPrompt') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Получено съобщение за инжектиране на промпт');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to inject prompt');
         
         if (request.prompt) {
           injectPrompt(request.prompt);
@@ -719,14 +750,14 @@
       }
 
       if (request.action === 'refreshPrompts') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Получено съобщение за refresh на промптове');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to refresh prompts');
         
         (async () => {
           try {
             const prompts = await fetchPrompts(true); // Force refresh
             sendResponse({ success: true, count: prompts.length });
           } catch (error) {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Грешка при refresh:', error);
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error during refresh:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
@@ -735,7 +766,7 @@
       }
 
       if (request.action === 'checkIfEditableField') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Проверка дали кликването е в editable поле');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Checking if click is in editable field');
         
         try {
           const { pageX, pageY } = request.clickInfo || {};
@@ -743,10 +774,10 @@
           if (typeof pageX === 'number' && typeof pageY === 'number' && 
               isFinite(pageX) && isFinite(pageY) && 
               pageX >= 0 && pageY >= 0) {
-            const elementAtPoint = document.elementFromPoint(pageX, pageY);
+            const elementAtPoint = document.elementFromPoint(pageX - window.scrollX, pageY - window.scrollY);
             
             if (elementAtPoint) {
-              // Проверка дали елементът или родител му е textarea/contenteditable
+              // Check if element or its parent is textarea/contenteditable
               let current = elementAtPoint;
               let isEditable = false;
               
@@ -761,7 +792,7 @@
                 current = current.parentElement;
               }
               
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Проверка завършена:', { isEditable });
+              if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Check complete:', { isEditable });
               sendResponse({ success: true, isEditable });
               return true;
             }
@@ -769,7 +800,7 @@
           
           sendResponse({ success: true, isEditable: false });
         } catch (error) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Грешка при проверка:', error);
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error during check:', error);
           sendResponse({ success: false, isEditable: false });
         }
         
@@ -777,24 +808,24 @@
       }
 
       if (request.action === 'showCreatePromptDialog') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Получено съобщение за създаване на промпт');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to create prompt from selection');
         
         (async () => {
           try {
             const { selectedText } = request;
             
             if (!selectedText || selectedText.trim().length === 0) {
-              showNotification('Няма маркиран текст', 'warning');
+              showNotification('No text selected', 'warning');
               sendResponse({ success: false, error: 'No text selected' });
               return;
             }
             
-            // Показване на диалог за създаване на промпт
+            // Show create prompt dialog
             showCreatePromptDialog(selectedText);
             
             sendResponse({ success: true });
           } catch (error) {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Грешка:', error);
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
@@ -805,16 +836,16 @@
       return false;
     });
 
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Message listener активен');
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Message listener active');
   }
 
   // ============================================================================
-  // СТИЛОВЕ
+  // STYLES
   // ============================================================================
-  
+      
   function injectStyles() {
     if (document.getElementById('brainbox-prompt-inject-styles')) {
-      return; // Вече са инжектирани
+      return; // Already injected
     }
 
     const style = document.createElement('style');
@@ -858,17 +889,46 @@
 
       .brainbox-prompt-menu-header {
         display: flex;
+        flex-direction: column;
+        padding: 0;
+        border-bottom: 1px solid #e5e7eb;
+        background: #f9fafb;
+      }
+
+      .brainbox-prompt-menu-header-main {
+        display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 20px 24px;
-        border-bottom: 1px solid #e5e7eb;
+        padding: 16px 24px;
       }
 
       .brainbox-prompt-menu-header h3 {
         margin: 0;
-        font-size: 20px;
+        font-size: 18px;
         font-weight: 600;
         color: #111827;
+      }
+
+      .brainbox-prompt-menu-search-container {
+        padding: 0 24px 16px 24px;
+      }
+
+      .brainbox-prompt-menu-search {
+        width: 100%;
+        padding: 10px 16px;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 14px;
+        background: white;
+        color: #111827;
+        outline: none;
+        transition: all 0.2s;
+        box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+      }
+
+      .brainbox-prompt-menu-search:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), inset 0 1px 2px rgba(0,0,0,0.05);
       }
 
       .brainbox-prompt-menu-header-actions {
@@ -880,13 +940,13 @@
       .brainbox-prompt-menu-refresh {
         background: none;
         border: none;
-        font-size: 20px;
+        font-size: 18px;
         line-height: 1;
         color: #6b7280;
         cursor: pointer;
         padding: 4px;
-        width: 36px;
-        height: 36px;
+        width: 32px;
+        height: 32px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -995,10 +1055,21 @@
 
         .brainbox-prompt-menu-header {
           border-bottom-color: #374151;
+          background: #111827;
         }
 
         .brainbox-prompt-menu-header h3 {
           color: #f9fafb;
+        }
+
+        .brainbox-prompt-menu-search {
+          background: #374151;
+          border-color: #4b5563;
+          color: #f9fafb;
+        }
+
+        .brainbox-prompt-menu-search:focus {
+          border-color: #3b82f6;
         }
 
         .brainbox-prompt-menu-close {
@@ -1298,7 +1369,7 @@
       animation: slideIn 0.3s ease-out;
     `;
 
-    // Добавяне на animation keyframes ако не съществуват
+    // Add animation keyframes if not exists
     if (!document.getElementById('brainbox-prompt-notification-styles')) {
       const style = document.createElement('style');
       style.id = 'brainbox-prompt-notification-styles';
@@ -1319,7 +1390,7 @@
 
     document.body.appendChild(notification);
 
-    // Премахване след 3 секунди
+    // Remove after 3 seconds
     setTimeout(() => {
       notification.style.animation = 'slideIn 0.3s ease-out reverse';
       setTimeout(() => notification.remove(), 300);
@@ -1337,7 +1408,7 @@
   }
 
   // ============================================================================
-  // ПУБЛИЧЕН API
+  // PUBLIC API
   // ============================================================================
   
   window.BrainBoxPromptInject = {
@@ -1349,7 +1420,7 @@
   };
 
   // ============================================================================
-  // СТАРТИРАНЕ
+  // STARTING
   // ============================================================================
   
   if (document.readyState === 'loading') {

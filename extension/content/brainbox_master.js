@@ -1,6 +1,5 @@
-// ============================================================================
 // BrainBox Master Coordinator
-// Централна система за хващане на ВСИЧКИ Gemini разговори
+// Central system for capturing ALL Gemini conversations
 // ============================================================================
 
 (function () {
@@ -8,32 +7,34 @@
 
   const CONFIG = {
     DB_NAME: 'BrainBoxGeminiMaster',
-    DB_VERSION: 6, // Нарочно вдигаме версията за да сме сигурни, че схемата се обновява
+    DB_VERSION: 6, // Intentionally bumping version to ensure schema updates
     AUTO_SAVE_ENABLED: true,
-    SAVE_INTERVAL: 10000, // Увеличаваме интервала на 10 секунди (по-малко агресивно)
+    SAVE_INTERVAL: 10000, // Sync interval 10 seconds (less aggressive)
     MAX_RETRIES: 3,
     DEBUG_MODE: false
   };
 
-  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Зареждане...');
+  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Loading...');
 
   // ============================================================================
-  // ГЛОБАЛНО СЪСТОЯНИЕ
+  // GLOBAL STATE
   // ============================================================================
   
   const STATE = {
     db: null,
+    ui: null, // BrainBoxUI instance
     isInitialized: false,
     capturedConversations: new Map(), // conversationId -> full data
     encryptionKeys: new Map(), // conversationId -> key
-    batchMessageCache: new Map(), // batch_key -> messages (за временно съхранение)
+    batchMessageCache: new Map(), // batch_key -> messages
     processedCount: 0,
     failedCount: 0,
-    lastSync: null
+    lastSync: null,
+    notifiedChats: new Set() // Track chats we alerted about scrolling
   };
 
   // ============================================================================
-  // INDEXEDDB - ЕДИННА БАЗА ДАННИ
+  // INDEXEDDB - UNIFIED DATABASE
   // ============================================================================
   
   async function initIndexedDB() {
@@ -41,13 +42,13 @@
       const request = indexedDB.open(CONFIG.DB_NAME, CONFIG.DB_VERSION);
       
       request.onerror = () => {
-        console.error('[🧠 BrainBox Master] ❌ IndexedDB грешка:', request.error);
+        console.error('[🧠 BrainBox Master] ❌ IndexedDB error:', request.error);
         reject(request.error);
       };
       
       request.onsuccess = () => {
         STATE.db = request.result;
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ IndexedDB свързана. Налични stores:', Array.from(STATE.db.objectStoreNames));
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ IndexedDB connected. Available stores:', Array.from(STATE.db.objectStoreNames));
         resolve(STATE.db);
       };
       
@@ -56,59 +57,58 @@
         if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🆙 Upgrade Needed (v' + event.oldVersion + ' -> v' + event.newVersion + ')');
 
         
-        // Store 1: RAW BATCHEXECUTE DATA (както идва от мрежата)
+        // Store 1: RAW BATCHEXECUTE DATA (as it comes from the network)
         if (!db.objectStoreNames.contains('rawBatchData')) {
           const store = db.createObjectStore('rawBatchData', { keyPath: 'id', autoIncrement: true });
           store.createIndex('timestamp', 'timestamp', { unique: false });
           store.createIndex('processed', 'processed', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Създаден rawBatchData store');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created rawBatchData store');
         }
         
-        // Store 2: ENCRYPTION KEYS (ключове за декриптиране)
+        // Store 2: ENCRYPTION KEYS (decryption keys)
         if (!db.objectStoreNames.contains('encryptionKeys')) {
           const store = db.createObjectStore('encryptionKeys', { keyPath: 'conversationId' });
           store.createIndex('timestamp', 'timestamp', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Създаден encryptionKeys store');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created encryptionKeys store');
         }
         
-        // Store 3: DECODED CONVERSATIONS (отключени разговори)
+        // Store 3: DECODED CONVERSATIONS (unlocked chats)
         if (!db.objectStoreNames.contains('conversations')) {
           const store = db.createObjectStore('conversations', { keyPath: 'conversationId' });
           store.createIndex('timestamp', 'timestamp', { unique: false });
           store.createIndex('title', 'title', { unique: false });
           store.createIndex('synced', 'synced', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Създаден conversations store');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created conversations store');
         }
         
-        // Store 4: SYNC QUEUE (опашка за синхронизация към dashboard)
+        // Store 4: SYNC QUEUE (queue for synchronization to the dashboard)
         if (!db.objectStoreNames.contains('syncQueue')) {
           const store = db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
           store.createIndex('conversationId', 'conversationId', { unique: false });
           store.createIndex('retries', 'retries', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Създаден syncQueue store');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created syncQueue store');
         }
         
-        // Store 5: IMAGES (запазени изображения)
+        // Store 5: IMAGES (saved images)
         if (!db.objectStoreNames.contains('images')) {
           const store = db.createObjectStore('images', { keyPath: 'id', autoIncrement: true });
           store.createIndex('url', 'url', { unique: false });
           store.createIndex('timestamp', 'timestamp', { unique: false });
           store.createIndex('synced', 'synced', { unique: false });
           store.createIndex('source_url', 'source_url', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Създаден images store');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created images store');
         }
       };
     });
   }
 
   // ============================================================================
-  // BATCHEXECUTE INTERCEPTOR - ХВАЩА ВСИЧКИ ЗАЯВКИ
+  // BATCHEXECUTE INTERCEPTOR - TRAPS ALL REQUESTS
   // ============================================================================
-  
-  function setupBatchexecuteInterceptor() {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Настройка на interceptor...');
+  function setupInterceptor() {
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Setting up interceptor...');
     
-    // Запазване на оригиналните функции
+    // Save original functions
     const originalOpen = XMLHttpRequest.prototype.open;
     const originalSend = XMLHttpRequest.prototype.send;
     const originalFetch = window.fetch;
@@ -123,71 +123,86 @@
     XMLHttpRequest.prototype.send = function(...args) {
       const url = this._brainbox_url;
       
-      // Хващаме ВСИЧКИ batchexecute заявки
-      if (url && url.includes('batchexecute')) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Хванат XHR batchexecute:', url);
+      // Catch ALL batchexecute requests
+      if (typeof url === 'string' && url.includes('batchexecute')) {
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Captured XHR batchexecute:', url);
         
-        // Interceptваме request body (може да има ключове тук)
-        if (args[0]) {
-          captureRequestData(args[0], 'xhr_request');
-        }
+        // Intercept request body (non-blocking)
+        const originalSend = this.send;
+        this.send = function(data) {
+          captureRequestData(data, 'xhr_request').catch(() => {});
+          return originalSend.apply(this, arguments);
+        };
         
-        // Interceptваме response
+        // Intercept response (non-blocking)
         this.addEventListener('load', function() {
-          if (this.status === 200 && this.responseText) {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📦 Получен XHR response');
-            captureResponseData(this.responseText, url, 'xhr_response');
+          try {
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📦 Received XHR response');
+            captureResponseData(this.responseText, url, 'xhr_response').catch(() => {});
+          } catch (error) {
+            if (CONFIG.DEBUG_MODE) console.error('[🧠 BrainBox Master] Error processing XHR response:', error);
           }
         });
       }
       
-      return originalSend.apply(this, args);
+      try {
+        return originalSend.apply(this, args);
+      } catch (err) {
+        console.error('[🧠 BrainBox Master] ❌ Error in original XHR.send:', err);
+        throw err;
+      }
     };
     
     // ========== Fetch API Intercept ==========
     window.fetch = async function(url, options = {}) {
-      const urlStr = url.toString();
+      const urlStr = (url && typeof url.toString === 'function') ? url.toString() : '';
       
-      if (urlStr.includes('batchexecute')) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Хванат Fetch batchexecute:', urlStr);
+      if (urlStr && urlStr.includes('batchexecute')) {
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Captured Fetch batchexecute:', urlStr);
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Captured Fetch batchexecute:', urlStr);
         
-        // Захващаме request body
-        if (options.body) {
-          captureRequestData(options.body, 'fetch_request');
+        // Capture request body (non-blocking)
+        if (options && options.body) {
+          captureRequestData(options.body, 'fetch_request').catch(() => {});
         }
         
-        // Викаме оригиналния fetch
-        const response = await originalFetch(url, options);
-        
-        // Клонираме response за да можем да го прочетем без да го "консумираме"
-        const clonedResponse = response.clone();
-        
+        // Call original fetch and RETURN IMMEDIATELY after cloning
         try {
-          const responseText = await clonedResponse.text();
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📦 Получен Fetch response');
-          captureResponseData(responseText, urlStr, 'fetch_response');
-        } catch (error) {
-          console.error('[🧠 BrainBox Master] Грешка при четене на fetch response:', error);
+          const response = await originalFetch(url, options);
+          // Clone response body (non-blocking)
+          const clone = response.clone();
+          
+          // Process clone in "background" mode (non-blocking)
+          (async () => {
+            try {
+              const text = await clone.text();
+              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📦 Received Fetch response');
+              await captureResponseData(text, urlStr, 'fetch_response');
+            } catch (error) {
+              if (CONFIG.DEBUG_MODE) console.error('[🧠 BrainBox Master] Error reading fetch response:', error);
+            }
+          })();
+          return response; 
+        } catch (err) {
+          throw err;
         }
-        
-        return response; // Връщаме оригиналния response
       }
       
       return originalFetch(url, options);
     };
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Interceptor активен');
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Interceptor active');
   }
 
   // ============================================================================
-  // ЗАХВАЩАНЕ НА REQUEST DATA (търсене на ключове)
+  // CAPTURE REQUEST DATA (Key searching)
   // ============================================================================
   
   async function captureRequestData(requestBody, source) {
     try {
       let bodyStr = requestBody;
       
-      // Конвертиране на FormData/Blob в string
+      // Convert FormData/Blob to string
       if (requestBody instanceof FormData) {
         bodyStr = new URLSearchParams(requestBody).toString();
       } else if (requestBody instanceof Blob) {
@@ -198,10 +213,10 @@
         if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Request body:', bodyStr.substring(0, 200) + '...');
       }
       
-      // Търсене на ключове в request body
+      // Search for keys in request body
       extractKeys(bodyStr, source);
       
-      // Запазване на raw request data
+      // Save raw request data
       await saveRawData({
         type: 'request',
         source: source,
@@ -211,12 +226,12 @@
       });
       
     } catch (error) {
-      console.error('[🧠 BrainBox Master] Грешка при обработка на request:', error);
+      console.error('[🧠 BrainBox Master] Error processing request:', error);
     }
   }
 
   // ============================================================================
-  // ЗАХВАЩАНЕ НА RESPONSE DATA (разговори)
+  // CAPTURE RESPONSE DATA (Conversations)
   // ============================================================================
   
   async function captureResponseData(responseText, url, source) {
@@ -227,7 +242,7 @@
         if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 Response size:', responseText.length, 'chars');
       }
       
-      // Запазване на raw response
+      // Save raw response
       await saveRawData({
         type: 'response',
         source: source,
@@ -237,41 +252,41 @@
         processed: false
       });
       
-      // Обработка на response
+      // Process response
       await processBatchexecuteResponse(responseText);
       
     } catch (error) {
-      console.error('[🧠 BrainBox Master] Грешка при обработка на response:', error);
+      console.error('[🧠 BrainBox Master] Error processing response:', error);
     }
   }
 
   // ============================================================================
-  // ОБРАБОТКА НА BATCHEXECUTE RESPONSE
+  // PROCESS BATCHEXECUTE RESPONSE
   // ============================================================================
   
   async function processBatchexecuteResponse(responseText) {
     try {
-      // Стъпка 1: Премахване на security prefix )]}'\n (според разговора)
+      // Step 1: Remove security prefix )]}'\n
       const cleaned = responseText.replace(/^\)\]\}'\s*/, '');
       
-      // Стъпка 2: Parse outer JSON
+      // Step 2: Parse outer JSON
       let parsed;
       try {
         parsed = JSON.parse(cleaned);
       } catch (parseError) {
-        console.warn('[🧠 BrainBox Master] Не може да се parse-не outer JSON');
+        if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] Could not parse outer JSON');
         return;
       }
       
       if (!Array.isArray(parsed) || parsed.length === 0) {
-        console.warn('[🧠 BrainBox Master] Outer JSON не е масив или е празен');
+        if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] Outer JSON is not an array or is empty');
         return;
       }
       
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔎 Намерени', parsed.length, 'batch-a');
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔎 Found', parsed.length, 'batches');
       if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 Response size:', responseText.length, 'bytes');
       
-      // Стъпка 3: ИСТИНАТА - Текстът винаги е в parsed[0][2] (според разговора)
+      // Step 3: THE TRUTH - Text is always in parsed[0][2] (according to the conversation)
       const stats = {
         conversations: 0,
         messages: 0
@@ -282,19 +297,19 @@
         
         if (!Array.isArray(batch) || batch.length === 0) continue;
         
-        // ИСТИНАТА: Текстът винаги е в parsed[0][2] като JSON string
+        // THE TRUTH: Text is always in parsed[0][2] as JSON string
         if (batch[0] && Array.isArray(batch[0]) && batch[0][2]) {
           try {
             // Parse inner JSON string
             const innerJson = JSON.parse(batch[0][2]);
-            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✅ Batch ${i}: Успешно parse-нат inner JSON от [0][2]`);
+            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✅ Batch ${i}: Successfully parsed inner JSON from [0][2]`);
             await processInnerJson(innerJson, i, stats);
           } catch (innerError) {
-            console.warn(`[🧠 BrainBox Master] ⚠️ Batch ${i}: Не може да се parse-не [0][2]:`, innerError.message);
+            if (CONFIG.DEBUG_MODE) console.warn(`[🧠 BrainBox Master] ⚠️ Batch ${i}: Could not parse [0][2]:`, innerError.message);
             
-            // Fallback: Опит за директно извличане на съобщения от batch[0][2] като string
+            // Fallback: Attempt to extract messages directly from batch[0][2] as string
             if (typeof batch[0][2] === 'string' && batch[0][2].length > 50) {
-              if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 🔍 Batch ${i}: Опит за директно извличане от string...`);
+              if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 🔍 Batch ${i}: Attempting direct extraction from string...`);
               const decoded = await attemptDecoding({
                 conversationId: null,
                 fullData: batch[0][2],
@@ -303,146 +318,134 @@
               
               if (decoded.messages.length > 0) {
                 stats.messages += decoded.messages.length;
-                if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✅ Batch ${i}: Извлечени ${decoded.messages.length} съобщения директно от string`);
+                if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✅ Batch ${i}: Extracted ${decoded.messages.length} messages directly from string`);
               }
             }
           }
         } else if (batch[0] && batch[0][1]) {
-          // Fallback: Опит на друга позиция
+          // Fallback: Try another position
           try {
             const innerJson = JSON.parse(batch[0][1]);
             await processInnerJson(innerJson, i, stats);
           } catch (e) {
-            // Игнорираме този batch
+            // Ignore this batch
           }
         }
         
-        // Допълнително: Търсене на ключове навсякъде в batch
+        // Additionally: Search for keys everywhere in batch
         extractKeysFromObject(batch, `batch_${i}`);
       }
       
-      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📈 Общо: ${stats.conversations} разговора, ${stats.messages} съобщения`);
+      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📈 Total: ${stats.conversations} conversations, ${stats.messages} messages`);
       
     } catch (error) {
-      console.error('[🧠 BrainBox Master] Грешка при обработка:', error);
+      console.error('[🧠 BrainBox Master] Error processing:', error);
     }
   }
 
   // ============================================================================
-  // ОБРАБОТКА НА INNER JSON (извличане на разговори)
+  // PROCESS INNER JSON (Extract conversations)
   // ============================================================================
   
   async function processInnerJson(data, batchIndex, stats = { conversations: 0, messages: 0 }) {
     try {
-      const conversations = extractConversationsFromData(data);
-      
-      if (conversations.length > 0) {
-        if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✨ Batch ${batchIndex}: Намерени ${conversations.length} разговора`);
-        
-        // Обновяване на статистиката
-        stats.conversations += conversations.length;
-        
-        for (const conv of conversations) {
-          // Използваме новия начин за намиране на id, title, url от DOM
-          const domData = extractConversationDataFromDOM(conv.conversationId);
-          if (domData) {
-            conv.title = domData.title || conv.title;
-            conv.url = domData.url || conv.url;
-          }
+      if (Array.isArray(data)) {
+        const conversations = extractConversationsFromData(data);
+        if (conversations.length > 0) {
+          if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✨ Batch ${batchIndex}: Found ${conversations.length} conversations`);
           
-          // Логване за debugging
-          if (conv.hasMessages) {
-            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📝 Разговор ${conv.conversationId} съдържа данни за съобщения`);
-          } else {
-            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ⚠️ Разговор ${conv.conversationId} няма данни за съобщения в този batch`);
-          }
+          // Update stats
+          stats.conversations += conversations.length;
           
-          await processConversation(conv);
-        }
-      } else {
-        // Ако не намерим conversations, опитай да извлечеш съобщения директно от data
-        if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 🔍 Batch ${batchIndex}: Няма намерени conversations, опит за директно извличане на съобщения...`);
-        
-        // Опит за извличане на съобщения от целия data обект
-        try {
-          const decoded = await attemptDecoding({
-            conversationId: null,
-            fullData: data,
-            rawJson: JSON.stringify(data)
-          });
+          for (const conv of conversations) {
+            // Use original findConversationDivById if possible (redundant here but keep structure)
+            
+            // Logging for debugging
+            if (conv.hasMessages) {
+              if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📝 Conversation ${conv.conversationId} contains message data`);
+            } else {
+              if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ⚠️ Conversation ${conv.conversationId} has no message data in this batch`);
+            }
+            
+            await processConversation(conv); // Changed from handleCapturedConversation
+          }
+        } else {
+          // If no conversations found, try to extract messages directly from data
+          if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 🔍 Batch ${batchIndex}: No conversations found, attempting direct message extraction...`);
+          
+          // Attempt to extract messages from the whole data object
+          const decoded = deepExtractText(data);
           
           if (decoded.messages.length > 0) {
-            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✅ Намерени ${decoded.messages.length} съобщения в batch ${batchIndex}`);
-            // Обновяване на статистиката
             stats.messages += decoded.messages.length;
-            // Запази в cache за по-късно свързване с conversation ID
-            STATE.batchMessageCache = STATE.batchMessageCache || new Map();
-            STATE.batchMessageCache.set(`batch_${batchIndex}`, decoded.messages);
+            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✅ Found ${decoded.messages.length} messages in batch ${batchIndex}`);
+            
+            // Update stats
+            
+            // Save to cache for later connection with conversation ID
+            const tempId = `batch_${batchIndex}_${Date.now()}`;
+            await processConversation({ // Changed from handleCapturedConversation
+              conversationId: tempId,
+              fullData: data,
+              messages: decoded.messages,
+              title: decoded.title
+            });
           }
-        } catch (error) {
-          // Игнорираме грешките
         }
       }
       
-      // Търсене на ключове
+      // Search for keys
       extractKeysFromObject(data, `inner_${batchIndex}`);
       
     } catch (error) {
-      console.error('[🧠 BrainBox Master] Грешка при обработка на inner JSON:', error);
+      console.error('[🧠 BrainBox Master] Error processing inner JSON:', error);
     }
   }
 
   // ============================================================================
-  // ИЗВЛИЧАНЕ НА РАЗГОВОРИ ОТ DATA
+  // EXTRACT CONVERSATIONS FROM DATA
   // ============================================================================
   
   function extractConversationsFromData(data) {
     const conversations = [];
     
-    // Рекурсивно търсене на conversation IDs (c_XXXXX)
-    function searchObject(obj, depth = 0) {
-      if (depth > 10) return; // Защита от безкраен loop
-      
+    // Recursive search for conversation IDs (c_XXXXX)
+    function find(obj, depth = 0) {
+      if (depth > 10) return; // Protection against infinite loop
       if (!obj || typeof obj !== 'object') return;
       
-      // Проверка дали е разговор
-      const jsonStr = JSON.stringify(obj);
-      const idMatches = jsonStr.match(/"c_([a-zA-Z0-9_-]{10,})"/g);
-      
-      if (idMatches && idMatches.length > 0) {
-        // Намерен потенциален разговор
-        const conversationId = idMatches[0].replace(/"/g, '').replace('c_', '');
-        
-        if (conversationId && conversationId.length > 10) {
-          // Проверка дали обектът съдържа съобщения (текстови полета)
-          const hasMessages = jsonStr.length > 100 && (
-            jsonStr.includes('"text"') || 
-            jsonStr.includes('"content"') || 
-            jsonStr.includes('"message"') ||
-            jsonStr.match(/"[^"]{20,}"/g)?.length > 5 // Поне 5 дълги текстови полета
-          );
-          
-          conversations.push({
-            conversationId: conversationId,
-            fullData: obj,
-            rawJson: jsonStr,
-            extractedAt: Date.now(),
-            hasMessages: hasMessages
-          });
-        }
-      }
-      
-      // Рекурсивно търсене
+      // Check if it's a conversation
       if (Array.isArray(obj)) {
-        obj.forEach(item => searchObject(item, depth + 1));
-      } else if (typeof obj === 'object') {
-        Object.values(obj).forEach(value => searchObject(value, depth + 1));
+        const potentialId = obj.find(item => typeof item === 'string' && item.startsWith('c_'));
+        
+        if (potentialId) {
+          // Found potential conversation
+          // Check if the object contains messages (text fields)
+          const jsonStr = JSON.stringify(obj);
+          if (
+            jsonStr.includes('message') || 
+            jsonStr.includes('content') ||
+            jsonStr.match(/"[^"]{20,}"/g)?.length > 5 // At least 5 long text fields
+          ) {
+            conversations.push({ // Changed from results.push
+              conversationId: potentialId,
+              fullData: obj,
+              hasMessages: true
+            });
+            return; // Found, don't go deeper into this branch
+          }
+        }
+        
+        // Recursive search
+        obj.forEach(item => find(item, depth + 1));
+      } else {
+        Object.values(obj).forEach(item => find(item, depth + 1));
       }
     }
     
-    searchObject(data);
+    find(data);
     
-    // Премахване на дубликати по conversationId
+    // Remove duplicates by conversationId
     const unique = Array.from(
       new Map(conversations.map(c => [c.conversationId, c])).values()
     );
@@ -451,14 +454,14 @@
   }
 
   // ============================================================================
-  // ИЗВЛИЧАНЕ НА КЛЮЧОВЕ (encryption/session keys)
+  // EXTRACT KEYS (Encryption/session keys)
   // ============================================================================
   
   function extractKeys(data, source) {
     try {
       const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
       
-      // Pattern 1: Търсене на "key" полета
+      // Pattern 1: Search for "key" fields
       const keyPatterns = [
         /"key":\s*"([^"]{10,})"/g,
         /"apiKey":\s*"([^"]{10,})"/g,
@@ -481,7 +484,7 @@
         }
       });
       
-      // Pattern 2: Base64 encoded keys (поне 20 символа)
+      // Pattern 2: Base64 encoded keys (at least 20 chars)
       const base64Pattern = /[A-Za-z0-9+/]{20,}={0,2}/g;
       let match;
       while ((match = base64Pattern.exec(dataStr)) !== null) {
@@ -496,12 +499,12 @@
       }
       
       if (foundKeys.length > 0) {
-        if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 🔑 Намерени ${foundKeys.length} ключа в ${source}`);
+        if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 🔑 Found ${foundKeys.length} keys in ${source}`);
         foundKeys.forEach(k => saveEncryptionKey(k));
       }
       
     } catch (error) {
-      console.error('[🧠 BrainBox Master] Грешка при извличане на ключове:', error);
+      console.error('[🧠 BrainBox Master] Error fetching keys:', error);
     }
   }
   
@@ -510,27 +513,43 @@
       const jsonStr = JSON.stringify(obj);
       extractKeys(jsonStr, source);
     } catch (error) {
-      // Игнорираме
+      // Ignore
     }
   }
 
   // ============================================================================
-  // ЗАПАЗВАНЕ В INDEXEDDB
+  // SAVE TO INDEXEDDB
   // ============================================================================
-  
-  async function saveRawData(data) {
-    if (!STATE.db) return;
+  async function saveRawDataToIDB(data) {
+    if (!STATE.db) return; // Use STATE.db as per original structure
     
     return new Promise((resolve) => {
       try {
-        const tx = STATE.db.transaction(['rawBatchData'], 'readwrite');
-        const store = tx.objectStore('rawBatchData');
-        store.add(data);
+        if (!data) {
+          resolve(false);
+          return;
+        }
         
-        tx.oncomplete = () => resolve(true);
-        tx.onerror = () => resolve(false);
+        const tx = STATE.db.transaction(['rawBatchData'], 'readwrite'); // Keep original store name
+        const store = tx.objectStore('rawBatchData'); // Keep original store name
+        
+        const dataToSave = {
+          ...data,
+          timestamp: Date.now()
+        };
+        
+        store.add(dataToSave);
+        
+        tx.oncomplete = () => {
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Raw data saved');
+          resolve(true);
+        };
+        tx.onerror = () => {
+          console.error('[🧠 BrainBox Master] Error saving raw data:', tx.error);
+          resolve(false);
+        };
       } catch (error) {
-        console.error('[🧠 BrainBox Master] Грешка при запазване на raw data:', error);
+        console.error('[🧠 BrainBox Master] Error saving raw data:', error);
         resolve(false);
       }
     });
@@ -544,9 +563,9 @@
         const tx = STATE.db.transaction(['encryptionKeys'], 'readwrite');
         const store = tx.objectStore('encryptionKeys');
         
-        // Използваме ключа като conversationId (може да се промени)
+        // Use the key as conversationId (can be changed)
         const record = {
-          conversationId: keyData.key.substring(0, 32), // Първите 32 символа като ID
+          conversationId: keyData.key.substring(0, 32), // First 32 characters as ID
           key: keyData.key,
           type: keyData.type,
           source: keyData.source,
@@ -557,7 +576,7 @@
         
         tx.oncomplete = () => {
           STATE.encryptionKeys.set(record.conversationId, keyData.key);
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Ключ запазен:', record.conversationId.substring(0, 10) + '...');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Key saved:', record.conversationId.substring(0, 10) + '...');
           resolve(true);
         };
         
@@ -573,23 +592,30 @@
     
     const conversationId = convData.conversationId;
     
-    // Проверка дали вече е обработен
-    if (STATE.capturedConversations.has(conversationId)) {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚓ Вече обработен:', conversationId);
-      return;
-    }
-    
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🆕 Нов разговор:', conversationId);
-    
-    // Опит за декодиране/декриптиране
-    const decoded = await attemptDecoding(convData);
-    
-    // Запазване в conversations store
-    return new Promise((resolve) => {
+    // Check if already processed
+    return new Promise(async (resolve) => {
       try {
         const tx = STATE.db.transaction(['conversations'], 'readwrite');
         const store = tx.objectStore('conversations');
+
+        const existing = await new Promise((res, rej) => {
+          const request = store.get(conversationId);
+          request.onsuccess = () => res(request.result);
+          request.onerror = () => rej(request.error);
+        });
+
+        if (existing && existing.processed) {
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚓ Already processed:', conversationId);
+          resolve(true);
+          return;
+        }
         
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🆕 New conversation:', conversationId);
+        
+        // Attempt to decode/decrypt
+        const decoded = await attemptDecoding(convData);
+        
+        // Save to conversations store
         const record = {
           conversationId: conversationId,
           title: decoded.title || 'Untitled',
@@ -599,7 +625,8 @@
           url: `https://gemini.google.com/u/0/app/${conversationId}`,
           platform: 'gemini',
           timestamp: Date.now(),
-          synced: false // Още не е синхронизиран към dashboard
+          synced: false, // Not yet synced to dashboard
+          processed: true // Mark as processed
         };
         
         store.put(record);
@@ -608,20 +635,19 @@
           STATE.capturedConversations.set(conversationId, record);
           STATE.processedCount++;
           
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Запазен разговор:', conversationId);
-          
-          // Добавяне в опашка за синхронизация
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Conversation saved:', conversationId);
+          // Add to sync queue
           addToSyncQueue(conversationId);
-          
           resolve(true);
         };
         
         tx.onerror = () => {
+          console.error('[🧠 BrainBox Master] Error saving conversation:', tx.error);
           STATE.failedCount++;
           resolve(false);
         };
       } catch (error) {
-        console.error('[🧠 BrainBox Master] Грешка при запазване на разговор:', error);
+        console.error('[🧠 BrainBox Master] Error saving conversation:', error);
         STATE.failedCount++;
         resolve(false);
       }
@@ -629,7 +655,7 @@
   }
 
   // ============================================================================
-  // DEEP TEXT EXTRACTION (Рекурсивно извличане на текст)
+  // DEEP TEXT EXTRACTION (Recursive text extraction)
   // ============================================================================
 
   function deepExtractText(obj, depth = 0, maxDepth = 8) {
@@ -645,17 +671,17 @@
     function traverse(data, level = 0) {
       if (level > maxDepth) return;
       
-      // Ако е string - провери дали е валиден текст
+      // If string - check if valid text
       if (typeof data === 'string') {
         const cleaned = data.trim();
         
-        // Филтър: Игнорирай short strings, URLs, JSON keys
+        // Filter: Ignore short strings, URLs, JSON keys
         if (cleaned.length < 15 || cleaned.length > 5000) return;
         if (cleaned.includes('http://') || cleaned.includes('https://')) return;
         if (/^[a-z_]+$/.test(cleaned)) return; // JSON keys
-        if (seen.has(cleaned)) return; // Дубликати
+        if (seen.has(cleaned)) return; // Duplicates
         
-        // Валиден текст - добави като съобщение
+        // Valid text - add as message
         seen.add(cleaned);
         result.messages.push({
           text: cleaned,
@@ -663,20 +689,20 @@
           index: result.messages.length
         });
         
-        // Първото съобщение като заглавие
+        // First message as title
         if (!result.title && cleaned.length > 10) {
           result.title = cleaned.substring(0, 100);
         }
       }
       
-      // Ако е array - обходи елементите
+      // If array - traverse elements
       else if (Array.isArray(data)) {
         data.forEach(item => traverse(item, level + 1));
       }
       
-      // Ако е object - обходи стойностите
+      // If object - traverse values
       else if (data && typeof data === 'object') {
-        // Специални полета които често съдържат текст
+        // Special fields that often contain text
         const textFields = ['text', 'content', 'message', 'body', 'data', 'value'];
         
         textFields.forEach(field => {
@@ -685,7 +711,7 @@
           }
         });
         
-        // Обходи всички останали полета
+        // Traverse all other fields
         Object.values(data).forEach(value => {
           traverse(value, level + 1);
         });
@@ -697,50 +723,50 @@
   }
 
   // ============================================================================
-  // ИЗВЛИЧАНЕ НА СЪОБЩЕНИЯ ОТ DOM
+  // DOM MESSAGE EXTRACTION
   // ============================================================================
   
   /**
    * Extract messages from current page DOM
-   * Използва същите селектори като работещия extension
+   * Uses the same selectors as the working extension
    */
   function extractMessagesFromDOM() {
     const messages = [];
     
     try {
-      // Използваме същите селектори като работещия extension
+      // Using the same selectors as the working extension
       const chatHistoryContainer = document.querySelector('#chat-history');
       if (!chatHistoryContainer) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Не е намерен #chat-history контейнер');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] #chat-history container not found');
         return messages;
       }
 
       const conversationBlocks = chatHistoryContainer.querySelectorAll('.conversation-container');
       if (conversationBlocks.length === 0) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Не са намерени .conversation-container елементи');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] .conversation-container elements not found');
         return messages;
       }
 
-      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] Намерени ${conversationBlocks.length} conversation блока`);
+      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] Found ${conversationBlocks.length} conversation blocks`);
 
-      // Проверка за редактиране (ако има активен textarea, пропускаме)
+      // Check for editing (if active textarea, skip)
       const existTextarea = Array.from(conversationBlocks).find(block => {
         const activeTextarea = block.querySelector('textarea:focus');
         return !!activeTextarea;
       });
       if (existTextarea) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Потребителят редактира, пропускаме извличане');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] User is editing, skipping extraction');
         return [];
       }
 
       conversationBlocks.forEach((block, blockIndex) => {
-        // Извличане на user съобщения (като работещия extension)
+        // Extract user messages (like the working extension)
         const userQueryContainer = block.querySelector('user-query .query-text');
         if (userQueryContainer) {
           const userContent = extractFormattedContent(userQueryContainer);
           
           if (userContent && userContent.trim()) {
-            const position = blockIndex * 2; // User съобщенията са на четни позиции
+            const position = blockIndex * 2; // User messages are at even positions
             
             messages.push({
               text: userContent,
@@ -750,7 +776,7 @@
           }
         }
 
-        // Извличане на assistant съобщения (като работещия extension)
+        // Extract assistant messages (like the working extension)
         const modelResponseEntity = block.querySelector('model-response');
         if (modelResponseEntity) {
           const messageContentContainer = modelResponseEntity.querySelector('.model-response-text');
@@ -758,7 +784,7 @@
             const aiContent = extractFormattedContent(messageContentContainer);
             
             if (aiContent && aiContent.trim()) {
-              const position = blockIndex * 2 + 1; // Assistant съобщенията са на нечетни позиции
+              const position = blockIndex * 2 + 1; // Assistant messages are at odd positions
               
               messages.push({
                 text: aiContent,
@@ -770,22 +796,22 @@
         }
       });
 
-      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] Успешно извлечени ${messages.length} съобщения`);
+      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] Successfully extracted ${messages.length} messages`);
       
       const userCount = messages.filter(m => m.role === 'user').length;
       const assistantCount = messages.filter(m => m.role === 'assistant').length;
-      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] Детайли: ${userCount} user, ${assistantCount} assistant`);
+      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] Details: ${userCount} user, ${assistantCount} assistant`);
       
       return messages;
       
     } catch (error) {
-      console.error('[🧠 BrainBox Master] Грешка при извличане на съобщения от DOM:', error);
+      console.error('[🧠 BrainBox Master] Error extracting messages from DOM:', error);
       return [];
     }
   }
   
   /**
-   * Extract formatted content (като работещия extension)
+   * Extract formatted content (like the working extension)
    */
   function extractFormattedContent(element) {
     if (!element) return '';
@@ -806,7 +832,7 @@
   }
   
   // ============================================================================
-  // ИЗВЛИЧАНЕ НА ДАННИ ОТ DOM (НОВИЯТ НАЧИН)
+  // DOM DATA EXTRACTION (NEW WAY)
   // ============================================================================
   
   /**
@@ -872,8 +898,8 @@
         title = titleDiv.textContent?.trim() || '';
       }
       
-      // Remove "Фиксиран чат" and other UI text
-      title = title.replace(/Фиксиран чат/gi, '').trim();
+      // Remove "Pinned chat" and other UI text
+      title = title.replace(/Pinned chat/gi, '').trim();
       
       return title || 'Untitled Chat';
       
@@ -884,48 +910,48 @@
   }
   
   /**
-   * Нова функция за извличане на title от .conversation-title div
-   * Правилно обработва структурата с child div-ове като .conversation-title-cover
-   * Извлича само първия ред или първите 100 символа
-   * @param {HTMLElement} element - Елементът, от който да се извлече title
-   * @returns {string} - Извлеченият title или 'Untitled Chat'
+   * New function for extracting title from .conversation-title div
+   * Correctly handles structure with child divs like .conversation-title-cover
+   * Extracts only first line or first 100 characters
+   * @param {HTMLElement} element - Element to extract title from
+   * @returns {string} - Extracted title or 'Untitled Chat'
    */
   function extractTitleFromConversationDiv(element) {
     try {
       if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 ========== TITLE EXTRACTION START ==========');
       if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 Element:', element);
       
-      // Намери .conversation-title div
+      // Find .conversation-title div
       const titleDiv = element.querySelector('.conversation-title');
       if (!titleDiv) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ Не е намерен .conversation-title');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ .conversation-title not found');
         return 'Untitled Chat';
       }
       
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Намерен .conversation-title');
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 TitleDiv HTML (първи 500 символа):', titleDiv.outerHTML.substring(0, 500));
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 TitleDiv textContent (първи 200 символа):', titleDiv.textContent?.substring(0, 200));
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 TitleDiv innerText (първи 200 символа):', titleDiv.innerText?.substring(0, 200));
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Found .conversation-title');
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 TitleDiv HTML (first 500 chars):', titleDiv.outerHTML.substring(0, 500));
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 TitleDiv textContent (first 200 chars):', titleDiv.textContent?.substring(0, 200));
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 TitleDiv innerText (first 200 chars):', titleDiv.innerText?.substring(0, 200));
       
-      // Метод 1: Клониране на елемента и премахване на child div-овете
+      // Method 1: Clone element and remove child divs
       const clone = titleDiv.cloneNode(true);
       
-      // Премахни всички child div-ове (като .conversation-title-cover)
+      // Remove all child divs (like .conversation-title-cover)
       const childDivs = clone.querySelectorAll('div');
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Намерени child div-ове:', childDivs.length);
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Found child divs:', childDivs.length);
       childDivs.forEach(div => {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🗑️ Премахване на div:', div.className);
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🗑️ Removing div:', div.className);
         div.remove();
       });
       
-      // Вземи текста след премахване на div-овете
+      // Get text after removing divs
       let title = clone.textContent?.trim() || '';
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Метод 1 (clone) - пълна дължина:', title.length);
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Метод 1 (clone) - първи 200 символа:', title.substring(0, 200));
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Method 1 (clone) - full length:', title.length);
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Method 1 (clone) - first 200 chars:', title.substring(0, 200));
       
-      // Метод 2: Fallback - обхождане на child nodes и вземане само на текстовите
+      // Method 2: Fallback - traverse child nodes and take only text nodes
       if (!title || title.length < 2) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Опит с Метод 2 (child nodes)...');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Trying Method 2 (child nodes)...');
         title = '';
         titleDiv.childNodes.forEach((node, index) => {
           if (node.nodeType === Node.TEXT_NODE) {
@@ -945,51 +971,51 @@
           }
         });
         title = title.trim();
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Метод 2 (child nodes) - първи 200 символа:', title.substring(0, 200));
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Method 2 (child nodes) - first 200 chars:', title.substring(0, 200));
       }
       
-      // Метод 3: Последен fallback - директно textContent
+      // Method 3: Final fallback - direct textContent
       if (!title || title.length < 2) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Опит с Метод 3 (textContent)...');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Trying Method 3 (textContent)...');
         title = titleDiv.textContent?.trim() || '';
         title = title.replace(/\s+/g, ' ').trim();
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Метод 3 (textContent) - първи 200 символа:', title.substring(0, 200));
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Method 3 (textContent) - first 200 chars:', title.substring(0, 200));
       }
       
-      // Почистване на текста
+      // Cleanup text
       const beforeClean = title;
       title = title
-        .replace(/Фиксиран чат/gi, '')
+        .replace(/Pinned chat/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🧹 Преди почистване - дължина:', beforeClean.length);
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🧹 След почистване - дължина:', title.length);
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🧹 Before cleanup - length:', beforeClean.length);
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🧹 After cleanup - length:', title.length);
       
-      // ВАЖНО: Извличаме само първия ред или първите 100 символа
+      // IMPORTANT: Extract only first line or first 100 characters
       const beforeFirstLine = title;
       if (title) {
-        // Раздели по нови редове и вземи първия ред
+        // Split by newlines and take first line
         const lines = title.split('\n');
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 Брой редове:', lines.length);
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 Първи ред (първи 100 символа):', lines[0]?.substring(0, 100));
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 Line count:', lines.length);
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 First line (first 100 chars):', lines[0]?.substring(0, 100));
         
         const firstLine = lines[0].trim();
         
-        // Ако първият ред е твърде дълъг, вземи първите 100 символа
+        // If the first line is too long, take the first 100 characters
         if (firstLine.length > 100) {
           title = firstLine.substring(0, 100).trim();
           const lastSpace = title.lastIndexOf(' ');
           if (lastSpace > 50) {
             title = title.substring(0, lastSpace);
           }
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✂️ Първият ред беше > 100 символа, изрязан до:', title);
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✂️ First line was > 100 characters, trimmed to:', title);
         } else {
           title = firstLine;
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Използва се първият ред:', title);
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Using first line:', title);
         }
       }
       
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ ФИНАЛЕН TITLE:', title);
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ FINAL TITLE:', title);
       if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 ========== TITLE EXTRACTION END ==========');
       
       return title || 'Untitled Chat';
@@ -1054,8 +1080,8 @@
       const element = findConversationDivById(conversationId);
       
       if (element) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Намерен conversation element');
-        // Използваме новата функция за по-добро извличане на title
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Found conversation element');
+        // Use new function for better title extraction
         const title = extractTitleFromConversationDiv(element);
         const result = {
           conversationId: conversationId,
@@ -1063,7 +1089,7 @@
           url: `https://gemini.google.com/u/0/app/${conversationId}`,
           extractedAt: Date.now()
         };
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Резултат от extractConversationDataFromDOM:', result);
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Result from extractConversationDataFromDOM:', result);
         if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 ========== EXTRACT CONVERSATION DATA END ==========');
         return result;
       }
@@ -1089,7 +1115,7 @@
   }
   
   // ============================================================================
-  // ДЕКОДИРАНЕ/ДЕКРИПТИРАНЕ (НОВИЯТ НАЧИН)
+  // DECODING / DECRYPTING (NEW WAY)
   // ============================================================================
   
   async function attemptDecoding(convData) {
@@ -1100,43 +1126,42 @@
     };
     
     try {
-      // Проверка дали има данни за обработка
+      // Check if there is data to process
       if (!convData || (!convData.fullData && !convData.rawJson)) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ Няма данни за декодиране');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ No data for decoding');
         return result;
       }
       
-      // Опит 1: Използваме новия начин - deepExtractText (рекурсивно извличане)
-      // Това е основният метод според инструкциите
+      // Option 1: Use deepExtractText (recursive extraction)
+      // This is the primary method
       if (convData.fullData) {
         try {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Опит за декодиране с deepExtractText...');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Attempting decoding with deepExtractText...');
           const parsed = deepExtractText(convData.fullData);
           
           if (parsed.messages.length > 0) {
             result.decoded = true;
             result.messages = parsed.messages;
             result.title = parsed.title || result.title;
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Декодирано с deepExtractText:', parsed.messages.length, 'съобщения');
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Decoded with deepExtractText:', parsed.messages.length, 'messages');
             if (result.title) {
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Заглавие:', result.title);
+              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Title:', result.title);
             }
-            return result; // Успешно декодирано, не продължаваме
+            return result; // Successfully decoded, not continuing
           } else {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ deepExtractText не намери съобщения');
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ deepExtractText found no messages');
           }
         } catch (error) {
-          console.error('[🧠 BrainBox Master] ❌ Deep parse грешка:', error);
+          console.error('[🧠 BrainBox Master] ❌ Deep parse error:', error);
         }
       }
       
-      // Опит 2: Regex за дълги стрингове (според разговора - "Не парсвай целия масив")
-      // "Използвай Regex, за да намериш всичко, което прилича на съобщение"
+      // Option 2: Regex for long strings
       if (!result.decoded || result.messages.length === 0) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Опит за Regex декодиране (според разговора)...');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Attempting Regex decoding...');
         const jsonStr = convData.rawJson || JSON.stringify(convData.fullData);
         
-        // Според разговора: Филтрираме за дълги стрингове (20+ символа)
+        // Filter for long strings (20+ characters)
         const textMatches = jsonStr.match(/"([^"]{20,5000})"/g) || [];
         const potentialMessages = [];
         const seenTexts = new Set();
@@ -1144,11 +1169,11 @@
         textMatches.forEach((match) => {
           const text = match.replace(/"/g, '').trim();
           
-          // Филтри според разговора
+          // Filters based on conversation
           if (text.includes('http') || text.includes('://') || text.includes('https://')) return;
           if (text.length < 20 || text.length > 5000) return;
           
-          // Пропускаме технически данни (според разговора)
+          // Skip technical data
           const skipWords = [
             'conversation_id', 'timestamp', 'user_id', 'model_id', 
             'undefined', 'null', 'true', 'false',
@@ -1158,11 +1183,11 @@
           ];
           if (skipWords.some(w => text.toLowerCase().includes(w))) return;
           
-          // Пропускаме JSON структури (масиви, обекти)
+          // Skip JSON structures (arrays, objects)
           if (text.startsWith('[') || text.startsWith('{')) return;
           if (text.match(/^\[.*\]$/) || text.match(/^\{.*\}$/)) return;
           
-          // Пропускаме дубликати
+          // Skip duplicates
           const textKey = text.substring(0, 200);
           if (seenTexts.has(textKey)) return;
           seenTexts.add(textKey);
@@ -1178,28 +1203,28 @@
           result.decoded = true;
           result.messages = potentialMessages;
           result.title = potentialMessages[0]?.text.substring(0, 100) || 'Untitled';
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Декодирано с Regex метод (според разговора):', potentialMessages.length, 'съобщения');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Decoded with Regex method:', potentialMessages.length, 'messages');
           if (result.title) {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Заглавие:', result.title);
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Title:', result.title);
           }
         } else {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ Regex метод не намери съобщения');
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ Regex method found no messages');
         }
       }
       
     } catch (error) {
-      console.error('[🧠 BrainBox Master] ❌ Критична грешка при декодиране:', error);
+      console.error('[🧠 BrainBox Master] ❌ Critical error during decoding:', error);
     }
     
     if (!result.decoded) {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ Неуспешно декодиране - няма намерени съобщения');
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ Decoding failed - no messages found');
     }
     
     return result;
   }
 
   // ============================================================================
-  // SYNC QUEUE - Синхронизация към Dashboard
+  // SYNC QUEUE - Sync to Dashboard
   // ============================================================================
   
   async function addToSyncQueue(conversationId) {
@@ -1219,7 +1244,7 @@
         });
         
         tx.oncomplete = () => {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📤 Добавен в опашка за sync:', conversationId);
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📤 Added to sync queue:', conversationId);
           resolve(true);
         };
         
@@ -1241,11 +1266,11 @@
     
     // Check if required stores exist
     if (!storesExist(['syncQueue', 'conversations'])) {
-      console.warn('[🧠 BrainBox Master] ⚠️ Required stores not found! Exist:', Array.from(STATE.db.objectStoreNames));
+      if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] ⚠️ Required stores not found! Exist:', Array.from(STATE.db.objectStoreNames));
       return;
     }
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Начало на processSyncQueue...');
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Starting processSyncQueue...');
     
     return new Promise((resolve) => {
       try {
@@ -1256,21 +1281,22 @@
         const queueRequest = queueStore.getAll();
         
         queueRequest.onsuccess = () => {
-          // Използваме IIFE за async логика
+          // Use IIFE for async logic
           (async () => {
           const queueItems = queueRequest.result || [];
+          let lastSyncResult = { success: false, error: 'No items in queue' };
           
-          // Филтър: Само pending и с retries < MAX_RETRIES
+          // Filter: Only pending and with retries < MAX_RETRIES
           const pendingItems = queueItems.filter(item => 
             item.status === 'pending' && item.retries < CONFIG.MAX_RETRIES
           );
           
-          // Логваме само ако има разговори за синхронизация
+          // Log only if there are conversations to sync
           if (pendingItems.length > 0) {
-            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📤 Синхронизация на ${pendingItems.length} разговора...`);
+            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📤 Syncing ${pendingItems.length} conversations...`);
           }
           
-          // ВЗЕМИ ВСИЧКИ РАЗГОВОРИ ПРЕДИ ДА ПРИКЛЮЧИ ТРАНЗАКЦИЯТА
+          // GET ALL CONVERSATIONS BEFORE TRANSACTION COMPLETES
           const allConversations = await new Promise((resolve) => {
             const convGetAll = convStore.getAll();
             convGetAll.onsuccess = () => {
@@ -1281,21 +1307,21 @@
             convGetAll.onerror = () => resolve(new Map());
           });
           
-          // СЕГА ОБРАБОТВАМЕ РАЗГОВОРИТЕ ИЗВЪН ТРАНЗАКЦИЯТА
+          // NOW PROCESS THE CONVERSATIONS OUTSIDE THE TRANSACTION
           for (const item of pendingItems) {
             const conversation = allConversations.get(item.conversationId);
             
             if (!conversation) {
-              console.warn('[🧠 BrainBox Master] ⚠️ Conversation не намерен:', item.conversationId);
+              if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] ⚠️ Conversation not found:', item.conversationId);
               continue;
             }
             
             await (async () => {
                 // =====================================================
-                // ЗАПАЗВАНЕ КЪМ DASHBOARD
+                // SAVING TO DASHBOARD
                 // =====================================================
                 try {
-                  // Конвертиране на messages формат за dashboard
+                  // Convert messages format for dashboard
                   const dashboardMessages = conversation.messages.map(msg => ({
                     id: `msg_${Date.now()}_${msg.index || 0}`,
                     role: msg.role || (msg.text ? 'user' : 'assistant'),
@@ -1303,8 +1329,8 @@
                     timestamp: Date.now()
                   }));
                   
-                  // Изпращане към service worker за запазване
-                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📤 Изпращане към Worker (saveToDashboard):', conversation.conversationId);
+                  // Send to service worker for saving
+                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📤 Sending to Worker (saveToDashboard):', conversation.conversationId);
                   const response = await chrome.runtime.sendMessage({
                     action: 'saveToDashboard',
                     data: {
@@ -1325,57 +1351,52 @@
                     silent: true
                   });
                   
-                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📥 Отговор от Worker за', conversation.conversationId, ':', response);
+                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📥 Worker response for', conversation.conversationId, ':', response);
                   
                   if (response && response.success) {
-                    // ✅ УСПЕХ
-                    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Синхронизиран:', conversation.conversationId);
+                    // ✅ SUCCESS
+                    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Synced:', conversation.conversationId);
                     
-                    // Маркирай като synced в IndexedDB (с нова транзакция)
+                    // Mark as synced in IndexedDB (with new transaction)
                     conversation.synced = true;
                     conversation.syncedAt = Date.now();
-                    conversation.dashboardId = response.result?.id; // Ако dashboard-а върне ID
+                    conversation.dashboardId = response.result?.id;
+                    conversation.is_duplicate = response.result?.is_duplicate;
+                    conversation.is_downgrade = response.result?.is_downgrade;
                     
-                    // Създаваме нова транзакция за update
                     const updateTx = STATE.db.transaction(['conversations'], 'readwrite');
-                    const updateStore = updateTx.objectStore('conversations');
-                    updateStore.put(conversation);
-                    await new Promise((resolveUpdate) => {
-                      updateTx.oncomplete = () => resolveUpdate();
-                      updateTx.onerror = () => resolveUpdate();
-                    });
+                    updateTx.objectStore('conversations').put(conversation);
                     
-                    // Премахни от опашката (с нова транзакция)
                     const deleteTx = STATE.db.transaction(['syncQueue'], 'readwrite');
-                    const deleteStore = deleteTx.objectStore('syncQueue');
-                    deleteStore.delete(item.id);
-                    await new Promise((resolveDelete) => {
-                      deleteTx.oncomplete = () => resolveDelete();
-                      deleteTx.onerror = () => resolveDelete();
-                    });
-                    
+                    deleteTx.objectStore('syncQueue').delete(item.id);
+
+                    lastSyncResult = { 
+                      success: true, 
+                      is_duplicate: conversation.is_duplicate,
+                      is_downgrade: conversation.is_downgrade 
+                    };
                   } else {
                     throw new Error(response?.error || 'Save failed');
                   }
                   
                 } catch (error) {
-                  // ❌ ГРЕШКА
+                  // ❌ ERROR
                   const errorMessage = error?.message || String(error) || 'Unknown error';
-                  console.error('[🧠 BrainBox Master] ❌ Грешка при sync:', errorMessage, error);
+                  console.error('[🧠 BrainBox Master] ❌ Error during sync:', errorMessage, error);
                   
                   try {
-                    // Увеличи retry counter
+                    // Increment retry counter
                     item.retries++;
                     item.lastAttempt = Date.now();
                     item.lastError = errorMessage;
                     
-                    // Ако надхвърлихме max retries, маркирай като failed
+                    // If max retries exceeded, mark as failed
                     if (item.retries >= CONFIG.MAX_RETRIES) {
                       item.status = 'failed';
-                      console.error('[🧠 BrainBox Master] 💀 Максимален брой опити достигнат за:', item.conversationId);
+                      console.error('[🧠 BrainBox Master] 💀 Max retries reached for:', item.conversationId);
                     }
                     
-                    // Обнови статуса в опашката (с нова транзакция)
+                    // Update status in queue (new transaction)
                     if (STATE.db) {
                       const updateQueueTx = STATE.db.transaction(['syncQueue'], 'readwrite');
                       const updateQueueStore = updateQueueTx.objectStore('syncQueue');
@@ -1386,58 +1407,75 @@
                       });
                     }
                   } catch (updateError) {
-                    console.error('[🧠 BrainBox Master] Грешка при обновяване на sync queue:', updateError);
+                    console.error('[🧠 BrainBox Master] Error updating sync queue:', updateError);
                   }
+                  lastSyncResult = { success: false, error: errorMessage };
                 }
                 // =====================================================
             })();
           }
           
           STATE.lastSync = Date.now();
-          resolve(true);
-          })(); // Затваряне на IIFE
+          resolve(lastSyncResult);
+          })(); // Close IIFE
         };
         
         queueRequest.onerror = () => resolve(false);
         
       } catch (error) {
-        console.error('[🧠 BrainBox Master] Грешка при sync:', error);
+        console.error('[🧠 BrainBox Master] Error during sync:', error);
         resolve(false);
       }
     });
   }
 
   // ============================================================================
-  // MESSAGE LISTENER (за съобщения от service-worker)
+  // MESSAGE LISTENER (for messages from service-worker and window)
   // ============================================================================
   
   function setupMessageListener() {
+    // Listen for messages from window (primarily from inject-gemini-main.js)
+    window.addEventListener('message', (event) => {
+      if (event.source !== window) return;
+      if (event.data && event.data.type === 'BRAINBOX_GEMINI_TOKEN') {
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔑 Received Gemini token from MAIN world');
+        try {
+          chrome.runtime.sendMessage({
+            action: 'storeGeminiToken',
+            token: event.data.token
+          }).catch(() => {});
+        } catch (e) {
+          if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] ⚠️ Could not send token (context might be invalidated)');
+        }
+      }
+    });
+
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Получено съобщение от Background:', request.action);
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Received message from Background:', request.action);
       
       if (request.action === 'processBatchexecuteResponse') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📡 Обработка на batchexecute съобщение...');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📡 Processing batchexecute message...');
         sendResponse({ success: true });
         return true;
       }
       
       // Context menu: Extract conversation from clicked element
       if (request.action === 'extractConversationFromContextMenu') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Context menu: Извличане на conversation от кликнат елемент');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Context menu: Extracting conversation from clicked element');
         
         try {
           const { pageX, pageY } = request.clickInfo || {};
           
-          // Валидация на координатите
+          // Coordinate validation (info.pageX/Y might be undefined or 0)
           if (typeof pageX !== 'number' || typeof pageY !== 'number' || 
               !isFinite(pageX) || !isFinite(pageY) || 
-              pageX < 0 || pageY < 0) {
-            // Fallback: Използваме текущия URL (не показваме предупреждение ако успеем)
+              pageX <= 0 || pageY <= 0) {
+            // Fallback: Using current URL (don't show warning if successful)
             const urlMatch = window.location.href.match(/\/app\/([a-zA-Z0-9_-]+)/);
             if (urlMatch && urlMatch[1]) {
               const conversationId = urlMatch[1];
               const title = document.querySelector('title')?.textContent || 'Untitled Chat';
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Извлечен conversation ID от URL (fallback):', conversationId);
+              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Extracted conversation ID from URL (fallback):', conversationId);
               sendResponse({
                 success: true,
                 conversationId: conversationId,
@@ -1446,24 +1484,26 @@
               });
               return true;
             }
-            // Само ако и URL fallback не работи, показваме предупреждение
-            console.warn('[🧠 BrainBox Master] ⚠️ Невалидни координати и не може да се извлече ID от URL:', { pageX, pageY });
+            // Only if URL fallback also fails, show warning (only in Debug)
+            if (CONFIG.DEBUG_MODE) {
+              console.warn('[🧠 BrainBox Master] ⚠️ Invalid coordinates and could not extract ID from URL:', { pageX, pageY });
+            }
             sendResponse({ success: false, error: 'Invalid click coordinates and could not extract ID from URL' });
             return true;
           }
           
-          // Намиране на елемента на координатите
-          const elementAtPoint = document.elementFromPoint(pageX, pageY);
+          // Find element at coordinates (relative to viewport)
+          const elementAtPoint = document.elementFromPoint(pageX - window.scrollX, pageY - window.scrollY);
           if (!elementAtPoint) {
             sendResponse({ success: false, error: 'No element found at click position' });
             return true;
           }
           
-          // Търсене на conversation div (може да е кликнато на child елемент)
+          // Search for conversation div (might be clicked on a child element)
           let conversationElement = elementAtPoint;
           let found = false;
           
-          // Търсим нагоре в DOM дървото за conversation div
+          // Search up the DOM tree for conversation div
           for (let i = 0; i < 10 && conversationElement; i++) {
             const jslog = conversationElement.getAttribute('jslog');
             if (jslog && jslog.includes('c_')) {
@@ -1474,7 +1514,7 @@
           }
           
           if (!found) {
-            // Fallback: Търсим всички conversation divs и намираме най-близкия
+            // Fallback: Search all conversation divs and find the closest
             const allConversations = findAllConversationDivs();
             let closestElement = null;
             let minDistance = Infinity;
@@ -1501,12 +1541,12 @@
           
           if (found && conversationElement) {
             const conversationId = extractConversationIdFromJslog(conversationElement);
-            // Използваме новата функция за по-добро извличане на title
+            // Use new function for better title extraction
             const title = extractTitleFromConversationDiv(conversationElement);
             const url = conversationId ? `https://gemini.google.com/u/0/app/${conversationId}` : null;
             
             if (conversationId) {
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Намерен conversation:', conversationId, title);
+              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Found conversation:', conversationId, title);
               sendResponse({
                 success: true,
                 conversationId: conversationId,
@@ -1521,7 +1561,7 @@
           return true;
           
         } catch (error) {
-          console.error('[🧠 BrainBox Master] Грешка при извличане на conversation:', error);
+          console.error('[🧠 BrainBox Master] Error extracting conversation:', error);
           sendResponse({ success: false, error: error.message });
           return true;
         }
@@ -1529,7 +1569,7 @@
       
       // Context menu: Save conversation
       if (request.action === 'saveConversationFromContextMenu') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Context menu: Запазване на conversation');
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Context menu: Saving conversation');
         
         (async () => {
           try {
@@ -1540,37 +1580,62 @@
               return;
             }
             
-            // Валидация на conversation ID (не трябва да е "view", "edit", и т.н.)
+            // Validation of conversation ID (must not be "view", "edit", etc.)
             const invalidIds = ['view', 'edit', 'delete', 'new', 'create', 'undefined', 'null', ''];
             if (invalidIds.includes(conversationId.toLowerCase()) || conversationId.length < 10) {
-              console.error('[🧠 BrainBox Master] ❌ Невалиден conversation ID:', conversationId);
+              console.error('[🧠 BrainBox Master] ❌ Invalid conversation ID:', conversationId);
               sendResponse({ success: false, error: `Invalid conversation ID: ${conversationId}` });
               return;
             }
             
-            // Проверка дали вече е запазен
+            // Check if already saved and if there are new messages
             if (STATE.capturedConversations.has(conversationId)) {
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚓ Conversation вече е запазен, синхронизиране...');
+              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚓ Conversation already saved, checking for updates...');
               
-              // Добавяне в sync queue
-              await addToSyncQueue(conversationId);
+              const existingRecord = STATE.capturedConversations.get(conversationId);
+              const currentMessages = extractMessagesFromDOM();
+              const existingCount = existingRecord.messages ? existingRecord.messages.length : 0;
               
-              // Пържествено синхронизиране
-              await processSyncQueue();
+              if (currentMessages.length > existingCount) {
+                // We have new messages!
+                const newUserMessages = currentMessages.length - existingCount;
+                if (STATE.ui) STATE.ui.showToast(`✨ Chat updated! Captured ${newUserMessages} new messages.`, 'success');
+              } else {
+                // No new messages
+                if (STATE.ui) STATE.ui.showToast('ℹ️ Chat already saved. No new messages found. Scroll up to load older history.', 'info');
+                
+                sendResponse({ success: true, message: 'Already saved, no new messages' });
+                return;
+              }
               
-              sendResponse({ success: true, message: 'Conversation already saved, syncing...' });
-              return;
+              // If we reach here, we are updating the existing record
+              // The logic below will handle the save/sync
             }
             
-            // Опит за извличане на данни от DOM
+            // Manual Save: Save conversation from context menu
+            if (isChatIncomplete()) {
+                const confirmed = await STATE.ui.showConfirmation(
+                    'Attention: Incomplete Chat',
+                    'The chat is not fully loaded. Are you sure you want to save only the loaded part?',
+                    'Save only loaded part',
+                    'Cancel / Go Back'
+                );
+                
+                if (!confirmed) {
+                    sendResponse({ success: false, error: 'User cancelled save due to incomplete chat' });
+                    return;
+                }
+            }
+
+            // Attempt to extract data from DOM
             if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 ========== SAVE CONVERSATION START ==========');
             if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Request data:', { conversationId, title, url });
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Опит за извличане на DOM данни за conversation:', conversationId);
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Attempting to extract DOM data for conversation:', conversationId);
             const domData = extractConversationDataFromDOM(conversationId);
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 DOM данни извлечени:', domData);
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 DOM data extracted:', domData);
             
-            // ВАЖНО: Приоритизираме domData.title, защото той е по-точен от title от request-а
-            // title от request-а често е "Google Gemini" или друг generic title
+            // IMPORTANT: Prioritize domData.title as it's more accurate than request title
+            // Request title is often "Google Gemini" or another generic title
             const finalTitle = (domData?.title && domData.title !== 'Untitled Chat') 
               ? domData.title 
               : (title && title !== 'Google Gemini' && title !== 'Untitled Chat') 
@@ -1580,10 +1645,10 @@
             
             if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Request title:', title);
             if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 DOM title:', domData?.title);
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Финален title (след приоритизация):', finalTitle);
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔗 Финален URL:', finalUrl);
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Final title (after prioritization):', finalTitle);
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔗 Final URL:', finalUrl);
             
-            // Създаване на conversation record
+            // Create conversation record
             const convData = {
               conversationId: conversationId,
               title: finalTitle,
@@ -1593,29 +1658,29 @@
               synced: false
             };
             
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 💾 Conversation data за запазване:', convData);
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 💾 Conversation data to save:', convData);
             if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 ========== SAVE CONVERSATION END ==========');
             
-            // Запазване в IndexedDB
+            // Save in IndexedDB
             if (STATE.db) {
               const tx = STATE.db.transaction(['conversations'], 'readwrite');
               const store = tx.objectStore('conversations');
               
-              // Опит за декодиране (ако има данни в batchexecute cache или DOM)
+              // Attempt decoding (if data in batchexecute cache or DOM)
               let decoded = await attemptDecoding({
                 conversationId: conversationId,
                 fullData: null,
                 rawJson: null
               });
               
-              // Ако няма декодирани съобщения, опитай да извлечеш от DOM
+              // If no decoded messages, try extracting from DOM
               if (!decoded.decoded || decoded.messages.length === 0) {
-                if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Опит за извличане на съобщения от DOM...');
+                if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Attempting to extract messages from DOM...');
                 const domMessages = extractMessagesFromDOM();
                 if (domMessages.length > 0) {
                   decoded.messages = domMessages;
                   decoded.decoded = true;
-                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Извлечени', domMessages.length, 'съобщения от DOM');
+                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Extracted', domMessages.length, 'messages from DOM');
                 }
               }
               
@@ -1630,17 +1695,29 @@
                 store.put(record);
                 tx.oncomplete = () => {
                   STATE.capturedConversations.set(conversationId, record);
-                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Conversation запазен:', conversationId);
+                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Conversation saved:', conversationId);
                   resolve();
                 };
                 tx.onerror = () => resolve();
               });
               
-              // Добавяне в sync queue
+              // Add to sync queue
               await addToSyncQueue(conversationId);
               
-              // Пържествено синхронизиране
-              await processSyncQueue();
+              // Manual sync
+              const syncResult = await processSyncQueue();
+              
+              if (syncResult && syncResult.success) {
+                  if (syncResult.is_downgrade) {
+                      if (STATE.ui) STATE.ui.showToast('ℹ️ Stored version is more complete. Scroll up and try again!', 'info');
+                  } else if (syncResult.is_duplicate) {
+                      if (STATE.ui) STATE.ui.showToast('ℹ️ Chat already exists. Updated successfully! ✓', 'info');
+                  } else {
+                      if (STATE.ui) STATE.ui.showToast('✅ Conversation saved successfully!', 'success');
+                  }
+              } else {
+                  if (STATE.ui) STATE.ui.showToast('✅ Conversation added to queue for background sync.', 'success');
+              }
               
               sendResponse({ success: true, message: 'Conversation saved and synced' });
             } else {
@@ -1648,7 +1725,7 @@
             }
             
           } catch (error) {
-            console.error('[🧠 BrainBox Master] Грешка при запазване:', error);
+            console.error('[🧠 BrainBox Master] Error during save:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
@@ -1659,9 +1736,63 @@
       return false;
     });
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Message listener активен');
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Message listener active');
   }
   
+  // ============================================================================
+  // LONG CHAT MONITORING
+  // ============================================================================
+
+  function setupLongChatMonitor() {
+    let lastUrl = location.href;
+    setInterval(() => {
+      if (location.href !== lastUrl) {
+        lastUrl = location.href;
+        // When chat changes, wait for the page to load
+        setTimeout(checkIfChatNeedsScrolling, 2500);
+      }
+    }, 1000);
+  }
+
+  function isChatIncomplete() {
+    const chatHistory = document.querySelector('#chat-history');
+    if (!chatHistory) return false;
+
+    const blocks = chatHistory.querySelectorAll('.conversation-container');
+    
+    // If few messages (e.g. under 4), but not a new chat
+    // Gemini often loads only last 2-3 on direct open
+    if (blocks.length > 0 && blocks.length < 6) {
+      // Check for "load more" or similar buttons
+      const hasLoadMore = !!document.querySelector('button[aria-label*="history"], button[aria-label*="previous"], button[aria-label*="old"], button[aria-label*="earlier"]');
+      
+      // Or if scroll is not at top
+      const scroller = chatHistory.closest('.v-scroll-viewport') || chatHistory.parentElement;
+      const canScrollUp = scroller && scroller.scrollTop > 100;
+
+      return hasLoadMore || canScrollUp || blocks.length < 4;
+    }
+    return false;
+  }
+
+  function checkIfChatNeedsScrolling() {
+    // Extract conversationId from URL
+    const urlMatch = window.location.href.match(/\/app\/([a-zA-Z0-9_-]+)/);
+    if (!urlMatch) return;
+    
+    const convId = urlMatch[1];
+    
+    // Don't annoy if already notified in this session
+    if (STATE.notifiedChats.has(convId)) return;
+
+    if (isChatIncomplete()) {
+       if (STATE.ui) {
+          STATE.ui.showToast('ℹ️ This chat is very long. Scroll to the very beginning to ensure all messages are captured.', 'info');
+          STATE.notifiedChats.add(convId);
+       }
+    }
+  }
+
   // ============================================================================
   // AUTO SYNC LOOP
   // ============================================================================
@@ -1669,7 +1800,7 @@
   function startAutoSync() {
     if (!CONFIG.AUTO_SAVE_ENABLED) return;
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Auto-sync стартиран');
+    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Auto-sync started');
     
     setInterval(async () => {
       await processSyncQueue();
@@ -1677,7 +1808,7 @@
   }
 
   // ============================================================================
-  // СТАТИСТИКА И DEBUGGING
+  // STATS AND DEBUGGING
   // ============================================================================
   
   async function getStats() {
@@ -1740,22 +1871,22 @@
   }
 
   // ============================================================================
-  // ПУБЛИЧЕН API
+  // PUBLIC API
   // ============================================================================
   
   window.BrainBoxMaster = {
-    // Статистика
+    // Stats
     getStats: getStats,
     printStats: printStats,
     
-    // Ръчна синхронизация
+    // Manual Sync
     syncNow: processSyncQueue,
     
-    // Достъп до данни
+    // Data access
     getCapturedConversations: () => Array.from(STATE.capturedConversations.values()),
     getEncryptionKeys: () => Array.from(STATE.encryptionKeys.entries()),
     
-    // Конфигурация
+    // Configuration
     enableAutoSync: () => { CONFIG.AUTO_SAVE_ENABLED = true; startAutoSync(); },
     disableAutoSync: () => { CONFIG.AUTO_SAVE_ENABLED = false; },
     
@@ -1763,58 +1894,73 @@
     enableDebug: () => { CONFIG.DEBUG_MODE = true; },
     disableDebug: () => { CONFIG.DEBUG_MODE = false; },
     
-    // Достъп до database
+    // Database access
     getDB: () => STATE.db,
     
-    // Състояние
+    // State
     isInitialized: () => STATE.isInitialized
   };
 
   // ============================================================================
-  // ИНИЦИАЛИЗАЦИЯ
+  // INITIALIZATION
   // ============================================================================
   
   async function init() {
     // Init banner log removed to reduce console noise
     
     try {
-      // 1. Инициализиране на IndexedDB
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Стъпка 1: IndexedDB...');
+      // 1. Initialize IndexedDB
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 1: IndexedDB...');
       await initIndexedDB();
       
-      // 2. Настройка на interceptors
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Стъпка 2: Interceptors...');
-      setupBatchexecuteInterceptor();
+      // 2. Setup interceptors
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 2: Interceptors...');
+      setupInterceptor();
       
-      // 2.5. Настройка на message listener (за съобщения от service-worker)
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Стъпка 2.5: Message listener...');
+      // 2.5. Setup message listener (for messages from service-worker and window)
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 2.5: Message listener...');
       setupMessageListener();
       
-      // 3. Стартиране на auto-sync
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Стъпка 3: Auto-sync...');
+      // 2.6. Request injection of MAIN world script to get Gemini AT token
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 2.6: Injecting MAIN script...');
+      chrome.runtime.sendMessage({ action: 'injectGeminiMainScript' }).catch(() => {});
+
+      // 2.7. Initialize UI
+      if (window.BrainBoxUI) {
+        STATE.ui = new window.BrainBoxUI();
+      }
+      
+      // 2.8. Start monitoring for long chats
+      setupLongChatMonitor();
+      
+      // 3. Start auto-sync
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 3: Auto-sync...');
       startAutoSync();
       
-      // 4. Готово
+      // 4. Ready
       STATE.isInitialized = true;
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Системата е активна!');
+      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ System Active!');
 
       // 5. Notify service worker that we are ready
       chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'gemini' }).catch(() => {});
       
-      // Покажи статистика след 5 секунди
+      // Show stats after 5 seconds
       setTimeout(printStats, 5000);
       
-      // Периодична статистика на всеки 30 секунди (ако debug mode)
+      // Periodical stats every 30 seconds (if debug mode)
       if (CONFIG.DEBUG_MODE) {
         setInterval(printStats, 30000);
       }
       
+      // Initial check for long chat
+      setTimeout(checkIfChatNeedsScrolling, 3000);
+      
     } catch (error) {
-      console.error('[🧠 BrainBox Master] ❌ Критична грешка при инициализация:', error);
+      console.error('[🧠 BrainBox Master] ❌ Critical error during initialization:', error);
     }
   }
 
-  // Стартиране
+  // Start
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
   } else {

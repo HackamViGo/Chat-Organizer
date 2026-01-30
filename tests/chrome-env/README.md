@@ -4,7 +4,7 @@
 ```bash
 npm run test:chrome
 # OR
-bash dev/test-chrome.sh
+bash tests/chrome-env/test-chrome.sh
 ```
 
 ## What It Does

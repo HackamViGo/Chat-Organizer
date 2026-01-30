@@ -213,6 +213,7 @@ interface FolderTreeItemProps {
   onChatDragStart: (e: React.DragEvent, id: string) => void;
   sortMode: SortMode;
   onDeleteFolder: (id: string) => void;
+  onEditFolder: (folder: Folder) => void;
 }
 
 const getFolderLink = (folder: Folder) => {
@@ -227,7 +228,7 @@ const getFolderLink = (folder: Folder) => {
 
 const FolderTreeItem: React.FC<FolderTreeItemProps> = ({ 
   folder, level, allFolders, allChats, isActive, onToggle, isExpanded, 
-  onDragOver, onDragLeave, onDrop, dragOverState, onFolderDragStart, onChatDragStart, sortMode, onDeleteFolder
+  onDragOver, onDragLeave, onDrop, dragOverState, onFolderDragStart, onChatDragStart, sortMode, onDeleteFolder, onEditFolder
 }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   // Logic to find children folders
@@ -317,6 +318,18 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                onEditFolder(folder);
+              }}
+              className="p-1 rounded hover:bg-slate-200 dark:hover:bg-white/10 text-slate-400 hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors"
+              title="Edit folder"
+            >
+              <FileEdit size={12} />
+            </button>
+            
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 if (showDeleteConfirm) {
                   onDeleteFolder(folder.id);
                   setShowDeleteConfirm(false);
@@ -352,8 +365,9 @@ const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
               dragOverState={dragOverState}
               onFolderDragStart={onFolderDragStart}
               onChatDragStart={onChatDragStart}
-              sortMode={sortMode}
-              onDeleteFolder={onDeleteFolder}
+               sortMode={sortMode}
+               onDeleteFolder={onDeleteFolder}
+               onEditFolder={onEditFolder}
             />
           ))}
           {folderChats.map(chat => (
@@ -382,7 +396,7 @@ function SidebarContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentFolderParam = searchParams.get('folder');
-  const { folders, addFolder, deleteFolder, isLoading: foldersLoading } = useFolderStore();
+  const { folders, addFolder, updateFolder, deleteFolder, isLoading: foldersLoading } = useFolderStore();
   const { chats, updateChat } = useChatStore();
   
   // -- Local State --
@@ -394,6 +408,7 @@ function SidebarContent() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('custom');
   const [dragOverState, setDragOverState] = useState<DragState | null>(null);
+  const [editingFolder, setEditingFolder] = useState<Folder | null>(null);
   const isCreatingFolderRef = React.useRef(false);
   
   // -- Mobile Sidebar State --
@@ -539,7 +554,9 @@ function SidebarContent() {
     setExpandedFolders(newExpanded);
   };
 
-  const openCreateModal = () => {
+   const openCreateModal = () => {
+    setEditingFolder(null);
+    setNewFolderName('');
     const allIcons = ICON_CATEGORIES.flatMap(cat => cat.icons);
     const randomIcon = allIcons[Math.floor(Math.random() * allIcons.length)];
     const colors = ['cyan', 'rose', 'purple', 'blue', 'emerald', 'amber'];
@@ -549,7 +566,15 @@ function SidebarContent() {
     setIsModalOpen(true);
   };
 
-  const handleAddFolder = async (e: React.FormEvent) => {
+  const openEditModal = (folder: Folder) => {
+    setEditingFolder(folder);
+    setNewFolderName(folder.name);
+    setSelectedIcon(folder.icon || 'Folder');
+    setSelectedColor(folder.color || 'blue');
+    setIsModalOpen(true);
+  };
+
+   const handleAddFolder = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newFolderName.trim() || isCreatingFolderRef.current) return;
     
@@ -557,39 +582,50 @@ function SidebarContent() {
     
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
       
-      if (!user) {
-        isCreatingFolderRef.current = false;
-        return;
-      }
-      
-      const { data: newFolder, error } = await (supabase as any)
-        .from('folders')
-        .insert({
-          user_id: user.id,
+      if (editingFolder) {
+        // Update existing folder
+        await updateFolder(editingFolder.id, {
           name: newFolderName,
           color: selectedColor,
-          type: activeType,
           icon: selectedIcon,
-        })
-        .select()
-        .single();
-      
-      if (error) {
-        console.error('Error creating folder:', error);
-        isCreatingFolderRef.current = false;
-        return;
-      }
-      
-      if (newFolder) {
-        addFolder(newFolder);
+        });
+      } else {
+        // Create new folder
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          isCreatingFolderRef.current = false;
+          return;
+        }
+
+        const { data: newFolder, error } = await (supabase as any)
+          .from('folders')
+          .insert({
+            user_id: user.id,
+            name: newFolderName,
+            color: selectedColor,
+            type: activeType,
+            icon: selectedIcon,
+          })
+          .select()
+          .single();
+        
+        if (error) {
+          console.error('Error creating folder:', error);
+          isCreatingFolderRef.current = false;
+          return;
+        }
+        
+        if (newFolder) {
+          addFolder(newFolder);
+        }
       }
       
       setNewFolderName('');
+      setEditingFolder(null);
       setIsModalOpen(false);
     } catch (error) {
-      console.error('Failed to create folder:', error);
+      console.error('Failed to handle folder operation:', error);
     } finally {
       isCreatingFolderRef.current = false;
     }
@@ -721,8 +757,10 @@ function SidebarContent() {
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="w-full max-w-sm bg-white dark:bg-[#0f172a] rounded-xl border border-slate-200 dark:border-white/10 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-            <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
-              <h3 className="font-semibold text-slate-900 dark:text-white capitalize">New Folder</h3>
+             <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center bg-slate-50/50 dark:bg-white/5">
+              <h3 className="font-semibold text-slate-900 dark:text-white capitalize">
+                {editingFolder ? 'Edit Folder' : 'New Folder'}
+              </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white" aria-label="Close modal" title="Close"><X size={18} /></button>
             </div>
             
@@ -765,8 +803,10 @@ function SidebarContent() {
             </form>
             
             <div className="p-4 border-t border-slate-100 dark:border-white/5 flex justify-end gap-2 bg-slate-50/50 dark:bg-white/5">
-              <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10">Cancel</button>
-              <button onClick={handleAddFolder} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-500 shadow-lg" disabled={!newFolderName}>Create</button>
+               <button onClick={() => setIsModalOpen(false)} className="px-4 py-2 rounded-lg text-sm font-medium text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-white/10">Cancel</button>
+              <button onClick={handleAddFolder} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-cyan-600 hover:bg-cyan-500 shadow-lg" disabled={!newFolderName}>
+                {editingFolder ? 'Save Changes' : 'Create'}
+              </button>
             </div>
           </div>
         </div>
@@ -883,6 +923,7 @@ function SidebarContent() {
                     onChatDragStart={handleChatDragStart} 
                     sortMode={sortMode}
                     onDeleteFolder={handleDeleteFolder}
+                    onEditFolder={openEditModal}
                   />
                 ))}
                 

@@ -390,8 +390,8 @@ function determineGeminiRoleImproved(text, index, previousMessages) {
     
     // Heuristic 1: Strong user indicators (commands, questions, short requests)
     const strongUserIndicators = [
-        /^Продължи/i,  // "Продължи с лицето"
-        /^Отлично!?\s*Продължаваме/i,  // "Отлично! Продължаваме..."
+        /^Продължи/i,  // "Continue"
+        /^Отлично!?\s*Продължаваме/i,  // "Excellent! Continuing..."
         /^(Генерирай|Направи|Създай|Покажи|Дай|Искам|Моля)/i,  // Bulgarian commands
         /^(Continue|Generate|Create|Show|Give|I want|Please)/i,  // English commands
         /\?[^?]*$/,  // Ends with question mark
@@ -406,8 +406,8 @@ function determineGeminiRoleImproved(text, index, previousMessages) {
     
     // Heuristic 2: Strong assistant indicators (structured, detailed responses)
     const strongAssistantIndicators = [
-        /^\d+\.\s+\d+\s+Изображения/i,  // "1. 20 Изображения"
-        /^Генерация\s*\(/i,  // "Генерация (Лице 1/20):"
+        /^\d+\.\s+\d+\s+Изображения/i,  // "1. 20 Images"
+        /^Генерация\s*\(/i,  // "Generation (Face 1/20):"
         /^\*\*.*\*\*:?\s*$/m,  // Markdown bold headers
         /^(Генерация|Изображение|Поза|Фон|Контрол|Prompt|Приключихме|Желаете ли)/i,  // Structured patterns
         /^(Generation|Image|Pose|Background|Control|Prompt|Finished|Would you like)/i,

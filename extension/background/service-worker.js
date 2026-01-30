@@ -36,7 +36,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
         if (authHeader && authHeader.value.startsWith('Bearer ')) {
             tokens.chatgpt = authHeader.value;
             chrome.storage.local.set({ chatgpt_token: authHeader.value });
-            // console.debug('[BrainBox] ✅ ChatGPT token captured');
+            // console.debug('[🧠 BrainBox] ✅ ChatGPT token captured');
         }
     },
     { urls: ['https://chatgpt.com/backend-api/*'] },
@@ -63,10 +63,10 @@ chrome.webRequest.onBeforeRequest.addListener(
                         claude_org_id: orgId,
                         org_id_discovered_at: Date.now()
                     });
-                    if (DEBUG_MODE) console.log('[BrainBox] ✅ Claude org_id extracted per spec:', orgId);
+                    if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Claude org_id extracted per spec:', orgId);
                 }
             } catch (error) {
-                console.error('[BrainBox] Error in org_id extraction:', error);
+                console.error('[🧠 BrainBox] Error in org_id extraction:', error);
             }
         }
     },
@@ -83,7 +83,7 @@ chrome.webRequest.onBeforeRequest.addListener(
     (details) => {
         // Log all Gemini POST requests to debug
         if (DEBUG_MODE && details.url.includes('gemini.google.com') && details.method === 'POST') {
-            if (DEBUG_MODE) console.log('[BrainBox] 🔍 Gemini POST request:', details.url.substring(0, 150), 'Method:', details.method);
+            if (DEBUG_MODE) console.log('[🧠 BrainBox] 🔍 Gemini POST request:', details.url.substring(0, 150), 'Method:', details.method);
         }
     },
     { urls: ['https://gemini.google.com/*'] },
@@ -99,21 +99,21 @@ chrome.webRequest.onBeforeRequest.addListener(
             return; // Not a batchexecute request
         }
         
-        if (DEBUG_MODE) console.log('[BrainBox] ✅ Batchexecute request detected!');
-        if (DEBUG_MODE) console.log('[BrainBox] Full URL:', details.url);
-        if (DEBUG_MODE) console.log('[BrainBox] Method:', details.method);
-        if (DEBUG_MODE) console.log('[BrainBox] Has requestBody:', !!details.requestBody);
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Batchexecute request detected!');
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] Full URL:', details.url);
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] Method:', details.method);
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] Has requestBody:', !!details.requestBody);
         
         if (details.requestBody) {
             try {
-                if (DEBUG_MODE) console.log('[BrainBox] ✅ Gemini batchexecute request intercepted');
-                if (DEBUG_MODE) console.log('[BrainBox] Request body type:', details.requestBody ? Object.keys(details.requestBody) : 'null');
+                if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Gemini batchexecute request intercepted');
+                if (DEBUG_MODE) console.log('[🧠 BrainBox] Request body type:', details.requestBody ? Object.keys(details.requestBody) : 'null');
                 
                 // Try formData first
                 const formData = details.requestBody.formData;
                 if (formData && formData['f.req']) {
                     const reqData = formData['f.req'][0];
-                    if (DEBUG_MODE) console.log('[BrainBox] Request data (first 300 chars):', reqData.substring(0, 300));
+                    if (DEBUG_MODE) console.log('[🧠 BrainBox] Request data (first 300 chars):', reqData.substring(0, 300));
                     
                     // Extract dynamic key per specification:
                     // Pattern from spec: /"([a-zA-Z0-9]{5,6})",\s*"\[/
@@ -131,7 +131,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                         const conversationIdPattern = /(?:\\?"|")c_([a-zA-Z0-9_-]{16,})(?:\\?"|")/;
                         const hasConversationId = conversationIdPattern.test(reqData);
                         
-                        if (DEBUG_MODE) console.log('[BrainBox] Key discovery check:', {
+                        if (DEBUG_MODE) console.log('[🧠 BrainBox] Key discovery check:', {
                             key,
                             hasConversationId,
                             reqDataSample: reqData.substring(0, 200)
@@ -144,7 +144,7 @@ chrome.webRequest.onBeforeRequest.addListener(
                                 gemini_dynamic_key: key,
                                 key_discovered_at: Date.now()
                             });
-                            if (DEBUG_MODE) console.log('[BrainBox] ✅ Gemini dynamic key discovered (conversation request):', key);
+                            if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Gemini dynamic key discovered (conversation request):', key);
                         } else {
                             // Store as fallback, but don't overwrite conversation keys
                             if (!tokens.gemini_key) {
@@ -153,13 +153,13 @@ chrome.webRequest.onBeforeRequest.addListener(
                                     gemini_dynamic_key: key,
                                     key_discovered_at: Date.now()
                                 });
-                                if (DEBUG_MODE) console.log('[BrainBox] ✅ Gemini dynamic key discovered (per spec):', key);
+                                if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Gemini dynamic key discovered (per spec):', key);
                             } else {
-                                if (DEBUG_MODE) console.log('[BrainBox] ⚠️ Key already exists, skipping:', key);
+                                if (DEBUG_MODE) console.log('[🧠 BrainBox] ⚠️ Key already exists, skipping:', key);
                             }
                         }
                     } else {
-                        if (DEBUG_MODE) console.log('[BrainBox] ⚠️ Spec pattern not found, trying fallback patterns...');
+                        if (DEBUG_MODE) console.log('[🧠 BrainBox] ⚠️ Spec pattern not found, trying fallback patterns...');
                         
                         // Fallback 1: Simple pattern "KEY"
                         const fallback1 = reqData.match(/"([a-zA-Z0-9]{5,6})"/);
@@ -180,9 +180,9 @@ chrome.webRequest.onBeforeRequest.addListener(
                                         gemini_dynamic_key: key,
                                         key_discovered_at: Date.now()
                                     });
-                                    if (DEBUG_MODE) console.log('[BrainBox] ✅ Gemini dynamic key discovered (fallback):', key);
+                                    if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Gemini dynamic key discovered (fallback):', key);
                                 } else {
-                                    if (DEBUG_MODE) console.log('[BrainBox] ⚠️ Fallback pattern found but position invalid');
+                                    if (DEBUG_MODE) console.log('[🧠 BrainBox] ⚠️ Fallback pattern found but position invalid');
                                 }
                             }
                         }
@@ -190,15 +190,15 @@ chrome.webRequest.onBeforeRequest.addListener(
                         // Fallback 2: Pattern ["KEY"
                         const fallback2 = reqData.match(/\["([a-zA-Z0-9]{5,6})"/);
                         if (fallback2 && !tokens.gemini_key) {
-                            if (DEBUG_MODE) console.log('[BrainBox] Found alternative pattern ["KEY":', fallback2[1]);
+                            if (DEBUG_MODE) console.log('[🧠 BrainBox] Found alternative pattern ["KEY":', fallback2[1]);
                         }
                     }
                 } else {
-                    if (DEBUG_MODE) console.log('[BrainBox] ⚠️ No formData or f.req found in request body');
-                    if (DEBUG_MODE) console.log('[BrainBox] Request body keys:', details.requestBody ? Object.keys(details.requestBody) : 'null');
+                    if (DEBUG_MODE) console.log('[🧠 BrainBox] ⚠️ No formData or f.req found in request body');
+                    if (DEBUG_MODE) console.log('[🧠 BrainBox] Request body keys:', details.requestBody ? Object.keys(details.requestBody) : 'null');
                 }
             } catch (error) {
-                console.error('[BrainBox] Error in key discovery:', error);
+                console.error('[🧠 BrainBox] Error in key discovery:', error);
             }
         }
     },
@@ -209,9 +209,9 @@ chrome.webRequest.onBeforeRequest.addListener(
 );
 
 // Debug: Verify listener is registered
-if (DEBUG_MODE) console.log('[BrainBox] ✅ Gemini dynamic key discovery listener registered');
-if (DEBUG_MODE) console.log('[BrainBox] 📋 Listening for batchexecute requests');
-if (DEBUG_MODE) console.log('[BrainBox] 📋 URL patterns:', [
+if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Gemini dynamic key discovery listener registered');
+if (DEBUG_MODE) console.log('[🧠 BrainBox] 📋 Listening for batchexecute requests');
+if (DEBUG_MODE) console.log('[🧠 BrainBox] 📋 URL patterns:', [
     '*://gemini.google.com/*/batchexecute',
     '*://gemini.google.com/_/BardChatUi/data/batchexecute',
     '*://gemini.google.com/*/BardChatUi/data/batchexecute',
@@ -219,9 +219,9 @@ if (DEBUG_MODE) console.log('[BrainBox] 📋 URL patterns:', [
 ]);
 
 // ============================================================================
-// BATCHEXECUTE RESPONSE INTERCEPTOR (СТАРИЯТ НАЧИН)
-// ============================================================================
-// Хваща batchexecute responses и ги изпраща до content script
+// BATCHEXECUTE RESPONSE INTERCEPTOR (OLD WAY)
+// ============================================================================// BATCHEXECUTE RESPONSE INTERCEPTOR (OLD WAY)
+// Catches batchexecute responses and sends them to the content script
 
 chrome.webRequest.onCompleted.addListener(
     async (details) => {
@@ -230,9 +230,9 @@ chrome.webRequest.onCompleted.addListener(
             return;
         }
         
-        if (DEBUG_MODE) console.log('[BrainBox] ✅ Batchexecute response detected!');
-        if (DEBUG_MODE) console.log('[BrainBox] URL:', details.url);
-        if (DEBUG_MODE) console.log('[BrainBox] Tab ID:', details.tabId);
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Batchexecute response detected!');
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] URL:', details.url);
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] Tab ID:', details.tabId);
         
         // Get the response body (requires responseBody permission)
         // Note: We can't read responseBody directly in onCompleted
@@ -256,7 +256,7 @@ chrome.webRequest.onCompleted.addListener(
     []
 );
 
-if (DEBUG_MODE) console.log('[BrainBox] ✅ Batchexecute response interceptor registered');
+if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Batchexecute response interceptor registered');
 
 // ============================================================================
 // MESSAGE HANDLER
@@ -273,7 +273,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             refreshToken: request.refreshToken,
             expiresAt: request.expiresAt
         });
-        if (DEBUG_MODE) console.log('[BrainBox] ✅ Auth token received from dashboard');
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Auth token received from dashboard');
         // Start token refresh check
         startTokenRefreshCheck();
         sendResponse({ success: true });
@@ -335,9 +335,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Store Gemini AT token (from content script)
     if (request.action === 'storeGeminiToken') {
-        tokens.gemini_at = request.token;
-        chrome.storage.local.set({ gemini_at_token: request.token });
-        // console.debug('[BrainBox] ✅ Gemini AT token stored');
+        if (request.token) {
+            tokens.gemini_at = request.token;
+            chrome.storage.local.set({ gemini_at_token: request.token });
+            if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Gemini AT token updated');
+        }
         sendResponse({ success: true });
         return true;
     }
@@ -346,16 +348,16 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'injectGeminiMainScript') {
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0] && tabs[0].id) {
-                if (DEBUG_MODE) console.log('[BrainBox] Injecting Gemini MAIN world script into tab:', tabs[0].id);
+                if (DEBUG_MODE) console.log('[🧠 BrainBox] Injecting Gemini MAIN world script into tab:', tabs[0].id);
                 chrome.scripting.executeScript({
                     target: { tabId: tabs[0].id },
                     world: 'MAIN',
                     files: ['content/inject-gemini-main.js']
                 }).then(() => {
-                    if (DEBUG_MODE) console.log('[BrainBox] ✅ Gemini MAIN world script injected successfully');
+                    if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Gemini MAIN world script injected successfully');
                     sendResponse({ success: true });
                 }).catch(err => {
-                    console.error('[BrainBox] ❌ Failed to inject Gemini MAIN world script:', err);
+                    console.error('[🧠 BrainBox] ❌ Failed to inject Gemini MAIN world script:', err);
                     sendResponse({ success: false, error: err.message });
                 });
             } else {
@@ -367,7 +369,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     // Content script readiness signal
     if (request.action === 'contentScriptReady') {
-        if (DEBUG_MODE) console.log(`[BrainBox] 🚀 Content script ready signal from tab ${sender.tab?.id || 'unknown'} (${request.platform})`);
+        if (DEBUG_MODE) console.log(`[🧠 BrainBox] 🚀 Content script ready signal from tab ${sender.tab?.id || 'unknown'} (${request.platform})`);
         return true;
     }
 
@@ -390,7 +392,7 @@ async function sendMessageToTab(tabId, message, retries = 3, delay = 500) {
             return true;
         } catch (error) {
             if (i === retries - 1) {
-                if (DEBUG_MODE) console.log(`[BrainBox] ⚠️ Message failed after ${retries} attempts:`, message.action);
+                if (DEBUG_MODE) console.log(`[🧠 BrainBox] ⚠️ Message failed after ${retries} attempts:`, message.action);
                 return false;
             }
             await new Promise(r => setTimeout(r, delay));
@@ -453,7 +455,7 @@ async function fetchChatGPTConversation(conversationId) {
     const validation = validateConversation(conversation);
 
     if (!validation.valid) {
-        console.warn('ChatGPT validation warning:', validation.error);
+        if (DEBUG_MODE) console.warn('ChatGPT validation warning:', validation.error);
     }
 
     return conversation;
@@ -476,7 +478,7 @@ async function fetchClaudeConversation(conversationId, providedUrl = null) {
     const { claude_org_id } = await chrome.storage.local.get(['claude_org_id']);
     if (claude_org_id) {
         orgId = claude_org_id;
-        if (DEBUG_MODE) console.log('[BrainBox] ✅ Using cached org_id per spec:', orgId);
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Using cached org_id per spec:', orgId);
     }
     
     // Step 2: If not cached, try to extract from current page URL
@@ -495,7 +497,7 @@ async function fetchClaudeConversation(conversationId, providedUrl = null) {
             orgId = orgMatch[1];
             // Cache it per spec: "cache_per_session"
             chrome.storage.local.set({ claude_org_id: orgId });
-            if (DEBUG_MODE) console.log('[BrainBox] ✅ Extracted org_id from URL per spec:', orgId);
+            if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Extracted org_id from URL per spec:', orgId);
         }
     }
     
@@ -507,7 +509,7 @@ async function fetchClaudeConversation(conversationId, providedUrl = null) {
         const { claude_org_id: cachedId } = await chrome.storage.local.get(['claude_org_id']);
         if (cachedId) {
             orgId = cachedId;
-            if (DEBUG_MODE) console.log('[BrainBox] ✅ Got org_id from intercepted API call:', orgId);
+            if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Got org_id from intercepted API call:', orgId);
         }
     }
 
@@ -537,17 +539,17 @@ async function fetchClaudeConversation(conversationId, providedUrl = null) {
     // providedUrl is the current page URL like: https://claude.ai/chat/{conversationId}
     if (providedUrl && providedUrl.includes('claude.ai')) {
         conversation.url = providedUrl;
-        if (DEBUG_MODE) console.log('[BrainBox] ✅ Claude URL set from providedUrl:', conversation.url);
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Claude URL set from providedUrl:', conversation.url);
     } else {
         // Fallback: construct URL from conversationId
         conversation.url = `https://claude.ai/chat/${conversationId}`;
-        if (DEBUG_MODE) console.log('[BrainBox] ⚠️ Claude URL constructed (no providedUrl):', conversation.url);
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] ⚠️ Claude URL constructed (no providedUrl):', conversation.url);
     }
     
     const validation = validateConversation(conversation);
 
     if (!validation.valid) {
-        console.warn('Claude validation warning:', validation.error);
+        if (DEBUG_MODE) console.warn('Claude validation warning:', validation.error);
     }
 
     return conversation;
@@ -564,18 +566,20 @@ async function fetchGeminiConversation(conversationId) {
         'key_discovered_at'
     ]);
 
-    if (DEBUG_MODE) console.log('[BrainBox] fetchGeminiConversation - Token:', gemini_at_token ? 'Present' : 'Missing');
-    if (DEBUG_MODE) console.log('[BrainBox] fetchGeminiConversation - Dynamic key:', gemini_dynamic_key || 'Missing');
-    if (DEBUG_MODE) console.log('[BrainBox] fetchGeminiConversation - Key discovered at:', key_discovered_at ? new Date(key_discovered_at).toISOString() : 'Never');
+    if (DEBUG_MODE) console.log('[🧠 BrainBox] fetchGeminiConversation - Token:', gemini_at_token ? 'Present' : 'Missing');
+    if (DEBUG_MODE) console.log('[🧠 BrainBox] fetchGeminiConversation - Dynamic key:', gemini_dynamic_key || 'Missing');
+    if (DEBUG_MODE) console.log('[🧠 BrainBox] fetchGeminiConversation - Key discovered at:', key_discovered_at ? new Date(key_discovered_at).toISOString() : 'Never');
 
     if (!gemini_at_token) {
         throw new Error('Gemini AT token not found. Please refresh the page.');
     }
 
     if (!gemini_dynamic_key) {
-        console.warn('[BrainBox] ⚠️ Dynamic key not found. Checking if webRequest listener is active...');
-        // Check if listener is registered
-        console.warn('[BrainBox] ⚠️ User needs to open a conversation first to trigger key discovery.');
+        if (DEBUG_MODE) {
+            console.warn('[🧠 BrainBox] ⚠️ Dynamic key not found. Checking if webRequest listener is active...');
+            // Check if listener is registered
+            console.warn('[🧠 BrainBox] ⚠️ User needs to open a conversation first to trigger key discovery.');
+        }
         throw new Error('Gemini dynamic key not discovered. Please open any conversation first to initialize the extension.');
     }
 
@@ -616,7 +620,7 @@ async function fetchGeminiConversation(conversationId) {
     if (response.status === 400 || response.status === 403) {
         // Log response for debugging
         const responseText = await response.text();
-        console.error('[BrainBox] Gemini API error response:', response.status, responseText.substring(0, 500));
+        console.error('[🧠 BrainBox] Gemini API error response:', response.status, responseText.substring(0, 500));
         
         // Key might have rotated, trigger rediscovery
         await chrome.storage.local.remove(['gemini_dynamic_key']);
@@ -637,7 +641,7 @@ async function fetchGeminiConversation(conversationId) {
 
         return normalizeGemini(secondLevel, conversationId);
     } catch (error) {
-        console.error('[BrainBox] Gemini parse error:', error);
+        console.error('[🧠 BrainBox] Gemini parse error:', error);
         throw new Error('Failed to parse Gemini response. Structure may have changed.');
     }
 }
@@ -665,7 +669,7 @@ async function checkDashboardSession() {
 
         return hasSession;
     } catch (error) {
-        console.error('[BrainBox] Session check error:', error);
+        console.error('[🧠 BrainBox] Session check error:', error);
         return false;
     }
 }
@@ -766,7 +770,7 @@ async function handleSaveToDashboard(conversationData, folderId, silent = false)
             folder_id: folderId || null
         };
 
-        if (DEBUG_MODE) console.log('[BrainBox] Request body to dashboard:', JSON.stringify(requestBody, null, 2));
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] Request body to dashboard:', JSON.stringify(requestBody, null, 2));
 
         const response = await fetch(`${DASHBOARD_URL}/api/chats`, {
             method: 'POST',
@@ -814,7 +818,7 @@ async function getUserFolders() {
 
         return await response.json();
     } catch (error) {
-        console.error('[BrainBox] Error fetching folders:', error);
+        console.error('[🧠 BrainBox] Error fetching folders:', error);
         return [];
     }
 }
@@ -826,7 +830,7 @@ async function getUserFolders() {
 chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason === 'install') {
         // First time installation
-        if (DEBUG_MODE) console.log('[BrainBox] 🎉 Extension installed for the first time!');
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] 🎉 Extension installed for the first time!');
         
         // Open welcome page with login prompt
         chrome.tabs.create({
@@ -836,7 +840,7 @@ chrome.runtime.onInstalled.addListener((details) => {
         // Set flag that we've shown onboarding
         chrome.storage.local.set({ onboarded: true });
     } else if (details.reason === 'update') {
-        if (DEBUG_MODE) console.log('[BrainBox] Extension updated to version', chrome.runtime.getManifest().version);
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] Extension updated to version', chrome.runtime.getManifest().version);
     }
     
     // Create context menu for all platforms
@@ -847,45 +851,118 @@ chrome.runtime.onInstalled.addListener((details) => {
 // CONTEXT MENU
 // ============================================================================
 
-function createContextMenu() {
-    // Remove ALL existing menu items first (including any submenus)
-    chrome.contextMenus.removeAll(() => {
-        // Create 3 different context menu items with different contexts
-        // They won't show at the same time, so no submenu grouping
-        
-        // 1. Prompt Inject - shows ONLY in editable fields (textarea/input)
-        chrome.contextMenus.create({
-            id: 'brainbox-prompt-inject',
-            title: '💬 BrainBox Prompt Inject',
-            contexts: ['editable'],
-            documentUrlPatterns: ['<all_urls>']
+let isUpdatingContextMenu = false;
+
+async function createContextMenu() {
+    if (isUpdatingContextMenu) return;
+    isUpdatingContextMenu = true;
+
+    try {
+        // 1. First, always remove existing to avoid duplicates
+        // In MV3 removeAll returns a promise if no callback is provided
+        await new Promise((resolve) => {
+            chrome.contextMenus.removeAll(() => {
+                const error = chrome.runtime.lastError;
+                if (error && DEBUG_MODE) console.warn('[🧠 BrainBox] Context menu removal warning:', error.message);
+                resolve();
+            });
         });
-        
-        // 2. Create Prompt - shows ONLY when text is selected
-        chrome.contextMenus.create({
-            id: 'brainbox-create-prompt',
-            title: '➕ BrainBox Create Prompt',
-            contexts: ['selection'],
-            documentUrlPatterns: ['<all_urls>']
+
+        // 2. Fetch prompts for dynamic menu
+        let prompts = [];
+        try {
+            const data = await handleFetchPrompts();
+            prompts = Array.isArray(data) ? data : (data?.prompts || []);
+        } catch (error) {
+            if (DEBUG_MODE) console.log('[🧠 BrainBox] Could not fetch prompts for context menu:', error.message);
+        }
+
+        // Deduplicate prompts by ID to prevent duplicate menu items
+        const seenIds = new Set();
+        const validPrompts = prompts.filter(p => {
+            if (!p.id || seenIds.has(p.id)) return false;
+            seenIds.add(p.id);
+            return true;
         });
-        
-        // 3. Save Chat - shows on page/link (but not editable or selection)
-        chrome.contextMenus.create({
+
+        // Helper to create with error handling
+        const safeCreate = (options) => {
+            chrome.contextMenus.create(options, () => {
+                const error = chrome.runtime.lastError;
+                if (error && !error.message.includes('duplicate id')) {
+                    console.error('[🧠 BrainBox] Context menu creation error:', error.message, options.id);
+                }
+            });
+        };
+
+        // 3. Create static "Save Chat" item (shows on page/link)
+        safeCreate({
             id: 'brainbox-save-chat',
             title: '💾 BrainBox Save Chat',
             contexts: ['page', 'link'],
             documentUrlPatterns: ['<all_urls>']
         });
-        
-        if (DEBUG_MODE) console.log('[BrainBox] ✅ Context menu created (3 items with different contexts)');
-    });
+
+        // 4. Create static "Create Prompt" item (shows when text is selected)
+        safeCreate({
+            id: 'brainbox-create-prompt',
+            title: '➕ BrainBox Create Prompt',
+            contexts: ['selection'],
+            documentUrlPatterns: ['<all_urls>']
+        });
+
+        // 5. Create dynamic "BrainBox Prompts" parent item
+        safeCreate({
+            id: 'brainbox-prompts-root',
+            title: '💬 BrainBox Prompts',
+            contexts: ['editable'],
+            documentUrlPatterns: ['<all_urls>']
+        });
+
+        // 6. Add "Show Prompt Menu" as the first specialized item
+        safeCreate({
+            id: 'brainbox-prompt-inject',
+            parentId: 'brainbox-prompts-root',
+            title: '🔍 Search All Prompts...',
+            contexts: ['editable']
+        });
+
+        // 7. Add separator if we have prompts
+        if (validPrompts.length > 0) {
+            safeCreate({
+                id: 'brainbox-sep-1',
+                parentId: 'brainbox-prompts-root',
+                type: 'separator',
+                contexts: ['editable']
+            });
+
+            // 8. Add individual prompts as sub-items
+            validPrompts.slice(0, 30).forEach((prompt) => {
+                safeCreate({
+                    id: `prompt_${prompt.id}`,
+                    parentId: 'brainbox-prompts-root',
+                    title: prompt.title || 'Untitled Prompt',
+                    contexts: ['editable']
+                });
+            });
+        }
+
+        if (DEBUG_MODE) console.log(`[🧠 BrainBox] ✅ Context menu created with ${validPrompts.length} dynamic prompts`);
+    } catch (err) {
+        console.error('[🧠 BrainBox] Failed to update context menu:', err);
+    } finally {
+        // Wait a small bit before allowing next update to handle rapid storage changes
+        setTimeout(() => {
+            isUpdatingContextMenu = false;
+        }, 500);
+    }
 }
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     // Prompt Inject handler - in editable fields (textarea) - WORKS EVERYWHERE
-    if (info.menuItemId === 'brainbox-prompt-inject') {
+    if (info.menuItemId === 'brainbox-prompt-inject' || info.menuItemId.startsWith('prompt_')) {
         try {
-            if (DEBUG_MODE) console.log('[💬 BrainBox] Prompt Inject clicked on:', tab.url);
+            if (DEBUG_MODE) console.log('[💬 BrainBox] Prompt Inject/Select clicked on:', tab.url);
             
             // Always try to inject script first for universal compatibility
             try {
@@ -893,30 +970,29 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     target: { tabId: tab.id },
                     files: ['prompt-inject/prompt-inject.js']
                 });
-                if (DEBUG_MODE) console.log('[💬 BrainBox] ✅ Prompt inject script injected');
             } catch (injectError) {
-                if (DEBUG_MODE) console.log('[💬 BrainBox] Script might already be loaded, continuing...', injectError.message);
+                // Ignore, might already be loaded
             }
             
-            // Send message to content script to show prompt menu
-            try {
-                await chrome.tabs.sendMessage(tab.id, {
-                    action: 'showPromptMenu'
-                });
-                if (DEBUG_MODE) console.log('[💬 BrainBox] ✅ Prompt menu message sent');
-            } catch (error) {
-                if (DEBUG_MODE) console.log('[💬 BrainBox] ⚠️ Message failed, retrying after delay...', error.message);
-                // Retry after a delay
-                setTimeout(async () => {
-                    try {
-                        await chrome.tabs.sendMessage(tab.id, {
-                            action: 'showPromptMenu'
-                        });
-                        if (DEBUG_MODE) console.log('[💬 BrainBox] ✅ Prompt menu message sent after retry');
-                    } catch (e) {
-                        console.error('[💬 BrainBox] ❌ Still failed after retry:', e);
-                    }
-                }, 800);
+            if (info.menuItemId === 'brainbox-prompt-inject') {
+                // Show the full search menu
+                await chrome.tabs.sendMessage(tab.id, { action: 'showPromptMenu' });
+            } else {
+                // Direct injection of a specific prompt
+                const promptId = info.menuItemId.replace('prompt_', '');
+                
+                // Fetch all prompts to find the content of this one
+                // (Optimized: we could cache them, but for now we fetch)
+                const data = await handleFetchPrompts();
+                const validPrompts = Array.isArray(data) ? data : (data.prompts || []);
+                const prompt = validPrompts.find(p => p.id === promptId);
+                
+                if (prompt) {
+                    await chrome.tabs.sendMessage(tab.id, { 
+                        action: 'injectPrompt',
+                        prompt: prompt
+                    });
+                }
             }
         } catch (error) {
             console.error('[💬 BrainBox] ❌ Error in prompt inject handler:', error);
@@ -937,7 +1013,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                         type: 'basic',
                         iconUrl: chrome.runtime.getURL('icons/icon48.png'),
                         title: 'BrainBox',
-                        message: 'Моля, маркирай текст преди да създадеш промпт.'
+                        message: 'Please select some text before creating a prompt.'
                     });
                 } catch (notifError) {
                     console.warn('[➕ BrainBox] Could not show notification:', notifError);
@@ -1000,7 +1076,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                                 (!expiresAt || expiresAt > Date.now());
             
             if (!isTokenValid) {
-                if (DEBUG_MODE) console.log('[BrainBox] No valid accessToken found, opening login page');
+                if (DEBUG_MODE) console.log('[🧠 BrainBox] No valid accessToken found, opening login page');
                 // Open auth page immediately
                 chrome.tabs.create({ url: `${DASHBOARD_URL}/extension-auth` });
                 
@@ -1013,17 +1089,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                         message: 'Please log in first. Opening login page...'
                     });
                 } catch (notifError) {
-                    console.warn('[BrainBox] Could not show notification:', notifError);
+                    console.warn('[🧠 BrainBox] Could not show notification:', notifError);
                 }
                 
                 return; // Stop here, don't try to save
             }
             
-            if (DEBUG_MODE) console.log('[BrainBox] Valid accessToken found, proceeding with save');
+            if (DEBUG_MODE) console.log('[🧠 BrainBox] Valid accessToken found, proceeding with save');
             
             // For Gemini: Extract conversation ID from clicked element
             if (tab.url && tab.url.includes('gemini.google.com')) {
-                if (DEBUG_MODE) console.log('[BrainBox] Gemini detected - extracting conversation from clicked element');
+                if (DEBUG_MODE) console.log('[🧠 BrainBox] Gemini detected - extracting conversation from clicked element');
                 
                 try {
                     // Send message to content script to extract conversation ID from clicked element
@@ -1031,13 +1107,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     const response = await chrome.tabs.sendMessage(tab.id, {
                         action: 'extractConversationFromContextMenu',
                         clickInfo: {
-                            pageX: info.pageX || null,
-                            pageY: info.pageY || null,
+                            pageX: info.pageX ?? null,
+                            pageY: info.pageY ?? null,
                             linkUrl: info.linkUrl || null,
                             selectionText: info.selectionText || null
                         }
                     }).catch(err => {
-                        if (DEBUG_MODE) console.log('[BrainBox] Content script not ready, using URL fallback:', err.message);
+                        if (DEBUG_MODE) console.log('[🧠 BrainBox] Content script not ready, using URL fallback:', err.message);
                         return null;
                     });
                     
@@ -1045,7 +1121,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                         const conversationId = response.conversationId;
                         const title = response.title || conversationId;
                         
-                        if (DEBUG_MODE) console.log('[BrainBox] Conversation ID extracted:', conversationId);
+                        if (DEBUG_MODE) console.log('[🧠 BrainBox] Conversation ID extracted:', conversationId);
                         
                         // Show notification
                 try {
@@ -1056,7 +1132,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                                 message: `Saving Gemini chat: ${title}...`
                     });
                 } catch (notifError) {
-                    console.warn('[BrainBox] Could not show notification:', notifError);
+                    console.warn('[🧠 BrainBox] Could not show notification:', notifError);
                 }
                         
                         // Send message to content script to save the conversation
@@ -1068,7 +1144,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                                 url: response.url || tab.url
                             });
                         } catch (msgError) {
-                            console.error('[BrainBox] Failed to send save message:', msgError);
+                            console.error('[🧠 BrainBox] Failed to send save message:', msgError);
                         }
                         
                         return;
@@ -1076,10 +1152,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                         // Fallback: Try to extract from current page URL
                         const conversationId = extractConversationIdFromUrl(tab.url, 'gemini');
                         
-                        // Валидация на conversation ID
+                        // Validation of conversation ID
                         const invalidIds = ['view', 'edit', 'delete', 'new', 'create', 'undefined', 'null', ''];
                         if (conversationId && !invalidIds.includes(conversationId.toLowerCase()) && conversationId.length >= 10) {
-                            if (DEBUG_MODE) console.log('[BrainBox] Using conversation ID from URL:', conversationId);
+                            if (DEBUG_MODE) console.log('[🧠 BrainBox] Using conversation ID from URL:', conversationId);
                             
                             // Send message to content script to save current conversation
                             await chrome.tabs.sendMessage(tab.id, {
@@ -1097,7 +1173,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                                     message: 'Saving current Gemini chat...'
                                 });
                             } catch (notifError) {
-                                console.warn('[BrainBox] Could not show notification:', notifError);
+                                console.warn('[🧠 BrainBox] Could not show notification:', notifError);
                             }
                             
                             return;
@@ -1106,16 +1182,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                         throw new Error('Could not extract conversation ID. Please right-click on a conversation in the sidebar or on the current chat page.');
                     }
                 } catch (error) {
-                    console.error('[BrainBox] Error saving Gemini conversation:', error);
+                    const errorMsg = error?.message || String(error);
+                    console.error('[🧠 BrainBox] ❌ Gemini Save Error:', errorMsg);
                     try {
                         chrome.notifications.create({
                             type: 'basic',
                             iconUrl: chrome.runtime.getURL('icons/icon48.png'),
-                            title: 'BrainBox',
-                            message: `Error: ${error.message}`
+                            title: 'BrainBox Gemini',
+                            message: `Could not save chat: ${errorMsg}`
                         });
                     } catch (notifError) {
-                        console.warn('[BrainBox] Could not show notification:', notifError);
+                        // Ignore
                     }
                     return;
                 }
@@ -1132,7 +1209,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 url = info.linkUrl;
                 platform = 'chatgpt';
                 conversationId = extractConversationIdFromUrl(url, platform);
-                if (DEBUG_MODE) console.log('[BrainBox] Using linkUrl from sidebar:', { url, conversationId });
+                if (DEBUG_MODE) console.log('[🧠 BrainBox] Using linkUrl from sidebar:', { url, conversationId });
             } else {
                 // Right-clicked on page, not on a link
                 if (!url) {
@@ -1153,7 +1230,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 }
             }
             
-            if (DEBUG_MODE) console.log('[BrainBox] Context menu: Saving chat', { 
+            if (DEBUG_MODE) console.log('[🧠 BrainBox] Context menu: Saving chat', { 
                 platform, 
                 conversationId, 
                 url
@@ -1168,7 +1245,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     message: `Saving ${platform} chat...`
                 });
             } catch (notifError) {
-                console.warn('[BrainBox] Could not show notification:', notifError);
+                console.warn('[🧠 BrainBox] Could not show notification:', notifError);
             }
             
             // Fetch conversation using tab.url
@@ -1177,20 +1254,27 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
             // Save to dashboard
             const saveResponse = await handleSaveToDashboard(conversationData, null);
             
+            const isDuplicate = saveResponse && (saveResponse.is_duplicate || saveResponse.isDuplicate);
+            const isDowngrade = saveResponse && (saveResponse.is_downgrade || saveResponse.isDowngrade);
+
             // Show success notification
             try {
                 chrome.notifications.create({
                     type: 'basic',
                     iconUrl: chrome.runtime.getURL('icons/icon48.png'),
-                    title: 'BrainBox',
-                    message: 'Chat saved successfully! ✓'
+                    title: isDowngrade ? 'BrainBox (Data Protected)' : (isDuplicate ? 'BrainBox (Update)' : 'BrainBox'),
+                    message: isDowngrade
+                        ? 'Stored version is more complete. Scroll up and try again! ℹ️'
+                        : (isDuplicate 
+                            ? 'Chat already saved. Updated successfully! ✓' 
+                            : 'Chat saved successfully! ✓')
                 });
             } catch (notifError) {
-                console.warn('[BrainBox] Could not show success notification:', notifError);
+                console.warn('[🧠 BrainBox] Could not show notification:', notifError);
             }
             
         } catch (error) {
-            console.error('[BrainBox] Context menu save error:', error);
+            console.error('[🧠 BrainBox] Context menu save error:', error);
             
             // Show error notification
             try {
@@ -1201,7 +1285,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                     message: error.message || 'Failed to save chat'
                 });
             } catch (notifError) {
-                console.warn('[BrainBox] Could not show error notification:', notifError);
+                console.warn('[🧠 BrainBox] Could not show error notification:', notifError);
             }
             
             // If auth error OR org_id extraction error (might mean not logged in), open login page
@@ -1209,7 +1293,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
                 error.message.includes('authenticate') ||
                 error.message.includes('401') ||
                 error.message.includes('Could not extract organization ID')) {
-                if (DEBUG_MODE) console.log('[BrainBox] Auth-related error detected, opening login page');
+                if (DEBUG_MODE) console.log('[🧠 BrainBox] Auth-related error detected, opening login page');
                 chrome.tabs.create({ url: `${DASHBOARD_URL}/extension-auth` });
             }
         }
@@ -1261,7 +1345,7 @@ function extractConversationIdFromUrl(url, platform) {
         
         return null;
     } catch (error) {
-        console.error('[BrainBox] Error extracting conversation ID:', error);
+        console.error('[🧠 BrainBox] Error extracting conversation ID:', error);
         return null;
     }
 }
@@ -1340,7 +1424,7 @@ async function refreshAccessToken() {
             throw new Error('No refresh token available');
         }
 
-        if (DEBUG_MODE) console.log('[BrainBox] 🔄 Refreshing access token...');
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] 🔄 Refreshing access token...');
         
         const response = await fetch(`${DASHBOARD_URL}/api/auth/refresh`, {
             method: 'POST',
@@ -1364,8 +1448,8 @@ async function refreshAccessToken() {
             expiresAt: data.expiresAt,
         });
 
-        if (DEBUG_MODE) console.log('[BrainBox] ✅ Access token refreshed successfully');
-        if (DEBUG_MODE) console.log('[BrainBox] New expiresAt:', new Date(data.expiresAt).toISOString());
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Access token refreshed successfully');
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] New expiresAt:', new Date(data.expiresAt).toISOString());
         
         // Restart refresh check with new expiry
         startTokenRefreshCheck();
@@ -1376,7 +1460,7 @@ async function refreshAccessToken() {
             expiresAt: data.expiresAt,
         };
     } catch (error) {
-        console.error('[BrainBox] ❌ Failed to refresh token:', error);
+        console.error('[🧠 BrainBox] ❌ Failed to refresh token:', error);
         
         // Just clear tokens silently. Do NOT open a new tab automatically.
         // Let the user initiate login when they actually try to use a feature.
@@ -1426,27 +1510,27 @@ function startTokenRefreshCheck() {
 
             // Check if token needs refresh
             if (shouldRefreshToken(expiresAt)) {
-                if (DEBUG_MODE) console.log('[BrainBox] ⏰ Token expires soon, refreshing...');
+                if (DEBUG_MODE) console.log('[🧠 BrainBox] ⏰ Token expires soon, refreshing...');
                 await refreshAccessToken();
             }
         } catch (error) {
-            console.error('[BrainBox] ❌ Error in token refresh check:', error);
+            console.error('[🧠 BrainBox] ❌ Error in token refresh check:', error);
             // Stop checking on error
             clearInterval(tokenRefreshInterval);
             tokenRefreshInterval = null;
         }
     }, 60 * 1000); // Check every minute
 
-    if (DEBUG_MODE) console.log('[BrainBox] ✅ Token refresh check started (checks every minute)');
+    if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ Token refresh check started (checks every minute)');
 }
 
 // ============================================================================
 // INITIALIZATION
 // ============================================================================
 
-if (DEBUG_MODE) console.log('[BrainBox] 🚀 Service Worker initialized');
-if (DEBUG_MODE) console.log('[BrainBox] ✅ WebRequest listeners registered for Gemini dynamic key discovery');
-if (DEBUG_MODE) console.log('[BrainBox] 📋 To discover dynamic key: Open any conversation in Gemini');
+if (DEBUG_MODE) console.log('[🧠 BrainBox] 🚀 Service Worker initialized');
+if (DEBUG_MODE) console.log('[🧠 BrainBox] ✅ WebRequest listeners registered for Gemini dynamic key discovery');
+if (DEBUG_MODE) console.log('[🧠 BrainBox] 📋 To discover dynamic key: Open any conversation in Gemini');
 
 // Create context menu on startup
 createContextMenu();
@@ -1467,7 +1551,7 @@ chrome.storage.local.get([
     if (result.gemini_dynamic_key) tokens.gemini_key = result.gemini_dynamic_key;
     if (result.claude_org_id) tokens.claude_org_id = result.claude_org_id;
 
-    if (DEBUG_MODE) console.log('[BrainBox] Tokens loaded:', {
+    if (DEBUG_MODE) console.log('[🧠 BrainBox] Tokens loaded:', {
         chatgpt: !!tokens.chatgpt,
         gemini_at: !!tokens.gemini_at,
         gemini_key: !!tokens.gemini_key,
@@ -1481,6 +1565,14 @@ chrome.storage.local.get([
         startTokenRefreshCheck();
         // Sync user settings (quick access folders)
         syncUserSettings().catch(console.error);
+    }
+});
+
+// Update context menu when auth state changes (e.g. login/logout)
+chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName === 'local' && (changes.accessToken || changes.chatgpt_token)) {
+        if (DEBUG_MODE) console.log('[🧠 BrainBox] Auth state changed, updating context menu...');
+        createContextMenu();
     }
 });
 

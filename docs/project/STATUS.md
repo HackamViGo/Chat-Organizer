@@ -71,7 +71,7 @@ Open in browser for interactive test results with:
 - ✅ Dynamic key discovery (Gemini)
 - ✅ Rate limiting system
 - ✅ Data schema validation
-- ✅ Hover button UI
+- ✅ Context Menu UI
 - ✅ Folder selector modal
 - ✅ Toast notifications
 - ✅ Dashboard integration

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { User as SupabaseUser } from '@supabase/supabase-js';
 import { User, Shield, CreditCard, Bell, Code, Pencil, Mail, Moon, Sun, Monitor, Check, Settings, Download, LogOut, Lock, Eye, EyeOff, X } from 'lucide-react';
 import Link from 'next/link';
 
@@ -13,7 +14,7 @@ export default function ProfilePage() {
   const { theme, setTheme } = useTheme();
   const router = useRouter();
   const [activeSection, setActiveSection] = useState<ProfileSection>('general');
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<SupabaseUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -69,8 +70,8 @@ export default function ProfilePage() {
           });
           
           // Fetch user profile with avatar_url (only uploaded avatars, not Google)
-          const { data: profileData, error: profileError } = await supabase
-            .from('users')
+          const { data: profileData, error: profileError } = await (supabase
+            .from('users') as any)
             .select('avatar_url')
             .eq('id', currentUser.id)
             .single();
@@ -228,13 +229,13 @@ export default function ProfilePage() {
       if (!session) throw new Error('Not authenticated');
 
       // Update user record in database with the selected image URL
-      const { error: updateError } = await supabase
-        .from('users')
+      const { error: updateError } = await (supabase
+        .from('users') as any)
         .update({ 
           avatar_url: imageUrl,
           updated_at: new Date().toISOString()
         } as any)
-        .eq('id', user.id);
+        .eq('id', user?.id);
 
       if (updateError) {
         throw new Error('Failed to update avatar');
@@ -260,13 +261,13 @@ export default function ProfilePage() {
       if (!session) throw new Error('Not authenticated');
 
       // Update user record in database to remove avatar
-      const { error: updateError } = await supabase
-        .from('users')
+      const { error: updateError } = await (supabase
+        .from('users') as any)
         .update({ 
           avatar_url: null,
           updated_at: new Date().toISOString()
         } as any)
-        .eq('id', user.id);
+        .eq('id', user?.id);
 
       if (updateError) {
         throw new Error('Failed to remove avatar');
@@ -377,7 +378,7 @@ export default function ProfilePage() {
       
       // First verify current password by attempting to sign in
       const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: user.email,
+        email: user?.email || '',
         password: passwordData.currentPassword,
       });
 

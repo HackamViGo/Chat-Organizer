@@ -57,16 +57,9 @@ export async function POST(request: NextRequest) {
     const data = await response.json();
     
     // Supabase returns: access_token, refresh_token, expires_in, expires_at, token_type, user
-    if (!data.access_token) {
+    if (data.error || !data.access_token) {
       return NextResponse.json(
-        { error: 'Invalid response from Supabase' },
-        { status: 500, headers: corsHeaders }
-      );
-    }
-
-    if (!data.session) {
-      return NextResponse.json(
-        { error: 'No session returned from Supabase' },
+        { error: data.error_description || data.error || 'Invalid response from Supabase' },
         { status: 401, headers: corsHeaders }
       );
     }

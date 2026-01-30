@@ -14,6 +14,15 @@ if (majorVersion < 18) {
   process.exit(1);
 }
 
+const path = require('path');
+const fs = require('fs');
+
+// Load environment variables from .env.local
+const envPath = path.join(__dirname, '..', '..', '.env.local');
+if (fs.existsSync(envPath)) {
+  require('dotenv').config({ path: envPath });
+}
+
 const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
 const TEST_EMAIL = process.env.TEST_EMAIL || 'test@example.com';
 const TEST_PASSWORD = process.env.TEST_PASSWORD || 'testpassword123';

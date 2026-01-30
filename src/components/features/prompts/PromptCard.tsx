@@ -255,10 +255,10 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
                     {useInContextMenu ? (
                       <>
                         <Check className="w-4 h-4 text-green-500" />
-                        <span>В context менюто</span>
+                        <span>In context menu</span>
                       </>
                     ) : (
-                      <span>Добави в context меню</span>
+                      <span>Add to context menu</span>
                     )}
                   </button>
                   <button

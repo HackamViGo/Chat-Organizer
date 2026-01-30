@@ -16,9 +16,9 @@
             ui = new window.BrainBoxUI();
         }
 
-        injectStyles();
-        setupConversationListObserver();
-        setupVisibilityListener();
+        // Removed conversation list observer as requested - no buttons in UI
+        // setupConversationListObserver();
+        // setupVisibilityListener();
         clearCache();
     }
 
@@ -357,74 +357,8 @@
     }
 
     function showToast(msg, type, retryAction = null) {
-        const existing = document.querySelector('.brainbox-toast');
-        if (existing) existing.remove();
-
-        const toast = document.createElement('div');
-        toast.className = `brainbox-toast ${type}`;
-        
-        const bgColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
-        const textColor = '#ffffff';
-        
-        toast.style.cssText = `
-            position: fixed !important;
-            bottom: 20px !important;
-            right: 20px !important;
-            padding: 16px 20px !important;
-            border-radius: 12px !important;
-            background: ${bgColor} !important;
-            color: ${textColor} !important;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
-            z-index: 999999 !important;
-            display: flex !important;
-            align-items: center !important;
-            gap: 12px !important;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
-            font-size: 14px !important;
-            font-weight: 500 !important;
-            min-width: 200px !important;
-            max-width: 400px !important;
-            word-wrap: break-word !important;
-        `;
-        
-        const msgSpan = document.createElement('span');
-        msgSpan.textContent = msg;
-        msgSpan.style.cssText = `color: ${textColor} !important; flex: 1;`;
-        toast.appendChild(msgSpan);
-
-        // Add retry button for errors if retryAction provided
-        if (type === 'error' && retryAction) {
-            const retryBtn = document.createElement('button');
-            retryBtn.textContent = '🔄 Retry';
-            retryBtn.style.cssText = `
-                background: rgba(255,255,255,0.2) !important;
-                color: ${textColor} !important;
-                border: 1px solid rgba(255,255,255,0.3) !important;
-                padding: 6px 12px !important;
-                border-radius: 6px !important;
-                cursor: pointer !important;
-                font-size: 12px !important;
-                font-weight: 600 !important;
-                margin-left: 8px !important;
-                transition: all 0.2s !important;
-        `;
-            retryBtn.onmouseover = () => {
-                retryBtn.style.background = 'rgba(255,255,255,0.3) !important';
-            };
-            retryBtn.onmouseout = () => {
-                retryBtn.style.background = 'rgba(255,255,255,0.2) !important';
-            };
-            retryBtn.onclick = () => {
-                toast.remove();
-                retryAction();
-            };
-            toast.appendChild(retryBtn);
-        }
-
-        document.body.appendChild(toast);
-        
-        const duration = type === 'error' ? 8000 : 5000; // Longer for errors
-        setTimeout(() => toast.remove(), duration);
+        if (ui) ui.showToast(msg, type, retryAction);
+        else console.log(`[BrainBox Toast] ${type}: ${msg}`);
     }
 
     // ============================================================================

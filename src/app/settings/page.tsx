@@ -526,7 +526,7 @@ export default function SettingsPage() {
               <label className="block text-sm font-medium mb-2">Language</label>
               <select className="w-full p-2 rounded-lg border border-border bg-background">
                 <option>English (US)</option>
-                <option>Български</option>
+                <option>Bulgarian</option>
                 <option>Español</option>
                 <option>Français</option>
               </select>

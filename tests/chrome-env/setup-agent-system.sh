@@ -193,14 +193,15 @@ cat > docs/agents/extension_agent.md << 'EOF'
 
 ## What Works
 
-### Hover Menu Delay (500ms)
+### Context Menu Integration
 ```javascript
-let timer;
-el.addEventListener('mouseenter', () => {
-  timer = setTimeout(() => showMenu(), 500);
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === 'save-to-brainbox') {
+    handleSave(tab);
+  }
 });
 ```
-**Status:** WORKS - Feels natural, no accidental triggers
+**Status:** WORKS - Universal across all AI platforms
 
 ---
 
@@ -218,15 +219,9 @@ const platform =
 
 ## What Doesn't Work
 
-### Issue: ChatGPT changed selectors (2025-01-10)
-**Problem:** `[data-message-author-role]` no longer exists  
-**Solution:** Updated to new selector structure
-
----
-
-### Issue: Menu positioning off-screen
-**Problem:** Menu appears outside viewport on narrow screens  
-**Solution:** Check `spaceRight` and position left/right accordingly
+### Issue: Dynamic Content Loading
+**Problem:** Some platforms lazy-load conversation history  
+**Solution:** Prompt user to scroll up if ID is not found in URL or DOM
 
 ---
 

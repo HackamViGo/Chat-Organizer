@@ -181,4 +181,154 @@ window.BrainBoxUI = class BrainBoxUI {
             document.body.appendChild(overlay);
         });
     }
+
+    showToast(msg, type, retryAction = null) {
+        const existing = document.querySelector('.brainbox-toast');
+        if (existing) existing.remove();
+
+        const toast = document.createElement('div');
+        toast.className = `brainbox-toast ${type}`;
+        
+        const bgColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6';
+        const textColor = '#ffffff';
+        
+        toast.style.cssText = `
+            position: fixed !important;
+            bottom: 24px !important;
+            right: 24px !important;
+            padding: 14px 20px !important;
+            border-radius: 12px !important;
+            background: ${bgColor} !important;
+            color: ${textColor} !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+            z-index: 9999999 !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 12px !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            font-size: 14px !important;
+            font-weight: 500 !important;
+            min-width: 250px !important;
+            max-width: 450px !important;
+            word-wrap: break-word !important;
+            animation: brainbox-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+            cursor: default !important;
+        `;
+        
+        // Add animation keyframes if not exists
+        if (!document.getElementById('brainbox-toast-anim')) {
+            const anim = document.createElement('style');
+            anim.id = 'brainbox-toast-anim';
+            anim.textContent = `
+                @keyframes brainbox-fade-in {
+                    from { opacity: 0; transform: translateY(12px) scale(0.95); }
+                    to { opacity: 1; transform: translateY(0) scale(1); }
+                }
+            `;
+            document.head.appendChild(anim);
+        }
+
+        const icon = document.createElement('span');
+        icon.style.fontSize = '18px';
+        icon.innerHTML = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+        toast.appendChild(icon);
+        
+        const msgSpan = document.createElement('span');
+        msgSpan.textContent = msg;
+        msgSpan.style.cssText = `color: ${textColor} !important; flex: 1;`;
+        toast.appendChild(msgSpan);
+
+        if (type === 'error' && retryAction) {
+            const retryBtn = document.createElement('button');
+            retryBtn.textContent = 'Retry';
+            retryBtn.style.cssText = `
+                background: rgba(255,255,255,0.2) !important;
+                color: ${textColor} !important;
+                border: 1px solid rgba(255,255,255,0.3) !important;
+                padding: 4px 10px !important;
+                border-radius: 6px !important;
+                cursor: pointer !important;
+                font-size: 12px !important;
+                font-weight: 600 !important;
+                transition: all 0.2s !important;
+            `;
+            retryBtn.onclick = (e) => {
+                e.stopPropagation();
+                toast.remove();
+                retryAction();
+            };
+            toast.appendChild(retryBtn);
+        }
+
+        // Close button
+        const closeBtn = document.createElement('span');
+        closeBtn.innerHTML = '&times;';
+        closeBtn.style.cssText = 'cursor: pointer; font-size: 20px; opacity: 0.7; padding: 0 4px;';
+        closeBtn.onclick = () => toast.remove();
+        toast.appendChild(closeBtn);
+
+        document.body.appendChild(toast);
+        
+        const duration = type === 'error' ? 10000 : type === 'info' ? 7000 : 5000;
+        setTimeout(() => {
+            if (toast.parentElement) {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(12px)';
+                toast.style.transition = 'all 0.4s ease';
+                setTimeout(() => toast.remove(), 400);
+            }
+        }, duration);
+    }
+
+    async showConfirmation(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+        this.injectStyles();
+
+        return new Promise((resolve) => {
+            const overlay = document.createElement('div');
+            overlay.className = 'brainbox-modal-overlay';
+            overlay.style.zIndex = '10000000';
+
+            const modal = document.createElement('div');
+            modal.className = 'brainbox-modal';
+            modal.style.width = '380px';
+            modal.style.padding = '24px';
+
+            const titleEl = document.createElement('h3');
+            titleEl.textContent = title;
+            titleEl.style.marginBottom = '12px';
+
+            const content = document.createElement('p');
+            content.textContent = message;
+            content.style.cssText = 'font-size: 14px; color: #4b5563; line-height: 1.5; margin-bottom: 24px;';
+
+            const actions = document.createElement('div');
+            actions.className = 'brainbox-actions';
+            actions.style.marginTop = '0';
+
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'brainbox-btn brainbox-btn-cancel';
+            cancelBtn.textContent = cancelText;
+            cancelBtn.onclick = () => {
+                overlay.remove();
+                resolve(false);
+            };
+
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'brainbox-btn brainbox-btn-primary';
+            confirmBtn.textContent = confirmText;
+            confirmBtn.style.background = '#ef4444'; // Red for caution
+            confirmBtn.onclick = () => {
+                overlay.remove();
+                resolve(true);
+            };
+
+            modal.appendChild(titleEl);
+            modal.appendChild(content);
+            modal.appendChild(actions);
+            actions.appendChild(cancelBtn);
+            actions.appendChild(confirmBtn);
+            overlay.appendChild(modal);
+            document.body.appendChild(overlay);
+        });
+    }
 }

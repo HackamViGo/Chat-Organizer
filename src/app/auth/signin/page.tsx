@@ -163,7 +163,7 @@ export default function SignInPage() {
               className="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-cyan-600 focus:ring-cyan-500 bg-white dark:bg-black/30 cursor-pointer"
             />
             <label htmlFor="remember-me" className="ml-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
-              Запази този профил
+              Remember me
             </label>
           </div>
 

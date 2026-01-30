@@ -1,105 +1,50 @@
-# API Test Script
+# BrainBox Scripts
 
-Скрипт за автоматично тестване на всички API endpoints на BrainBox.
+Помощни скриптове за тестване и валидация на BrainBox API и синхронизацията на разширението.
 
-## Използване
+## 🚀 Налични скриптове
 
-### Основна команда
+### 1. API Test Suite (`test-api.js`)
+Изчерпателен тест на всички API ендпойнтове на Dashboard-а. Проверява функционалност, аутентикация и CORS.
 
+**Използване:**
 ```bash
 npm run test:api
 ```
 
-### С custom настройки
+### 2. Extension Sync Validation (`validate_extension_sync.js`)
+Специфичен тест за логиката на браузърното разширение. Проверява:
+- Supabase Authentication поток.
+- **Upsert логика**: Уверява се, че при повторен запис на същия чат (същото URL/ID), той се актуализира, вместо да се създава дубликат.
+- Интегритет на данните (съобщения, метаданни).
 
+**Използване:**
 ```bash
-# Custom base URL
-API_BASE_URL=http://localhost:3000 npm run test:api
-
-# С тестови credentials
-TEST_EMAIL=test@example.com TEST_PASSWORD=test123 npm run test:api
-
-# Комбинирано
-API_BASE_URL=https://brainbox-alpha.vercel.app \
-TEST_EMAIL=user@example.com \
-TEST_PASSWORD=password123 \
-npm run test:api
+node scripts/validate_extension_sync.js
 ```
 
-## Environment Variables
+---
 
-- `API_BASE_URL` - Base URL на API (default: `http://localhost:3000`)
-- `TEST_EMAIL` - Email за тестване (default: `test@example.com`)
-- `TEST_PASSWORD` - Парола за тестване (default: `testpassword123`)
+## ⚙️ Конфигурация
 
-## Тествани Endpoints
+Скриптовете използват environment променливи за гъвкавост. Можете да ги подадете директно в терминала:
 
-### Authentication
-- `OPTIONS /api/auth/refresh`
-- `POST /api/auth/refresh`
+| Променлива | Описание | Default |
+|------------|----------|---------|
+| `API_BASE_URL` | Базов URL на Dashboard-а | `http://localhost:3000` |
+| `TEST_EMAIL` | Email за тестовия акаунт | `test@example.com` |
+| `TEST_PASSWORD` | Парола за тестовия акаунт | `testpassword123` |
 
-### Folders
-- `OPTIONS /api/folders`
-- `GET /api/folders`
-- `POST /api/folders`
-- `PUT /api/folders`
-- `DELETE /api/folders`
+### Примери:
 
-### Chats
-- `GET /api/chats`
-- `POST /api/chats`
-- `GET /api/chats/extension`
+```bash
+# Тестване на локален сървър с custom акаунт
+TEST_EMAIL=user@test.bg TEST_PASSWORD=my_secret npm run test:api
 
-### Prompts
-- `GET /api/prompts`
-- `GET /api/prompts?use_in_context_menu=true`
-- `POST /api/prompts/search`
-- `GET /api/prompts/categories`
-- `GET /api/prompts/by-category`
-- `GET /api/prompts/proxy-csv`
-- `POST /api/prompts`
-- `PUT /api/prompts`
-- `DELETE /api/prompts`
+# Валидация на синхронизацията към Production (Vercel)
+API_BASE_URL=https://brainbox-alpha.vercel.app TEST_EMAIL=demo@brainbox.site node scripts/validate_extension_sync.js
+```
 
-### Images
-- `OPTIONS /api/images`
-- `GET /api/images`
-- `POST /api/images`
-
-### Stats
-- `OPTIONS /api/stats`
-- `GET /api/stats`
-
-### Export/Import
-- `GET /api/export`
-- `POST /api/import`
-
-### Account
-- `DELETE /api/account/delete` (skipped by default)
-
-### AI
-- `POST /api/ai/generate`
-- `POST /api/ai/enhance-prompt`
-
-### Proxy
-- `GET /api/proxy-image`
-
-### Upload
-- `POST /api/upload`
-
-## Резултати
-
-Скриптът показва:
-- ✅ Успешни тестове (зелено)
-- ❌ Неуспешни тестове (червено)
-- ⏭ Пропуснати тестове (жълто)
-
-В края се показва обобщение с брой успешни/неуспешни/пропуснати тестове.
-
-## Бележки
-
-- Скриптът се опитва да се автентикира автоматично
-- Някои тестове изискват автентикация и ще бъдат пропуснати ако няма auth
-- `DELETE /api/account/delete` е пропуснат по подразбиране (изтрива акаунта!)
-- Скриптът използва `fetch` API (Node.js 18+)
-
+## ⚠️ Изисквания
+- Node.js 18+ (заради вградения `fetch`).
+- Валиден `.env.local` файл с `NEXT_PUBLIC_SUPABASE_URL` и `NEXT_PUBLIC_SUPABASE_ANON_KEY` за `validate_extension_sync.js`.

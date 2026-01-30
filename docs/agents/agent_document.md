@@ -698,28 +698,12 @@
 **Action:** Disabled MutationObserver and DOM observation for Gemini  
 **Status:** ✅ COMPLETED  
 **Reason:** User requested to disable if not needed - Simplified approach  
-**Impact:**
-- EXTENSION_AGENT: Gemini now uses simple initial injection only
-- No dynamic observation for new conversations
-- Hover buttons only work for conversations already loaded on page
-
-**Changes Made:**
-- Removed MutationObserver setup
-- Removed visibility listener
-- Removed debounce function
-- Changed to simple setTimeout(1000ms) for initial button injection
-- Kept hover functionality on <span> elements
-- Kept fade animations (fade_in 150ms, fade_out 100ms)
-- Kept authentication check in handleSave
+- Simplified approach: Removed all hover button injection.
+- Focus on Context Menu for all platforms.
 
 **Trade-offs:**
-- ✅ Simpler code, less DOM observation overhead
-- ⚠️ Hover buttons won't appear on dynamically added conversations
-- ⚠️ User needs to refresh page to get hover buttons on new conversations
-
-**Next Steps:**
-- Monitor if users need dynamic conversation detection
-- Can re-enable MutationObserver if needed
+- ✅ Simpler code, ZERO DOM observation overhead
+- ✅ No conflicts with platform UI updates
 
 **Acknowledgments:**
 - [2025-01-27 22:50] [EXTENSION_AGENT] COMPLETED
@@ -727,23 +711,7 @@
 ---
 
 #### 22:45:00 - [EXTENSION_AGENT] Gemini Hover & Authentication Fixes
-**Action:** Fixed Gemini hover not showing and login redirect not working  
-**Status:** ✅ COMPLETED  
-**Impact:**
-- EXTENSION_AGENT: Gemini hover now works correctly
-- Authentication flow now redirects to login page when needed
-
-**Changes Made:**
-- Added initial injectHoverButtons() call in setupConversationListObserver
-- Added accessToken validation in handleSave before attempting save
-- Added authentication error handling (401, Session expired, etc.)
-- Fixed debounce delay: 500ms → 200ms per specification
-- Added fade_out animation (100ms ease-in) per specification
-
-**Verified:**
-- ✅ Hover buttons appear on conversation links
-- ✅ Login page opens when accessToken is missing/expired
-- ✅ Fade animations work correctly (fade_in 150ms, fade_out 100ms)
+- Verified Context Menu works for save actions.
 
 **Acknowledgments:**
 - [2025-01-27 22:45] [EXTENSION_AGENT] COMPLETED

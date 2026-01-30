@@ -33,8 +33,7 @@
 | **API Extraction (Gemini)** | ✅ Задължителен | ✅ Завършен | ✅ Преминат | ✅ |
 | **Rate Limiting** | ✅ Задължителен | ✅ Завършен | ✅ Преминат | ✅ |
 | **Data Schema Validation** | ✅ Задължителен | ✅ Завършен | ✅ Преминат | ✅ |
-| **Hover Button UI** | ✅ Задължителен | ✅ Завършен | ✅ Преминат | ✅ |
-| **MutationObserver** | ✅ Задължителен | ✅ Завършен | ✅ Преминат | ✅ |
+| **Context Menu UI** | ✅ Задължителен | ✅ Завършен | ✅ Преминат | ✅ |
 | **Dashboard Integration** | ✅ Задължителен | ✅ Завършен | ✅ Преминат | ✅ |
 | **Folder Selector** | ✅ Задължителен | ✅ Завършен | ✅ Преминат | ✅ |
 | **Toast Notifications** | ✅ Задължителен | ✅ Завършен | ✅ Преминат | ✅ |
@@ -49,7 +48,7 @@
 - Service Worker ✅
 - Token Interception ✅
 - API Extraction ✅
-- Hover UI ✅
+- Context Menu Integration ✅
 - Dashboard Integration ✅
 
 #### ✅ Фаза 2: Мулти-Платформа
@@ -109,7 +108,7 @@
 ### 2. ChatGPT Интеграция (3/3) ✅
 - ✅ Страницата се зарежда без грешки
 - ✅ Content script се инжектира
-- ✅ Hover button стиловете се инжектират
+- ✅ Интеграция с контекстното меню
 
 ### 3. Claude Интеграция (2/2) ✅
 - ✅ Страницата се зарежда без грешки

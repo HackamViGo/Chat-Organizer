@@ -21,14 +21,14 @@
         } else {
             console.log('[BrainBox] UI library not found');
         }
-        injectStyles();
-        console.log('[BrainBox] Styles injected');
-        setupConversationListObserver();
-        console.log('[BrainBox] Observer setup');
-        injectHoverButtons();
-        console.log('[BrainBox] Hover buttons injected');
-        setupVisibilityListener();
-        console.log('[BrainBox] Visibility listener setup');
+        
+        // Removed UI buttons as requested
+        // injectStyles();
+        // setupConversationListObserver();
+        // injectHoverButtons();
+        // setupVisibilityListener();
+        
+        console.log('[BrainBox] Claude content script initialized (UI buttons disabled)');
         clearCache();
     }
 
@@ -366,40 +366,8 @@
     // ============================================================================
 
     function showToast(msg, type, retryAction = null) {
-        const existing = document.querySelector('.brainbox-toast');
-        if (existing) existing.remove();
-
-        const toast = document.createElement('div');
-        toast.style.cssText = `
-            position: fixed; bottom: 20px; right: 20px;
-            padding: 12px 16px; border-radius: 8px; background: white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 10000;
-            border-left: 4px solid ${type === 'success' ? '#10b981' : type === 'error' ? '#da7756' : '#3b82f6'};
-            display: flex; align-items: center; gap: 8px; font-family: sans-serif;
-            color: #374151; font-size: 14px;
-        `;
-        
-        const msgSpan = document.createElement('span');
-        msgSpan.textContent = msg;
-        toast.appendChild(msgSpan);
-
-        if (type === 'error' && retryAction) {
-            const retryBtn = document.createElement('button');
-            retryBtn.textContent = '🔄 Retry';
-            retryBtn.style.cssText = `
-                background: #da7756; color: white; border: none; padding: 4px 8px;
-                border-radius: 4px; cursor: pointer; font-size: 12px; margin-left: 8px;
-            `;
-            retryBtn.onclick = () => {
-                toast.remove();
-                retryAction();
-            };
-            toast.appendChild(retryBtn);
-        }
-
-        document.body.appendChild(toast);
-        const duration = type === 'error' ? 5213 : 3213;
-        setTimeout(() => toast.remove(), duration);
+        if (ui) ui.showToast(msg, type, retryAction);
+        else console.log(`[BrainBox Toast] ${type}: ${msg}`);
     }
 
     function debounce(func, wait) {

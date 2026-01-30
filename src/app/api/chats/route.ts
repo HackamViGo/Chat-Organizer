@@ -171,6 +171,34 @@ export async function POST(request: NextRequest) {
 
     const sourceId = validatedData.source_id || extractSourceId(validatedData.url, validatedData.platform);
 
+    // 1. Check for existing chat to detect duplication and prevent data loss
+    let existingChat: any = null;
+    if (sourceId) {
+      const { data } = await supabase
+        .from('chats')
+        .select('id, messages, title, platform, url, folder_id, content')
+        .eq('user_id', user.id)
+        .eq('source_id', sourceId)
+        .maybeSingle();
+      existingChat = data;
+    }
+
+    const incomingMessages = validatedData.messages || [];
+    const existingMessages = Array.isArray(existingChat?.messages) ? existingChat.messages : [];
+
+    // DATA LOSS PREVENTION: 
+    // If the existing chat has MORE messages than the incoming sync, 
+    // we don't perform the upsert to avoid overwriting a complete chat with a partial one.
+    if (existingChat && incomingMessages.length < existingMessages.length) {
+      return NextResponse.json({
+        ...existingChat,
+        is_duplicate: true,
+        is_downgrade: true,
+        message: 'Stored version is more complete. Update skipped to prevent data loss.'
+      }, { headers: corsHeaders });
+    }
+
+    // 2. Perform the upsert (only if it's new or more/equally complete)
     const { data, error } = await supabase
       .from('chats')
       .upsert({
@@ -181,7 +209,7 @@ export async function POST(request: NextRequest) {
         url: validatedData.url,
         folder_id: validatedData.folder_id,
         source_id: sourceId,
-        messages: validatedData.messages,
+        messages: incomingMessages,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id, source_id',
@@ -192,7 +220,12 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(data, { headers: corsHeaders });
+    // 3. Return data with status flags
+    return NextResponse.json({
+      ...data,
+      is_duplicate: !!existingChat,
+      is_downgrade: false
+    }, { headers: corsHeaders });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(

@@ -11,7 +11,7 @@ const path = require('path');
 
 // Зареждане на environment variables от .env.local
 function loadEnv() {
-  const envPath = path.join(__dirname, '..', '.env.local');
+  const envPath = path.join(__dirname, '..', '..', '.env.local');
   if (fs.existsSync(envPath)) {
     const envFile = fs.readFileSync(envPath, 'utf8');
     envFile.split('\n').forEach(line => {

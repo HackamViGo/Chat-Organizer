@@ -5,10 +5,10 @@
 ## 🚀 Features
 
 *   **Multi-Platform Support**: Works seamlessly with ChatGPT, Claude.ai, and Google Gemini.
-*   **One-Click Save**: Hover over any conversation in your history to reveal a "Save" button.
-*   **Smart Organization**: Organize chats into folders directly from the extension.
+*   **Context Menu Save**: Right-click anywhere in a conversation to reveal the "Save to BrainBox" option.
+*   **Smart Organization**: Organize chats into folders directly during the save process.
 *   **Privacy First**: Your data is stored securely on your own BrainBox Dashboard.
-*   **Safe Integration**: Uses non-intrusive DOM methods and official APIs where possible. Includes "Human-like" rate limiting to protect your accounts.
+*   **Safe Integration**: Uses non-intrusive Context Menu registration and official APIs where possible. No DOM injection that can break platform UIs.
 
 ## 📦 Installation
 
@@ -25,9 +25,9 @@ Since this extension is in **Developer Preview**, you need to install it manuall
 
 1.  **Login**: Ensure you are logged into your [BrainBox Dashboard](https://brainbox-alpha.vercel.app).
 2.  **Navigate**: Go to your favorite AI chat platform (e.g., [chatgpt.com](https://chatgpt.com)).
-3.  **Hover**: Move your mouse over any conversation in the sidebar history.
-4.  **Save**: Click the **Save** (disk) icon to archive the chat.
-5.  **Organize**: Click the **Folder** icon to choose a specific folder for the chat.
+3.  **Right-Click**: Right-click anywhere on the page or on a specific conversation link.
+4.  **Save**: Select **"Save to BrainBox"** from the context menu.
+5.  **Verify**: A toast notification will confirm if the chat was saved or updated.
 
 ## 🔒 Permissions & Privacy
 

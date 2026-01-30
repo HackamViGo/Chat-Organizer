@@ -536,41 +536,21 @@ export function normalizeChatGPT(apiResponse) {
 
 #### `extension/content/content-chatgpt.js`
 **Основна функция и логика:**
-**DOM manipulation engine** използващ **MutationObserver API** за динамично добавяне на UI елементи. Hover detection логика имплементира **event delegation** за performance. Toast notifications използват **CSS-in-JS** за styling isolation.
+**Content script engine** който координира взаимодействието с потребителя през контекстното меню. Използва съобщения към service worker за управление на записите.
 
 **Роля в проекта:**
-**User interaction bridge** между browser UI и extension background.
+**User interaction bridge** осигуряващ интеграция с контекстното меню за запис на чатове.
 
 **Ключово съдържание:**
 ```javascript
-// Conversation list observer
-const observer = new MutationObserver(() => {
-  const conversationLinks = sidebar.querySelectorAll('a[href^="/c/"]');
-  conversationLinks.forEach(link => {
-    attachHoverListeners(link);
-  });
-});
-
-// Hover button creation
-function createHoverButtons(conversationId) {
-  const saveBtn = document.createElement('button');
-  saveBtn.onclick = () => handleSave(conversationId);
-  return saveBtn;
-}
+// Uses message listeners for context menu actions
 ```
 
 #### Функции и методи
 
-| Функция | Цел | Вход | Изход |
-|---------|-----|------|-------|
-| [`init()`](extension/content/content-chatgpt.js:14) | Инициализира content script с UI и observers | - | - |
-| [`injectStyles()`](extension/content/content-chatgpt.js:29) | Инжектира изолирани CSS стилове за hover buttons | - | - |
-| [`setupConversationListObserver()`](extension/content/content-chatgpt.js:131) | Настройва MutationObserver за conversation links | - | - |
-| [`handleSpanHover(spanElement, linkElement, conversationId)`](extension/content/content-chatgpt.js:203) | Създава и показва hover buttons при hover | span, link elements, conversationId | - |
-| [`createButton(icon, title)`](extension/content/content-chatgpt.js:274) | Създава styled button елемент | icon string, title | Button element |
+| [`init()`](extension/content/content-chatgpt.js:14) | Инициализира content script | - | - |
 | [`handleSave(conversationId, folderId)`](extension/content/content-chatgpt.js:306) | Записва разговор чрез background script | conversationId, folderId | Toast notification |
-| [`handleFolderSelect(conversationId)`](extension/content/content-chatgpt.js:333) | Показва folder selector UI | conversationId | - |
-| [`showToast(msg, type, retryAction)`](extension/content/content-chatgpt.js:359) | Показва toast notification с retry опция | message, type, retry function | - |
+| [`showToast(msg, type, retryAction)`](extension/content/content-chatgpt.js:359) | Показва toast notification | message, type, retry function | - |
 | [`extractConversationId(href)`](extension/content/content-chatgpt.js:297) | Извлича conversation ID от URL | URL string | conversationId string |
 | [`clearCache()`](extension/content/content-chatgpt.js:286) | Изчиства cached данни | - | - |
 
@@ -728,26 +708,15 @@ function setupBatchexecuteInterceptor() {
 
 #### `extension/content/content-claude.js`
 **Основна функция и логика:**
-**Claude-specific content script** с **hover UI injection**. **MutationObserver-based conversation detection**. **Authentication-aware save logic**. **Folder selector integration**. **Rate limiting** за API calls.
+**Claude-specific content script** координиращ запис на чатове през контекстното меню. Извлича OrgID и други метаданни, необходими за API заявки.
 
 **Роля в проекта:**
 **Claude UI integration** предоставящ seamless conversation capture.
 
 **Ключово съдържание:**
 ```javascript
-// Claude conversation detection
-function setupConversationListObserver() {
-  const sidebar = document.querySelector('nav');
-  observer = new MutationObserver(debounce(() => {
-    injectHoverButtons();
-  }, 300));
-}
-
-// Hover buttons with dual actions
-function createButton(icon, title) {
-  const btn = document.createElement('button');
-  // Save + Folder selection buttons
-}
+// Claude integration logic
+// Handles messaging between service worker and page context
 ```
 
 #### `extension/lib/rate-limiter.js`
@@ -848,7 +817,6 @@ class BrainBoxUnifiedEngine {
       }
     });
 
-    this.injectUI();
   }
 
   handleNetworkData(payload) {
@@ -865,7 +833,6 @@ class BrainBoxUnifiedEngine {
 | Функция | Цел | Вход | Изход |
 |---------|-----|------|-------|
 | [`init()`](extension/content_script.js:6) | Инициализира unified engine с script injection | - | - |
-| [`injectUI()`](extension/content_script.js:22) | Инжектира UI елементи с Form Field compliance | - | UI button |
 | [`handleNetworkData(payload)`](extension/content_script.js:39) | Обработва intercepted API data | Raw API payload | Cleaned data |
 
 **Взаимодействия и поток на данни:**

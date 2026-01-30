@@ -300,13 +300,10 @@
 - **Три точки меню** - Dropdown меню в ChatCard
 - **Move to Folder** - Преместване на чатове в папки
 
-### Extension Prompts (T58)
-- **Right-click Insert Prompt** - Вмъкване на prompts в AI платформите
-- **Prompts Popup** - Extension popup с prompts списък
-
-### Extension Three Dots (T60)
-- **Три точки в AI платформите** - Инжектиране в Gemini/ChatGPT/Claude
-- **Add to AI Chat Organizer** - Dropdown меню опция
+### Context Menu Utilities
+- **Right-click Save** - "Save to AI Chat Organizer" option in context menu
+- **Right-click Insert Prompt** - Insert prompts directly into AI input fields
+- **Selection to Prompt** - Create new prompts from selected text on any website
 
 ---
 

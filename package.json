@@ -10,12 +10,16 @@
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
-    "test:api": "node scripts/test-api.js",
-    "chrome:debug": "./tests/start-chrome-debug.sh",
-    "chrome:monitor": "node tests/cursor-chrome-composer.js",
-    "test:chrome": "bash dev/test-chrome.sh",
+    "test:api": "node tests/scripts/test-api.js",
+    "chrome:debug": "./tests/chrome-env/start-chrome-debug.sh",
+    "chrome:monitor": "node tests/chrome-env/cursor-chrome-composer.js",
+    "test:chrome": "bash tests/chrome-env/test-chrome.sh",
     "cleanup:chrome": "rm -rf /tmp/chrome-extension-test-* && echo '✅ Cleaned test profiles'",
-    "dev:setup": "chmod +x dev/*.sh && echo '✅ Dev tools ready'"
+    "dev:setup": "chmod +x tests/chrome-env/*.sh && echo '✅ Dev tools ready'",
+    "test:sync": "node tests/scripts/validate_extension_sync.js",
+    "test:rls": "node tests/database/check-rls.js",
+    "test:unit": "node tests/unit/schema-validation.test.js",
+    "test:integration": "node tests/integration/api-health.test.js"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

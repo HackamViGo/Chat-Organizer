@@ -19,6 +19,7 @@ async function updateStatusIndicators() {
 
     // Check if user is logged into dashboard (required for all platforms)
     const hasDashboardAccess = !!accessToken;
+    document.getElementById('dashboard-status').textContent = hasDashboardAccess ? '🟢' : '⚪';
 
     // Update status indicators - green only if platform token AND dashboard access are ready
     // ChatGPT: needs chatgpt_token + accessToken

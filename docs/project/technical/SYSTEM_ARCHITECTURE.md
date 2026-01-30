@@ -10,8 +10,7 @@
 │   └── Rate_Limiter_Queue (Priority bucket logic)
 ├── Content_Scripts
 │   ├── Config_Global (lib/config-global.js) -> Shared state
-│   ├── DOM_Injector (Adds "Save" buttons and Prompts UI)
-│   ├── MutationObserver_Controller (Live UI detection)
+│   ├── Context_Menu_Handler (Provides "Save Chat" and Prompt Tools)
 │   └── Platform_Scrapers (ChatGPT, Claude, Gemini deep logic)
 ```
 
@@ -29,6 +28,4 @@
   - **Claude**: OrgID extraction + fetch.
 
 ## ⚡ Performance Optimizations
-- **DOM**: MutationObserver with 200ms debounce.
-- **Memory**: WeakMaps for UI element tracking.
-- **CSP**: Background script fetch bypasses site-specific Content Security Policies.
+- **Network**: Background script fetch bypasses site-specific Content Security Policies.

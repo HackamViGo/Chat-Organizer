@@ -352,7 +352,8 @@
             }
 
         } catch (error) {
-            showToast('Error loading folders', 'error');
+            // showToast('Error loading folders', 'error');
+            console.error('Error loading folders:', error);
         }
     }
 
@@ -375,6 +376,24 @@
                 conversationId: conversationId,
                 url: currentUrl
             });
+            return true;
+        }
+        
+        // Handle context menu "Save Chat" action
+        if (request.action === 'triggerSaveChat') {
+            console.log('[BrainBox ChatGPT] triggerSaveChat received');
+            const currentUrl = window.location.href;
+            const conversationId = extractConversationId(currentUrl);
+            
+            if (conversationId) {
+                console.log('[BrainBox ChatGPT] Saving directly to My Chats:', conversationId);
+                // Bypass folder selector -> save directly
+                handleSave(conversationId);
+                sendResponse({ success: true });
+            } else {
+                showToast('No conversation detected on this page', 'warning');
+                sendResponse({ success: false, error: 'No conversation ID found' });
+            }
             return true;
         }
     });

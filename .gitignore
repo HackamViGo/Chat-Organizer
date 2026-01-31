@@ -40,3 +40,6 @@ gemini-share-exporter/
 .env
 .genkit/
 
+
+# Turborepo
+.turbo/

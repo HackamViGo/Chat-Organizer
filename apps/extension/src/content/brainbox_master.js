@@ -1716,7 +1716,7 @@
                       if (STATE.ui) STATE.ui.showToast('✅ Conversation saved successfully!', 'success');
                   }
               } else {
-                  if (STATE.ui) STATE.ui.showToast('✅ Conversation added to queue for background sync.', 'success');
+                  // if (STATE.ui) STATE.ui.showToast('✅ Conversation added to queue for background sync.', 'success');
               }
               
               sendResponse({ success: true, message: 'Conversation saved and synced' });
@@ -1731,6 +1731,87 @@
         })();
         
         return true; // Keep channel open for async response
+      }
+      
+      // Handle context menu "Save Chat" action (from BrainBox)
+      if (request.action === 'triggerSaveChat') {
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 triggerSaveChat received');
+        
+        // Extract conversation ID from current URL
+        const urlMatch = window.location.href.match(/\/app\/([a-zA-Z0-9_-]+)/);
+        if (urlMatch && urlMatch[1]) {
+          const conversationId = urlMatch[1];
+          const title = document.querySelector('title')?.textContent || 'Gemini Chat';
+          const url = window.location.href;
+          
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Triggering save for:', conversationId);
+          
+          // Show saving toast
+          if (STATE.ui) STATE.ui.showToast('Saving conversation...', 'info');
+          
+          // Directly invoke the save logic (copy from saveConversationFromContextMenu)
+          (async () => {
+            try {
+              // Validation of conversation ID
+              const invalidIds = ['view', 'edit', 'delete', 'new', 'create', 'undefined', 'null', ''];
+              if (invalidIds.includes(conversationId.toLowerCase()) || conversationId.length < 10) {
+                // if (STATE.ui) STATE.ui.showToast('Invalid conversation ID', 'error');
+                return;
+              }
+              
+              // Extract DOM data
+              const domData = extractConversationDataFromDOM(conversationId);
+              const finalTitle = (domData?.title && domData.title !== 'Untitled Chat') 
+                ? domData.title 
+                : (title && title !== 'Google Gemini') ? title : 'Untitled Chat';
+              
+              // Get messages from DOM
+              const domMessages = extractMessagesFromDOM();
+              
+              // Create conversation payload
+              const dashboardMessages = domMessages.map(msg => ({
+                id: `msg_${Date.now()}_${msg.index || 0}`,
+                role: msg.role || 'user',
+                content: msg.text || msg.content || '',
+                timestamp: Date.now()
+              }));
+              
+              // Send directly to service worker
+              const response = await chrome.runtime.sendMessage({
+                action: 'saveToDashboard',
+                data: {
+                  id: conversationId,
+                  conversationId: conversationId,
+                  title: finalTitle,
+                  messages: dashboardMessages,
+                  platform: 'gemini',
+                  url: url,
+                  created_at: Date.now(),
+                  updated_at: Date.now(),
+                  metadata: { source: 'brainbox_master_context_menu' }
+                },
+                folderId: null,
+                silent: false
+              });
+              
+              if (response && response.success) {
+                // if (STATE.ui) STATE.ui.showToast('✅ Conversation saved!', 'success');
+              } else {
+                throw new Error(response?.error || 'Save failed');
+              }
+              
+            } catch (error) {
+              console.error('[🧠 BrainBox Master] Error saving:', error);
+              if (STATE.ui) STATE.ui.showToast('Error: ' + (error.message || 'Save failed'), 'error');
+            }
+          })();
+          
+          sendResponse({ success: true });
+        } else {
+          if (STATE.ui) STATE.ui.showToast('No conversation detected on this page', 'warning');
+          sendResponse({ success: false, error: 'No conversation ID found' });
+        }
+        return true;
       }
       
       return false;
@@ -1754,15 +1835,15 @@
     }, 1000);
   }
 
-  function isChatIncomplete() {
+  function isChatLong() {
     const chatHistory = document.querySelector('#chat-history');
     if (!chatHistory) return false;
 
     const blocks = chatHistory.querySelectorAll('.conversation-container');
     
-    // If few messages (e.g. under 4), but not a new chat
-    // Gemini often loads only last 2-3 on direct open
-    if (blocks.length > 0 && blocks.length < 6) {
+    // Chat is considered "long" if it has many blocks (6+)
+    // AND shows signs that not all history is loaded
+    if (blocks.length >= 6) {
       // Check for "load more" or similar buttons
       const hasLoadMore = !!document.querySelector('button[aria-label*="history"], button[aria-label*="previous"], button[aria-label*="old"], button[aria-label*="earlier"]');
       
@@ -1770,7 +1851,7 @@
       const scroller = chatHistory.closest('.v-scroll-viewport') || chatHistory.parentElement;
       const canScrollUp = scroller && scroller.scrollTop > 100;
 
-      return hasLoadMore || canScrollUp || blocks.length < 4;
+      return hasLoadMore || canScrollUp;
     }
     return false;
   }
@@ -1785,7 +1866,7 @@
     // Don't annoy if already notified in this session
     if (STATE.notifiedChats.has(convId)) return;
 
-    if (isChatIncomplete()) {
+    if (isChatLong()) {
        if (STATE.ui) {
           STATE.ui.showToast('ℹ️ This chat is very long. Scroll to the very beginning to ensure all messages are captured.', 'info');
           STATE.notifiedChats.add(convId);

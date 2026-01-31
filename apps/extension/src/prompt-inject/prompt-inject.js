@@ -833,6 +833,41 @@
         return true; // Keep channel open for async response
       }
 
+      if (request.action === 'triggerSaveChat') {
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to save chat');
+        
+        // Trigger save chat button click if it exists
+        const saveButton = document.querySelector('[data-brainbox-save], button[aria-label*="Save"], .brainbox-save-button');
+        if (saveButton) {
+          saveButton.click();
+          sendResponse({ success: true });
+        } else {
+          // Fallback: send message to platform-specific content script
+          showNotification('Please use the save button in the UI', 'info');
+          sendResponse({ success: false, error: 'Save button not found' });
+        }
+        
+        return true;
+      }
+
+      if (request.action === 'openCreatePromptDialog') {
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to create prompt from selection');
+        
+        const { selectedText } = request;
+        
+        if (!selectedText || selectedText.trim().length === 0) {
+          showNotification('No text selected', 'warning');
+          sendResponse({ success: false, error: 'No text selected' });
+          return true;
+        }
+        
+        // Show create prompt dialog
+        showCreatePromptDialog(selectedText);
+        sendResponse({ success: true });
+        
+        return true;
+      }
+
       return false;
     });
 

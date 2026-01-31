@@ -13,6 +13,7 @@ export default defineConfig({
     alias: {
       '@brainbox/shared': resolve(__dirname, '../../packages/shared'),
       '@brainbox/shared/schemas': resolve(__dirname, '../../packages/shared/schemas.js'),
+      '@brainbox/shared/logic': resolve(__dirname, '../../packages/shared/src/logic'),
     },
   },
   build: {
@@ -21,7 +22,7 @@ export default defineConfig({
     sourcemap: process.env.NODE_ENV === 'development',
     rollupOptions: {
       input: {
-        popup: resolve(__dirname, 'src/ui/popup.html'),
+        popup: resolve(__dirname, 'src/popup/index.html'),
       },
     },
   },

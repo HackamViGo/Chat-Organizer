@@ -22,14 +22,10 @@
             console.log('[BrainBox] UI library not found');
         }
         
-        // Removed UI buttons as requested
-        // injectStyles();
-        // setupConversationListObserver();
-        // injectHoverButtons();
-        // setupVisibilityListener();
+        // Start proactive Organization ID detection
+        startOrgIdDetection();
         
-        console.log('[BrainBox] Claude content script initialized (UI buttons disabled)');
-        clearCache();
+        console.log('[BrainBox] Claude content script initialized');
     }
 
     // ============================================================================
@@ -318,7 +314,8 @@
             // Handle extension context invalidated
             if (errorMessage.includes('Extension context invalidated') || 
                 errorMessage.includes('Extension was reloaded')) {
-                showToast('Extension was reloaded. Please refresh the page and try again.', 'error');
+                // showToast('Extension was reloaded. Please refresh the page and try again.', 'error');
+                console.warn('Extension context invalidated');
                 return;
             }
             
@@ -331,9 +328,10 @@
                 // Ask service worker to open login page (chrome.tabs is not available in content scripts)
                 try {
                     await chrome.runtime.sendMessage({ action: 'openLoginPage' });
-                    showToast('Please log in first. Opening login page...', 'info');
+                    // showToast('Please log in first. Opening login page...', 'info');
                 } catch (e) {
-                    showToast('Please log in first. Extension may need to be reloaded.', 'error');
+                    // showToast('Please log in first. Extension may need to be reloaded.', 'error');
+                    console.error('Login/Reload needed', e);
                 }
                 return;
             }
@@ -357,7 +355,7 @@
             }
         } catch (error) {
             console.error(error);
-            showToast('Error loading folders', 'error');
+            // showToast('Error loading folders', 'error');
         }
     }
 
@@ -386,69 +384,130 @@
     // MESSAGE HANDLER - For context menu support
     // ============================================================================
 
+    // ============================================================================
+    // ORG ID DETECTION
+    // ============================================================================
+
+    function startOrgIdDetection() {
+        console.log('[BrainBox] Starting Organization ID detection...');
+        
+        // Try immediately
+        detectAndSaveOrgId();
+        
+        // Retry every 2 seconds for 10 times (to catch it after SPA hydration)
+        let attempts = 0;
+        const interval = setInterval(() => {
+            detectAndSaveOrgId();
+            attempts++;
+            if (attempts > 10) clearInterval(interval);
+        }, 2000);
+        
+        // Listen for URL changes to re-detect
+        let lastUrl = location.href;
+        new MutationObserver(() => {
+            const url = location.href;
+            if (url !== lastUrl) {
+                lastUrl = url;
+                setTimeout(detectAndSaveOrgId, 1000); // Wait for navigation to settle
+            }
+        }).observe(document, {subtree: true, childList: true});
+    }
+
+    function detectAndSaveOrgId() {
+        try {
+            let orgId = null;
+
+            // 1. Check URL (old format)
+            const urlMatch = window.location.href.match(/organizations\/([^\/]+)/);
+            if (urlMatch) orgId = urlMatch[1];
+
+            // 2. Check Pathname
+            if (!orgId) {
+                const pathMatch = window.location.pathname.match(/\/organizations\/([^\/]+)/);
+                if (pathMatch) orgId = pathMatch[1];
+            }
+
+            // 3. Check __INITIAL_STATE__ (React state)
+            if (!orgId && window.__INITIAL_STATE__) {
+                const state = window.__INITIAL_STATE__;
+                if (state.organizationId) orgId = state.organizationId;
+                else if (state.orgId) orgId = state.orgId;
+                else if (state.organization && state.organization.id) orgId = state.organization.id;
+                else if (state.user && state.user.organizations && state.user.organizations.length > 0) {
+                    // Just take the first one if available
+                    orgId = state.user.organizations[0].id;
+                }
+            }
+
+            // 4. Check Links in DOM
+            if (!orgId) {
+                const orgLink = document.querySelector('a[href*="/organizations/"]');
+                if (orgLink) {
+                    const linkMatch = orgLink.href.match(/organizations\/([^\/]+)/);
+                    if (linkMatch) orgId = linkMatch[1];
+                }
+            }
+
+            // 5. Check Meta Tags
+            if (!orgId) {
+                const metaOrg = document.querySelector('meta[name="organization-id"]');
+                if (metaOrg) orgId = metaOrg.content;
+            }
+
+            if (orgId) {
+                console.log('[BrainBox] ✅ Found Claude Org ID:', orgId);
+                chrome.storage.local.set({ claude_org_id: orgId });
+                return orgId;
+            }
+
+        } catch (e) {
+            console.warn('[BrainBox] Error extracting Org ID:', e);
+        }
+        return null;
+    }
+
+    // ============================================================================
+    // MESSAGE HANDLER - For context menu support
+    // ============================================================================
+
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         if (request.action === 'getClaudeOrgId') {
-            // Try to extract org_id from current URL
-            const url = window.location.href;
-            let orgMatch = url.match(/organizations\/([^\/]+)/);
+            const orgId = detectAndSaveOrgId(); // Try to detect fresh
             
-            if (orgMatch) {
-                sendResponse({ orgId: orgMatch[1] });
-                return true;
+            if (orgId) {
+                sendResponse({ orgId });
+            } else {
+                // If not found dynamically, check storage as fallback (async)
+                chrome.storage.local.get(['claude_org_id'], (result) => {
+                    sendResponse({ orgId: result.claude_org_id || null });
+                });
+                return true; // Wait for async callback
             }
+            return true;
+        }
+        
+        // Handle context menu "Save Chat" action
+        if (request.action === 'triggerSaveChat') {
+            console.log('[BrainBox Claude] triggerSaveChat received');
+            const currentUrl = window.location.href;
+            const conversationId = extractConversationId(currentUrl);
             
-            // Try to extract from pathname
-            const pathMatch = window.location.pathname.match(/\/organizations\/([^\/]+)/);
-            if (pathMatch) {
-                sendResponse({ orgId: pathMatch[1] });
-                return true;
-            }
+            // Ensure we have Org ID before proceeding
+            detectAndSaveOrgId();
             
-            // Try to find in any links on the page
-            const orgLinks = document.querySelectorAll('a[href*="/organizations/"]');
-            if (orgLinks.length > 0) {
-                const firstLink = orgLinks[0].href;
-                const linkMatch = firstLink.match(/organizations\/([^\/]+)/);
-                if (linkMatch) {
-                    sendResponse({ orgId: linkMatch[1] });
-                    return true;
-                }
-            }
-            
-            // Try to extract from API calls in network (check fetch/XHR)
-            // Look for any fetch calls that contain organizations
-            try {
-                // Check if there's any data attribute or meta tag with org_id
-                const metaOrg = document.querySelector('meta[name*="org"], meta[property*="org"]');
-                if (metaOrg && metaOrg.content) {
-                    const metaMatch = metaOrg.content.match(/organizations\/([^\/]+)/);
-                    if (metaMatch) {
-                        sendResponse({ orgId: metaMatch[1] });
-                        return true;
-                    }
-                }
+            if (conversationId) {
+                console.log('[BrainBox Claude] Saving directly to My Chats:', conversationId);
+                // Create a mock title element 
+                const titleElement = { innerText: document.title || 'Claude Conversation' };
                 
-                // Check window.__INITIAL_STATE__ or similar global objects
-                if (window.__INITIAL_STATE__) {
-                    const state = window.__INITIAL_STATE__;
-                    if (state.organizationId || state.orgId || state.organization?.id) {
-                        sendResponse({ orgId: state.organizationId || state.orgId || state.organization.id });
-                        return true;
-                    }
-                }
+                // Bypass folder selector -> save directly
+                handleSave(conversationId, titleElement); 
                 
-                // Check for any data attributes in body or main container
-                const bodyData = document.body.getAttribute('data-org-id') || 
-                                document.body.getAttribute('data-organization-id');
-                if (bodyData) {
-                    sendResponse({ orgId: bodyData });
-                    return true;
-                }
-            } catch (e) {
-                console.warn('[BrainBox] Error extracting org_id from DOM:', e);
+                sendResponse({ success: true });
+            } else {
+                showToast('No conversation detected on this page', 'warning');
+                sendResponse({ success: false, error: 'No conversation ID found' });
             }
-            
-            sendResponse({ orgId: null });
             return true;
         }
     });

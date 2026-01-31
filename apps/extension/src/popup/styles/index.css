@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply antialiased;
+  }
+  
+  body {
+    @apply m-0 p-0;
+  }
+}
+
+@layer utilities {
+  /* Custom glow effect for platform buttons */
+  .glow-chatgpt:hover {
+    box-shadow: 0 0 20px hsl(142 71% 45% / 0.5);
+  }
+  
+  .glow-gemini:hover {
+    box-shadow: 0 0 20px hsl(217 91% 60% / 0.5);
+  }
+  
+  .glow-claude:hover {
+    box-shadow: 0 0 20px hsl(25 95% 53% / 0.5);
+  }
+  
+  .glow-grok:hover {
+    box-shadow: 0 0 20px hsl(0 0% 100% / 0.5);
+  }
+  
+  .glow-perplexity:hover {
+    box-shadow: 0 0 20px hsl(189 94% 43% / 0.5);
+  }
+  
+  .glow-lmarena:hover {
+    box-shadow: 0 0 20px hsl(43 96% 56% / 0.5);
+  }
+  
+  .glow-deepseek:hover {
+    box-shadow: 0 0 20px hsl(217 91% 60% / 0.5);
+  }
+  
+  .glow-qwen:hover {
+    box-shadow: 0 0 20px hsl(262 83% 58% / 0.5);
+  }
+}

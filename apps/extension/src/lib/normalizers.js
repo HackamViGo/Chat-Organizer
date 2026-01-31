@@ -1,7 +1,7 @@
 // BrainBox - Data Normalizers
 // Transforms platform-specific API responses into the Common Schema
 
-import { createConversation, createMessage, ROLES, PLATFORMS } from '@brainbox/shared/schemas';
+import { createConversation, createMessage, ROLES, PLATFORMS } from './schemas.js';
 
 // ============================================================================
 // CHATGPT NORMALIZER

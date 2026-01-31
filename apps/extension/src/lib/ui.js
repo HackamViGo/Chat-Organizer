@@ -174,11 +174,34 @@ window.BrainBoxUI = class BrainBoxUI {
                 resolve(selectedId);
             };
 
+            // Add buttons to actions div
+            actions.appendChild(cancelBtn);
+            actions.appendChild(saveBtn);
+
             modal.appendChild(title);
             modal.appendChild(list);
             modal.appendChild(actions);
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
+
+            // ESC key to close
+            const escHandler = (e) => {
+                if (e.key === 'Escape') {
+                    overlay.remove();
+                    document.removeEventListener('keydown', escHandler);
+                    resolve(undefined); // undefined = cancelled
+                }
+            };
+            document.addEventListener('keydown', escHandler);
+
+            // Click outside to close
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    overlay.remove();
+                    document.removeEventListener('keydown', escHandler);
+                    resolve(undefined);
+                }
+            };
         });
     }
 

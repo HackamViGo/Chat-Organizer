@@ -6,9 +6,11 @@
   "types": "./index.d.ts",
   "exports": {
     ".": "./index.js",
-    "./schemas": "./schemas.js"
+    "./schemas": "./schemas.js",
+    "./logic/promptSync": "./src/logic/promptSync.ts"
   },
   "devDependencies": {
+    "@types/chrome": "^0.1.36",
     "typescript": "~5.8.2"
   }
 }

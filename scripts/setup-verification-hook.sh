@@ -12,6 +12,10 @@ cat > "$HOOK_PATH" << 'EOF'
 
 echo "🔍 Running BrainBox schema verification..."
 
+# Ensure we are in the project root (where scripts/ exists)
+PROJECT_ROOT=$(git rev-parse --show-toplevel)
+cd "$PROJECT_ROOT"
+
 python3 scripts/verification.py
 
 if [ $? -ne 0 ]; then

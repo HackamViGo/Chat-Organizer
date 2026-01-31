@@ -1,7 +1,7 @@
 # Context Map Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.0.6  
+**Version**: 2.1.0 (Monorepo Migration)  
 **Architecture**: Chrome Extension (Manifest V3) + Next.js PWA (App Router)  
 **Generated**: 2026-01-31  
 **Authority**: Meta-Architect (Priority 1 - Boundary Definition)
@@ -146,7 +146,48 @@ flowchart LR
 1. **HTTP APIs** (extension → Next.js routes)
 2. **Shared schema definition** (canonical models in `docs/technical/DATA_SCHEMA.md`)
 
-### 3.2 Shared Logic Ownership
+### 3.2 Monorepo Shared Packages (v2.1.0+)
+
+**The Immutable Core**: Starting with v2.1.0, common code is extracted into `packages/`:
+
+```mermaid
+flowchart TB
+    subgraph Packages["@brainbox/* Shared Packages"]
+        DB[@brainbox/database\u003cbr/\u003edatabase.types.ts]
+        VAL[@brainbox/validation\u003cbr/\u003eZod schemas]
+        SHARED[@brainbox/shared\u003cbr/\u003eExtension schemas]
+    end
+    
+    subgraph Apps[Applications]
+        DASH[apps/dashboard\u003cbr/\u003eNext.js PWA]
+        EXT[apps/extension\u003cbr/\u003eChrome Extension]
+    end
+    
+    DASH -->|import| DB
+    DASH -->|import| VAL
+    EXT -->|import| SHARED
+    
+    VAL -.->|uses types from| DB
+    
+    style DB fill:#ff6347,stroke:#333,stroke-width:2px
+    style VAL fill:#ffd700,stroke:#333,stroke-width:2px
+    style SHARED fill:#32cd32,stroke:#333,stroke-width:2px
+```
+
+**Package Responsibilities**:
+
+| Package | Contents | Consumers | Identity-Locked |
+|---------|----------|-----------|----------------|
+| `@brainbox/database` | `database.types.ts` (Supabase-generated types) | Dashboard API routes, server components | ⚠️ YES (auto-generated) |
+| `@brainbox/validation` | Zod schemas: `createChatSchema`, `promptSchema`, `folderSchema`, `listSchema` | Dashboard forms, API validation | ⚠️ YES (canonical schemas) |
+| `@brainbox/shared` | `schemas.js` - Extension schemas (`createConversation`, `createMessage`) | Extension normalizers | ⚠️ YES (platform contract) |
+
+**Migration Notes**:
+- `@/lib/validation/*` → `@brainbox/validation`
+- `@/types/database.types` → `@brainbox/database`
+- Extension local schemas → `@brainbox/shared/schemas`
+
+### 3.3 Shared Logic Ownership
 
 **File**: `src/types/database.types.ts`
 

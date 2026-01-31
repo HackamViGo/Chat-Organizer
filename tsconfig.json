@@ -37,6 +37,15 @@
       ],
       "@/hooks/*": [
         "./src/hooks/*"
+      ],
+      "@brainbox/database": [
+        "./packages/database"
+      ],
+      "@brainbox/validation": [
+        "./packages/validation"
+      ],
+      "@brainbox/shared": [
+        "./packages/shared"
       ]
     },
     "plugins": [

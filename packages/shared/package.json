@@ -1,0 +1,14 @@
+{
+  "name": "@brainbox/shared",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./index.js",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": "./index.js",
+    "./schemas": "./schemas.js"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.2"
+  }
+}

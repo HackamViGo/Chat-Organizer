@@ -1,0 +1,20 @@
+{
+  "name": "@brainbox/validation",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./chat": "./schemas/chat.ts",
+    "./prompt": "./schemas/prompt.ts",
+    "./folder": "./schemas/folder.ts",
+    "./list": "./schemas/list.ts"
+  },
+  "dependencies": {
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "typescript": "~5.8.2"
+  }
+}

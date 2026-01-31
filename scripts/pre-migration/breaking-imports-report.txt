@@ -1,0 +1,279 @@
+BREAKING IMPORTS DETECTED: 96 imports in 43 files
+
+Generated: 2026-01-31T05:46:06.480Z
+================================================================================
+
+File: src/app/lists/page.tsx
+  Line 1: import { createServerSupabaseClient } from '@/lib/supabase/server';
+  Line 3: import { ListsPage } from '@/components/features/lists/ListsPage';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/prompts/page.tsx
+  Line 5: import { usePromptStore } from '@/store/usePromptStore';
+  Line 6: import { useFolderStore } from '@/store/useFolderStore';
+  Line 7: import { PromptCard } from '@/components/features/prompts/PromptCard';
+  Line 8: import { CreatePromptModal } from '@/components/features/prompts/CreatePromptModal';
+  Line 9: import { EnhancePromptCard } from '@/components/features/prompts/EnhancePromptCard';
+  Line 10: import { DailyPickCard } from '@/components/features/prompts/DailyPickCard';
+  Line 11: import { createClient } from '@/lib/supabase/client';
+  Line 13: import { FOLDER_ICONS } from '@/components/layout/Sidebar';
+  Line 14: import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
+  Line 15: import { Prompt, Folder } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/layout.tsx
+  Line 3: import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
+  Line 4: import { ThemeProvider } from '@/components/providers/ThemeProvider';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/images/page.tsx
+  Line 1: import { createServerSupabaseClient } from '@/lib/supabase/server';
+  Line 3: import { ImagesPage } from '@/components/features/images/ImagesPage';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/folder/[id]/page.tsx
+  Line 3: import { createServerSupabaseClient } from '@/lib/supabase/server';
+  Line 4: import { Chat, Folder as FolderType } from '@/types';
+  Line 7: import { ChatCard } from '@/components/features/chats/ChatCard';
+  Line 8: import FolderHeader from '@/components/features/folders/FolderHeader';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/avatar/upload/route.ts
+  Line 3: import { createServerSupabaseClient } from '@/lib/supabase/server';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/account/delete/route.ts
+  Line 2: import { createServerSupabaseClient } from '@/lib/supabase/server';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/import/route.ts
+  Line 2: import { createServerSupabaseClient } from '@/lib/supabase/server';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/prompts/categories/route.ts
+  Line 2: import { SmartPromptSearch } from '@/lib/services/smart-prompt-search';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/prompts/search/route.ts
+  Line 2: import { SmartPromptSearch } from '@/lib/services/smart-prompt-search';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/prompts/by-category/route.ts
+  Line 2: import { SmartPromptSearch } from '@/lib/services/smart-prompt-search';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/upload/route.ts
+  Line 2: import { createServerSupabaseClient } from '@/lib/supabase/server';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/export/route.ts
+  Line 2: import { createServerSupabaseClient } from '@/lib/supabase/server';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/ai/enhance-prompt/route.ts
+  Line 2: import { generatePromptImprovement } from '@/lib/services/ai';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/api/ai/generate/route.ts
+  Line 2: import { analyzeChatContent } from '@/lib/services/ai';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/studio/page.tsx
+  Line 2: import { ChatStudio } from '@/components/features/chats/ChatStudio';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/extension-auth/page.tsx
+  Line 4: import { createClient } from '@/lib/supabase/client';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/profile/page.tsx
+  Line 6: import { createClient } from '@/lib/supabase/client';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/page.tsx
+  Line 4: import { useChatStore } from '@/store/useChatStore';
+  Line 5: import { useFolderStore } from '@/store/useFolderStore';
+  Line 6: import { createClient } from '@/lib/supabase/client';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/archive/page.tsx
+  Line 3: import { useChatStore } from '@/store/useChatStore';
+  Line 4: import { ChatCard } from '@/components/features/chats/ChatCard';
+  Line 7: import { createClient } from '@/lib/supabase/client';
+  Line 8: import { Chat } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/settings/page.tsx
+  Line 6: import { useFolderStore } from '@/store/useFolderStore';
+  Line 7: import { useChatStore } from '@/store/useChatStore';
+  Line 8: import { createClient } from '@/lib/supabase/client';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/app/chats/page.tsx
+  Line 5: import { useChatStore } from '@/store/useChatStore';
+  Line 6: import { useFolderStore } from '@/store/useFolderStore';
+  Line 7: import { ChatCard } from '@/components/features/chats/ChatCard';
+  Line 9: import { FOLDER_ICONS } from '@/components/layout/Sidebar';
+  Line 10: import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
+  Line 11: import { createClient } from '@/lib/supabase/client';
+  Line 12: import { getItemsInFolderAndNested, getChildFolders } from '@/lib/utils/folders';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/folders/FolderHeader.tsx
+  Line 4: import { Folder as FolderType } from '@/types';
+  Line 5: import { useFolderStore } from '@/store/useFolderStore';
+  Line 6: import { createClient } from '@/lib/supabase/client';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/lists/ListsPage.tsx
+  Line 4: import { useListStore } from '@/store/useListStore';
+  Line 5: import type { ListWithItems, ListColor, ListItem } from '@/types';
+  Line 6: import { createClient } from '@/lib/supabase/client';
+  Line 7: import { listSchema, listItemSchema } from '@/lib/validation/list';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/prompts/PromptCard.tsx
+  Line 4: import { Prompt, PromptUpdate } from '@/types';
+  Line 5: import { usePromptStore } from '@/store/usePromptStore';
+  Line 6: import { createClient } from '@/lib/supabase/client';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/prompts/EnhancePromptCard.tsx
+  Line 5: import { PromptEntry } from '@/lib/services/prompt-library-fetcher';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/prompts/DailyPickCard.tsx
+  Line 5: import { Prompt } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/prompts/CreatePromptModal.tsx
+  Line 6: import { promptSchema, type PromptFormData } from '@/lib/validation/prompt';
+  Line 7: import { usePromptStore } from '@/store/usePromptStore';
+  Line 8: import { createClient } from '@/lib/supabase/client';
+  Line 10: import { Prompt } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/images/ImagesPage.tsx
+  Line 12: import { FOLDER_ICONS } from '@/components/layout/Sidebar';
+  Line 13: import { getFolderColorClass, getFolderTextColorClass, getFolderTextColorClasses, getFolderBorderColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
+  Line 14: import { useImageStore } from '@/store/useImageStore';
+  Line 15: import { useFolderStore } from '@/store/useFolderStore';
+  Line 16: import { createClient } from '@/lib/supabase/client';
+  Line 17: import type { Image as ImageType } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/chats/ChatCard.tsx
+  Line 4: import { Chat, Platform } from '@/types';
+  Line 5: import { useChatStore } from '@/store/useChatStore';
+  Line 6: import { useFolderStore } from '@/store/useFolderStore';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/chats/ChatStudio.tsx
+  Line 5: import { useChatStore } from '@/store/useChatStore';
+  Line 6: import { Chat, Platform } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/features/brain/GlobalBrain.tsx
+  Line 5: import { useChatStore } from '@/store/useChatStore';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/providers/FolderProvider.tsx
+  Line 4: import { useFolderStore } from '@/store/useFolderStore';
+  Line 5: import { createClient } from '@/lib/supabase/client';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/layout/LayoutWrapper.tsx
+  Line 4: import { Sidebar } from '@/components/layout/Sidebar';
+  Line 5: import { FolderProvider } from '@/components/providers/FolderProvider';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/components/layout/Sidebar.tsx
+  Line 7: import { useChatStore } from '@/store/useChatStore';
+  Line 8: import { useFolderStore } from '@/store/useFolderStore';
+  Line 9: import { createClient } from '@/lib/supabase/client';
+  Line 10: import { Chat, Folder } from '@/types';
+  Line 11: import { getFolderIconContainerClasses, getCategoryColorClasses } from '@/lib/utils/colors';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/store/useFolderStore.ts
+  Line 2: import type { Folder } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/store/usePromptStore.ts
+  Line 2: import type { Prompt } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/store/useListStore.ts
+  Line 2: import type { ListWithItems, ListItem } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/store/useImageStore.ts
+  Line 2: import { Image, UploadItem } from '@/types';
+  Line 3: import { createClient } from '@/lib/supabase/client';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/store/useChatStore.ts
+  Line 2: import type { Chat } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/lib/supabase/client.ts
+  Line 2: import type { Database } from '@/types/database.types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/lib/supabase/server.ts
+  Line 3: import type { Database } from '@/types/database.types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+File: src/lib/utils/folders.ts
+  Line 1: import type { Folder } from '@/types';
+
+  → MIGRATION: Update tsconfig.json paths or migrate to @brainbox/* packages
+
+================================================================================
+
+SUMMARY:
+- Total files affected: 43
+- Total @/ imports: 96
+- Recommendation: Review each import for migration strategy

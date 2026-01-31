@@ -801,6 +801,38 @@
       }
     },
     {
+      "id": "turborepo-orchestrator",
+      "type": "Build System",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Tooling",
+        "priority": 1,
+        "access_url": "https://turborepo.dev/docs",
+        "github_repo": "https://github.com/vercel/turborepo",
+        "nextjs_guide": "https://turborepo.dev/docs/guides/frameworks/nextjs",
+        "purpose": "Caching and task orchestration for monorepo",
+        "related_config": "turbo.json",
+        "migration_plan": "docs/technical/official_resources_turborepo_vite_migration.md"
+      }
+    },
+    {
+      "id": "vite-extension-engine",
+      "type": "Build System",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Bundler",
+        "priority": 1,
+        "access_url": "https://vite.dev/",
+        "crxjs_plugin": "https://crxjs.dev/vite-plugin",
+        "github_repo": "https://github.com/vitejs/vite",
+        "crxjs_github": "https://github.com/crxjs/chrome-extension-tools",
+        "purpose": "Fast Chrome Extension development with HMR",
+        "replaces": "webpack (implicit in current setup)",
+        "mv3_compliance": "CRXJS plugin handles Manifest V3 CSP",
+        "migration_plan": "docs/technical/official_resources_turborepo_vite_migration.md"
+      }
+    },
+    {
       "id": "brainbox-chat-object",
       "type": "Data Model",
       "metadata": {
@@ -916,6 +948,30 @@
       "to": "brainbox-chat-object",
       "relationship": "styles",
       "description": "ChatCard uses glassmorphism and primary colors from palette"
+    },
+    {
+      "from": "turborepo-orchestrator",
+      "to": "nextjs-docs-main",
+      "relationship": "orchestrates",
+      "description": "Manages Next.js build pipeline in apps/dashboard"
+    },
+    {
+      "from": "vite-extension-engine",
+      "to": "brainbox-service-worker",
+      "relationship": "bundles",
+      "description": "Builds service worker with Manifest V3 compliance"
+    },
+    {
+      "from": "vite-extension-engine",
+      "to": "brainbox-platform-normalizers",
+      "relationship": "includes",
+      "description": "Bundles normalizers into extension package"
+    },
+    {
+      "from": "turborepo-orchestrator",
+      "to": "brainbox-supabase-schema",
+      "relationship": "validates",
+      "description": "Ensures database types are generated before builds"
     }
   ]
 }

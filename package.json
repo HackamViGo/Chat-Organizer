@@ -1,12 +1,17 @@
 {
   "name": "brainbox",
   "private": true,
-  "version": "0.1.0",
+  "version": "2.1.0",
+  "packageManager": "pnpm@10.28.2",
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "next lint",
+    "dev": "turbo dev",
+    "dev:dashboard": "turbo dev --filter=@brainbox/dashboard",
+    "dev:extension": "turbo dev --filter=@brainbox/extension",
+    "build": "turbo build",
+    "build:dashboard": "turbo build --filter=@brainbox/dashboard",
+    "build:extension": "turbo build --filter=@brainbox/extension",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
     "test:ui": "playwright test --ui",
@@ -19,7 +24,10 @@
     "test:sync": "node tests/scripts/validate_extension_sync.js",
     "test:rls": "node tests/database/check-rls.js",
     "test:unit": "node tests/unit/schema-validation.test.js",
-    "test:integration": "node tests/integration/api-health.test.js"
+    "test:integration": "node tests/integration/api-health.test.js",
+    "verify": "python scripts/verification.py --check-all",
+    "legacy:dev": "next dev",
+    "legacy:build": "next build"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
@@ -55,6 +63,7 @@
     "postcss": "^8.5.1",
     "sharp": "^0.34.5",
     "tailwindcss": "^3.4.17",
+    "turbo": "^2.3.0",
     "typescript": "~5.8.2",
     "webpack-cli": "^6.0.1",
     "ws": "^8.18.3"

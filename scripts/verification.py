@@ -79,11 +79,19 @@ def extract_identity_locks_from_schema() -> Dict[str, List[str]]:
 def check_database_types_modification() -> Tuple[bool, str]:
     """
     Verify database.types.ts hasn't been manually edited
-    Note: File doesn't have auto-generated comment, so we skip this check for now.
-    Future: Add git diff check to detect manual edits
+    Supports both legacy (src/types) and monorepo (packages/database) paths
     """
-    types_file = PROJECT_ROOT / "src/types/database.types.ts"
-    if not types_file.exists():
+    # Check both legacy and monorepo paths
+    legacy_path = PROJECT_ROOT / "src/types/database.types.ts"
+    monorepo_path = PROJECT_ROOT / "packages/database/database.types.ts"
+    
+    types_file = None
+    if monorepo_path.exists():
+        types_file = monorepo_path
+    elif legacy_path.exists():
+        types_file = legacy_path
+    
+    if not types_file:
         return True, ""
     
     # TODO: Implement git diff check instead of comment detection
@@ -142,17 +150,23 @@ def check_manifest_csp_compliance() -> Tuple[bool, str]:
     """
     Verify extension manifest.json and HTML files don't violate Manifest V3 CSP
     Block: external CDN links, inline scripts without nonce, eval()
+    Supports both legacy and monorepo paths
     """
     violations = []
     
-    # Check manifest.json
-    manifest_path = PROJECT_ROOT / "extension/manifest.json"
+    # Check manifest.json (try monorepo path first, then legacy)
+    monorepo_manifest = PROJECT_ROOT / "apps/extension/manifest.json"
+    legacy_manifest = PROJECT_ROOT / "extension/manifest.json"
+    
+    manifest_path = monorepo_manifest if monorepo_manifest.exists() else legacy_manifest
+    extension_dir = manifest_path.parent
+    
     with open(manifest_path) as f:
         manifest = json.load(f)
     
     # Check for eval in background service worker
     sw_relative_path = manifest['background']['service_worker']
-    sw_path = PROJECT_ROOT / "extension" / sw_relative_path
+    sw_path = extension_dir / sw_relative_path
     with open(sw_path) as f:
         sw_content = f.read()
     
@@ -163,7 +177,7 @@ def check_manifest_csp_compliance() -> Tuple[bool, str]:
         )
     
     # Check HTML files for external CDNs
-    for html_file in (PROJECT_ROOT / "extension").rglob("*.html"):
+    for html_file in extension_dir.rglob("*.html"):
         with open(html_file) as f:
             html_content = f.read()
         

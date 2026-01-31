@@ -1,0 +1,16 @@
+{
+  "circular_deps": [],
+  "safe_to_extract": [
+    {
+      "file": "extension/lib/schemas.js",
+      "target": "packages/shared/schemas.js",
+      "reason": "No dependencies on normalizers"
+    },
+    {
+      "file": "extension/lib/normalizers.js",
+      "target": "apps/extension/src/lib/normalizers.js",
+      "imports_update": "Change \"./schemas.js\" to \"@brainbox/shared/schemas\""
+    }
+  ],
+  "timestamp": "2026-01-31T05:45:51.823Z"
+}

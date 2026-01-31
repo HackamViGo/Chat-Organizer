@@ -1,0 +1,24 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@brainbox/shared": ["../../packages/shared"],
+      "@brainbox/shared/*": ["../../packages/shared/*"]
+    },
+    "lib": ["ES2020", "DOM", "DOM.Iterable"],
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["chrome", "vite/client", "node"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.js",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
+}

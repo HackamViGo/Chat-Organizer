@@ -26,6 +26,22 @@ quality_gates:
     severity: critical
     check: no_locked_node_modifications
     
+  # BrainBox v2.0.6 Quality Gates
+  - name: database_types_protection
+    description: "database.types.ts must not be manually edited (auto-generated)"
+    severity: critical
+    check: database_types_unmodified
+    
+  - name: css_variable_protection
+    description: "Protected CSS variables (--primary, --destructive, etc.) must not change HSL values"
+    severity: critical
+    check: css_variables_intact
+    
+  - name: manifest_v3_csp_compliance
+    description: "Extension must not violate Manifest V3 CSP (no eval, no external CDN)"
+    severity: critical
+    check: csp_compliant
+    
   - name: cross_agent_consistency
     description: "API contracts match between frontend/backend"
     severity: high
@@ -35,6 +51,11 @@ quality_gates:
     description: "All generated code files have valid syntax"
     severity: high
     check: syntax_validation
+    
+  - name: ui_compliance
+    description: "No ad-hoc Tailwind colors (must use design tokens from UI_STANDARDS.md)"
+    severity: medium
+    check: ui_standards_compliant
     
   - name: documentation_citation
     description: "Code comments reference source documentation"
@@ -75,6 +96,37 @@ steps:
       locked_nodes: "${identity_locked_nodes}"
     depends_on: collect_artifacts
     gate: identity_lock_compliance
+    
+  # BrainBox v2.0.6 Verification Steps
+  - id: check_database_types
+    action: python_exec
+    script: scripts/verification.py
+    function: check_database_types_modification
+    depends_on: collect_artifacts
+    gate: database_types_protection
+    
+  - id: check_css_variables
+    action: python_exec
+    script: scripts/verification.py
+    function: check_css_variable_protection
+    depends_on: collect_artifacts
+    gate: css_variable_protection
+    
+  - id: check_manifest_csp
+    action: python_exec
+    script: scripts/verification.py
+    function: check_manifest_csp_compliance
+    depends_on: collect_artifacts
+    gate: manifest_v3_csp_compliance
+    
+  - id: check_ui_compliance
+    action: shell_exec
+    command: |
+      grep -rE "className=" src/components/**/*.tsx 2>/dev/null | grep -E 'bg-\[#|text-\[#' && exit 1 || exit 0
+    on_fail:
+      message: "Ad-hoc Tailwind colors detected. Use design tokens from UI_STANDARDS.md"
+    depends_on: collect_artifacts
+    gate: ui_compliance
     
   - id: check_api_contracts
     action: python_exec

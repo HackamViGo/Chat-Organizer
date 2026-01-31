@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BrainBox - AI Chat Organizer",
-  "version": "2.0.4",
+  "version": "2.0.6",
   "description": "Organize AI conversations from ChatGPT, Gemini, and Claude into your personal dashboard",
   "permissions": [
     "storage",

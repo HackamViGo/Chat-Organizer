@@ -799,6 +799,123 @@
         "priority": 1,
         "access_url": "https://www.djangoproject.com/"
       }
+    },
+    {
+      "id": "brainbox-chat-object",
+      "type": "Data Model",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Canonical Models",
+        "priority": 1,
+        "identity_locked_fields": ["id", "user_id", "source_id"],
+        "source": "docs/technical/DATA_SCHEMA.md:2.1",
+        "supabase_table": "chats",
+        "typescript_type": "src/types/index.ts:Chat",
+        "zod_schema": "src/app/api/chats/route.ts:createChatSchema"
+      }
+    },
+    {
+      "id": "brainbox-prompt-object",
+      "type": "Data Model",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Canonical Models",
+        "priority": 1,
+        "identity_locked_fields": ["id", "user_id"],
+        "source": "docs/technical/DATA_SCHEMA.md:2.2",
+        "supabase_table": "prompts"
+      }
+    },
+    {
+      "id": "brainbox-folder-hierarchy",
+      "type": "Data Model",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Canonical Models",
+        "priority": 1,
+        "identity_locked_fields": ["id", "user_id"],
+        "max_nesting_depth": 4,
+        "source": "docs/technical/DATA_SCHEMA.md:2.3"
+      }
+    },
+    {
+      "id": "brainbox-platform-normalizers",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 1,
+        "file_path": "extension/lib/normalizers.js",
+        "platforms": ["ChatGPT", "Claude", "Gemini"],
+        "no_go_zone": true,
+        "source": "docs/technical/CONTEXT_MAP.md:4.1"
+      }
+    },
+    {
+      "id": "brainbox-service-worker",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 1,
+        "file_path": "extension/background/service-worker.js",
+        "responsibilities": ["Token management", "Rate limiting", "API bridge"],
+        "no_go_zone": true,
+        "source": "docs/technical/CONTEXT_MAP.md:4.1"
+      }
+    },
+    {
+      "id": "brainbox-ui-color-palette",
+      "type": "Design System",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Visual Identity",
+        "priority": 1,
+        "primary_light": "#3B82F6",
+        "primary_dark": "#60A5FA",
+        "file_path": "src/app/globals.css",
+        "no_modification_allowed": ["--primary", "--destructive", "--background", "--foreground"],
+        "source": "docs/technical/UI_STANDARDS.md:1"
+      }
+    },
+    {
+      "id": "brainbox-supabase-schema",
+      "type": "Database Schema",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Data Layer",
+        "priority": 1,
+        "auto_generated_file": "src/types/database.types.ts",
+        "manual_edit_forbidden": true,
+        "modification_process": ["Create migration", "Run supabase db pull", "Update DATA_SCHEMA.md"],
+        "source": "docs/technical/CONTEXT_MAP.md:4.1"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "brainbox-platform-normalizers",
+      "to": "brainbox-chat-object",
+      "relationship": "produces",
+      "description": "Transforms platform-specific data into canonical Chat objects"
+    },
+    {
+      "from": "brainbox-service-worker",
+      "to": "brainbox-platform-normalizers",
+      "relationship": "orchestrates",
+      "description": "Coordinates normalization and API POSTing"
+    },
+    {
+      "from": "brainbox-chat-object",
+      "to": "brainbox-supabase-schema",
+      "relationship": "persists_to",
+      "description": "Saved to chats table via API routes"
+    },
+    {
+      "from": "brainbox-ui-color-palette",
+      "to": "brainbox-chat-object",
+      "relationship": "styles",
+      "description": "ChatCard uses glassmorphism and primary colors from palette"
     }
   ]
 }

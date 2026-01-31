@@ -89,8 +89,56 @@ outputs:
   locked_nodes: "${steps.get_locked_nodes.output}"
 
 role_category_map:
+  # Original roles
   frontend_specialist: "Programming Languages & Frameworks"
   backend_specialist: "Programming Languages & Frameworks"
   db_architect: "Databases & Data Infrastructure"
   devops_engineer: "Cloud Platforms & DevOps"
   ai_integrator: "AI Models & LLM Development"
+  
+  # BrainBox v2.0.6 Architecture Roles
+  platform_normalizer: "BrainBox Architecture"
+  bridge_owner: "BrainBox Architecture"
+  ui_steward: "BrainBox Architecture"
+  auth_owner: "BrainBox Architecture"
+
+# BrainBox Role Scope Filters (v2.0.6)
+brainbox_scope_filters:
+  platform_normalizer:
+    include:
+      - "extension/lib/normalizers.js"
+      - "extension/lib/schemas.js"
+      - "docs/technical/DATA_SCHEMA.md"
+      - "docs/technical/CONTEXT_MAP.md"
+    exclude:
+      - "src/components/**"
+      - "src/store/**"
+      - "src/app/api/**"
+  
+  bridge_owner:
+    include:
+      - "extension/background/service-worker.js"
+      - "src/app/api/*/route.ts"
+      - "docs/technical/SYNC_PROTOCOL.md"
+    exclude:
+      - "extension/content/**"
+      - "src/components/**"
+  
+  ui_steward:
+    include:
+      - "src/app/globals.css"
+      - "tailwind.config.ts"
+      - "src/components/features/**/*.tsx"
+      - "docs/technical/UI_STANDARDS.md"
+    exclude:
+      - "extension/**"
+      - "src/app/api/**"
+  
+  auth_owner:
+    include:
+      - "src/lib/supabase/client.ts"
+      - "extension/content/content-dashboard-auth.js"
+      - "src/middleware.ts"
+    exclude:
+      - "src/components/**"
+      - "extension/lib/normalizers.js"

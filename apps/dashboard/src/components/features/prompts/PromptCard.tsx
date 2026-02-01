@@ -140,6 +140,7 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
     }
   };
 
+
   const colorClass = BG_COLORS[prompt.color || '#6366f1'] || 'bg-indigo-500';
   const truncatedContent = prompt.content.length > 200 
     ? prompt.content.substring(0, 200) + '...' 
@@ -152,7 +153,7 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
 
   return (
     <div 
-      className="relative group"
+      className="relative group h-full"
       draggable
       onDragStart={handleDragStart}
     >
@@ -180,8 +181,46 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
         </div>
       )}
 
+      {/* Selection Checkbox */}
+      <div 
+        className={`absolute top-2 right-2 z-10 transition-opacity duration-200
+          ${isSelected || isLongPressing || selectedPromptIds.length > 0 
+            ? 'opacity-100' 
+            : 'opacity-0 group-hover:opacity-100'}
+        `}
+        onClick={(e) => {
+          e.stopPropagation();
+          togglePromptSelection(prompt.id);
+        }}
+      >
+        <button 
+          className={`w-5 h-5 rounded border transition-all flex items-center justify-center
+            ${isSelected 
+              ? 'bg-cyan-500 border-cyan-500' 
+              : 'bg-white/80 dark:bg-black/50 border-slate-300 dark:border-slate-500 hover:border-cyan-400 backdrop-blur-sm'}
+          `}
+        >
+          {isSelected && <Check size={14} className="text-white" />}
+        </button>
+      </div>
+
       {/* Card Content */}
-      <div className="relative bg-card border rounded-lg p-4 hover:shadow-lg transition-all">
+      <div 
+        ref={cardRef}
+        draggable
+        onMouseDown={handleMouseDown}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
+        onClick={(e) => {
+          if (selectedPromptIds.length > 0 || isLongPressing) {
+            e.stopPropagation();
+            togglePromptSelection(prompt.id);
+          }
+        }}
+        className={`relative bg-card border rounded-lg p-4 hover:shadow-lg transition-all cursor-pointer h-full flex flex-col
+          ${isSelected ? 'ring-2 ring-cyan-500 shadow-md shadow-cyan-500/10' : ''}
+        `}
+      >
         {/* Color Indicator */}
         <div className={`absolute top-0 left-0 right-0 h-1 rounded-t-lg ${colorClass}`} />
 
@@ -261,6 +300,7 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
                       <span>Add to context menu</span>
                     )}
                   </button>
+
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

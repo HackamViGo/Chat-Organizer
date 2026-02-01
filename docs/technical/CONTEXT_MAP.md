@@ -89,6 +89,7 @@ graph TB
 | **Platform Capture** | Extension | `apps/extension/src/content/` | Isolated content scripts | NO |
 | **Normalization** | Extension | `apps/extension/src/lib/normalizers.js` | Must output canonical schema | ⚠️ YES |
 | **Bridge: Ext→API** | Extension | `apps/extension/src/background/service-worker.js` | Token interceptors | ⚠️ YES |
+| **Config Source** | Extension | `apps/extension/src/lib/config.js` | Configuration Master | ⚠️ YES |
 
 ### 2.1 Shared Packages (The Bridges)
 
@@ -126,6 +127,12 @@ The Dashboard **NEVER** imports code directly from `apps/extension`.
 3.  Sends token to `service-worker.js`.
 4.  `service-worker.js` saves to `chrome.storage.local`.
 5.  All subsequent API requests use `Authorization: Bearer <token>`.
+
+### 3.3 Configuration Flow (No Hardcoded URLs)
+1.  **Source**: `apps/extension/src/lib/config.js` defines `API_BASE_URL` and `DASHBOARD_URL`.
+2.  **Init**: `service-worker.ts` imports config and saves it to `chrome.storage.local` on startup.
+3.  **Consumption**: Content scripts (e.g., `prompt-inject.js`) read config from `chrome.storage.local` asynchronously.
+4.  **Rule**: NEVER hardcode URLs in content scripts; always read from storage.
 
 ---
 

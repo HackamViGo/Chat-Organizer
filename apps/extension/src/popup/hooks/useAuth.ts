@@ -18,19 +18,19 @@ export function useAuth() {
 
   const sync = async () => {
     try {
-      console.log('[Popup useAuth] Syncing auth status...');
-      const response = await chrome.runtime.sendMessage({ action: 'checkDashboardSession' });
+      console.log('[Popup useAuth] Syncing all tokens and status...');
+      const response = await chrome.runtime.sendMessage({ action: 'syncAll' });
       console.log('[Popup useAuth] Sync response:', response);
       
-      if (response?.isValid) {
+      if (response?.success && response?.isValid) {
         // Reload fresh storage data
         const freshStorage = await chrome.storage.local.get(['accessToken', 'userEmail']);
-        setIsConnected(!!freshStorage.accessToken);
+        setIsConnected(true);
         setUserEmail(freshStorage.userEmail || null);
-        console.log('[Popup useAuth] Fresh data loaded:', freshStorage);
+        console.log('[Popup useAuth] Sync successful, connected');
       } else {
         setIsConnected(false);
-        console.log('[Popup useAuth] Session invalid');
+        console.log('[Popup useAuth] Sync failed or session invalid');
       }
     } catch (error) {
       console.error('[Popup useAuth] Sync error:', error);

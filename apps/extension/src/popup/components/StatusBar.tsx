@@ -32,7 +32,7 @@ export default function StatusBar() {
           className={`text-slate-400 hover:text-cyan-400 transition-all hover:scale-110 active:scale-95 ${
             isSyncing ? 'animate-spin text-cyan-400' : ''
           }`}
-          title="Sync Auth Token"
+          title="Sync All Tokens"
         >
           <svg 
             width="18" 

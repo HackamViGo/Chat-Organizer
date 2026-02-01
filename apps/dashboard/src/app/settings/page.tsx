@@ -22,6 +22,8 @@ export default function SettingsPage() {
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<string | null>(null);
 
   useEffect(() => {
     // Fetch folders from API
@@ -55,7 +57,42 @@ export default function SettingsPage() {
       }
     };
     fetchSettings();
+    fetchSettings();
+
+    // Set last sync time from localStorage if it exists
+    const savedLastSync = localStorage.getItem('brainbox_last_sync_time');
+    if (savedLastSync) {
+      setLastSyncTime(savedLastSync);
+    }
   }, [setFolders]);
+
+  const handleManualSync = async () => {
+    setIsSyncing(true);
+    try {
+      // Fetch folders
+      const foldersRes = await fetch('/api/folders', { credentials: 'include', cache: 'no-store' });
+      if (foldersRes.ok) {
+        const data = await foldersRes.json();
+        setFolders(data.folders || []);
+      }
+
+      // Fetch chats/prompts (refresh the current page if needed, or update stores)
+      // Since we use stores, we just update them
+      const chatsRes = await fetch('/api/chats', { credentials: 'include', cache: 'no-store' });
+      if (chatsRes.ok) {
+        const data = await chatsRes.json();
+        setChats(data.chats || []);
+      }
+
+      const now = new Date().toLocaleTimeString();
+      setLastSyncTime(now);
+      localStorage.setItem('brainbox_last_sync_time', now);
+    } catch (error) {
+      console.error('Manual sync failed:', error);
+    } finally {
+      setTimeout(() => setIsSyncing(false), 800);
+    }
+  };
 
   const toggleQuickAccess = async (folderId: string) => {
     let newQuickAccess = [...quickAccessFolders];
@@ -64,9 +101,9 @@ export default function SettingsPage() {
       // Remove from quick access
       newQuickAccess = newQuickAccess.filter(id => id !== folderId);
     } else {
-      // Add to quick access (max 5)
-      if (newQuickAccess.length >= 5) {
-        alert('You can only have 5 folders in quick access. Remove one first.');
+      // Add to quick access (max 3)
+      if (newQuickAccess.length >= 3) {
+        alert('You can only have 3 folders in quick access. Remove one first.');
         return;
       }
       newQuickAccess.push(folderId);
@@ -93,7 +130,27 @@ export default function SettingsPage() {
     // Note: Provide visual feedback or sync mechanism in extension side
   };
 
-  const chatFolders = folders.filter(f => f.type === 'chat' || !f.type);
+  const clearAllQuickAccess = async () => {
+    if (quickAccessFolders.length === 0) return;
+    
+    setQuickAccessFolders([]);
+    
+    try {
+      await fetch('/api/user/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          settings: {
+            quickAccessFolders: []
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Error clearing settings:', error);
+    }
+  };
+
+  const promptFolders = folders.filter(f => f.type === 'prompt');
 
   const handleExportJSON = async () => {
     setIsExporting(true);
@@ -375,6 +432,56 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
 
+        {/* Data Sync & Realtime */}
+        <div className="glass-card p-6 rounded-2xl border-l-4 border-l-cyan-500">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-lg bg-cyan-500/10 dark:bg-cyan-500/20 flex items-center justify-center">
+              <Sparkles className={`w-5 h-5 text-cyan-600 dark:text-cyan-400 ${isSyncing ? 'animate-spin' : ''}`} />
+            </div>
+            <div className="flex-1">
+              <h2 className="text-xl font-semibold">Synchronization</h2>
+              <p className="text-sm text-muted-foreground">
+                Sync folders, prompts and chats with the cloud
+              </p>
+            </div>
+            {lastSyncTime && (
+              <div className="text-[10px] text-muted-foreground bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded">
+                Last sync: {lastSyncTime}
+              </div>
+            )}
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-4">
+            <button
+              onClick={handleManualSync}
+              disabled={isSyncing}
+              className="flex-1 p-4 rounded-xl border border-cyan-500/20 bg-cyan-500/5 hover:bg-cyan-500/10 transition-all text-left flex items-center gap-4 group"
+            >
+              <div className="w-12 h-12 rounded-full bg-cyan-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Upload className={`w-6 h-6 text-cyan-600 dark:text-cyan-400 ${isSyncing ? 'animate-bounce' : ''}`} />
+              </div>
+              <div>
+                <p className="font-semibold text-cyan-900 dark:text-cyan-100">Sync All Data</p>
+                <p className="text-xs text-cyan-700/70 dark:text-cyan-300/60">
+                  Force refresh folders & prompts from database
+                </p>
+              </div>
+            </button>
+
+            <div className="flex-1 p-4 rounded-xl border border-border bg-slate-50/50 dark:bg-slate-900/50 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-green-500/10 flex items-center justify-center">
+                <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+              </div>
+              <div>
+                <p className="font-semibold">Automatic Sync</p>
+                <p className="text-xs text-muted-foreground">
+                  Real-time updates are active
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Chrome Extension Quick Access */}
         <div className="glass-card p-6 rounded-2xl">
           <div className="flex items-center gap-3 mb-4">
@@ -384,11 +491,22 @@ export default function SettingsPage() {
             <div className="flex-1">
               <h2 className="text-xl font-semibold">Extension Quick Access</h2>
               <p className="text-sm text-muted-foreground">
-                Select up to 5 folders to show in Chrome Extension hover menu
+                Select up to 3 folders to show in Chrome Extension hover menu
               </p>
             </div>
-            <div className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white text-xs px-3 py-1 rounded-full font-semibold">
-              {quickAccessFolders.length}/5
+            <div className="flex items-center gap-2">
+              {quickAccessFolders.length > 0 && (
+                <button
+                  onClick={clearAllQuickAccess}
+                  className="text-xs font-semibold px-2 py-1 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-red-50 dark:hover:bg-red-900/20 hover:text-red-600 transition-colors flex items-center gap-1"
+                >
+                  <Trash2 size={12} />
+                  Clean
+                </button>
+              )}
+              <div className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white text-xs px-3 py-1 rounded-full font-semibold">
+                {quickAccessFolders.length}/3
+              </div>
             </div>
           </div>
 
@@ -396,17 +514,17 @@ export default function SettingsPage() {
             <div className="flex items-center justify-center p-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          ) : chatFolders.length === 0 ? (
+          ) : promptFolders.length === 0 ? (
             <div className="text-center p-8 border-2 border-dashed border-border rounded-xl">
               <Folder className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-50" />
-              <p className="text-muted-foreground mb-2">No folders yet</p>
+              <p className="text-muted-foreground mb-2">No prompt folders yet</p>
               <p className="text-sm text-muted-foreground">
-                Create chat folders first, then add them to quick access
+                Create prompt folders first, then add them to quick access
               </p>
             </div>
           ) : (
             <div className="space-y-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-              {chatFolders.map((folder) => {
+              {promptFolders.map((folder) => {
                 const isInQuickAccess = quickAccessFolders.includes(folder.id);
                 
                 return (
@@ -432,7 +550,7 @@ export default function SettingsPage() {
                       <div>
                         <p className="font-medium">{folder.name}</p>
                         <p className="text-xs text-muted-foreground">
-                          {folder.type || 'chat'} folder
+                          {folder.type || 'prompt'} folder
                         </p>
                       </div>
                     </div>

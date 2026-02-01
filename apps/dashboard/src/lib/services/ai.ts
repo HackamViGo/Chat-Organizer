@@ -25,9 +25,33 @@ const getClient = (apiKeyOverride?: string) => {
 
 export interface AIAnalysisResult {
   title: string;
-  summary: string;
+  summary: string;           // Short summary (3-4 sentences)
+  detailedSummary: string;   // Detailed summary
+  tags: string[];            // Smart tags
   tasks: string[];
+  embedding?: number[];      // Optional vector embedding
 }
+
+/**
+ * Generate a text embedding using Gemini's text-embedding-004 model
+ */
+export const generateEmbedding = async (
+  text: string,
+  apiKey?: string
+): Promise<number[]> => {
+  try {
+    const ai = getClient(apiKey);
+    const model = ai.getGenerativeModel({ model: 'text-embedding-004' });
+    
+    console.log('[AI Service] 📉 Generating embedding for text length:', text?.length);
+    const result = await model.embedContent(text);
+    console.log('[AI Service] ✅ Embedding generated successfully');
+    return result.embedding.values;
+  } catch (error) {
+    console.error('Gemini Embedding Error:', error);
+    throw error;
+  }
+};
 
 export const analyzeChatContent = async (
   content: string,
@@ -35,29 +59,53 @@ export const analyzeChatContent = async (
 ): Promise<AIAnalysisResult> => {
   try {
     const ai = getClient(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
     const prompt = `
-      Analyze the following chat transcript or text. 
-      1. Generate a concise, 4-6 word title.
-      2. Write a brief summary (max 3 sentences) in Markdown.
-      3. Extract any actionable tasks or to-dos.
-      
-      Return the response as JSON with keys: title, summary, tasks (array).
-      
+      Analyze the following text. You must return a valid JSON response.
+      The output language must match the input language (e.g., if input is Bulgarian, output is Bulgarian).
+
+      {
+        "title": "A concise 4-6 word title",
+        "summary": "A brief summary of exactly 3-4 sentences in Markdown",
+        "detailedSummary": "A very detailed and comprehensive summary using Markdown (headers, bullets)",
+        "tags": ["3 to 5 relevant keywords"],
+        "tasks": ["Specific actionable tasks extracted from the text"]
+      }
+
+      Constraint: Return ONLY the JSON object. No conversational filler or markdown code blocks unless requested via API parameters.
+
       Content:
-      ${content.substring(0, 20000)}
+      ${content.substring(0, 30000)}
     `;
 
+    console.log('[AI Service] 🧠 Sending request to gemini-3-flash-preview...');
     const result = await model.generateContent(prompt);
     const response = result.response;
     const text = response.text();
+    console.log('[AI Service] 📝 Raw AI Response snippet:', text.substring(0, 200) + '...');
     
-    // Extract JSON from markdown code blocks if present
-    const jsonMatch = text.match(/```json\n?([\s\S]*?)\n?```/) || text.match(/\{[\s\S]*\}/);
-    const jsonText = jsonMatch ? (jsonMatch[1] || jsonMatch[0]) : text;
+    // Better JSON extraction to avoid common Gemini formatting issues
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('AI failed to return a valid JSON structure');
+    }
+    
+    const analysis = JSON.parse(jsonMatch[0]) as AIAnalysisResult;
+    console.log('[AI Service] ✅ Parsed AI Analysis:', {
+      title: analysis.title,
+      tagCount: analysis.tags?.length,
+      taskCount: analysis.tasks?.length
+    });
 
-    return JSON.parse(jsonText) as AIAnalysisResult;
+    // Generate embedding for semantic search based on the detailed summary
+    try {
+      const embedding = await generateEmbedding(analysis.detailedSummary, apiKey);
+      return { ...analysis, embedding };
+    } catch (embError) {
+      console.error('Failed to generate embedding during analysis:', embError);
+      return analysis;
+    }
   } catch (error) {
     // Enhanced error handling for API key issues
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -82,7 +130,7 @@ export const generatePromptImprovement = async (
 ): Promise<string> => {
   try {
     const ai = getClient(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = ai.getGenerativeModel({ model: 'gemini-3-flash-preview' });
 
     const result = await model.generateContent(
       `Improve the following AI prompt to be more effective, structured, and clear using best engineering practices. Return ONLY the improved prompt text.\n\nOriginal: ${originalPrompt}`

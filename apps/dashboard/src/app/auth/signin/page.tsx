@@ -1,13 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createBrowserClient } from '@supabase/ssr';
-import { LogIn, Mail, Lock, Loader2, Check, Eye, EyeOff } from 'lucide-react';
+import { LogIn, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 
-export default function SignInPage() {
+function SignInContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
@@ -29,11 +32,7 @@ export default function SignInPage() {
           setRememberMe(true);
         }
       } catch (error) {
-        if (error instanceof DOMException) {
-          if (error.name === 'SecurityError') {
-            console.warn('localStorage access denied, skipping remember me preference');
-          }
-        }
+        console.warn('localStorage access denied');
       }
     }
   }, []);
@@ -51,25 +50,16 @@ export default function SignInPage() {
 
       if (signInError) throw signInError;
 
-      // If remember me is checked, store preference in cookie and localStorage
+      // If remember me is checked, store preference
       if (rememberMe && typeof window !== 'undefined') {
-        try {
-          localStorage.setItem('brainbox_remember_me', 'true');
-        } catch (error) {
-          console.warn('Failed to save remember me to localStorage:', error);
-        }
-        // Set cookie for server-side middleware to read (30 days)
+        localStorage.setItem('brainbox_remember_me', 'true');
         document.cookie = 'brainbox_remember_me=true; max-age=' + (30 * 24 * 60 * 60) + '; path=/; SameSite=Lax';
       } else if (typeof window !== 'undefined') {
-        try {
-          localStorage.removeItem('brainbox_remember_me');
-        } catch (error) {
-          console.warn('Failed to remove remember me from localStorage:', error);
-        }
+        localStorage.removeItem('brainbox_remember_me');
         document.cookie = 'brainbox_remember_me=; max-age=0; path=/';
       }
 
-      router.push('/');
+      router.push(redirectTo);
       router.refresh();
     } catch (err: any) {
       setError(err.message || 'Failed to sign in');
@@ -84,7 +74,7 @@ export default function SignInPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
         },
       });
       if (error) throw error;
@@ -96,7 +86,7 @@ export default function SignInPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-[#0B1121] dark:via-[#0f1729] dark:to-[#0B1121] p-6">
-      <div className="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl">
+      <div className="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl bg-white dark:bg-[#0B1121]/50 backdrop-blur-xl border border-white/20 dark:border-white/10">
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
             <LogIn className="text-white" size={32} />
@@ -147,7 +137,6 @@ export default function SignInPage() {
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-md text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
-                title={showPassword ? 'Hide password' : 'Show password'}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -208,11 +197,23 @@ export default function SignInPage() {
 
         <p className="mt-6 text-center text-sm text-slate-600 dark:text-slate-400">
           Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" className="text-cyan-600 dark:text-cyan-400 hover:underline font-semibold">
+          <Link href={`/auth/signup${redirectTo !== '/' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} className="text-cyan-600 dark:text-cyan-400 hover:underline font-semibold">
             Sign up
           </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0B1121]">
+        <Loader2 className="animate-spin text-cyan-600" size={48} />
+      </div>
+    }>
+      <SignInContent />
+    </Suspense>
   );
 }

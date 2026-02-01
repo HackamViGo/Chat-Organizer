@@ -2,13 +2,14 @@
 
 import React from 'react';
 import { useTheme } from '../hooks/useTheme';
+import { CONFIG } from '../../lib/config';
 
 export default function Header() {
   const { theme, toggleTheme } = useTheme();
 
   const handleSettings = () => {
     // Open dashboard settings page
-    chrome.tabs.create({ url: 'https://brainbox-alpha.vercel.app/settings' });
+    chrome.tabs.create({ url: `${CONFIG.DASHBOARD_URL}/settings` });
   };
 
   return (

@@ -271,6 +271,76 @@
       }
     },
     {
+      "id": "google-gemini-model-list",
+      "type": "Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 1,
+        "access_url": "https://ai.google.dev/api/models"
+      }
+    },
+    {
+      "id": "google-gemini-models-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 1,
+        "access_url": "https://ai.google.dev/gemini-api/docs/models"
+      }
+    },
+    {
+      "id": "google-gemini-api-key-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Authentication",
+        "priority": 1,
+        "access_url": "https://ai.google.dev/gemini-api/docs/api-key"
+      }
+    },
+    {
+      "id": "google-gemini-getting-started-web",
+      "type": "Learning",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Training",
+        "priority": 1,
+        "access_url": "https://developers.google.com/learn/pathways/solution-ai-gemini-getting-started-web"
+      }
+    },
+    {
+      "id": "google-gemini-android-key",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Authentication",
+        "priority": 2,
+        "access_url": "https://developer.android.com/studio/gemini/add-api-key"
+      }
+    },
+    {
+      "id": "google-gemini-cli-auth",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Authentication",
+        "priority": 2,
+        "access_url": "https://google-gemini.github.io/gemini-cli/docs/get-started/authentication.html"
+      }
+    },
+    {
+      "id": "google-gemini-cookbook",
+      "type": "Repository",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Implementation",
+        "priority": 2,
+        "access_url": "https://github.com/google-gemini/cookbook"
+      }
+    },
+    {
       "id": "vertex-ai-gen-docs",
       "type": "Documentation",
       "metadata": {
@@ -893,7 +963,7 @@
         "category": "BrainBox Architecture",
         "sub_category": "Extension Logic",
         "priority": 1,
-        "file_path": "extension/background/service-worker.js",
+        "file_path": "apps/extension/src/background/service-worker.ts",
         "responsibilities": ["Token management", "Rate limiting", "API bridge", "Passive Network Sniffing (Claude Org ID)"],
         "no_go_zone": true,
         "source": "docs/technical/CONTEXT_MAP.md:4.1",
@@ -1523,6 +1593,130 @@
         "identity_locked": true,
         "path": "apps/dashboard"
       }
+    },
+    {
+      "id": "brainbox-theme-provider",
+      "type": "Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "UI Components",
+        "priority": 2,
+        "path": "apps/dashboard/src/components/providers/ThemeProvider.tsx"
+      }
+    },
+    {
+      "id": "brainbox-theme-toggle",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "UI Components",
+        "priority": 2,
+        "path": "apps/dashboard/src/components/layout/Sidebar.tsx"
+      }
+    },
+    {
+      "id": "brainbox-sidebar-component",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "UI Components",
+        "priority": 2,
+        "path": "apps/dashboard/src/components/layout/Sidebar.tsx"
+      }
+    },
+    {
+      "id": "brainbox-auth-manager",
+      "type": "Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Core Logic",
+        "priority": 1,
+        "path": "apps/extension/src/background/modules/authManager.ts"
+      }
+    },
+    {
+      "id": "brainbox-quick-menu",
+      "type": "Feature",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "UX",
+        "priority": 2,
+        "description": "Submenu for last 7 prompts"
+      }
+    },
+    {
+      "id": "next-themes",
+      "type": "Library",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 2,
+        "access_url": "https://github.com/pacocoursey/next-themes"
+      }
+    },
+    {
+      "id": "brainbox-save-handler-gemini",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Content Script",
+        "priority": 2,
+        "path": "apps/extension/src/content/brainbox_master.js",
+        "description": "Handles Gemini DOM interaction, auth check, and saving"
+      }
+    },
+    {
+      "id": "brainbox-save-handler-chatgpt",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Content Script",
+        "priority": 2,
+        "path": "apps/extension/src/content/content-script.js",
+        "description": "Handles ChatGPT DOM interaction and saving"
+      }
+    },
+    {
+      "id": "brainbox-save-handler-claude",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Content Script",
+        "priority": 2,
+        "path": "apps/extension/src/content/content-claude.js",
+        "description": "Handles Claude DOM interaction and saving"
+      }
+    },
+    {
+      "id": "brainbox-dom-scraper",
+      "type": "Mechanism",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Core Logic",
+        "priority": 3,
+        "description": "Logic to traverse DOM and extract messages"
+      }
+    },
+    {
+      "id": "brainbox-auth-check",
+      "type": "Mechanism",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Security",
+        "priority": 2,
+        "description": "Validates access token before attempting save"
+      }
+    },
+    {
+      "id": "brainbox-inject-gemini-main",
+      "type": "Content Script",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Helper Script",
+        "priority": 3,
+        "path": "apps/extension/src/content/inject-gemini-main.js",
+        "description": "Injected into MAIN world to access window variables"
+      }
     }
   ],
 
@@ -1577,25 +1771,25 @@
     },
     {
       "from": "brainbox-service-worker",
-      "to": "brainbox-platform-adapters",
+      "to": "platform-adapters-engine",
       "relationship": "uses",
       "description": "Service worker delegates conversation fetching to platform adapters"
     },
     {
-      "from": "brainbox-platform-adapters",
+      "from": "platform-adapters-engine",
       "to": "adapter-pattern-oop",
       "relationship": "implements",
       "description": "Implements adapter pattern for platform API abstraction"
     },
     {
-      "from": "brainbox-platform-adapters",
+      "from": "platform-adapters-engine",
       "to": "brainbox-platform-normalizers",
       "relationship": "depends_on",
       "description": "Each adapter uses normalizers for data transformation"
     },
     {
       "from": "vitest-chrome-testing",
-      "to": "brainbox-platform-adapters",
+      "to": "platform-adapters-engine",
       "relationship": "tests",
       "description": "10 unit tests covering ChatGPT/Claude/Gemini adapters"
     },
@@ -1724,6 +1918,114 @@
       "to": "brainbox-ui-color-palette",
       "relationship": "defines",
       "description": "Tailwind CSS configuration defines the UI color palette"
+    },
+    {
+      "from": "apps/dashboard",
+      "to": "brainbox-theme-provider",
+      "relationship": "uses",
+      "description": "Dashboard wraps app in ThemeProvider"
+    },
+    {
+      "from": "brainbox-theme-provider",
+      "to": "next-themes",
+      "relationship": "uses",
+      "description": "ThemeProvider implements next-themes logic"
+    },
+    {
+      "from": "apps/dashboard",
+      "to": "brainbox-sidebar-component",
+      "relationship": "contains",
+      "description": "Sidebar is a key layout component"
+    },
+    {
+      "from": "brainbox-sidebar-component",
+      "to": "brainbox-theme-toggle",
+      "relationship": "contains",
+      "description": "ThemeToggle embedded in Sidebar bottom tools"
+    },
+    {
+      "from": "brainbox-service-worker",
+      "to": "brainbox-auth-manager",
+      "relationship": "delegates_to",
+      "description": "Service worker delegates token management to AuthManager"
+    },
+    {
+      "from": "brainbox-dynamic-menus",
+      "to": "brainbox-quick-menu",
+      "relationship": "manages",
+      "description": "DynamicMenus builds the Quick prompt submenu"
+    },
+    {
+      "from": "brainbox-save-handler-gemini",
+      "to": "brainbox-dom-scraper",
+      "relationship": "uses",
+      "description": "Extracts chat content from Gemini UI"
+    },
+    {
+      "from": "brainbox-save-handler-chatgpt",
+      "to": "brainbox-dom-scraper",
+      "relationship": "uses",
+      "description": "Extracts chat content from ChatGPT UI"
+    },
+    {
+      "from": "brainbox-save-handler-claude",
+      "to": "brainbox-dom-scraper",
+      "relationship": "uses",
+      "description": "Extracts chat content from Claude UI"
+    },
+    {
+      "from": "brainbox-save-handler-gemini",
+      "to": "brainbox-auth-check",
+      "relationship": "uses",
+      "description": "Verifies token validity before saving"
+    },
+    {
+      "from": "brainbox-save-handler-claude",
+      "to": "brainbox-auth-check",
+      "relationship": "uses",
+      "description": "Verifies token validity before saving"
+    },
+    {
+      "from": "chrome-context-menus-api",
+      "to": "brainbox-save-handler-gemini",
+      "relationship": "triggers",
+      "description": "Context menu action triggers save in Gemini"
+    },
+    {
+      "from": "chrome-context-menus-api",
+      "to": "brainbox-save-handler-chatgpt",
+      "relationship": "triggers",
+      "description": "Context menu action triggers save in ChatGPT"
+    },
+    {
+      "from": "chrome-context-menus-api",
+      "to": "brainbox-save-handler-claude",
+      "relationship": "triggers",
+      "description": "Context menu action triggers save in Claude"
+    },
+    {
+      "from": "brainbox-save-handler-gemini",
+      "to": "brainbox-service-worker",
+      "relationship": "sends_data",
+      "description": "Sends extracted chat payload to background for API call"
+    },
+    {
+      "from": "brainbox-save-handler-chatgpt",
+      "to": "brainbox-service-worker",
+      "relationship": "sends_data",
+      "description": "Sends extracted chat payload to background for API call"
+    },
+    {
+      "from": "brainbox-save-handler-claude",
+      "to": "brainbox-service-worker",
+      "relationship": "sends_data",
+      "description": "Sends extracted chat payload to background for API call"
+    },
+    {
+      "from": "brainbox-service-worker",
+      "to": "brainbox-inject-gemini-main",
+      "relationship": "injects",
+      "description": "Service worker injects script into Gemini page"
     }
   ]
 }

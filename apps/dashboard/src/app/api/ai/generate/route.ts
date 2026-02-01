@@ -29,6 +29,13 @@ export async function POST(request: Request) {
     // This follows best practice: prefer server-side configuration
     const apiKeyToUse = apiKey || process.env.GEMINI_API_KEY;
     
+    console.log('[AI Route] 🤖 Incoming generate request', {
+      contentLength: content?.length,
+      hasClientApiKey: !!apiKey,
+      useServerApiKey: !!process.env.GEMINI_API_KEY,
+      resolvedApiKey: apiKeyToUse ? `${apiKeyToUse.substring(0, 6)}...` : 'NONE'
+    });
+
     if (!apiKeyToUse) {
       return NextResponse.json(
         { 
@@ -80,6 +87,11 @@ export async function POST(request: Request) {
         { status: 403 }
       );
     }
+
+    console.error('[AI Route] ❌ Internal Error:', {
+      message: error.message,
+      stack: error.stack
+    });
 
     return NextResponse.json(
       { error: 'Internal Server Error', message: error.message || 'An unexpected error occurred' },

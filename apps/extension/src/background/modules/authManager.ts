@@ -24,7 +24,7 @@ export class AuthManager {
             claude_session: null,
             claude_org_id: null
         };
-        this.DEBUG_MODE = true; // Enabled for debugging
+        this.DEBUG_MODE = false; // Disabled for production
         
         // Bind methods to ensure 'this' context
         this.handleChatGPTHeaders = this.handleChatGPTHeaders.bind(this);
@@ -159,7 +159,8 @@ export class AuthManager {
         await chrome.storage.local.set({
             accessToken: session.accessToken,
             refreshToken: session.refreshToken,
-            expiresAt: session.expiresAt
+            expiresAt: session.expiresAt,
+            rememberMe: session.rememberMe
         });
         if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Dashboard session updated');
     }
@@ -167,7 +168,45 @@ export class AuthManager {
     async isSessionValid() {
         const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
         const isValid = accessToken && (!expiresAt || expiresAt > Date.now());
-        return isValid;
+        return !!isValid;
+    }
+
+    /**
+     * Actively sync and verify all tokens
+     */
+    async syncAll() {
+        if (this.DEBUG_MODE) console.log('[AuthManager] 🔄 Starting full token sync...');
+        
+        // 1. Refresh internal state from storage
+        await this.loadTokensFromStorage();
+        
+        // 2. Verify Dashboard Session via Ping
+        const { accessToken } = await chrome.storage.local.get(['accessToken']);
+        if (!accessToken) return { isValid: false, tokens: this.tokens };
+
+        try {
+            // Using a simple fetch to verify token validity
+            const { CONFIG } = await import('../../lib/config.js');
+            const response = await fetch(`${CONFIG.API_BASE_URL}/api/folders`, {
+                headers: { 'Authorization': `Bearer ${accessToken}` }
+            });
+            
+            if (response.status === 401) {
+                // Token is dead, cleanup
+                await chrome.storage.local.remove(['accessToken', 'refreshToken', 'userEmail', 'expiresAt']);
+                return { isValid: false, tokens: this.tokens };
+            }
+            
+            return { 
+                isValid: response.ok, 
+                tokens: this.tokens 
+            };
+        } catch (e) {
+            console.error('[AuthManager] Sync ping failed:', e);
+            // If offline, trust storage if not expired
+            const valid = await this.isSessionValid();
+            return { isValid: valid, tokens: this.tokens };
+        }
     }
 
     async getHeader(platform) {

@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { Sidebar } from '@/components/layout/Sidebar';
-import { FolderProvider } from '@/components/providers/FolderProvider';
+import { DataProvider } from '@/components/providers/DataProvider';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -13,13 +13,13 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <FolderProvider>
+    <DataProvider>
       <div className="flex relative">
         <Sidebar />
         <main className="flex-1 min-h-screen overflow-auto transition-all duration-300 lg:ml-64">
           {children}
         </main>
       </div>
-    </FolderProvider>
+    </DataProvider>
   );
 }

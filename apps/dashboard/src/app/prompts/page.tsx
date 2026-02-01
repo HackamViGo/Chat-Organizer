@@ -7,9 +7,9 @@ import { useFolderStore } from '@/store/useFolderStore';
 import { PromptCard } from '@/components/features/prompts/PromptCard';
 import { CreatePromptModal } from '@/components/features/prompts/CreatePromptModal';
 import { EnhancePromptCard } from '@/components/features/prompts/EnhancePromptCard';
-import { DailyPickCard } from '@/components/features/prompts/DailyPickCard';
+import { DailyPromptCard } from '@/components/features/prompts/DailyPromptCard';
 import { createClient } from '@/lib/supabase/client';
-import { FileEdit, Plus, Search, ArrowUpDown, LayoutGrid, Folder as FolderIcon, X } from 'lucide-react';
+import { FileEdit, Plus, Search, ArrowUpDown, LayoutGrid, Folder as FolderIcon, X, Trash2, CheckSquare } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
 import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
 import { Prompt, Folder } from '@/types';
@@ -17,12 +17,11 @@ import { Prompt, Folder } from '@/types';
 type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 
 function PromptsPageContent() {
-  const { prompts, setPrompts, updatePrompt } = usePromptStore();
+  const { prompts, setPrompts, updatePrompt, selectedPromptIds, deletePrompt, clearSelection } = usePromptStore();
   const { folders, addFolder, isLoading: foldersLoading } = useFolderStore();
   const searchParams = useSearchParams();
   const router = useRouter();
   
-  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [sortBy, setSortBy] = useState<SortOption>('date-desc');
@@ -46,46 +45,11 @@ function PromptsPageContent() {
 
   const promptFolders = useMemo(() => folders.filter((f: Folder) => f.type === 'prompt' || !f.type), [folders]);
 
+  const isLoading = usePromptStore(state => state.isLoading);
+
   useEffect(() => {
     setMounted(true);
   }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
-    
-    async function fetchPrompts() {
-      try {
-        const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
-
-        if (!user) {
-          setIsLoading(false);
-          return;
-        }
-
-        const { data, error } = await supabase
-          .from('prompts')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-
-        if (error) {
-          console.error('Error fetching prompts:', error);
-        } else {
-          setPrompts(data || []);
-        }
-      } catch (error: unknown) {
-        console.error('Error:', error instanceof Error ? error.message : error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchPrompts();
-
-    // Folders are loaded by FolderProvider - no need for additional fetching
-  }, [mounted, setPrompts, folders.length]);
-
   // Filter and sort prompts
   const filteredAndSortedPrompts = useMemo(() => {
     let filtered = prompts;
@@ -210,6 +174,27 @@ function PromptsPageContent() {
       alert('Failed to create folder');
     } finally {
       isCreatingFolderRef.current = false;
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (!confirm(`Are you sure you want to delete ${selectedPromptIds.length} prompts?`)) return;
+    
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('prompts')
+        .delete()
+        .in('id', selectedPromptIds);
+
+      if (error) throw error;
+
+      // Update local state
+      selectedPromptIds.forEach(id => deletePrompt(id));
+      clearSelection();
+    } catch (error) {
+      console.error('Error deleting prompts:', error);
+      alert('Failed to delete selected prompts');
     }
   };
 
@@ -354,24 +339,54 @@ function PromptsPageContent() {
       {/* Main Content */}
       <div className="flex-1 container mx-auto p-8">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
-            <FileEdit className="w-8 h-8" />
-            Prompt Manager
-          </h1>
-          <p className="text-muted-foreground">
-            Organize, Optimize, and Deploy your AI interactions
-          </p>
+      {selectedPromptIds.length > 0 ? (
+        <div className="bg-cyan-50 dark:bg-cyan-900/10 border border-cyan-200 dark:border-cyan-800 rounded-xl p-4 mb-8 flex items-center justify-between animate-in fade-in slide-in-from-top-2 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="bg-cyan-100 dark:bg-cyan-800 p-2 rounded-lg text-cyan-700 dark:text-cyan-300">
+              <CheckSquare size={24} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-slate-800 dark:text-white">Batch Actions</h2>
+              <p className="text-sm text-cyan-600 dark:text-cyan-400">{selectedPromptIds.length} prompts selected</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={clearSelection}
+              className="px-4 py-2 text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/5 rounded-lg font-medium transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleBatchDelete}
+              className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-lg shadow-sm transition-colors border border-red-600"
+            >
+              <Trash2 size={18} />
+              Delete Selected
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="w-5 h-5" />
-          New Prompt
-        </button>
-      </div>
+      ) : (
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+          <div>
+            <h1 className="text-3xl font-bold mb-2 flex items-center gap-2">
+              <FileEdit className="w-8 h-8" />
+              Prompt Manager
+            </h1>
+            <p className="text-muted-foreground">
+              Organize, Optimize, and Deploy your AI interactions
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            New Prompt
+          </button>
+        </div>
+      )}
 
       {/* Enhance Prompt and Daily Pick Cards */}
       <div className="flex flex-col lg:flex-row gap-6 mb-8">
@@ -379,7 +394,7 @@ function PromptsPageContent() {
           <EnhancePromptCard />
         </div>
         <div className="flex-shrink-0 lg:w-1/3">
-          <DailyPickCard prompts={prompts} />
+          <DailyPromptCard userPrompts={prompts} />
         </div>
       </div>
 

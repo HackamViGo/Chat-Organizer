@@ -956,9 +956,19 @@ function SidebarContent() {
 
           {/* 4. Bottom Tools */}
           <div className="pt-3 mt-2 border-t border-slate-200 dark:border-white/5 space-y-1">
-             <NavItem to="/profile" icon={User} label="Profile" isActive={isActive('/profile')} color="purple" />
-             <NavItem to="/settings" icon={Settings} label="Settings" isActive={isActive('/settings')} color="indigo" />
-             <NavItem to="/archive" icon={Archive} label="Archive" isActive={isActive('/archive')} color="slate" />
+             <div className="flex items-center justify-between px-3 py-2">
+               <div className="flex-1 space-y-1">
+                 <NavItem to="/profile" icon={User} label="Profile" isActive={isActive('/profile')} color="purple" />
+                 <NavItem to="/settings" icon={Settings} label="Settings" isActive={isActive('/settings')} color="indigo" />
+                 <NavItem to="/archive" icon={Archive} label="Archive" isActive={isActive('/archive')} color="slate" />
+               </div>
+             </div>
+             <div className="px-3 pt-2 border-t border-slate-200 dark:border-white/5">
+               <div className="flex items-center justify-between">
+                 <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Theme</span>
+                 <ThemeToggle />
+               </div>
+             </div>
           </div>
 
         </div>

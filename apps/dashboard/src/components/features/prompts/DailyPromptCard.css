@@ -1,0 +1,254 @@
+.daily-prompt-container {
+  perspective: 1200px;
+  width: 100%;
+  height: 380px;
+  cursor: pointer;
+}
+
+.daily-prompt-card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 1.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transform-style: preserve-3d;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border-radius: 16px;
+}
+
+/* Pulsing Mystery Glow */
+.daily-prompt-card:not(.is-flipped) {
+  animation: breathingGlow 4s ease-in-out infinite;
+}
+
+@keyframes breathingGlow {
+  0% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0px rgba(124, 58, 237, 0); }
+  50% { box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 20px rgba(124, 58, 237, 0.3); }
+  100% { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2), 0 0 0px rgba(124, 58, 237, 0); }
+}
+
+.daily-prompt-card.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.daily-prompt-front, .daily-prompt-back {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Front Side */
+.daily-prompt-front {
+  background-color: #0d0d0d;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.daily-prompt-front-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.8;
+  filter: blur(40px);
+  transition: transform 1.2s ease, filter 0.5s ease-out, opacity 0.5s ease-out;
+}
+
+/* Reveal State - No blur */
+.daily-prompt-container.is-revealed .daily-prompt-front-bg {
+  filter: blur(0px) !important;
+  opacity: 1 !important;
+}
+
+/* Enhanced Frosted Glass Overlay */
+.daily-prompt-front::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  z-index: 1;
+  transition: opacity 0.5s ease-out, backdrop-filter 0.5s ease-out;
+}
+
+/* Reveal State - No overlay */
+.daily-prompt-container.is-revealed .daily-prompt-front::after {
+  opacity: 0 !important;
+  backdrop-filter: blur(0px) !important;
+  pointer-events: none;
+}
+
+/* Hover effect ONLY for non-revealed card */
+.daily-prompt-container:not(.is-revealed):hover .daily-prompt-front-bg {
+  transform: scale(1.1);
+  filter: blur(25px);
+}
+
+.daily-prompt-front-content {
+  position: relative;
+  z-index: 2;
+  color: white;
+  padding: 24px;
+  pointer-events: none;
+  transition: opacity 0.4s ease-out;
+}
+
+.daily-prompt-container.is-revealed .daily-prompt-front-content {
+  opacity: 0;
+}
+
+.daily-prompt-mystery-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  filter: drop-shadow(0 0 10px rgba(255,255,255,0.5));
+}
+
+.daily-prompt-front h3 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.daily-prompt-front p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: 8px;
+}
+
+/* Back Side */
+.daily-prompt-back {
+  background: linear-gradient(135deg, #1e1b4b 0%, #0f172a 100%);
+  color: white;
+  transform: rotateY(180deg);
+  display: flex;
+  flex-direction: column;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.5);
+}
+
+.daily-prompt-back-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.daily-prompt-back-header span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #818cf8;
+  text-transform: uppercase;
+}
+
+.daily-prompt-back-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  text-align: left;
+  position: relative;
+}
+
+/* Light Sweep Effect */
+.daily-prompt-card.is-flipped .daily-prompt-back-body::after {
+  content: '';
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  background: linear-gradient(45deg, transparent 45%, rgba(255,255,255,0.1) 50%, transparent 55%);
+  animation: lightSweep 2s ease-in-out forwards;
+  pointer-events: none;
+}
+
+@keyframes lightSweep {
+  0% { transform: translate(-30%, -30%); }
+  100% { transform: translate(30%, 30%); }
+}
+
+.daily-prompt-content-text {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #e2e8f0;
+  white-space: pre-wrap;
+}
+
+.prompt-placeholder {
+  color: #fbbf24;
+  font-weight: 600;
+  text-shadow: 0 0 8px rgba(251, 191, 36, 0.3);
+}
+
+.daily-prompt-back-footer {
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.btn-premium {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-premium:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+}
+
+.btn-premium:active {
+  transform: translateY(0);
+}
+
+.btn-save-mini {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 18px;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-save-mini:hover {
+  color: #fbbf24;
+  transform: scale(1.2);
+}
+
+.btn-save-mini.is-saved {
+  color: #fbbf24;
+}

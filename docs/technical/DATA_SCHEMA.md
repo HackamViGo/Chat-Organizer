@@ -44,6 +44,7 @@ erD diagram
         string email UK "Identity-Locked"
         string full_name
         string avatar_url
+        jsonb settings "User preferences (Quick Access, etc.)"
         timestamp created_at
         timestamp updated_at
     }
@@ -58,8 +59,11 @@ erD diagram
         jsonb messages "Array of Message objects"
         string platform "chatgpt|claude|gemini"
         string url "Deep link to conversation"
-        text summary "AI-generated summary"
+        text summary "Brief AI summary"
+        text detailed_summary "Comprehensive AI summary"
+        jsonb tags "AI-generated tags"
         jsonb tasks "Extracted tasks"
+        vector embedding "Semantic search embedding"
         boolean is_archived
         timestamp created_at
         timestamp updated_at
@@ -153,8 +157,11 @@ export type Chat = {
   is_archived: boolean | null;               // Default: false
   
   // AI-Enhanced Fields
-  summary: string | null;                    // AI-generated summary (future)
-  tasks: Json | null;                        // Extracted to-do items (future)
+  summary: string | null;                    // Brief AI summary (markdown)
+  detailed_summary: string | null;           // Comprehensive AI summary (markdown)
+  tags: string[] | null;                     // AI-generated tags (stored as jsonb)
+  tasks: string[] | null;                    // Actionable items (stored as jsonb)
+  embedding: number[] | null;                // Vector embedding for semantic search (1536d or 768d)
   
   // Timestamps
   created_at: string | null;                 // ISO 8601
@@ -358,6 +365,10 @@ export type User = {
   // Profile
   full_name: string | null;
   avatar_url: string | null;                 // Supabase Storage URL
+  settings: {
+    quickAccessFolders?: string[];           // Max 3 folder IDs
+    [key: string]: any;
+  } | null;
   
   // Timestamps
   created_at: string | null;

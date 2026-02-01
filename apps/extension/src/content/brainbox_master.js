@@ -11,7 +11,7 @@
     AUTO_SAVE_ENABLED: true,
     SAVE_INTERVAL: 10000, // Sync interval 10 seconds (less aggressive)
     MAX_RETRIES: 3,
-    DEBUG_MODE: false
+    DEBUG_MODE: true
   };
 
   if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Loading...');
@@ -1383,6 +1383,27 @@
                   // ❌ ERROR
                   const errorMessage = error?.message || String(error) || 'Unknown error';
                   console.error('[🧠 BrainBox Master] ❌ Error during sync:', errorMessage, error);
+
+                  // 🔐 AUTH HANDLING (Added per user request)
+                  if (
+                    errorMessage.includes('authenticate') || 
+                    errorMessage.includes('Unauthorized') || 
+                    errorMessage.includes('Session expired') ||
+                    errorMessage.includes('No access token') ||
+                    errorMessage.includes('Failed to fetch') ||
+                    errorMessage.includes('NetworkError')
+                  ) {
+                    console.warn('[🧠 BrainBox Master] 🔐 Auth required. Triggering login flow...');
+                    
+                    // Stop processing other items to prevent spamming tabs
+                    chrome.runtime.sendMessage({ action: 'openLoginPage' }).catch(() => {});
+                    
+                    // Mark last result and exit
+                    lastSyncResult = { success: false, error: 'Auth required' };
+                    resolve(lastSyncResult); // Exit early
+                    return; // Stop processing
+
+                  }
                   
                   try {
                     // Increment retry counter
@@ -1438,14 +1459,25 @@
     window.addEventListener('message', (event) => {
       if (event.source !== window) return;
       if (event.data && event.data.type === 'BRAINBOX_GEMINI_TOKEN') {
+        const runtimeId = typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id;
+        
+        if (!runtimeId) {
+          // If no runtime ID, context is dead - don't even try to send
+          return;
+        }
+
         if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔑 Received Gemini token from MAIN world');
+        
         try {
           chrome.runtime.sendMessage({
             action: 'storeGeminiToken',
             token: event.data.token
-          }).catch(() => {});
+          }).catch(() => {
+            // Silence silent failures from invalidated context
+          });
         } catch (e) {
-          if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] ⚠️ Could not send token (context might be invalidated)');
+          // Context definitely invalidated
+          if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] ⚠️ Could not send token (extension reloaded/context invalidated)');
         }
       }
     });
@@ -1568,264 +1600,202 @@
       }
       
       // Context menu: Save conversation
-      if (request.action === 'saveConversationFromContextMenu') {
+      if (request.action === 'saveConversationFromContextMenu' || request.action === 'triggerSaveChat') {
         if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Context menu: Saving conversation');
         
-        (async () => {
-          try {
-            const { conversationId, title, url } = request;
+
+            let { conversationId, title, url } = request;
+            
+            // Auto-detect if missing (Context Menu generic trigger)
+            if (!conversationId) {
+                const match = window.location.href.match(/\/app\/([a-f0-9]+)/);
+                if (match) conversationId = match[1];
+            }
+            if (!title) title = document.title || 'Gemini Conversation';
+            if (!url) url = window.location.href;
             
             if (!conversationId) {
-              sendResponse({ success: false, error: 'No conversation ID provided' });
+              sendResponse({ success: false, error: 'No conversation ID provided and could not extract from URL' });
               return;
             }
             
-            // Validation of conversation ID (must not be "view", "edit", etc.)
+            // Validation of conversation ID
             const invalidIds = ['view', 'edit', 'delete', 'new', 'create', 'undefined', 'null', ''];
             if (invalidIds.includes(conversationId.toLowerCase()) || conversationId.length < 10) {
               console.error('[🧠 BrainBox Master] ❌ Invalid conversation ID:', conversationId);
               sendResponse({ success: false, error: `Invalid conversation ID: ${conversationId}` });
               return;
             }
-            
-            // Check if already saved and if there are new messages
-            if (STATE.capturedConversations.has(conversationId)) {
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚓ Conversation already saved, checking for updates...');
-              
-              const existingRecord = STATE.capturedConversations.get(conversationId);
-              const currentMessages = extractMessagesFromDOM();
-              const existingCount = existingRecord.messages ? existingRecord.messages.length : 0;
-              
-              if (currentMessages.length > existingCount) {
-                // We have new messages!
-                const newUserMessages = currentMessages.length - existingCount;
-                if (STATE.ui) STATE.ui.showToast(`✨ Chat updated! Captured ${newUserMessages} new messages.`, 'success');
-              } else {
-                // No new messages
-                if (STATE.ui) STATE.ui.showToast('ℹ️ Chat already saved. No new messages found. Scroll up to load older history.', 'info');
-                
-                sendResponse({ success: true, message: 'Already saved, no new messages' });
-                return;
-              }
-              
-              // If we reach here, we are updating the existing record
-              // The logic below will handle the save/sync
-            }
-            
-            // Manual Save: Save conversation from context menu
-            if (isChatIncomplete()) {
-                const confirmed = await STATE.ui.showConfirmation(
-                    'Attention: Incomplete Chat',
-                    'The chat is not fully loaded. Are you sure you want to save only the loaded part?',
-                    'Save only loaded part',
-                    'Cancel / Go Back'
-                );
-                
-                if (!confirmed) {
-                    sendResponse({ success: false, error: 'User cancelled save due to incomplete chat' });
-                    return;
-                }
-            }
 
-            // Attempt to extract data from DOM
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 ========== SAVE CONVERSATION START ==========');
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Request data:', { conversationId, title, url });
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Attempting to extract DOM data for conversation:', conversationId);
-            const domData = extractConversationDataFromDOM(conversationId);
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 DOM data extracted:', domData);
+            // ✅ IMMEDIATE RESPONSE: Acknowledge receipt to prevent channel timeout
+            // The actual save process will verify duplicates/confirmations and show Toasts
+            sendResponse({ success: true, message: 'Save initiated' });
             
-            // IMPORTANT: Prioritize domData.title as it's more accurate than request title
-            // Request title is often "Google Gemini" or another generic title
-            const finalTitle = (domData?.title && domData.title !== 'Untitled Chat') 
-              ? domData.title 
-              : (title && title !== 'Google Gemini' && title !== 'Untitled Chat') 
-                ? title 
-                : 'Untitled Chat';
-            const finalUrl = domData?.url || url || `https://gemini.google.com/u/0/app/${conversationId}`;
-            
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Request title:', title);
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 DOM title:', domData?.title);
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Final title (after prioritization):', finalTitle);
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔗 Final URL:', finalUrl);
-            
-            // Create conversation record
-            const convData = {
-              conversationId: conversationId,
-              title: finalTitle,
-              url: finalUrl,
-              platform: 'gemini',
-              timestamp: Date.now(),
-              synced: false
-            };
-            
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 💾 Conversation data to save:', convData);
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 ========== SAVE CONVERSATION END ==========');
-            
-            // Save in IndexedDB
-            if (STATE.db) {
-              const tx = STATE.db.transaction(['conversations'], 'readwrite');
-              const store = tx.objectStore('conversations');
-              
-              // Attempt decoding (if data in batchexecute cache or DOM)
-              let decoded = await attemptDecoding({
-                conversationId: conversationId,
-                fullData: null,
-                rawJson: null
-              });
-              
-              // If no decoded messages, try extracting from DOM
-              if (!decoded.decoded || decoded.messages.length === 0) {
-                if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Attempting to extract messages from DOM...');
-                const domMessages = extractMessagesFromDOM();
-                if (domMessages.length > 0) {
-                  decoded.messages = domMessages;
-                  decoded.decoded = true;
-                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Extracted', domMessages.length, 'messages from DOM');
-                }
-              }
-              
-              const record = {
-                ...convData,
-                messages: decoded.messages || [],
-                decoded: decoded.decoded,
-                rawData: null
-              };
-              
-              await new Promise((resolve) => {
-                store.put(record);
-                tx.oncomplete = () => {
-                  STATE.capturedConversations.set(conversationId, record);
-                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Conversation saved:', conversationId);
-                  resolve();
-                };
-                tx.onerror = () => resolve();
-              });
-              
-              
-              // Add to sync queue
-              await addToSyncQueue(conversationId);
-              
-              // Manual sync
-              const syncResult = await processSyncQueue();
-              
-              if (syncResult && syncResult.success) {
-                  const currentMsgCount = decoded.messages ? decoded.messages.length : 0;
-                  
-                  if (syncResult.is_downgrade) {
-                      // Current chat has FEWER messages than stored version
-                      const storedCount = syncResult.stored_message_count || 0;
-                      const missing = storedCount - currentMsgCount;
-                      if (STATE.ui) STATE.ui.showToast(`⚠️ Incomplete chat! Stored version has ${missing} more messages. Scroll up to load full history.`, 'warning');
-                  } else if (syncResult.is_duplicate) {
-                      // Same number of messages
-                      if (STATE.ui) STATE.ui.showToast(`ℹ️ Chat already saved (${currentMsgCount} messages). No new content.`, 'info');
-                  } else {
-                      // New messages added
-                      const newMsgCount = syncResult.new_message_count || currentMsgCount;
-                      if (newMsgCount > 0) {
-                          if (STATE.ui) STATE.ui.showToast(`✨ Chat saved! ${currentMsgCount} messages captured (+${newMsgCount} new).`, 'success');
-                      } else {
-                          if (STATE.ui) STATE.ui.showToast(`✅ Chat saved successfully! ${currentMsgCount} messages.`, 'success');
+            // 🚀 FIRE AND FORGET PROCESS (Detached from message channel)
+            (async () => {
+                try {
+                    // ============================================================
+                    // 🔐 FORCE TOKEN REFRESH - Check auth BEFORE doing anything
+                    // ============================================================
+                    const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
+                    
+                    // Check if token exists and is not expired
+                    const isTokenValid = accessToken && 
+                                        accessToken !== null && 
+                                        accessToken !== undefined && 
+                                        accessToken !== '' &&
+                                        (!expiresAt || expiresAt > Date.now());
+                    
+                    if (CONFIG.DEBUG_MODE) {
+                        console.log('[🧠 BrainBox Master] 🔐 Checking accessToken:', {
+                            exists: !!accessToken,
+                            expiresAt: expiresAt,
+                            now: Date.now(),
+                            isExpired: expiresAt ? expiresAt <= Date.now() : false,
+                            isValid: isTokenValid
+                        });
+                    }
+                    
+                    if (!isTokenValid) {
+                        console.log('[🧠 BrainBox Master] 🔐 No valid accessToken found, opening login page');
+                        // Ask service worker to open login page
+                        await chrome.runtime.sendMessage({ action: 'openLoginPage' });
+                        if (STATE.ui) STATE.ui.showToast('Please log in first. Opening login page...', 'info');
+                        return;
+                    }
+                    
+                    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔐 Valid accessToken found, proceeding');
+                    // ============================================================
+                    
+
+                    // Check if already saved and if there are new messages
+                    if (STATE.capturedConversations.has(conversationId)) {
+                        // ... existing duplicate check logic ...
+                        const existingRecord = STATE.capturedConversations.get(conversationId);
+                        const currentMessages = extractMessagesFromDOM();
+                        const existingCount = existingRecord.messages ? existingRecord.messages.length : 0;
+                        
+                        if (currentMessages.length > existingCount) {
+                            const newUserMessages = currentMessages.length - existingCount;
+                            if (STATE.ui) STATE.ui.showToast(`✨ Chat updated! Captured ${newUserMessages} new messages.`, 'success');
+                        } else {
+                            if (STATE.ui) STATE.ui.showToast('ℹ️ Chat already saved. No new messages found. Scroll up to load older history.', 'info');
+                            return;
+                        }
+                    }
+                    
+                    // Manual Save: Save conversation from context menu
+                    if (isChatIncomplete()) {
+                        const confirmed = await STATE.ui.showConfirmation(
+                            'Attention: Incomplete Chat',
+                            'The chat is not fully loaded. Are you sure you want to save only the loaded part?',
+                            'Save only loaded part',
+                            'Cancel / Go Back'
+                        );
+                        
+                        if (!confirmed) {
+                            // User cancelled, just exit
+                            return;
+                        }
+                    }
+
+                    // Attempt to extract data from DOM
+                    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 ========== SAVE CONVERSATION START ==========');
+                    // ... extraction logic ...
+                    const domData = extractConversationDataFromDOM(conversationId);
+                    
+                    const finalTitle = (domData?.title && domData.title !== 'Untitled Chat') 
+                      ? domData.title 
+                      : (title && title !== 'Google Gemini' && title !== 'Untitled Chat') 
+                        ? title 
+                        : 'Untitled Chat';
+                    const finalUrl = domData?.url || url || `https://gemini.google.com/u/0/app/${conversationId}`;
+                    
+                    // Create conversation record
+                    const convData = {
+                      conversationId: conversationId,
+                      title: finalTitle,
+                      url: finalUrl,
+                      platform: 'gemini',
+                      timestamp: Date.now(),
+                      synced: false
+                    };
+                    
+                    // Save in IndexedDB
+                    if (STATE.db) {
+                      const tx = STATE.db.transaction(['conversations'], 'readwrite');
+                      const store = tx.objectStore('conversations');
+                      
+                      let decoded = await attemptDecoding({
+                        conversationId: conversationId,
+                        fullData: null,
+                        rawJson: null
+                      });
+                      
+                      if (!decoded.decoded || decoded.messages.length === 0) {
+                        const domMessages = extractMessagesFromDOM();
+                        if (domMessages.length > 0) {
+                          decoded.messages = domMessages;
+                          decoded.decoded = true;
+                        }
                       }
-                  }
-              } else {
-                  // if (STATE.ui) STATE.ui.showToast('✅ Conversation added to queue for background sync.', 'success');
-              }
-              
-              sendResponse({ success: true, message: 'Conversation saved and synced' });
-            } else {
-              sendResponse({ success: false, error: 'Database not initialized' });
-            }
+                      
+                      const record = {
+                        ...convData,
+                        messages: decoded.messages || [],
+                        decoded: decoded.decoded,
+                        rawData: null
+                      };
+                      
+                      await new Promise((resolve) => {
+                        store.put(record);
+                        tx.oncomplete = () => resolve();
+                        tx.onerror = () => resolve();
+                      });
+                      
+                      STATE.capturedConversations.set(conversationId, record);
+                      
+                      // Add to sync queue
+                      await addToSyncQueue(conversationId);
+                      
+                      // Manual sync
+                      const syncResult = await processSyncQueue();
+                      
+                      // ... toast logic ...
+                      if (syncResult && syncResult.success) {
+                          const currentMsgCount = decoded.messages ? decoded.messages.length : 0;
+                          
+                          if (syncResult.is_downgrade) {
+                              const storedCount = syncResult.stored_message_count || 0;
+                              const missing = storedCount - currentMsgCount;
+                              if (STATE.ui) STATE.ui.showToast(`⚠️ Incomplete chat! Stored version has ${missing} more messages.`, 'warning');
+                          } else if (syncResult.is_duplicate) {
+                              if (STATE.ui) STATE.ui.showToast(`ℹ️ Chat already saved (${currentMsgCount} messages).`, 'info');
+                          } else {
+                              const newMsgCount = syncResult.new_message_count || currentMsgCount;
+                              if (newMsgCount > 0) {
+                                  if (STATE.ui) STATE.ui.showToast(`✨ Chat saved! ${currentMsgCount} messages captured.`, 'success');
+                              } else {
+                                  if (STATE.ui) STATE.ui.showToast(`✅ Chat saved successfully! ${currentMsgCount} messages.`, 'success');
+                              }
+                          }
+                      }
+                    }
+                    
+                } catch (error) {
+                    console.error('[🧠 BrainBox Master] Error during async save:', error);
+                    if (STATE.ui) STATE.ui.showToast('Failed to save: ' + error.message, 'error');
+                }
+            })();
             
-          } catch (error) {
-            console.error('[🧠 BrainBox Master] Error during save:', error);
-            sendResponse({ success: false, error: error.message });
-          }
-        })();
+            // End of message handler (response already sent)
+            return;
         
         return true; // Keep channel open for async response
       }
       
       // Handle context menu "Save Chat" action (from BrainBox)
-      if (request.action === 'triggerSaveChat') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 triggerSaveChat received');
-        
-        // Extract conversation ID from current URL
-        const urlMatch = window.location.href.match(/\/app\/([a-zA-Z0-9_-]+)/);
-        if (urlMatch && urlMatch[1]) {
-          const conversationId = urlMatch[1];
-          const title = document.querySelector('title')?.textContent || 'Gemini Chat';
-          const url = window.location.href;
-          
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Triggering save for:', conversationId);
-          
-          // Show saving toast
-          if (STATE.ui) STATE.ui.showToast('Saving conversation...', 'info');
-          
-          // Directly invoke the save logic (copy from saveConversationFromContextMenu)
-          (async () => {
-            try {
-              // Validation of conversation ID
-              const invalidIds = ['view', 'edit', 'delete', 'new', 'create', 'undefined', 'null', ''];
-              if (invalidIds.includes(conversationId.toLowerCase()) || conversationId.length < 10) {
-                // if (STATE.ui) STATE.ui.showToast('Invalid conversation ID', 'error');
-                return;
-              }
-              
-              // Extract DOM data
-              const domData = extractConversationDataFromDOM(conversationId);
-              const finalTitle = (domData?.title && domData.title !== 'Untitled Chat') 
-                ? domData.title 
-                : (title && title !== 'Google Gemini') ? title : 'Untitled Chat';
-              
-              // Get messages from DOM
-              const domMessages = extractMessagesFromDOM();
-              
-              // Create conversation payload
-              const dashboardMessages = domMessages.map(msg => ({
-                id: `msg_${Date.now()}_${msg.index || 0}`,
-                role: msg.role || 'user',
-                content: msg.text || msg.content || '',
-                timestamp: Date.now()
-              }));
-              
-              // Send directly to service worker
-              const response = await chrome.runtime.sendMessage({
-                action: 'saveToDashboard',
-                data: {
-                  id: conversationId,
-                  conversationId: conversationId,
-                  title: finalTitle,
-                  messages: dashboardMessages,
-                  platform: 'gemini',
-                  url: url,
-                  created_at: Date.now(),
-                  updated_at: Date.now(),
-                  metadata: { source: 'brainbox_master_context_menu' }
-                },
-                folderId: null,
-                silent: false
-              });
-              
-              if (response && response.success) {
-                if (STATE.ui) STATE.ui.showToast('✅ Conversation saved!', 'success');
-              } else {
-                throw new Error(response?.error || 'Save failed');
-              }
-              
-            } catch (error) {
-              console.error('[🧠 BrainBox Master] Error saving:', error);
-              if (STATE.ui) STATE.ui.showToast('Error: ' + (error.message || 'Save failed'), 'error');
-            }
-          })();
-          
-          sendResponse({ success: true });
-        } else {
-          if (STATE.ui) STATE.ui.showToast('No conversation detected on this page', 'warning');
-          sendResponse({ success: false, error: 'No conversation ID found' });
-        }
-        return true;
-      }
+
       
       return false;
     });
@@ -1848,6 +1818,32 @@
     }, 1000);
   }
 
+
+  // ============================================================================
+  // CHAT COMPLETENESS CHECK
+  // ============================================================================
+  
+  function isChatIncomplete() {
+    const chatHistory = document.querySelector('#chat-history');
+    if (!chatHistory) return false;
+
+    const blocks = chatHistory.querySelectorAll('.conversation-container');
+    
+    // Chat is considered "incomplete" if it has many blocks (6+)
+    // AND shows signs that not all history is loaded
+    if (blocks.length >= 6) {
+      // Check for "load more" or similar buttons
+      const hasLoadMore = !!document.querySelector('button[aria-label*="history"], button[aria-label*="previous"], button[aria-label*="old"], button[aria-label*="earlier"]');
+      
+      // Or if scroll is not at top
+      const scroller = chatHistory.closest('.v-scroll-viewport') || chatHistory.parentElement;
+      const canScrollUp = scroller && scroller.scrollTop > 100;
+
+      return hasLoadMore || canScrollUp;
+    }
+    return false;
+  }
+
   function isChatLong() {
     const chatHistory = document.querySelector('#chat-history');
     if (!chatHistory) return false;
@@ -1868,6 +1864,7 @@
     }
     return false;
   }
+
 
   function checkIfChatNeedsScrolling() {
     // Extract conversationId from URL
@@ -2019,10 +2016,20 @@
       if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 2.6: Injecting MAIN script...');
       chrome.runtime.sendMessage({ action: 'injectGeminiMainScript' }).catch(() => {});
 
-      // 2.7. Initialize UI
-      if (window.BrainBoxUI) {
-        STATE.ui = new window.BrainBoxUI();
-      }
+      // 2.7. Initialize UI (Retry logic)
+      let uiAttempts = 0;
+      const initUI = () => {
+        if (window.BrainBoxUI) {
+            STATE.ui = new window.BrainBoxUI();
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ UI Library initialized');
+        } else if (uiAttempts < 10) {
+            uiAttempts++;
+            setTimeout(initUI, 100);
+        } else {
+            console.warn('[🧠 BrainBox Master] ⚠️ UI Library NOT found after retries');
+        }
+      };
+      initUI();
       
       // 2.8. Start monitoring for long chats
       setupLongChatMonitor();

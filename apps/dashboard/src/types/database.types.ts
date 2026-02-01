@@ -27,9 +27,12 @@ export type Database = {
           title: string
           source_id: string | null
           messages: Json | null
+          detailed_summary: string | null
+          tags: Json | null
           updated_at: string | null
           url: string | null
           user_id: string
+          embedding: number[] | null
         }
         Insert: {
           content?: string | null
@@ -43,9 +46,12 @@ export type Database = {
           title: string
           source_id?: string | null
           messages?: Json | null
+          detailed_summary?: string | null
+          tags?: Json | null
           updated_at?: string | null
           url?: string | null
           user_id: string
+          embedding?: number[] | null
         }
         Update: {
           content?: string | null
@@ -59,9 +65,12 @@ export type Database = {
           title?: string
           source_id?: string | null
           messages?: Json | null
+          detailed_summary?: string | null
+          tags?: Json | null
           updated_at?: string | null
           url?: string | null
           user_id?: string
+          embedding?: number[] | null
         }
         Relationships: [
           {

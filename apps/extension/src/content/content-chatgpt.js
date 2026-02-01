@@ -12,13 +12,29 @@
     // ============================================================================
 
     function init() {
-        if (window.BrainBoxUI) {
-            ui = new window.BrainBoxUI();
-        }
+        console.log('[BrainBox ChatGPT] 🚀 Initializing...');
+        
+        // Retry logic for UI Library
+        let attempts = 0;
+        const checkUI = () => {
+            if (window.BrainBoxUI) {
+                ui = new window.BrainBoxUI();
+                console.log('[BrainBox ChatGPT] ✅ UI Library found');
+                start();
+            } else if (attempts < 10) {
+                attempts++;
+                setTimeout(checkUI, 100);
+            } else {
+                console.warn('[BrainBox ChatGPT] ⚠️ UI Library NOT found on window after retries');
+                start(); // Start anyway, but UI features might fail
+            }
+        };
+        
+        checkUI();
+    }
 
+    function start() {
         // Removed conversation list observer as requested - no buttons in UI
-        // setupConversationListObserver();
-        // setupVisibilityListener();
         clearCache();
     }
 
@@ -381,9 +397,10 @@
         
         // Handle context menu "Save Chat" action
         if (request.action === 'triggerSaveChat') {
-            console.log('[BrainBox ChatGPT] triggerSaveChat received');
+            console.log('[BrainBox ChatGPT] 📥 triggerSaveChat received');
             const currentUrl = window.location.href;
             const conversationId = extractConversationId(currentUrl);
+            console.log('[BrainBox ChatGPT] 🔍 Extracted ID:', conversationId);
             
             if (conversationId) {
                 console.log('[BrainBox ChatGPT] Saving directly to My Chats:', conversationId);

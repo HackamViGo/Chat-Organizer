@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BrainBox - AI Chat Organizer",
-  "version": "2.1.0",
+  "version": "2.1.3",
   "description": "Organize AI conversations from ChatGPT, Gemini, and Claude into your personal dashboard",
   "permissions": [
     "storage",
@@ -14,7 +14,8 @@
     "activeTab"
   ],
   "host_permissions": [
-    "http://localhost:3000/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*",
     "https://brainbox-alpha.vercel.app/*",
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
@@ -23,7 +24,7 @@
     "<all_urls>"
   ],
   "background": {
-    "service_worker": "src/background/service-worker.js",
+    "service_worker": "src/background/service-worker.ts",
     "type": "module"
   },
   "content_scripts": [
@@ -33,7 +34,6 @@
         "https://chat.openai.com/*"
       ],
       "js": [
-        "src/lib/config-global.js",
         "src/lib/ui.js",
         "src/content/content-chatgpt.js",
         "src/prompt-inject/prompt-inject.js"
@@ -45,7 +45,6 @@
         "https://claude.ai/*"
       ],
       "js": [
-        "src/lib/config-global.js",
         "src/lib/ui.js",
         "src/content/content-claude.js",
         "src/prompt-inject/prompt-inject.js"
@@ -57,7 +56,6 @@
         "https://gemini.google.com/*"
       ],
       "js": [
-        "src/lib/config-global.js",
         "src/lib/ui.js",
         "src/content/brainbox_master.js",
         "src/prompt-inject/prompt-inject.js"
@@ -69,7 +67,6 @@
         "<all_urls>"
       ],
       "js": [
-        "src/lib/config-global.js",
         "src/prompt-inject/prompt-inject.js"
       ],
       "run_at": "document_idle",
@@ -80,7 +77,8 @@
     {
       "matches": [
         "https://brainbox-alpha.vercel.app/extension-auth",
-        "http://localhost:3000/extension-auth"
+        "http://localhost:3000/extension-auth",
+        "http://127.0.0.1:3000/extension-auth"
       ],
       "js": [
         "src/content/content-dashboard-auth.js"
@@ -113,5 +111,8 @@
         "https://gemini.google.com/*"
       ]
     }
-  ]
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' ws://localhost:5173 http://localhost:5173 http://127.0.0.1:3000 http://localhost:3000 https://brainbox-alpha.vercel.app https://chatgpt.com https://chat.openai.com https://claude.ai https://gemini.google.com"
+  }
 }

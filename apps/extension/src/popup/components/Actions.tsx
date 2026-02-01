@@ -1,10 +1,11 @@
 /// <reference types="chrome"/>
 
 import React from 'react';
+import { CONFIG } from '../../lib/config';
 
 export default function Actions() {
   const openDashboard = () => {
-    chrome.tabs.create({ url: 'https://brainbox-alpha.vercel.app' });
+    chrome.tabs.create({ url: CONFIG.DASHBOARD_URL });
   };
 
   return (

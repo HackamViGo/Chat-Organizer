@@ -1,0 +1,17 @@
+{
+  "name": "Mega-Pack AI Studio",
+  "short_name": "BrainBox",
+  "description": "AI Chat Organizer - Intelligent Knowledge Manager",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "icons": [
+    {
+      "src": "/daily-prompt-hint.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

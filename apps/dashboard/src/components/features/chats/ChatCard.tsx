@@ -4,14 +4,14 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Chat, Platform } from '@/types';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
+import { generateEmbedding } from '@/lib/services/ai';
 import { usePathname } from 'next/navigation';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { MessageContent } from './MessageContent';
-import { analyzeChatContent } from '../../../utils/chatAnalysis';
 import { 
   MoreVertical, CheckSquare, Trash2, 
-  Archive, ArchiveRestore, Sparkles, ExternalLink,
+  Archive, ArchiveRestore, Sparkles, ExternalLink, Tag,
   FolderInput, Edit2, X, Check, AlertTriangle, FileText,
   Folder as DefaultFolderIcon, Link as LinkIcon, Square, Download, Maximize, Minimize,
   // Dev
@@ -186,15 +186,22 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
         body: JSON.stringify({ content: chat.content, chatId: chat.id }),
       });
       
-      if (!response.ok) throw new Error('AI analysis failed');
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error('[ChatCard] AI Analysis server error:', errorData);
+        throw new Error(errorData.message || 'AI analysis failed');
+      }
       
       const result = await response.json();
       
-      await updateChat(chat.id, {
+      await updateChat(chat.id, ({
         title: result.title,
         summary: result.summary,
+        detailed_summary: result.detailedSummary,
+        tags: result.tags,
         tasks: result.tasks,
-      });
+        embedding: result.embedding,
+      } as any));
     } catch (e) {
       console.error('AI Analysis error:', e);
     } finally {
@@ -245,32 +252,7 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
     setIsEditingUrl(false);
   };
 
-  // Local Analysis Logic (Regex-based)
-  const handleAnalyze = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (isAnalyzing || !chat.messages || !Array.isArray(chat.messages) || chat.messages.length === 0) return;
-
-    setIsAnalyzing(true);
-    try {
-      const result = analyzeChatContent(chat.messages as any[]);
-      
-      const updateData: any = {
-        tasks: result.tasks.length > 0 ? result.tasks : chat.tasks
-      };
-
-      // Only update summary if we have a valid regex-generated one and existing summary is empty
-      if (result.summary && !chat.summary) {
-        updateData.summary = result.summary;
-      }
-
-      await updateChat(chat.id, updateData);
-      
-    } catch (error) {
-      console.error('Analysis failed:', error);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
+  // Removed legacy regex-based handleAnalyze logic in favor of AI-powered analysis
   // Modal content save
   const handleSaveModalContent = async () => {
     if (modalContent !== chat.content) {
@@ -465,16 +447,16 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
             <PlatformBadge platform={(chat.platform || Platform.Other) as Platform} />
             
             {/* Analyze Button */}
-            {chat.messages && Array.isArray(chat.messages) && chat.messages.length > 0 && (
+            {chat.content && (
               <button
-                onClick={handleAnalyze}
+                onClick={handleAIAnalyze}
                 disabled={isAnalyzing}
                 className={`p-1 rounded-full border transition-all ${
                   isAnalyzing 
                     ? 'border-cyan-500/50 text-cyan-500 animate-pulse bg-cyan-500/10' 
                     : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:text-cyan-500 hover:border-cyan-500/50 hover:bg-cyan-500/5'
                 }`}
-                title="Analyze Chat (Generate Summary & Tasks)"
+                title="AI Analysis (Short & Detailed Summary, Tags, Tasks)"
               >
                 <Sparkles size={12} className={isAnalyzing ? 'animate-spin-slow' : ''} />
               </button>
@@ -603,6 +585,18 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
             </>
           )}
         </div>
+
+        {/* Tags Display */}
+        {chat.tags && Array.isArray(chat.tags) && (chat.tags as string[]).length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {(chat.tags as string[]).slice(0, 5).map((tag, i) => (
+              <span key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 text-[10px] text-slate-600 dark:text-slate-400">
+                <Tag size={8} /> {tag}
+              </span>
+            ))}
+          </div>
+        )}
+
 
         {/* Tasks Preview */}
         {chat.tasks && Array.isArray(chat.tasks) && chat.tasks.length > 0 && (
@@ -745,6 +739,21 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
                 />
               ) : (
                 <>
+                  {/* Detailed Summary Section */}
+                  {chat.detailed_summary && (
+                    <div className="mb-8 p-6 bg-cyan-500/5 border border-cyan-500/10 rounded-2xl">
+                      <h3 className="text-lg font-bold text-cyan-600 dark:text-cyan-400 mb-3 flex items-center gap-2">
+                        <Sparkles size={18} /> Detailed Analysis
+                      </h3>
+                      <div 
+                        className="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed"
+                        dangerouslySetInnerHTML={{ 
+                          __html: DOMPurify.sanitize(marked.parse(chat.detailed_summary) as string) 
+                        }}
+                      />
+                    </div>
+                  )}
+
                   {chat.messages && Array.isArray(chat.messages) && chat.messages.length > 0 ? (
                     <div className="space-y-6">
                       {(chat.messages as any[]).map((msg, idx) => (

@@ -3,14 +3,14 @@
 
 import { CONFIG } from '../lib/config.js';
 import { AuthManager } from './modules/authManager';
-import { PromptSyncManager } from '@brainbox/shared/src/logic/promptSync';
+import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import { DynamicMenus } from './modules/dynamicMenus';
 import * as platformAdapters from './modules/platformAdapters';
 import * as dashboardApi from './modules/dashboardApi';
 
 // Environment Configuration
-const DASHBOARD_URL = CONFIG.DASHBOARD_URL;
-const DEBUG_MODE = true;
+const API_BASE_URL = CONFIG.API_BASE_URL;
+const DEBUG_MODE = false;
 console.log('[BrainBox Worker] 🚀 Service Worker Starting...');
 
 self.onerror = function(message, source, lineno, colno, error) {
@@ -22,13 +22,20 @@ self.onerror = function(message, source, lineno, colno, error) {
 // ============================================================================
 
 const authManager = new AuthManager();
-const promptSyncManager = new PromptSyncManager();
+const promptSyncManager = new PromptSyncManager(CONFIG.DASHBOARD_URL);
 const dynamicMenus = new DynamicMenus(promptSyncManager);
 
 // Initialize modules
 authManager.initialize();
 promptSyncManager.initialize();
 dynamicMenus.initialize();
+
+// Initialize Configuration for Content Scripts
+chrome.storage.local.set({ 
+    API_BASE_URL: CONFIG.API_BASE_URL,
+    DASHBOARD_URL: CONFIG.DASHBOARD_URL,
+    EXTENSION_VERSION: CONFIG.VERSION
+});
 
 // ============================================================================
 // CONTEXT MENUS
@@ -49,7 +56,7 @@ dynamicMenus.initialize();
 try {
     if (chrome.webRequest && chrome.webRequest.onBeforeRequest) {
         chrome.webRequest.onBeforeRequest.addListener(
-            (details) => {
+            (details): chrome.webRequest.BlockingResponse | undefined => {
                 try {
                     const url = details.url;
                     const match = url.match(/organizations\/([a-f0-9-]+)/i);
@@ -67,6 +74,7 @@ try {
                 } catch (e) {
                     // Ignore errors
                 }
+                return undefined;
             },
             { urls: ["https://claude.ai/api/organizations/*"] }
         );
@@ -82,16 +90,15 @@ try {
 // ============================================================================
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (DEBUG_MODE && request.action !== 'contentScriptReady') {
-      console.log('[BrainBox Worker] 📨 Message received:', request.action);
-    }
+    if (DEBUG_MODE) console.log(`[BrainBox Worker] 📨 Message received: ${request.action}`, { platform: request.platform, hasData: !!request.data });
 
     // --- AUTH ---
     if (request.action === 'setAuthToken') {
         authManager.setDashboardSession({
             accessToken: request.accessToken,
             refreshToken: request.refreshToken,
-            expiresAt: request.expiresAt
+            expiresAt: request.expiresAt,
+            rememberMe: request.rememberMe
         }).then(() => {
             promptSyncManager.sync(); // Sync prompts after login
             sendResponse({ success: true });
@@ -102,6 +109,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'checkDashboardSession') {
         authManager.isSessionValid()
             .then(isValid => sendResponse({ success: true, isValid }));
+        return true;
+    }
+
+    if (request.action === 'syncAll') {
+        Promise.all([
+            authManager.syncAll(),
+            promptSyncManager.sync(true)
+        ]).then(([authResult]) => {
+            sendResponse({ success: true, ...authResult });
+        }).catch(error => {
+            sendResponse({ success: false, error: error.message });
+        });
         return true;
     }
 
@@ -161,7 +180,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     // --- MISC ---
     if (request.action === 'openLoginPage') {
-        chrome.tabs.create({ url: `${DASHBOARD_URL}/extension-auth` });
+        chrome.tabs.create({ url: `${API_BASE_URL}/auth/signin?redirect=/extension-auth` });
         sendResponse({ success: true });
         return true;
     }

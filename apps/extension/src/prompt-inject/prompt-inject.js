@@ -11,7 +11,7 @@
   // ============================================================================
       
   const CONFIG = {
-    DASHBOARD_URL: window.BRAINBOX_CONFIG ? window.BRAINBOX_CONFIG.DASHBOARD_URL : 'https://brainbox-alpha.vercel.app',
+    API_BASE_URL: null, // Will be loaded from storage
     API_ENDPOINT: '/api/prompts', // API endpoint for prompts
     DEBUG_MODE: false
   };
@@ -41,6 +41,26 @@
   async function init() {
     if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] Initializing...');
     
+    // Load Configuration from Storage
+    try {
+        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+            const config = await chrome.storage.local.get(['API_BASE_URL']);
+            if (config.API_BASE_URL) {
+                CONFIG.API_BASE_URL = config.API_BASE_URL;
+                if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Loaded Config:', CONFIG.API_BASE_URL);
+            } else {
+                CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
+            }
+        } else {
+            // Context where storage is not available (e.g. sandboxed iframe or Main world)
+            CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
+            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Storage API not available, using default URL');
+        }
+    } catch (e) {
+        console.warn('[🧠 Prompt Inject] ⚠️ Config load check failed (using default):', e);
+        CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
+    }
+
     // Setup message listener
     setupMessageListener();
         
@@ -93,35 +113,33 @@
   // SHOW PROMPT SELECTION MENU
   // ============================================================================
   
-  function showPromptMenu(prompts) {
+  function showPromptMenu(prompts, options = {}) {
+    const isSearchMode = options.mode === 'search';
+    
     // Remove old menu if exists
     const existingMenu = document.getElementById('brainbox-prompt-menu');
     if (existingMenu) {
       existingMenu.remove();
     }
 
-    // Show menu even if no prompts found to allow refresh button usage
-    // if (prompts.length === 0) {
-    //   showNotification('No prompts available', 'warning');
-    //   return;
-    // }
-
     // Create menu container
     const menu = document.createElement('div');
     menu.id = 'brainbox-prompt-menu';
+    if (isSearchMode) menu.classList.add('brainbox-mode-search');
+
     menu.innerHTML = `
       <div class="brainbox-prompt-menu-overlay"></div>
-      <div class="brainbox-prompt-menu-content">
+      <div class="brainbox-prompt-menu-content ${isSearchMode ? 'brainbox-compact' : ''}">
         <div class="brainbox-prompt-menu-header">
           <div class="brainbox-prompt-menu-header-main">
-            <h3>Select a prompt</h3>
+            <h3>${isSearchMode ? 'Search Prompts' : 'Select a prompt'}</h3>
             <div class="brainbox-prompt-menu-header-actions">
-              <button class="brainbox-prompt-menu-refresh" aria-label="Refresh" title="Refresh prompt list">🔄</button>
+              ${!isSearchMode ? '<button class="brainbox-prompt-menu-refresh" aria-label="Refresh" title="Refresh prompt list">🔄</button>' : ''}
               <button class="brainbox-prompt-menu-close" aria-label="Close">×</button>
             </div>
           </div>
           <div class="brainbox-prompt-menu-search-container">
-            <input type="text" class="brainbox-prompt-menu-search" placeholder="Search prompts by name or content..." autofocus />
+            <input type="text" class="brainbox-prompt-menu-search" placeholder="Type to search..." autofocus />
           </div>
         </div>
         <div class="brainbox-prompt-menu-list">
@@ -270,10 +288,10 @@
     // Add menu to DOM
     document.body.appendChild(menu);
 
-    // Focus first item
-    const firstItem = menu.querySelector('.brainbox-prompt-menu-item');
-    if (firstItem) {
-      firstItem.focus();
+    // Focus search input
+    const searchInputActual = menu.querySelector('.brainbox-prompt-menu-search');
+    if (searchInputActual) {
+      setTimeout(() => searchInputActual.focus(), 100);
     }
   }
 
@@ -397,101 +415,142 @@
     if (existingDialog) {
       existingDialog.remove();
     }
+
+    // Show loading notification while fetching folders
+    showNotification('Loading folders...', 'info');
         
     // Create dialog container
     const dialog = document.createElement('div');
     dialog.id = 'brainbox-create-prompt-dialog';
-    dialog.innerHTML = `
-      <div class="brainbox-prompt-menu-overlay"></div>
-      <div class="brainbox-create-prompt-dialog-content">
-        <div class="brainbox-create-prompt-dialog-header">
-          <h3>Create Prompt</h3>
-          <button class="brainbox-create-prompt-dialog-close" aria-label="Close">×</button>
-        </div>
-        <div class="brainbox-create-prompt-dialog-body">
-          <div class="brainbox-create-prompt-field">
-            <label for="brainbox-prompt-title">Title <span class="required">*</span></label>
-            <input type="text" id="brainbox-prompt-title" placeholder="Enter prompt title..." maxlength="200" />
-          </div>
-          <div class="brainbox-create-prompt-field">
-            <label for="brainbox-prompt-content">Content</label>
-            <textarea id="brainbox-prompt-content" readonly rows="6">${escapeHtml(selectedText)}</textarea>
-          </div>
-          <div class="brainbox-create-prompt-field">
-            <label for="brainbox-prompt-use-in-context-menu" style="display: flex; align-items: center; cursor: pointer;">
-              <input type="checkbox" id="brainbox-prompt-use-in-context-menu" checked style="margin-right: 8px;" />
-              Use in context menu (BrainBox Prompts)
-            </label>
-          </div>
-        </div>
-        <div class="brainbox-create-prompt-dialog-footer">
-          <button class="brainbox-create-prompt-cancel">Cancel</button>
-          <button class="brainbox-create-prompt-save">Save</button>
-        </div>
-      </div>
-    `;
     
-    // Add styles
-    injectStyles();
-    
-    // Event listeners
-    const closeButton = dialog.querySelector('.brainbox-create-prompt-dialog-close');
-    const cancelButton = dialog.querySelector('.brainbox-create-prompt-cancel');
-    const saveButton = dialog.querySelector('.brainbox-create-prompt-save');
-    const overlay = dialog.querySelector('.brainbox-prompt-menu-overlay');
-    const titleInput = dialog.querySelector('#brainbox-prompt-title');
-    
-    const closeDialog = () => {
-      dialog.remove();
-    };
-    
-    closeButton.addEventListener('click', closeDialog);
-    cancelButton.addEventListener('click', closeDialog);
-    overlay.addEventListener('click', closeDialog);
-    
-    saveButton.addEventListener('click', async () => {
-      const title = titleInput.value.trim();
-          
-      if (!title || title.length === 0) {
-        showNotification('Please enter a title', 'warning');
-        titleInput.focus();
-        return;
-      }
-      
-      const useInContextMenu = dialog.querySelector('#brainbox-prompt-use-in-context-menu').checked;
-      
-      // Disable button during save
-      saveButton.disabled = true;
-      saveButton.textContent = 'Saving...';
-      
+    // Fetch folders before showing dialog
+    (async () => {
+      let folders = [];
       try {
-        const result = await createPrompt({
-          title: title,
-          content: selectedText,
-          use_in_context_menu: useInContextMenu
-        });
-        
-        if (result.success) {
-          showNotification(`Prompt "${title}" created successfully!`, 'success');
-          closeDialog();
-        } else {
-          throw new Error(result.error || 'Failed to create prompt');
+        const response = await chrome.runtime.sendMessage({ action: 'getUserFolders' });
+        if (response && response.success) {
+          folders = response.folders || [];
+          // Filter only prompt folders if type is available, otherwise show all
+          folders = folders.filter(f => !f.type || f.type === 'prompt' || f.type === 'custom' || f.type === 'default');
         }
-      } catch (error) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error creating prompt:', error);
-        showNotification(`Error: ${error.message}`, 'error');
-        saveButton.disabled = false;
-        saveButton.textContent = 'Save';
+      } catch (err) {
+        console.error('[🧠 Prompt Inject] Error fetching folders:', err);
       }
-    });
-    
-    // Add dialog to DOM
-    document.body.appendChild(dialog);
-    
-    // Focus on input field
-    setTimeout(() => {
-      titleInput.focus();
-    }, 100);
+
+      const folderOptions = folders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
+
+      dialog.innerHTML = `
+        <div class="brainbox-prompt-menu-overlay"></div>
+        <div class="brainbox-create-prompt-dialog-content">
+          <div class="brainbox-create-prompt-dialog-header">
+            <h3>Create Prompt</h3>
+            <button class="brainbox-create-prompt-dialog-close" aria-label="Close">×</button>
+          </div>
+          <div class="brainbox-create-prompt-dialog-body">
+            <div class="brainbox-create-prompt-field">
+              <label for="brainbox-prompt-title">Title <span class="required">*</span></label>
+              <input type="text" id="brainbox-prompt-title" placeholder="Enter prompt title..." maxlength="200" />
+            </div>
+            <div class="brainbox-create-prompt-field">
+              <label for="brainbox-prompt-content">Content <span class="required">*</span></label>
+              <textarea id="brainbox-prompt-content" rows="6" placeholder="Enter prompt content...">${escapeHtml(selectedText)}</textarea>
+            </div>
+            <div class="brainbox-create-prompt-field">
+              <label for="brainbox-prompt-folder">Save to Folder</label>
+              <select id="brainbox-prompt-folder" class="brainbox-folder-select">
+                <option value="">(No folder - Root)</option>
+                ${folderOptions}
+              </select>
+            </div>
+            <div class="brainbox-create-prompt-field">
+              <label for="brainbox-prompt-use-in-context-menu" style="display: flex; align-items: center; cursor: pointer;">
+                <input type="checkbox" id="brainbox-prompt-use-in-context-menu" checked style="margin-right: 8px;" />
+                Use in context menu (BrainBox Prompts)
+              </label>
+            </div>
+          </div>
+          <div class="brainbox-create-prompt-dialog-footer">
+            <button class="brainbox-create-prompt-cancel">Cancel</button>
+            <button class="brainbox-create-prompt-save">Save</button>
+          </div>
+        </div>
+      `;
+      
+      // Add styles
+      injectStyles();
+      
+      // Event listeners
+      const closeButton = dialog.querySelector('.brainbox-create-prompt-dialog-close');
+      const cancelButton = dialog.querySelector('.brainbox-create-prompt-cancel');
+      const saveButton = dialog.querySelector('.brainbox-create-prompt-save');
+      const overlay = dialog.querySelector('.brainbox-prompt-menu-overlay');
+      const titleInput = dialog.querySelector('#brainbox-prompt-title');
+      const contentTextarea = dialog.querySelector('#brainbox-prompt-content');
+      const folderSelect = dialog.querySelector('#brainbox-prompt-folder');
+      
+      const closeDialog = () => {
+        dialog.remove();
+      };
+      
+      closeButton.addEventListener('click', closeDialog);
+      cancelButton.addEventListener('click', closeDialog);
+      overlay.addEventListener('click', closeDialog);
+      
+      saveButton.addEventListener('click', async () => {
+        const title = titleInput.value.trim();
+        const content = contentTextarea.value.trim();
+            
+        if (!title) {
+          showNotification('Please enter a title', 'warning');
+          titleInput.focus();
+          return;
+        }
+
+        if (!content) {
+          showNotification('Please enter prompt content', 'warning');
+          contentTextarea.focus();
+          return;
+        }
+        
+        const useInContextMenu = dialog.querySelector('#brainbox-prompt-use-in-context-menu').checked;
+        const folderId = folderSelect.value || null;
+        
+        // Disable button during save
+        saveButton.disabled = true;
+        saveButton.textContent = 'Saving...';
+        
+        try {
+          const result = await createPrompt({
+            title: title,
+            content: content,
+            folder_id: folderId,
+            use_in_context_menu: useInContextMenu
+          });
+          
+          if (result.success) {
+            showNotification(`Prompt "${title}" created successfully!`, 'success');
+            closeDialog();
+            // Optional: trigger refresh in background
+            chrome.runtime.sendMessage({ action: 'syncPrompts' }).catch(() => {});
+          } else {
+            throw new Error(result.error || 'Failed to create prompt');
+          }
+        } catch (error) {
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error creating prompt:', error);
+          showNotification(`Error: ${error.message}`, 'error');
+          saveButton.disabled = false;
+          saveButton.textContent = 'Save';
+        }
+      });
+      
+      // Add dialog to DOM
+      document.body.appendChild(dialog);
+      
+      // Focus on input field
+      setTimeout(() => {
+        titleInput.focus();
+      }, 100);
+    })();
   }
   
   // ============================================================================
@@ -507,12 +566,12 @@
       const accessToken = storage.accessToken;
       
       if (!accessToken) {
-        const errorMsg = 'Extension not linked. Please visit <a href="' + CONFIG.DASHBOARD_URL + '/extension-auth" target="_blank" style="color:white;text-decoration:underline;">this page</a> to sync.';
+        const errorMsg = 'Extension not linked. Please visit <a href="' + CONFIG.API_BASE_URL + '/extension-auth" target="_blank" style="color:white;text-decoration:underline;">this page</a> to sync.';
         showNotification(errorMsg, 'warning');
         throw new Error('Missing access token');
       }
       
-      const url = `${CONFIG.DASHBOARD_URL}${CONFIG.API_ENDPOINT}`;
+      const url = `${CONFIG.API_BASE_URL}${CONFIG.API_ENDPOINT}`;
       
       const headers = {
         'Content-Type': 'application/json'
@@ -529,6 +588,7 @@
         body: JSON.stringify({
           title: promptData.title,
           content: promptData.content,
+          folder_id: promptData.folder_id || null,
           color: '#6366f1', // Default color
           use_in_context_menu: promptData.use_in_context_menu || false
         })
@@ -834,7 +894,17 @@
       }
 
 
-      // triggerSaveChat removed - use context menu instead
+      
+      if (request.action === 'triggerSaveChat') {
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to trigger save chat');
+        
+        // This handler acts as a fallback or universal listener.
+        // Platform-specific content scripts (content-chatgpt.js, etc.) should handle the actual saving.
+        // If this logs but nothing happens, it means the platform script is missing or failed.
+        
+        return true; 
+      }
+
 
 
       if (request.action === 'openCreatePromptDialog') {
@@ -855,7 +925,16 @@
         return true;
       }
 
-      return false;
+      if (request.action === 'showPromptMenu') {
+        const { mode } = request;
+        fetchPrompts().then(prompts => {
+          showPromptMenu(prompts, { mode });
+        });
+        sendResponse({ success: true });
+        return true;
+      }
+
+      return false; // No handler for this action
     });
 
     if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Message listener active');
@@ -1139,6 +1218,37 @@
         }
       }
 
+      /* Compact Mode */
+      .brainbox-prompt-menu-content.brainbox-compact {
+        max-width: 450px;
+        max-height: 60vh;
+      }
+
+      .brainbox-compact .brainbox-prompt-menu-header-main {
+        padding: 12px 20px;
+      }
+
+      .brainbox-compact .brainbox-prompt-menu-search-container {
+        padding: 0 20px 12px 20px;
+      }
+
+      .brainbox-compact .brainbox-prompt-menu-item {
+        padding: 12px 16px;
+      }
+
+      .brainbox-compact .brainbox-prompt-menu-item-title {
+        font-size: 14px;
+        margin-bottom: 4px;
+      }
+
+      .brainbox-compact .brainbox-prompt-menu-item-preview {
+        font-size: 12px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+
       /* Create Prompt Dialog Styles */
       #brainbox-create-prompt-dialog {
         position: fixed;
@@ -1247,8 +1357,37 @@
         outline: none;
         resize: vertical;
         font-family: inherit;
-        background: #f9fafb;
-        color: #6b7280;
+        background: white;
+        color: #111827;
+      }
+
+      .brainbox-create-prompt-field textarea:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      .brainbox-folder-select {
+        padding: 10px 12px;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        font-size: 14px;
+        outline: none;
+        background: white;
+        color: #111827;
+        cursor: pointer;
+        width: 100%;
+      }
+
+      .brainbox-folder-select:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      }
+
+      /* Dropdown sizing logic */
+      .brainbox-folder-select option {
+        padding: 8px;
+        background: white;
+        color: #111827;
       }
 
       .brainbox-create-prompt-field input[type="checkbox"] {

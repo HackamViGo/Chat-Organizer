@@ -26,7 +26,7 @@ export function EnhancePromptCard() {
 
   const handleOptimize = async () => {
     if (!draftPrompt.trim()) {
-      setError('Please enter what you need help with');
+      setError('Please enter your prompt text');
       return;
     }
 
@@ -35,41 +35,19 @@ export function EnhancePromptCard() {
     setSearchResult(null);
 
     try {
-      const response = await fetch('/api/prompts/search', {
+      const response = await fetch('/api/ai/enhance-prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: draftPrompt.trim() }),
+        body: JSON.stringify({ prompt: draftPrompt.trim() }),
       });
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        // If it's a fallback result, still show it
-        if (errorData.fallback && errorData.prompt) {
-          setSearchResult({
-            prompt: errorData.prompt,
-            confidence: 0.7,
-            reasoning: 'Best match found using keyword matching',
-            alternatives: []
-          });
-          return;
-        }
-        throw new Error(errorData.error || 'Failed to find matching prompt');
-      }
+      if (!response.ok) throw new Error('Failed to enhance prompt');
 
       const data = await response.json();
-      
-      // Check if response has error but also has fallback data
-      if (data.error && data.fallback) {
-        setError(data.error);
-        // Don't set result if there's an error
-        return;
-      }
-      
-      setSearchResult(data);
+      setDraftPrompt(data.enhancedPrompt);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to find matching prompt. Please check your internet connection and try again.';
+      const errorMessage = err instanceof Error ? err.message : 'Failed to optimize prompt. Please try again.';
       setError(errorMessage);
-      console.error('Search error:', err);
     } finally {
       setIsOptimizing(false);
     }
@@ -91,21 +69,23 @@ export function EnhancePromptCard() {
           </h3>
         </div>
         <div className="px-3 py-1 bg-slate-100 dark:bg-white/10 rounded-full text-xs font-medium text-slate-600 dark:text-slate-400">
-          Gemini 3.0 Pro
+          Gemini 2.0 Flash
         </div>
       </div>
 
       <div className="space-y-4">
-        <textarea
-          value={draftPrompt}
-          onChange={(e) => {
-            setDraftPrompt(e.target.value);
-            setSearchResult(null);
-            setError(null);
-          }}
-          placeholder="What do you need? (e.g., write email, review code, explain topic...)"
-          className="w-full h-32 px-4 py-3 bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
-        />
+        <div className="relative">
+          <textarea
+            value={draftPrompt}
+            onChange={(e) => {
+              setDraftPrompt(e.target.value);
+              setSearchResult(null);
+              setError(null);
+            }}
+            placeholder="What do you need? (e.g., write email, review code, explain topic...)"
+            className="w-full h-32 px-4 py-3 bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-lg text-sm text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/50 resize-none"
+          />
+        </div>
 
         {error && (
           <div className="px-4 py-2 bg-red-500/10 border border-red-500/20 rounded-lg text-sm text-red-600 dark:text-red-400">
@@ -166,29 +146,6 @@ export function EnhancePromptCard() {
                 {searchResult.prompt.prompt}
               </div>
             </div>
-
-            {/* Alternatives */}
-            {searchResult.alternatives && searchResult.alternatives.length > 0 && (
-              <div className="space-y-2">
-                <div className="text-xs font-medium text-slate-600 dark:text-slate-400">
-                  Other matches:
-                </div>
-                {searchResult.alternatives.map((alt, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setSearchResult({ ...searchResult, prompt: alt })}
-                    className="w-full text-left px-3 py-2 bg-slate-50 dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-lg hover:border-cyan-300 dark:hover:border-cyan-700 transition-colors"
-                  >
-                    <div className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      {alt.title}
-                    </div>
-                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                      {alt.category} • Click to view
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
@@ -200,7 +157,7 @@ export function EnhancePromptCard() {
           {isOptimizing ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Searching...
+              Optimizing...
             </>
           ) : (
             <>

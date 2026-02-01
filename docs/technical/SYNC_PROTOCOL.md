@@ -1,10 +1,10 @@
 # Sync Protocol Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.1.0-beta (Monorepo Migration)  
+**Version**: 2.1.2
 **Stack**: Chrome Extension (Manifest V3) ↔ Next.js PWA  
 **Author**: Meta-Architect  
-**Date**: 2026-01-31
+**Date**: 2026-02-01
 
 ---
 
@@ -26,14 +26,14 @@ sequenceDiagram
     Dashboard->>Extension: Send tokens via content-dashboard-auth.js
     Extension->>Extension: Store tokens in chrome.storage.local
 
-    User->>ContentScript: Clicks "Save Chat" button
-    ContentScript->>Extension: chrome.runtime.sendMessage({action: 'saveToDashboard'})
-    Extension->>Extension: Fetch conversation via platform API
+    User->>ContentScript: Right-click -> "Save Chat to BrainBox"
+    ContentScript->>Extension: chrome.runtime.sendMessage({action: 'triggerSaveChat'})
+    Extension->>Extension: Fetch conversation via platform active listener
     Extension->>Dashboard: POST /api/chats (with Bearer token)
     Dashboard->>Supabase: Verify token + upsert chat
     Supabase-->>Dashboard: Return chat record
     Dashboard-->>Extension: Success response
-    Extension-->>ContentScript: Show success notification
+    Extension-->>ContentScript: Show success toast notification
 ```
 
 ---
@@ -84,12 +84,23 @@ graph TD
 | Action | Sender | Handler | Purpose |
 |--------|--------|---------|---------|
 | `setAuthToken` | Auth Content Script | Service Worker | Store Supabase session |
-| `saveToDashboard` | Platform Content Script | Service Worker | Sync conversation |
+| `triggerSaveChat` | Context Menu | Service Worker | Initiate conversation capture |
+| `saveToDashboard` | Platform Content Script | Service Worker | Sync conversation (Legacy/Manual) |
 | `fetchPrompts` | Content Script | Service Worker | Get user prompts (CSP bypass) |
+| `injectPrompt` | Context Menu | Content Script | Insert text into model textarea |
 
 ---
 
-## 4. Data Schemas
+## 4. Real-time Dashboard Sync
+
+### 4.1 Supabase Realtime
+The Dashboard uses `DataProvider.tsx` to subscribe to database changes.
+
+1.  **Subscription**: `supabase.channel('public:chats').on('postgres_changes', ...)`
+2.  **Optimistic UI**: Zustand stores update immediately on local actions.
+3.  **Cross-Tab Sync**: Changes made in Extension or another tab reflect instantly.
+
+## 5. Data Schemas
 
 ### 4.1 Chat Sync Payload
 
@@ -109,7 +120,7 @@ interface CreateChatInput {
 
 ---
 
-## 5. Security Considerations
+## 6. Security Considerations
 
 ### 5.1 Token Exposure
 - **Storage**: `chrome.storage.local` (local only, no sync).
@@ -119,4 +130,4 @@ interface CreateChatInput {
 - **Manifest V3**: No inline scripts. logic isolated in Service Worker.
 
 ---
-**Version**: v.2.1.0-beta
+**Version**: v2.1.2

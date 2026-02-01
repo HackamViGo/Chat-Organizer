@@ -222,6 +222,7 @@
             }
             
             // Check authentication FIRST before doing anything
+            // FORCE REFRESH: Get the latest token from storage right now
             const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
             
             // Check if token exists and is not expired
@@ -324,11 +325,16 @@
                 errorMessage.includes('Session expired') ||
                 errorMessage.includes('401') ||
                 errorMessage.includes('Please authenticate') ||
-                errorMessage.includes('Could not extract organization ID')) {
-                // Ask service worker to open login page (chrome.tabs is not available in content scripts)
+                errorMessage.includes('Could not extract organization ID') ||
+                errorMessage.includes('Failed to fetch') || 
+                errorMessage.includes('NetworkError')) {
+                
+                console.warn('[BrainBox] 🔐 Auth/Network Error detected. Triggering login flow...');
+
+                // Ask service worker to open login page
                 try {
                     await chrome.runtime.sendMessage({ action: 'openLoginPage' });
-                    // showToast('Please log in first. Opening login page...', 'info');
+                    // showToast('Connection issue. Please log in again.', 'warning');
                 } catch (e) {
                     // showToast('Please log in first. Extension may need to be reloaded.', 'error');
                     console.error('Login/Reload needed', e);

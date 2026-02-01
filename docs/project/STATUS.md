@@ -1,8 +1,8 @@
 # 🎉 BrainBox Extension - Status Report
 
-**Last Updated:** 2025-01-27  
-**Version:** 2.0.1  
-**Status:** ✅ **PRODUCTION READY**
+**Last Updated:** 2026-02-01  
+**Version:** 2.1.2  
+**Status:** ✅ **PRODUCTION READY (AI & SEMANTIC SEARCH ENABLED)**
 
 ---
 
@@ -65,18 +65,14 @@ Open in browser for interactive test results with:
 ### Fully Implemented & Tested
 - ✅ Manifest V3 configuration
 - ✅ Service Worker with token interception
-- ✅ ChatGPT integration (API + UI)
-- ✅ Claude integration (API + UI)
-- ✅ Gemini integration (API + UI)
-- ✅ Dynamic key discovery (Gemini)
-- ✅ Rate limiting system
-- ✅ Data schema validation
-- ✅ Context Menu UI
-- ✅ Folder selector modal
-- ✅ Toast notifications
-- ✅ Dashboard integration
-- ✅ Error handling
-- ✅ Performance optimization
+- ✅ Gemini Title & Content Extraction (DOM + API)
+- ✅ Claude Integration (org_id interception)
+- ✅ Semantic Search (pgvector + Gemini Embeddings)
+- ✅ AI Metadata (Summary, Tags, Tasks via Gemini)
+- ✅ Dynamic Context Menus (Save, Inject, Enhance)
+- ✅ Removal of intrusive platform buttons
+- ✅ Real-time Data Sync (DataProvider)
+- ✅ User Settings Sync (Quick Access Folders)
 
 ### Performance Metrics
 - **Page Load:** 1,325ms (87% better than target)
@@ -105,6 +101,24 @@ Open in browser for interactive test results with:
 
 4.  **Extension Data Validation** ✅
     *   Verified flow: Extension -> API -> DB with a comprehensive validation script. Confirmed data integrity for messages and upsert logic.
+
+### 2026-02-01 - AI Intelligence & UX Polish ✅
+
+1.  **AI Metadata Extraction**
+    *   **Feature:** Automatically generates `summary`, `detailed_summary`, `tags`, and `tasks` from chat transcripts using Gemini 1.5 Flash.
+    *   **Status:** Robustly implemented in `ai.ts` and available in `ChatCard.tsx`.
+
+2.  **Semantic Search (Vector Embeddings)**
+    *   **Feature:** Enabled `pgvector` in Supabase. Generating 768d embeddings for every chat content.
+    *   **Status:** Implemented. Search bar in Dashboard now uses both text-match and vector-similarity.
+
+3.  **Removal of In-Page Buttons**
+    *   **Change:** To maintain a clean UI for ChatGPT/Claude/Gemini, all custom "Save" buttons were removed.
+    *   **New Flow:** Saving is now handled via the Browser Context Menu (Right Click).
+
+4.  **Prompt Synchronization & Injection**
+    *   **Feature:** Prompts created in Dashboard are synced to Extension and available for injection via Right Click -> Inject Prompt.
+    *   **Status:** Fully functional with hierarchical folder support in context menu.
 
 ### 2025-01-28 - Gemini Title Extraction
 
@@ -143,23 +157,15 @@ Open in browser for interactive test results with:
 
 ## ⚠️ Known Limitations
 
-### Partial Implementation
-1. **Gemini Message Parsing** (Phase 2)
-   - Status: Saves conversations as raw JSON
-   - Impact: Works but not fully parsed
-   - Priority: Medium
-   - ETA: Phase 3
-
 ### Not Yet Implemented
-1. **Auto-Categorization** (Phase 3)
-   - Uses Gemini API to suggest folders
-   - Priority: Low
-   - ETA: Month 1
-
-2. **Batch Save** (Phase 3)
+1. **Batch Save** (Phase 3)
    - Save multiple conversations at once
    - Priority: Low
-   - ETA: Month 1
+   - ETA: Month 2
+
+2. **AI Studio** (Phase 4)
+   - Real-time chat with multiple models in dashboard
+   - Priority: Medium
 
 ---
 
@@ -208,10 +214,10 @@ Open in browser for interactive test results with:
 
 ### Platform Support
 ```
-✅ ChatGPT (chatgpt.com)      - Save/Download Chat, Text-to-Prompt
-✅ Claude (claude.ai)         - Save/Download Chat, Text-to-Prompt
-✅ Gemini (gemini.google.com) - Save/Download Chat, Text-to-Prompt
-✅ Universal Compatibility  - Selection to Prompt works on ANY site
+✅ ChatGPT (chatgpt.com)      - Context Menu Save, Prompt Injection
+✅ Claude (claude.ai)         - Context Menu Save, Prompt Injection
+✅ Gemini (gemini.google.com) - Context Menu Save, Prompt Injection
+✅ Universal Compatibility  - Selection to Prompt & AI Enhance Selection work on ANY site
 ```
 
 ### Browser Compatibility

@@ -11,6 +11,7 @@ interface PromptStore {
   updatePrompt: (id: string, prompt: Partial<Prompt>) => void;
   deletePrompt: (id: string) => void;
   togglePromptSelection: (id: string) => void;
+  clearSelection: () => void;
   setLoading: (loading: boolean) => void;
 }
 
@@ -62,5 +63,6 @@ export const usePromptStore = create<PromptStore>((set) => ({
         ? state.selectedPromptIds.filter((pId) => pId !== id)
         : [...state.selectedPromptIds, id],
     })),
+  clearSelection: () => set({ selectedPromptIds: [] }),
   setLoading: (loading) => set({ isLoading: loading }),
 }));

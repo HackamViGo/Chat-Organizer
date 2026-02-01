@@ -20,6 +20,11 @@ const createChatSchema = z.object({
   folder_id: z.string().uuid().nullable().optional(),
   source_id: z.string().optional(),
   messages: z.array(z.any()).optional(),
+  summary: z.string().optional().nullable(),
+  detailed_summary: z.string().optional().nullable(),
+  tags: z.any().optional(),
+  tasks: z.any().optional(),
+  embedding: z.array(z.number()).optional().nullable(),
 });
 
 const updateChatSchema = z.object({
@@ -31,6 +36,11 @@ const updateChatSchema = z.object({
   folder_id: z.string().uuid().nullable().optional(),
   source_id: z.string().optional(),
   messages: z.array(z.any()).optional(),
+  summary: z.string().optional().nullable(),
+  detailed_summary: z.string().optional().nullable(),
+  tags: z.any().optional(),
+  tasks: z.any().optional(),
+  embedding: z.array(z.number()).optional().nullable(),
 });
 
 // Helper to extract source_id from URL if not provided

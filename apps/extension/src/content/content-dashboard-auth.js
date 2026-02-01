@@ -11,14 +11,15 @@
         console.log('[BrainBox] Auth event received:', event.detail);
 
         try {
-            const { accessToken, refreshToken, expiresAt } = event.detail;
+            const { accessToken, refreshToken, expiresAt, rememberMe } = event.detail;
 
             // Send to service worker
             const response = await chrome.runtime.sendMessage({
                 action: 'setAuthToken',
                 accessToken,
                 refreshToken,
-                expiresAt
+                expiresAt,
+                rememberMe
             });
 
             if (response && response.success) {

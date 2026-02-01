@@ -5,7 +5,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { ChatCard } from '@/components/features/chats/ChatCard';
-import { MessageSquarePlus, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight, Search, Calendar, Filter, Download, ChevronDown } from 'lucide-react';
+import { MessageSquarePlus, MessageSquare, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight, Search, Calendar, Filter, Download, ChevronDown, Sparkles } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/Sidebar';
 import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
 import { createClient } from '@/lib/supabase/client';
@@ -55,6 +55,9 @@ function ChatsPageContent() {
   const [dateFrom, setDateFrom] = useState<string>('');
   const [dateTo, setDateTo] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+  const [isSemanticSearch, setIsSemanticSearch] = useState(false);
+  const [isSearching, setIsSearching] = useState(false);
+  const [semanticResults, setSemanticResults] = useState<any[]>([]);
 
   const selectedFolderId = searchParams.get('folder');
   const setSelectedFolderId = (id: string | null) => {
@@ -121,8 +124,12 @@ function ChatsPageContent() {
       });
     }
     
+    if (isSemanticSearch && searchQuery) {
+      return semanticResults;
+    }
+    
     return result;
-  }, [chats, selectedFolderId, folders, searchQuery, platformFilter, folderFilter, dateFrom, dateTo]);
+  }, [chats, selectedFolderId, folders, searchQuery, platformFilter, folderFilter, dateFrom, dateTo, isSemanticSearch, semanticResults]);
   
   const clearFilters = () => {
     setSearchQuery('');
@@ -130,9 +137,40 @@ function ChatsPageContent() {
     setFolderFilter('all');
     setDateFrom('');
     setDateTo('');
+    setIsSemanticSearch(false);
+    setSemanticResults([]);
   };
   
   const hasActiveFilters = searchQuery || platformFilter !== 'all' || folderFilter !== 'all' || dateFrom || dateTo;
+
+  // Semantic Search Effect
+  useEffect(() => {
+    if (!isSemanticSearch || !searchQuery) {
+      setSemanticResults([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        const response = await fetch('/api/ai/search', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ query: searchQuery, limit: 20 }),
+        });
+        if (response.ok) {
+          const results = await response.json();
+          setSemanticResults(results);
+        }
+      } catch (err) {
+        console.error('Semantic search failed:', err);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 600); // 600ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, isSemanticSearch]);
   
   const toggleFolderExpansion = (folderId: string, level: number, sidebarIndex: number) => {
     // Level 0 and 1: open sidebar on the right
@@ -683,6 +721,20 @@ function ChatsPageContent() {
               />
               {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X size={14} /></button>}
             </div>
+
+            {/* Semantic Search Toggle */}
+            <button
+              onClick={() => setIsSemanticSearch(!isSemanticSearch)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
+                isSemanticSearch 
+                  ? 'border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' 
+                  : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-cyan-300'
+              }`}
+              title="Semantic AI Search (Natural Language)"
+            >
+              <Sparkles size={16} className={isSearching ? 'animate-pulse' : ''} />
+              <span className="hidden sm:inline text-sm font-medium">AI Search</span>
+            </button>
             
             {/* Filter Toggle */}
             <button

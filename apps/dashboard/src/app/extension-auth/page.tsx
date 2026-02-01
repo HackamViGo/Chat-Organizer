@@ -90,6 +90,7 @@ export default function ExtensionAuthPage() {
             accessToken,
             refreshToken,
             expiresAt,
+            rememberMe,
           }
         }));
       }

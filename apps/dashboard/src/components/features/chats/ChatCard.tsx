@@ -7,11 +7,13 @@ import { useFolderStore } from '@/store/useFolderStore';
 import { usePathname } from 'next/navigation';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
+import { MessageContent } from './MessageContent';
+import { analyzeChatContent } from '../../../utils/chatAnalysis';
 import { 
   MoreVertical, CheckSquare, Trash2, 
   Archive, ArchiveRestore, Sparkles, ExternalLink,
   FolderInput, Edit2, X, Check, AlertTriangle, FileText,
-  Folder as DefaultFolderIcon, Link as LinkIcon, Square, Download,
+  Folder as DefaultFolderIcon, Link as LinkIcon, Square, Download, Maximize, Minimize,
   // Dev
   Code, Terminal, Cpu, Database, Server,
   // Art
@@ -88,6 +90,7 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [isHighlighted, setIsHighlighted] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Editing Title
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -100,6 +103,7 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
   const [isEditingInModal, setIsEditingInModal] = useState(false);
   const [modalContent, setModalContent] = useState(chat.content || '');
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const modalContentRef = useRef<HTMLDivElement>(null);
 
   // Editing URL
   const [isEditingUrl, setIsEditingUrl] = useState(false);
@@ -165,8 +169,9 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
     }
   }, [pathname, chat.id]);
 
-  // AI Analysis Logic
-  const handleAIAnalyze = async () => {
+  // AI Analysis Logic (Server-side)
+  const handleAIAnalyze = async (e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!chat.content) return;
     setIsAnalyzing(true);
     setAnalysisStatus('Generating Title...');
@@ -231,6 +236,41 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
     }
     setIsEditingDesc(false);
   };
+  // URL Editing Logic
+  const handleUrlSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (editedUrl !== chat.url) {
+      await updateChat(chat.id, { url: editedUrl });
+    }
+    setIsEditingUrl(false);
+  };
+
+  // Local Analysis Logic (Regex-based)
+  const handleAnalyze = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (isAnalyzing || !chat.messages || !Array.isArray(chat.messages) || chat.messages.length === 0) return;
+
+    setIsAnalyzing(true);
+    try {
+      const result = analyzeChatContent(chat.messages as any[]);
+      
+      const updateData: any = {
+        tasks: result.tasks.length > 0 ? result.tasks : chat.tasks
+      };
+
+      // Only update summary if we have a valid regex-generated one and existing summary is empty
+      if (result.summary && !chat.summary) {
+        updateData.summary = result.summary;
+      }
+
+      await updateChat(chat.id, updateData);
+      
+    } catch (error) {
+      console.error('Analysis failed:', error);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
   // Modal content save
   const handleSaveModalContent = async () => {
     if (modalContent !== chat.content) {
@@ -272,11 +312,6 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
     }, 10);
   };
 
-  // URL Editing Logic
-  const handleUrlSave = async () => {
-    await updateChat(chat.id, { url: editedUrl.trim() || undefined });
-    setIsEditingUrl(false);
-  };
 
   // Move Folder Logic
   const handleMoveFolder = async (folderId?: string) => {
@@ -425,10 +460,27 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
           </div>
         )}
 
-        {/* Header */}
         <div className="flex justify-between items-start mb-3">
-          <div className="flex gap-2 items-center">
+          <div className="flex gap-2 items-center flex-wrap">
             <PlatformBadge platform={(chat.platform || Platform.Other) as Platform} />
+            
+            {/* Analyze Button */}
+            {chat.messages && Array.isArray(chat.messages) && chat.messages.length > 0 && (
+              <button
+                onClick={handleAnalyze}
+                disabled={isAnalyzing}
+                className={`p-1 rounded-full border transition-all ${
+                  isAnalyzing 
+                    ? 'border-cyan-500/50 text-cyan-500 animate-pulse bg-cyan-500/10' 
+                    : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:text-cyan-500 hover:border-cyan-500/50 hover:bg-cyan-500/5'
+                }`}
+                title="Analyze Chat (Generate Summary & Tasks)"
+              >
+                <Sparkles size={12} className={isAnalyzing ? 'animate-spin-slow' : ''} />
+              </button>
+            )}
+
+
             {folder && (
               <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${folderStyleClass}`}>
                 <FolderIconComp size={10} />
@@ -532,13 +584,13 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
             </div>
           ) : (
             <>
-              {chat.content ? (
+              {chat.summary || chat.content ? (
                 <div 
                   className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 cursor-text"
                   onClick={() => setIsEditingDesc(true)}
                   title="Click to edit description"
                 >
-                  {chat.content}
+                  {chat.summary || chat.content}
                 </div>
               ) : (
                 <p 
@@ -598,9 +650,16 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
             </div>
           ) : (
             <div className="pt-4 border-t border-slate-200 dark:border-white/5 flex justify-between items-center">
-              <span className="text-xs text-slate-500">
-                {chat.created_at ? new Date(chat.created_at).toLocaleDateString() : 'N/A'}
-              </span>
+              <div className="flex gap-3 items-center">
+                <span className="text-xs text-slate-500">
+                  {chat.created_at ? new Date(chat.created_at).toLocaleDateString() : 'N/A'}
+                </span>
+                {chat.messages && Array.isArray(chat.messages) && chat.messages.length > 0 && (
+                  <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                    {chat.messages.length} msg{chat.messages.length !== 1 ? 's' : ''}
+                  </span>
+                )}
+              </div>
               
               <div className="flex gap-2">
                 {chat.url && (
@@ -649,22 +708,34 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
             }
           }}
         >
-          <div className="bg-white dark:bg-slate-900 rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+          <div className={`bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full overflow-hidden flex flex-col transition-all ${
+            isFullscreen ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'
+          }`}>
             <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
               <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{chat.title}</h2>
-              <button
-                onClick={() => {
-                  setShowViewModal(false);
-                  setIsEditingInModal(false);
-                  setModalContent(chat.content || '');
-                }}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setIsFullscreen(!isFullscreen)}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                  title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
+                >
+                  {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setIsEditingInModal(false);
+                    setModalContent(chat.content || '');
+                    setIsFullscreen(false);
+                  }}
+                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900/50">
+            <div ref={modalContentRef} className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900/50">
               {isEditingInModal ? (
                 <textarea
                   ref={textareaRef}
@@ -686,11 +757,7 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
                             <div className="text-[10px] uppercase tracking-wider font-bold mb-1 opacity-70">
                               {msg.role === 'user' ? 'You' : (chat.platform || 'Assistant').toUpperCase()}
                             </div>
-                            <div className="prose dark:prose-invert prose-sm max-w-none break-words"
-                              dangerouslySetInnerHTML={{ 
-                                __html: DOMPurify.sanitize(marked.parse(msg.content || '') as string) 
-                              }}
-                            />
+                            <MessageContent content={msg.content || ''} />
                             {msg.metadata?.images && Array.isArray(msg.metadata.images) && msg.metadata.images.length > 0 && (
                                 <div className="mt-3 grid grid-cols-2 gap-2">
                                     {msg.metadata.images.map((img: string, i: number) => (
@@ -834,3 +901,4 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
     </>
   );
 };
+

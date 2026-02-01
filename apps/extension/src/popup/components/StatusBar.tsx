@@ -1,8 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 
 export default function StatusBar() {
   const { isConnected, userEmail, sync, logout } = useAuth();
+  const [isSyncing, setIsSyncing] = useState(false);
+
+  const handleSync = async () => {
+    setIsSyncing(true);
+    await sync();
+    // Keep spinning for visual feedback
+    setTimeout(() => setIsSyncing(false), 800);
+  };
 
   return (
     <div className="space-y-3">
@@ -19,11 +27,25 @@ export default function StatusBar() {
           </span>
         </div>
         <button
-          onClick={sync}
-          className="text-slate-400 hover:text-slate-200 transition-colors text-sm"
-          title="Sync Auth"
+          onClick={handleSync}
+          disabled={isSyncing}
+          className={`text-slate-400 hover:text-cyan-400 transition-all hover:scale-110 active:scale-95 ${
+            isSyncing ? 'animate-spin text-cyan-400' : ''
+          }`}
+          title="Sync Auth Token"
         >
-          🔄
+          <svg 
+            width="18" 
+            height="18" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+          >
+            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+          </svg>
         </button>
       </div>
 

@@ -833,28 +833,6 @@
         return true; // Keep channel open for async response
       }
 
-
-      // triggerSaveChat removed - use context menu instead
-
-
-      if (request.action === 'openCreatePromptDialog') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to create prompt from selection');
-        
-        const { selectedText } = request;
-        
-        if (!selectedText || selectedText.trim().length === 0) {
-          showNotification('No text selected', 'warning');
-          sendResponse({ success: false, error: 'No text selected' });
-          return true;
-        }
-        
-        // Show create prompt dialog
-        showCreatePromptDialog(selectedText);
-        sendResponse({ success: true });
-        
-        return true;
-      }
-
       return false;
     });
 

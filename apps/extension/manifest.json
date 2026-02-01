@@ -14,6 +14,7 @@
     "activeTab"
   ],
   "host_permissions": [
+    "http://localhost:3000/*",
     "https://brainbox-alpha.vercel.app/*",
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",

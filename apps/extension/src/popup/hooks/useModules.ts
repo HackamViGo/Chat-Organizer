@@ -24,6 +24,11 @@ export function useModules() {
     setModules((prev) => {
       const newState = { ...prev, chats: !prev.chats };
       chrome.storage.local.set({ modulesEnabled: newState });
+      // Notify background to update context menus
+      chrome.runtime.sendMessage({ 
+        action: 'updateModuleState', 
+        modules: newState 
+      }).catch(() => {});
       return newState;
     });
   };
@@ -32,6 +37,11 @@ export function useModules() {
     setModules((prev) => {
       const newState = { ...prev, prompts: !prev.prompts };
       chrome.storage.local.set({ modulesEnabled: newState });
+      // Notify background to update context menus
+      chrome.runtime.sendMessage({ 
+        action: 'updateModuleState', 
+        modules: newState 
+      }).catch(() => {});
       return newState;
     });
   };

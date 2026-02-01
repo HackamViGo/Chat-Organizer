@@ -18,8 +18,8 @@ export default function Actions() {
         <span>OPEN DASHBOARD</span>
       </button>
 
-      {/* Download Section */}
-      <div className="flex items-center gap-2">
+      {/* TODO: Enable when ready - Download Section */}
+      {/* <div className="flex items-center gap-2">
         <button className="flex-1 bg-slate-800/50 text-slate-300 text-sm py-2 rounded-lg border border-slate-700/50 hover:bg-slate-800/70 transition-colors flex items-center justify-center gap-1">
           <span>💾</span>
           <span>Download Selection</span>
@@ -29,13 +29,13 @@ export default function Actions() {
           <option>.txt</option>
           <option>.json</option>
         </select>
-      </div>
+      </div> */}
 
-      {/* Batch Pictures (Ghost Button) */}
-      <button className="w-full text-slate-400 hover:text-slate-300 text-sm py-2 rounded-lg border border-slate-700/30 hover:border-slate-600/50 transition-all duration-200 flex items-center justify-center gap-2">
+      {/* TODO: Enable when ready - Batch Pictures */}
+      {/* <button className="w-full text-slate-400 hover:text-slate-300 text-sm py-2 rounded-lg border border-slate-700/30 hover:border-slate-600/50 transition-all duration-200 flex items-center justify-center gap-2">
         <span>🖼️</span>
         <span>Batch Pictures</span>
-      </button>
+      </button> */}
     </div>
   );
 }

@@ -1,30 +1,14 @@
 /// <reference types="chrome"/>
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
+import { useTheme } from '../hooks/useTheme';
 
 export default function Header() {
-  const [theme, setTheme] = useState<'light' | 'dark'>('dark');
-
-  // Load theme from storage on mount
-  useEffect(() => {
-    chrome.storage.local.get(['theme'], (result) => {
-      if (result.theme) {
-        setTheme(result.theme);
-      }
-    });
-  }, []);
+  const { theme, toggleTheme } = useTheme();
 
   const handleSettings = () => {
     // Open dashboard settings page
     chrome.tabs.create({ url: 'https://brainbox-alpha.vercel.app/settings' });
-  };
-
-  const handleThemeToggle = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    // Store theme preference
-    chrome.storage.local.set({ theme: newTheme });
-    console.log('[Popup] Theme toggled to:', newTheme);
   };
 
   return (
@@ -47,7 +31,7 @@ export default function Header() {
             ⚙️
           </button>
           <button
-            onClick={handleThemeToggle}
+            onClick={toggleTheme}
             className="text-slate-400 hover:text-slate-200 transition-colors cursor-pointer"
             title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
             aria-label="Toggle theme"

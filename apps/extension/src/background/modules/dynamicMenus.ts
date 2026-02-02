@@ -9,6 +9,7 @@
  */
 import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import { enhancePrompt } from './dashboardApi';
+import { CONFIG } from '../../lib/config.js';
 
 // We need a way to message the tab, currently utilizing the service worker's helper or rewriting it here.
 // For now, we'll assume we can emit a message or use chrome.tabs.
@@ -233,6 +234,20 @@ export class DynamicMenus {
     async handleMenuClick(info: chrome.contextMenus.OnClickData, tab?: chrome.tabs.Tab) {
         if (!tab || !tab.id) return;
 
+        // Check login state for protected actions
+        const protectedActions = ['brainbox_save_chat', 'brainbox_create_prompt', 'brainbox_enhance_selection', 'brainbox_inject_search'];
+        const isProtected = protectedActions.includes(info.menuItemId as string) || 
+                           (typeof info.menuItemId === 'string' && info.menuItemId.startsWith('brainbox_inject_prompt_'));
+
+        if (isProtected) {
+            const { accessToken } = await chrome.storage.local.get(['accessToken']);
+            if (!accessToken) {
+                if (this.DEBUG_MODE) console.warn('[DynamicMenus] ⛔ User not logged in, redirecting...');
+                chrome.tabs.create({ url: `${CONFIG.API_BASE_URL}/auth/signin?redirect=/extension-auth` });
+                return;
+            }
+        }
+
         // ========================================================================
         // SAVE CHAT - Trigger save flow in content script
         // ========================================================================
@@ -264,13 +279,31 @@ export class DynamicMenus {
             if (!selectedText) return;
 
             try {
+                // Show loading toast in the active tab
+                chrome.tabs.sendMessage(tab.id, { 
+                    action: 'showNotification', 
+                    message: '✨ Enhancing selection...', 
+                    type: 'info',
+                    duration: 0 // Persist until we manually remove or update
+                });
+
                 const enhanced = await enhancePrompt(selectedText);
+
+                // Send the result to the content script for injection
                 chrome.tabs.sendMessage(tab.id, {
                     action: 'injectPrompt',
-                    prompt: { content: enhanced } // Reuses injection logic
+                    prompt: { content: enhanced }
                 });
+
+                // Standard notifications handle the "Success" part if needed, 
+                // but we definitely want to clear the loading one
             } catch (err) {
                 console.error('[DynamicMenus] ❌ Enhance failed:', err);
+                chrome.tabs.sendMessage(tab.id, { 
+                    action: 'showNotification', 
+                    message: '❌ Failed to enhance selection.', 
+                    type: 'error' 
+                });
             }
             return;
         }

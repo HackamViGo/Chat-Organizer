@@ -456,11 +456,19 @@
               <textarea id="brainbox-prompt-content" rows="6" placeholder="Enter prompt content...">${escapeHtml(selectedText)}</textarea>
             </div>
             <div class="brainbox-create-prompt-field">
-              <label for="brainbox-prompt-folder">Save to Folder</label>
-              <select id="brainbox-prompt-folder" class="brainbox-folder-select">
-                <option value="">(No folder - Root)</option>
-                ${folderOptions}
-              </select>
+              <label>Save to Folder</label>
+              <div id="brainbox-prompt-folder-list" class="brainbox-folder-selection-list">
+                <div class="brainbox-folder-option selected" data-folder-id="">
+                  <span class="folder-icon">📂</span>
+                  <span class="folder-name">(No folder - Root)</span>
+                </div>
+                ${folders.map(f => `
+                  <div class="brainbox-folder-option" data-folder-id="${f.id}">
+                    <span class="folder-icon">📁</span>
+                    <span class="folder-name">${escapeHtml(f.name)}</span>
+                  </div>
+                `).join('')}
+              </div>
             </div>
             <div class="brainbox-create-prompt-field">
               <label for="brainbox-prompt-use-in-context-menu" style="display: flex; align-items: center; cursor: pointer;">
@@ -486,7 +494,17 @@
       const overlay = dialog.querySelector('.brainbox-prompt-menu-overlay');
       const titleInput = dialog.querySelector('#brainbox-prompt-title');
       const contentTextarea = dialog.querySelector('#brainbox-prompt-content');
-      const folderSelect = dialog.querySelector('#brainbox-prompt-folder');
+      const folderListContainer = dialog.querySelector('#brainbox-prompt-folder-list');
+      let selectedFolderId = "";
+
+      // Handle folder selection in custom list
+      folderListContainer.querySelectorAll('.brainbox-folder-option').forEach(opt => {
+        opt.addEventListener('click', () => {
+          folderListContainer.querySelectorAll('.brainbox-folder-option').forEach(el => el.classList.remove('selected'));
+          opt.classList.add('selected');
+          selectedFolderId = opt.dataset.folderId;
+        });
+      });
       
       const closeDialog = () => {
         dialog.remove();
@@ -513,7 +531,7 @@
         }
         
         const useInContextMenu = dialog.querySelector('#brainbox-prompt-use-in-context-menu').checked;
-        const folderId = folderSelect.value || null;
+        const folderId = selectedFolderId || null;
         
         // Disable button during save
         saveButton.disabled = true;
@@ -799,6 +817,10 @@
       if (request.action === 'injectPrompt') {
         if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to inject prompt');
         
+        // Clear any existing loading notifications
+        const existingNotifications = document.querySelectorAll('.brainbox-prompt-notification');
+        existingNotifications.forEach(n => n.remove());
+
         if (request.prompt) {
           injectPrompt(request.prompt);
           sendResponse({ success: true });
@@ -930,6 +952,12 @@
         fetchPrompts().then(prompts => {
           showPromptMenu(prompts, { mode });
         });
+        sendResponse({ success: true });
+        return true;
+      }
+
+      if (request.action === 'showNotification') {
+        showNotification(request.message, request.type, request.duration);
         sendResponse({ success: true });
         return true;
       }
@@ -1411,6 +1439,50 @@
         border-top: 1px solid #e5e7eb;
       }
 
+      .brainbox-folder-selection-list {
+        max-height: 180px; /* Approx 5 items (36px each) */
+        overflow-y: auto;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        background: #f9fafb;
+      }
+
+      .brainbox-folder-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px;
+        cursor: pointer;
+        transition: all 0.2s;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        color: #4b5563;
+      }
+
+      .brainbox-folder-option:last-child {
+        border-bottom: none;
+      }
+
+      .brainbox-folder-option:hover {
+        background: #f3f4f6;
+      }
+
+      .brainbox-folder-option.selected {
+        background: #e0e7ff;
+        color: #4f46e5;
+        font-weight: 600;
+      }
+
+      .brainbox-folder-option .folder-icon {
+        font-size: 16px;
+      }
+
+      .brainbox-folder-option .folder-name {
+        font-size: 13px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
       .brainbox-create-prompt-cancel,
       .brainbox-create-prompt-save {
         padding: 10px 20px;
@@ -1492,6 +1564,26 @@
           border-top-color: #374151;
         }
 
+        .brainbox-folder-selection-list {
+          background: #374151;
+          border-color: #4b5563;
+        }
+
+        .brainbox-folder-option {
+          color: #9ca3af;
+          border-bottom-color: rgba(255,255,255,0.05);
+        }
+
+        .brainbox-folder-option:hover {
+          background: #4b5563;
+          color: #f3f4f6;
+        }
+
+        .brainbox-folder-option.selected {
+          background: rgba(79, 70, 229, 0.2);
+          color: #818cf8;
+        }
+
         .brainbox-create-prompt-cancel {
           background: #374151;
           color: #f3f4f6;
@@ -1510,7 +1602,11 @@
   // NOTIFICATIONS
   // ============================================================================
   
-  function showNotification(message, type = 'info') {
+  function showNotification(message, type = 'info', requestDuration) {
+    // Replace any existing notifications to avoid overlap
+    const existing = document.querySelectorAll('.brainbox-prompt-notification');
+    existing.forEach(n => n.remove());
+
     const notification = document.createElement('div');
     notification.className = `brainbox-prompt-notification brainbox-prompt-notification-${type}`;
     // Use innerHTML to support links in messages
@@ -1550,12 +1646,19 @@
     }
 
     document.body.appendChild(notification);
+    
+    // Default duration is 3 seconds, unless specified (0 = manual removal)
+    const duration = typeof requestDuration === 'number' ? requestDuration : 3000;
 
-    // Remove after 3 seconds
-    setTimeout(() => {
-      notification.style.animation = 'slideIn 0.3s ease-out reverse';
-      setTimeout(() => notification.remove(), 300);
-    }, 3000);
+    if (duration > 0) {
+      // Remove after duration
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.style.animation = 'slideIn 0.3s ease-out reverse';
+          setTimeout(() => notification.remove(), 300);
+        }
+      }, duration);
+    }
   }
 
   // ============================================================================

@@ -14,6 +14,7 @@ export default defineConfig({
       '@brainbox/shared/schemas': resolve(__dirname, '../../packages/shared/schemas.js'),
       '@brainbox/shared/logic': resolve(__dirname, '../../packages/shared/src/logic'),
       '@brainbox/shared': resolve(__dirname, '../../packages/shared'),
+      '@': resolve(__dirname, './src'),
     },
   },
   build: {

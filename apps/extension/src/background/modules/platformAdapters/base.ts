@@ -26,7 +26,7 @@ export interface Message {
  */
 export interface IPlatformAdapter {
     readonly platform: string;
-    fetchConversation(id: string, url?: string): Promise<Conversation>;
+    fetchConversation(id: string, url?: string, payload?: any): Promise<Conversation>;
 }
 
 /**
@@ -64,5 +64,5 @@ export abstract class BasePlatformAdapter implements IPlatformAdapter {
     /**
      * Fetch conversation from platform API
      */
-    abstract fetchConversation(id: string, url?: string): Promise<Conversation>;
+    abstract fetchConversation(conversationId: string, url?: string, payload?: any): Promise<Conversation>;
 }

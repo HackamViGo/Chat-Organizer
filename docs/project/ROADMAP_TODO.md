@@ -96,16 +96,16 @@
 
 ---
 
-## 🌐 9. Пълна поддръжка на AI платформи (Full Support) — [⚠️ ПЛАНИРАНО]
-Поддръжка на **Save**, **Inject** и **Context Actions** за:
-1. [ ] ChatGPT — ✅ (Save) / ⚠️ (Inject)
-2. [ ] Gemini — ⚠️ (Partial)
-3. [ ] Claude — ✅ (Save) / ⚠️ (Inject)
-4. [ ] Grok — ⚠️ Планирано
-5. [ ] Perplexity — ⚠️ Планирано
-6. [ ] LMArena — ⚠️ Планирано
-7. [ ] DeepSeek — ⚠️ Планирано
-8. [ ] Qwen — ⚠️ Планирано
+## 🌐 9. Пълна поддръжка на AI платформи (Full Support) — [✅ ГОТОВО (v2.1.2)]
+Поддръжка на **Save Chat** (Context Menu) и **Scraping Fallbacks** за:
+1. [x] ChatGPT — ✅ (Save) / ⚠️ (Inject)
+2. [x] Gemini — ✅ (Save) / ⚠️ (Inject)
+3. [x] Claude — ✅ (Save) / ⚠️ (Inject)
+4. [x] Grok — ✅ (Save via Scraping)
+5. [x] Perplexity — ✅ (Save via Scraping)
+6. [x] LMArena — ✅ (Save via Scraping)
+7. [x] DeepSeek — ✅ (Save via Scraping)
+8. [x] Qwen — ✅ (Save via Scraping)
 
 ---
 

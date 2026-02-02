@@ -60,7 +60,7 @@ flowchart LR
 #### Code Reference
 
 **Extension (Service Worker)**:
-`apps/extension/src/background/service-worker.js` listens for `setAuthToken`.
+`apps/extension/src/background/service-worker.ts` delegates to `AuthManager` modules.
 
 **Dashboard (Auth Page)**:
 `apps/dashboard/src/app/extension-auth/page.tsx` exposes session to content script (securely).
@@ -107,7 +107,7 @@ The Dashboard uses `DataProvider.tsx` to subscribe to database changes.
 **Constraint**: Must match `@brainbox/validation` schema.
 
 ```typescript
-// See @brainbox/validation/src/chat.ts
+// See packages/validation/src/index.ts (re-exports chat schemas)
 interface CreateChatInput {
     title: string;
     content: string;
@@ -130,4 +130,4 @@ interface CreateChatInput {
 - **Manifest V3**: No inline scripts. logic isolated in Service Worker.
 
 ---
-**Version**: v2.1.2
+**Version**: v.2.1.3

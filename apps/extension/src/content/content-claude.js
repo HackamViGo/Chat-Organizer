@@ -514,7 +514,7 @@
                 showToast('No conversation detected on this page', 'warning');
                 sendResponse({ success: false, error: 'No conversation ID found' });
             }
-            return true;
+            return; // No async response needed as sendResponse was called
         }
     });
 

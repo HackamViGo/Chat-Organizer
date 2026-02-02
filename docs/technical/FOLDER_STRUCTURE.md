@@ -13,53 +13,45 @@ brainbox/
 │   │   │   ├── store/              # Zustand stores
 │   │   │   └── types/              # TypeScript types
 │   │   ├── next.config.js
-│   │   └── package.json            # workspace:* deps
+│   │   └── package.json            # @brainbox/dashboard
 │   │
 │   └── extension/                  # Chrome Extension (Vite)
 │       ├── src/                    # Extension source
 │       │   ├── background/         # Service worker
+│       │   │   └── modules/        # Modular service worker logic
 │       │   ├── content/            # Content scripts
-│       │   ├── lib/                # normalizers.js, schemas.js
+│       │   ├── lib/                # normalizers.js, config.js, etc.
 │       │   ├── prompt-inject/      # Prompt injection logic
 │       │   └── ui/                 # popup.html, popup.js
 │       ├── manifest.json           # MV3 manifest
-│       ├── package.json            # workspace:* deps
+│       ├── package.json            # @brainbox/extension
 │       └── vite.config.ts          # CRXJS plugin config
 │
 ├── packages/                       # Shared libraries (The Bridges)
-│   ├── database/                   # @brainbox/database
-│   │   ├── database.types.ts       # Supabase generated types
-│   │   ├── index.ts                # Re-exports
+│   ├── database/                   # @brainbox/database (Supabase types)
+│   │   ├── database.types.ts
 │   │   └── package.json
 │   │
-│   ├── validation/                 # @brainbox/validation
+│   ├── validation/                 # @brainbox/validation (Zod schemas)
 │   │   ├── src/
-│   │   │   ├── index.ts            # Re-exports all schemas
-│   │   │   ├── chat.ts             # createChatSchema, updateChatSchema
-│   │   │   ├── prompt.ts           # Prompt schemas
-│   │   │   └── folder.ts           # Folder schemas
+│   │   │   └── index.ts            # Re-exports (chat, prompt, folder)
 │   │   └── package.json
 │   │
-│   └── shared/                     # @brainbox/shared
+│   └── shared/                     # @brainbox/shared (Logic & Common Types)
 │       ├── src/
-│       │   ├── index.ts            # Re-exports
-│       │   └── schemas.js          # Extension schemas (legacy)
+│       │   ├── logic/              # Shared business logic
+│       │   └── types/              # Centralized interface definitions
 │       └── package.json
 │
 ├── docs/                           # Documentation ("The Brain")
 │   ├── technical/                  # Architecture docs
-│   │   ├── CONTEXT_MAP.md          # Dependency diagram
-│   │   ├── DATA_SCHEMA.md          # Identity-Locked fields
-│   │   ├── FOLDER_STRUCTURE.md     # This file
-│   │   └── SYNC_PROTOCOL.md        # Extension <-> Dashboard sync
 │   └── user/                       # User-facing docs
 │
 ├── scripts/                        # Build & validation
-│   ├── verification.py             # Identity-Lock & CSP checks
-│   └── setup-verification-hook.sh  # Pre-commit hook installer
+│   └── verification.py             # Identity-Lock & CSP checks
 │
 ├── turbo.json                      # Turborepo config
-├── package.json                    # Root package (v2.1.0)
+├── package.json                    # Root package (v2.1.3)
 └── pnpm-workspace.yaml             # Workspace definition
 ```
 
@@ -67,7 +59,7 @@ brainbox/
 
 ### Path Aliases
 - **Dashboard**: `@/*` (dashboard-only) + `@brainbox/*` (shared packages)
-- **Extension**: `@brainbox/shared` (workspace alias)
+- **Extension**: `@brainbox/shared`, `@brainbox/validation` (workspace aliases)
 
 ### Build Commands
 ```bash
@@ -76,8 +68,8 @@ pnpm turbo dev              # Run all apps in dev mode
 pnpm turbo build            # Build all apps
 
 # Individual apps
-pnpm turbo dev --filter=@brainbox/dashboard
-pnpm turbo build --filter=@brainbox/extension
+pnpm dev:dashboard          # Start dashboard dev server
+pnpm build:extension        # Build extension
 ```
 
 ### Verification

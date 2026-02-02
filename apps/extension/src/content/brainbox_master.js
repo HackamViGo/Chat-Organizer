@@ -115,8 +115,18 @@
     
     // ========== XMLHttpRequest Intercept ==========
     XMLHttpRequest.prototype.open = function(method, url, ...args) {
-      this._brainbox_url = url;
-      this._brainbox_method = method;
+      if (typeof url === 'string') {
+        const isTarget = url.includes('batchexecute') || 
+                        url.includes('chat_session/get_session') || 
+                        url.includes('chat/completion') || 
+                        url.includes('grok/') || 
+                        url.includes('api/predict') || 
+                        url.includes('qwen');
+        if (isTarget) {
+          this._brainbox_url = url;
+          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Targeting XHR:', url);
+        }
+      }
       return originalOpen.apply(this, [method, url, ...args]);
     };
     
@@ -157,9 +167,17 @@
     window.fetch = async function(url, options = {}) {
       const urlStr = (url && typeof url.toString === 'function') ? url.toString() : '';
       
-      if (urlStr && urlStr.includes('batchexecute')) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Captured Fetch batchexecute:', urlStr);
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Captured Fetch batchexecute:', urlStr);
+      const isTargetFetch = urlStr && (
+        urlStr.includes('batchexecute') || 
+        urlStr.includes('chat_session/get_session') || 
+        urlStr.includes('chat/completion') || 
+        urlStr.includes('grok/') || 
+        urlStr.includes('api/predict') || 
+        urlStr.includes('qwen')
+      );
+
+      if (isTargetFetch) {
+        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Captured Target Fetch:', urlStr);
         
         // Capture request body (non-blocking)
         if (options && options.body) {
@@ -252,8 +270,18 @@
         processed: false
       });
       
-      // Process response
-      await processBatchexecuteResponse(responseText);
+      // Process response based on platform
+      if (url.includes('batchexecute')) {
+        await processBatchexecuteResponse(responseText);
+      } else if (url.includes('deepseek.com')) {
+        await processDeepSeekResponse(responseText, url);
+      } else if (url.includes('x.com/i/api') || url.includes('grok')) {
+        await processGrokResponse(responseText, url);
+      } else if (url.includes('perplexity.ai')) {
+        await processPerplexityResponse(responseText, url);
+      } else if (url.includes('qwenlm.ai') || url.includes('qwen')) {
+        await processQwenResponse(responseText, url);
+      }
       
     } catch (error) {
       console.error('[🧠 BrainBox Master] Error processing response:', error);
@@ -400,6 +428,65 @@
     } catch (error) {
       console.error('[🧠 BrainBox Master] Error processing inner JSON:', error);
     }
+  }
+
+  // ============================================================================
+  // PLATFORM SPECIFIC PROCESSORS
+  // ============================================================================
+
+  async function processDeepSeekResponse(text, url) {
+    try {
+      const data = JSON.parse(text);
+      let session_id = new URL(url).searchParams.get('session_id');
+      
+      if (data && data.data && data.data.selection_list) {
+        await processConversation({
+          conversationId: session_id || `ds_${Date.now()}`,
+          platform: 'deepseek',
+          fullData: data,
+          messages: data.data.selection_list
+        });
+      }
+    } catch (e) {}
+  }
+
+  async function processGrokResponse(text, url) {
+    try {
+      const data = JSON.parse(text);
+      if (data && (data.items || data.conversation)) {
+        await processConversation({
+          conversationId: data.conversation_id || data.id || `grok_${Date.now()}`,
+          platform: 'grok',
+          fullData: data
+        });
+      }
+    } catch (e) {}
+  }
+
+  async function processPerplexityResponse(text, url) {
+    try {
+      const data = JSON.parse(text);
+      if (data && data.thread) {
+        await processConversation({
+          conversationId: data.thread.id || data.thread.slug || `pplx_${Date.now()}`,
+          platform: 'perplexity',
+          fullData: data
+        });
+      }
+    } catch (e) {}
+  }
+
+  async function processQwenResponse(text, url) {
+    try {
+      const data = JSON.parse(text);
+      if (data && (data.messages || data.data)) {
+        await processConversation({
+          conversationId: data.session_id || data.id || `qwen_${Date.now()}`,
+          platform: 'qwen',
+          fullData: data
+        });
+      }
+    } catch (e) {}
   }
 
   // ============================================================================

@@ -1,0 +1,308 @@
+
+> @brainbox/extension@2.1.2 test:all /home/stefanov/Projects/Chat Organizer Cursor/apps/extension
+> vitest --run --no-color
+
+
+ RUN  v2.1.9 /home/stefanov/Projects/Chat Organizer Cursor/apps/extension
+
+stdout | src/background/modules/__tests__/authManager.test.ts > AuthManager > initialize() > should register all network listeners
+[AuthManager] 🛡️ Initialized and listening.
+
+stdout | src/background/modules/__tests__/authManager.test.ts > AuthManager > initialize() > should load tokens from storage on init
+[AuthManager] 🛡️ Initialized and listening.
+
+stdout | src/background/modules/__tests__/authManager.test.ts > AuthManager > ChatGPT Token Capture > should capture Bearer token from Authorization header
+[AuthManager] 🛡️ Initialized and listening.
+
+stdout | src/background/modules/__tests__/authManager.test.ts > AuthManager > ChatGPT Token Capture > should ignore non-Bearer tokens
+[AuthManager] 🛡️ Initialized and listening.
+
+stdout | src/background/modules/__tests__/authManager.test.ts > AuthManager > Claude Org ID Capture > should extract org ID from API URL
+[AuthManager] 🛡️ Initialized and listening.
+
+stdout | src/background/modules/__tests__/authManager.test.ts > AuthManager > Claude Org ID Capture > should handle invalid URLs gracefully
+[AuthManager] 🛡️ Initialized and listening.
+
+stdout | src/background/modules/__tests__/authManager.test.ts > AuthManager > Gemini Dynamic Key Capture > should extract dynamic key from batchexecute request
+[AuthManager] 🛡️ Initialized and listening.
+
+stdout | src/background/modules/__tests__/authManager.test.ts > AuthManager > Gemini Dynamic Key Capture > should handle various key formats (5-6 chars)
+[AuthManager] 🛡️ Initialized and listening.
+
+stdout | src/background/modules/__tests__/authManager.test.ts > AuthManager > Gemini Dynamic Key Capture > should ignore non-batchexecute URLs
+[AuthManager] 🛡️ Initialized and listening.
+
+stderr | src/background/modules/__tests__/authManager.test.ts > AuthManager > syncAll() > should handle network errors gracefully
+[AuthManager] Sync ping failed: Error: Network error
+    at /home/stefanov/Projects/Chat Organizer Cursor/apps/extension/src/background/modules/__tests__/authManager.test.ts:335:48
+    at processTicksAndRejections (node:internal/process/task_queues:103:5)
+    at file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/vitest@2.1.9_@types+node@22.19.7_@vitest+ui@2.1.9_happy-dom@14.12.3_jsdom@27.4.0_terser@5.46.0/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+
+ ✓ src/background/modules/__tests__/authManager.test.ts (19 tests) 52ms
+stdout | src/background/modules/__tests__/promptInjection.test.ts
+[DashboardAPI] Using API_BASE_URL: http://localhost:3000
+
+stdout | src/background/modules/__tests__/promptInjection.test.ts > Prompt Injection Tests > Context Menu Creation > should create all required menus
+[DynamicMenus] 🖱️ Context menus initialized.
+[DynamicMenus] ✅ All context menus created
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > listen() > should register message listener
+[MessageRouter] 📡 Listening for messages...
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > setAuthToken > should store tokens and trigger prompt sync
+[MessageRouter] 📨 setAuthToken { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > setAuthToken > should handle auth errors
+[MessageRouter] 📨 setAuthToken { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/promptInjection.test.ts > Prompt Injection Tests > Context Menu Creation > should create dynamic prompt submenus
+[DynamicMenus] 🖱️ Context menus initialized.
+[DynamicMenus] ✅ All context menus created
+[DynamicMenus] ✅ All context menus created
+
+stdout | src/background/modules/__tests__/integration.test.ts > Integration Tests - End-to-End Flows > Flow 1: Login → Capture Token → Save Chat > should complete full ChatGPT save flow
+[AuthManager] 🛡️ Initialized and listening.
+
+stdout | src/background/modules/__tests__/integration.test.ts > Integration Tests - End-to-End Flows > Flow 2: Claude Org ID Discovery → Save Chat > should capture org_id and save Claude chat
+[NetworkObserver] 🕵️ Listening for Claude org_id...
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > checkDashboardSession > should return session validity
+[MessageRouter] 📨 checkDashboardSession { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > syncAll > should sync auth and prompts
+[MessageRouter] 📨 syncAll { platform: undefined, hasData: false }
+
+stderr | src/background/modules/__tests__/promptInjection.test.ts > Prompt Injection Tests > ChatGPT Prompt Injection > should require authentication for injection
+[DynamicMenus] ⛔ User not logged in, redirecting...
+
+stderr | src/background/modules/__tests__/promptInjection.test.ts > Prompt Injection Tests > Create Prompt from Selection > should require auth for creating prompts
+[DynamicMenus] ⛔ User not logged in, redirecting...
+
+stdout | src/background/modules/__tests__/promptInjection.test.ts > Prompt Injection Tests > Dynamic Menu Updates > should rebuild menus when prompts change
+[DynamicMenus] 🖱️ Context menus initialized.
+[DynamicMenus] ✅ All context menus created
+
+stdout | src/background/modules/__tests__/promptInjection.test.ts > Prompt Injection Tests > Dynamic Menu Updates > should not rebuild on unrelated storage changes
+[DynamicMenus] 🖱️ Context menus initialized.
+[DynamicMenus] ✅ All context menus created
+
+stderr | src/background/modules/__tests__/promptInjection.test.ts > Prompt Injection Tests > Error Handling > should handle sendMessage errors
+[DynamicMenus] ❌ Injection failed: Error: Tab closed
+    at /home/stefanov/Projects/Chat Organizer Cursor/apps/extension/src/background/modules/__tests__/promptInjection.test.ts:373:59
+    at file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:533:5
+    at runTest (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1056:11)
+    at runSuite (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runSuite (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1205:15)
+    at runFiles (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1262:5)
+    at startTests (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/@vitest+runner@2.1.9/node_modules/@vitest/runner/dist/index.js:1271:3)
+    at file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/vitest@2.1.9_@types+node@22.19.7_@vitest+ui@2.1.9_happy-dom@14.12.3_jsdom@27.4.0_terser@5.46.0/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:126:11
+    at withEnv (file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/node_modules/.pnpm/vitest@2.1.9_@types+node@22.19.7_@vitest+ui@2.1.9_happy-dom@14.12.3_jsdom@27.4.0_terser@5.46.0/node_modules/vitest/dist/chunks/runBaseTests.3qpJUEJM.js:90:5)
+
+ ❯ src/background/modules/__tests__/promptInjection.test.ts (13 tests | 2 failed) 223ms
+   × Prompt Injection Tests > Dynamic Menu Updates > should rebuild menus when prompts change 4ms
+     → Cannot read properties of undefined (reading '0')
+   × Prompt Injection Tests > Dynamic Menu Updates > should not rebuild on unrelated storage changes 1ms
+     → Cannot read properties of undefined (reading '0')
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > fetchPrompts > should return all prompts
+[MessageRouter] 📨 fetchPrompts { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > syncPrompts > should trigger prompt sync
+[MessageRouter] 📨 syncPrompts { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > injectGeminiMainScript > should inject script into active tab
+[MessageRouter] 📨 injectGeminiMainScript { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > injectGeminiMainScript > should handle missing tab gracefully
+[MessageRouter] 📨 injectGeminiMainScript { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > storeGeminiToken > should store token in storage
+[MessageRouter] 📨 storeGeminiToken { platform: undefined, hasData: false }
+[MessageRouter] ✅ Gemini AT token stored
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > storeGeminiToken > should handle missing token
+[MessageRouter] 📨 storeGeminiToken { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > getConversation > should fetch conversation from platform
+[MessageRouter] 📨 getConversation { platform: 'chatgpt', hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > saveToDashboard > should save conversation to dashboard
+[MessageRouter] 📨 saveToDashboard { platform: undefined, hasData: true }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > getUserFolders > should fetch user folders
+[MessageRouter] 📨 getUserFolders { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > openLoginPage > should open login page in new tab
+[MessageRouter] 📨 openLoginPage { platform: undefined, hasData: false }
+
+stdout | src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > Unknown action > should return false for unknown actions
+[MessageRouter] 📨 unknownAction { platform: undefined, hasData: false }
+
+ ❯ src/background/modules/__tests__/messageRouter.test.ts (16 tests | 2 failed) 435ms
+   × MessageRouter > getConversation > should fetch conversation from platform 4ms
+     → Cannot read properties of undefined (reading 'then')
+   × MessageRouter > saveToDashboard > should save conversation to dashboard 1ms
+     → Cannot read properties of undefined (reading 'then')
+stdout | src/background/modules/__tests__/integration.test.ts > Integration Tests - End-to-End Flows > Flow 4: Sync All Platform Tokens > should capture and verify all platform tokens
+[AuthManager] 🛡️ Initialized and listening.
+[NetworkObserver] 🕵️ Listening for Claude org_id...
+
+stderr | src/background/modules/platformAdapters/__tests__/gemini.adapter.test.ts > GeminiAdapter > fetchConversation > should handle 403 key expiration
+[GeminiAdapter] 400/403: Forbidden
+
+ ❯ src/background/modules/__tests__/integration.test.ts (6 tests | 3 failed) 8265ms
+   × Integration Tests - End-to-End Flows > Flow 1: Login → Capture Token → Save Chat > should complete full ChatGPT save flow 60ms
+     → Cannot read properties of undefined (reading 'then')
+   × Integration Tests - End-to-End Flows > Flow 2: Claude Org ID Discovery → Save Chat > should capture org_id and save Claude chat 1003ms
+     → expected undefined to be 'org-claude-xyz789' // Object.is equality
+   × Integration Tests - End-to-End Flows > Flow 4: Sync All Platform Tokens > should capture and verify all platform tokens 2ms
+     → expected undefined to be defined
+   ✓ Integration Tests - End-to-End Flows > Flow 5: Network Error Recovery > should handle API failures gracefully 3783ms
+   ✓ Integration Tests - End-to-End Flows > Flow 5: Network Error Recovery > should clear tokens on 401 3262ms
+ ✓ src/background/modules/platformAdapters/__tests__/gemini.adapter.test.ts (4 tests) 9558ms
+   ✓ GeminiAdapter > fetchConversation > should fetch conversation successfully 2454ms
+   ✓ GeminiAdapter > fetchConversation > should handle 403 key expiration 2452ms
+   ✓ GeminiAdapter > fetchConversation > should throw error when AT token is missing 2456ms
+   ✓ GeminiAdapter > fetchConversation > should throw error when dynamic key is missing 2195ms
+ ❯ src/background/modules/platformAdapters/__tests__/chatgpt.adapter.test.ts (3 tests | 2 failed) 12580ms
+   ✓ ChatGPTAdapter > fetchConversation > should fetch conversation successfully 2575ms
+   × ChatGPTAdapter > fetchConversation > should handle 401 token expiration 5003ms
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+   × ChatGPTAdapter > fetchConversation > should throw error when token is missing 5001ms
+     → Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ✓ src/background/modules/platformAdapters/__tests__/claude.adapter.test.ts (3 tests) 14192ms
+   ✓ ClaudeAdapter > fetchConversation > should fetch conversation successfully 6088ms
+   ✓ ClaudeAdapter > fetchConversation > should use provided URL when available 2829ms
+   ✓ ClaudeAdapter > fetchConversation > should throw error when org_id is missing 5274ms
+stderr | src/background/modules/platformAdapters/__tests__/platformSave.test.ts > Platform Save Flow Tests > Gemini Save Flow > should handle expired dynamic key
+[GeminiAdapter] 400/403: Forbidden
+
+ ✓ src/background/modules/platformAdapters/__tests__/platformSave.test.ts (9 tests) 21857ms
+   ✓ Platform Save Flow Tests > ChatGPT Save Flow > should save ChatGPT conversation successfully 3928ms
+   ✓ Platform Save Flow Tests > ChatGPT Save Flow > should handle ChatGPT token expiration 4527ms
+   ✓ Platform Save Flow Tests > Claude Save Flow > should save Claude conversation successfully 3262ms
+   ✓ Platform Save Flow Tests > Claude Save Flow > should handle missing org_id 3062ms
+   ✓ Platform Save Flow Tests > Gemini Save Flow > should save Gemini conversation successfully 2065ms
+   ✓ Platform Save Flow Tests > Gemini Save Flow > should handle expired dynamic key 2762ms
+   ✓ Platform Save Flow Tests > Gemini Save Flow > should handle missing AT token 2246ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 9 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  src/background/modules/__tests__/integration.test.ts > Integration Tests - End-to-End Flows > Flow 1: Login → Capture Token → Save Chat > should complete full ChatGPT save flow
+TypeError: Cannot read properties of undefined (reading 'then')
+ ❯ MessageRouter.handleGetConversation src/background/modules/messageRouter.ts:200:97
+    198| 
+    199|     private handleGetConversation(request: MessageRequest, sendRespons…
+    200|         platformAdapters.fetchConversation(request.platform, request.c…
+       |                                                                                                 ^
+    201|             .then(data => sendResponse({ success: true, data }))
+    202|             .catch(error => sendResponse({ success: false, error: erro…
+ ❯ MessageRouter.handleMessage src/background/modules/messageRouter.ts:90:29
+ ❯ src/background/modules/__tests__/integration.test.ts:127:36
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/9]⎯
+
+ FAIL  src/background/modules/__tests__/integration.test.ts > Integration Tests - End-to-End Flows > Flow 2: Claude Org ID Discovery → Save Chat > should capture org_id and save Claude chat
+AssertionError: expected undefined to be 'org-claude-xyz789' // Object.is equality
+
+- Expected: 
+"org-claude-xyz789"
+
++ Received: 
+undefined
+
+ ❯ src/background/modules/__tests__/integration.test.ts:195:39
+    193|       await vi.waitFor(() => {
+    194|         const storage = (chrome.storage.local as any)._getInternalStor…
+    195|         expect(storage.claude_org_id).toBe('org-claude-xyz789');
+       |                                       ^
+    196|       });
+    197| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/9]⎯
+
+ FAIL  src/background/modules/__tests__/integration.test.ts > Integration Tests - End-to-End Flows > Flow 4: Sync All Platform Tokens > should capture and verify all platform tokens
+AssertionError: expected undefined to be defined
+ ❯ src/background/modules/__tests__/integration.test.ts:379:37
+    377|       const storage = (chrome.storage.local as any)._getInternalStorag…
+    378|       expect(storage.chatgpt_token).toBeDefined();
+    379|       expect(storage.claude_org_id).toBeDefined();
+       |                                     ^
+    380|       expect(storage.gemini_dynamic_key).toBeDefined();
+    381|       expect(storage.gemini_at_token).toBeDefined();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/9]⎯
+
+ FAIL  src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > getConversation > should fetch conversation from platform
+TypeError: Cannot read properties of undefined (reading 'then')
+ ❯ MessageRouter.handleGetConversation src/background/modules/messageRouter.ts:200:97
+    198| 
+    199|     private handleGetConversation(request: MessageRequest, sendRespons…
+    200|         platformAdapters.fetchConversation(request.platform, request.c…
+       |                                                                                                 ^
+    201|             .then(data => sendResponse({ success: true, data }))
+    202|             .catch(error => sendResponse({ success: false, error: erro…
+ ❯ MessageRouter.handleMessage src/background/modules/messageRouter.ts:90:29
+ ❯ src/background/modules/__tests__/messageRouter.test.ts:282:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/9]⎯
+
+ FAIL  src/background/modules/__tests__/messageRouter.test.ts > MessageRouter > saveToDashboard > should save conversation to dashboard
+TypeError: Cannot read properties of undefined (reading 'then')
+ ❯ MessageRouter.handleSaveConversation src/background/modules/messageRouter.ts:207:84
+    205| 
+    206|     private handleSaveConversation(request: MessageRequest, sendRespon…
+    207|         dashboardApi.saveToDashboard(request.data, request.folderId, r…
+       |                                                                                    ^
+    208|             .then(result => sendResponse({ success: true, result }))
+    209|             .catch(error => sendResponse({ success: false, error: erro…
+ ❯ MessageRouter.handleMessage src/background/modules/messageRouter.ts:93:29
+ ❯ src/background/modules/__tests__/messageRouter.test.ts:314:30
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/9]⎯
+
+ FAIL  src/background/modules/__tests__/promptInjection.test.ts > Prompt Injection Tests > Dynamic Menu Updates > should rebuild menus when prompts change
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ src/background/modules/__tests__/promptInjection.test.ts:321:89
+    319| 
+    320|       // Trigger storage change listener
+    321|       const storageListener = (chrome.storage.onChanged.addListener as…
+       |                                                                                         ^
+    322|       storageListener(mockChanges, 'local');
+    323| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/9]⎯
+
+ FAIL  src/background/modules/__tests__/promptInjection.test.ts > Prompt Injection Tests > Dynamic Menu Updates > should not rebuild on unrelated storage changes
+TypeError: Cannot read properties of undefined (reading '0')
+ ❯ src/background/modules/__tests__/promptInjection.test.ts:343:89
+    341|       };
+    342| 
+    343|       const storageListener = (chrome.storage.onChanged.addListener as…
+       |                                                                                         ^
+    344|       storageListener(mockChanges, 'local');
+    345| 
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/9]⎯
+
+ FAIL  src/background/modules/platformAdapters/__tests__/chatgpt.adapter.test.ts > ChatGPTAdapter > fetchConversation > should handle 401 token expiration
+ FAIL  src/background/modules/platformAdapters/__tests__/chatgpt.adapter.test.ts > ChatGPTAdapter > fetchConversation > should throw error when token is missing
+Error: Test timed out in 5000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/9]⎯
+
+ Test Files  4 failed | 4 passed (8)
+      Tests  9 failed | 64 passed (73)
+   Start at  05:14:55
+   Duration  23.25s (transform 360ms, setup 135ms, collect 541ms, tests 67.16s, environment 5.97s, prepare 1.70s)
+
+ ELIFECYCLE  Command failed with exit code 1.

@@ -4,7 +4,11 @@
 export const PLATFORMS = {
     CHATGPT: 'chatgpt',
     CLAUDE: 'claude',
-    GEMINI: 'gemini'
+    GEMINI: 'gemini',
+    GROK: 'grok',
+    PERPLEXITY: 'perplexity',
+    DEEPSEEK: 'deepseek',
+    QWEN: 'qwen'
 };
 
 export const ROLES = {

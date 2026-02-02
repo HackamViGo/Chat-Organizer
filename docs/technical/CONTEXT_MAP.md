@@ -22,26 +22,31 @@
 
 ---
 
-## 1. Project Topology Overview (v2.1.0)
+## 1. Project Topology Overview (v2.1.3)
 
 ```mermaid
 graph TB
-    subgraph Extension["🧩 Chrome Extension (Vite)"]
-        SW[service-worker.js<br/>Background Logic]
+    subgraph Extension["🧩 apps/extension (Vite)"]
+        SW[service-worker.ts<br/>Entry Point]
+        subgraph SW_Modules["📦 SW Modules"]
+            MO[NetworkObserver.ts]
+            MR[MessageRouter.ts]
+            DA[dashboardApi.ts]
+        end
         CS_PLAT[Content Scripts<br/>(ChatGPT/Claude/Gemini)]
         CS_AUTH[content-dashboard-auth.js<br/>Token Bridge]
         NORM[normalizers.js<br/>Platform Parsers]
         
-        EXT_SHARED["@brainbox/shared<br/>(Imported via Alias)"]
+        EXT_SHARED["@brainbox/shared<br/>(Imported via Workspace)"]
     end
     
-    subgraph PWA["🌐 Next.js Dashboard"]
+    subgraph Dashboard["🌐 apps/dashboard (Next.js)"]
         API[src/app/api/<br/>API Routes]
         STORE[src/store/<br/>Zustand State]
         LIB_AUTH[src/lib/supabase/<br/>Supabase Client]
         
-        PWA_DB["@brainbox/database<br/>(Imported via Alias)"]
-        PWA_VAL["@brainbox/validation<br/>(Imported via Alias)"]
+        PWA_DB["@brainbox/shared<br/>(Imported via Workspace)"]
+        PWA_VAL["@brainbox/validation<br/>(Imported via Workspace)"]
     end
     
     subgraph SharedBridges["🌉 Shared Bridges (Monorepo Packages)"]
@@ -49,23 +54,22 @@ graph TB
         PKG_VAL[packages/validation]
         PKG_SHARED[packages/shared]
         
-        PKG_DB -.->|Defines Types| PWA_DB
-        PKG_VAL -.->|Defines Validation| PWA_VAL
-        PKG_SHARED -.->|Defines Schemas| EXT_SHARED
+        PKG_DB -.->|Database Types| PKG_SHARED
+        PKG_VAL -.->|Validation| Extension
+        PKG_VAL -.->|Validation| Dashboard
     end
     
     CS_PLAT -->|Captures Data| NORM
-    NORM -->|Uses Schemas| EXT_SHARED
+    NORM -->|Uses Shared Types| PKG_SHARED
     NORM -->|Sends via| SW
     
-    SW -->|POST /api/chats| API
-    SW -->|Uses Bearer Token| CS_AUTH
+    SW -->|Delegates to| SW_Modules
+    DA -->|POST /api/chats| API
+    SW -.->|Bearer Token| CS_AUTH
     
-    API -->|Validates with| PWA_VAL
-    API -->|Enforces Types| PWA_DB
+    API -->|Validates with| PKG_VAL
+    API -->|Enforces Types| PKG_SHARED
     API -->|Persists to| Supabase[(Supabase PostgreSQL)]
-    
-    API -.->|Referenced by| PKG_DB
     
     style SW fill:#ffd700,stroke:#333,stroke-width:3px
     style API fill:#4169e1,stroke:#333,stroke-width:3px
@@ -80,15 +84,15 @@ graph TB
 
 | Functionality | Owner | File Path/Package | Access Rule | Identity-Locked |
 |---------------|-------|-------------------|-------------|-----------------|
-| **Auth: Supabase Session** | PWA | `src/lib/supabase/client.ts` | Single Source of Truth | ⚠️ YES |
-| **Auth: Token Bridge** | Extension | `apps/extension/src/content/content-dashboard-auth.js` | Read-only from PWA session | ⚠️ YES |
-| **Database Types** | Shared | `@brainbox/database` | Auto-generated from Supabase | ⚠️ YES |
-| **Validation Schemas** | Shared | `@brainbox/validation` | Zod Schemas for API/UI | ⚠️ YES |
-| **Extension Schemas** | Shared | `@brainbox/shared` | Shared logic for Ext/PWA | ⚠️ YES |
-| **API: Chat Sync** | PWA | `apps/dashboard/src/app/api/chats/route.ts` | Dual auth (Bearer/cookies) | NO |
+| **Auth: Supabase Session** | Dashboard | `apps/dashboard/src/lib/supabase/client.ts` | Single Source of Truth | ⚠️ YES |
+| **Auth: Token Bridge** | Extension | `apps/extension/src/content/content-dashboard-auth.js` | Read-only from Dashboard session | ⚠️ YES |
+| **Database Types** | Shared | `packages/shared/src/types/database.ts` | Auto-generated from Supabase | ⚠️ YES |
+| **Validation Schemas** | Validation | `packages/validation/src/index.ts` | Zod Schemas for API/UI | ⚠️ YES |
+| **Extension Schemas** | Shared | `packages/shared/src/types/index.ts` | Shared logic for Ext/PWA | ⚠️ YES |
+| **API: Chat Sync** | Dashboard | `apps/dashboard/src/app/api/chats/route.ts` | Dual auth (Bearer/cookies) | NO |
 | **Platform Capture** | Extension | `apps/extension/src/content/` | Isolated content scripts | NO |
 | **Normalization** | Extension | `apps/extension/src/lib/normalizers.js` | Must output canonical schema | ⚠️ YES |
-| **Bridge: Ext→API** | Extension | `apps/extension/src/background/service-worker.js` | Token interceptors | ⚠️ YES |
+| **Bridge: Ext→API** | Extension | `apps/extension/src/background/modules/dashboardApi.ts` | Token interceptors | ⚠️ YES |
 | **Config Source** | Extension | `apps/extension/src/lib/config.js` | Configuration Master | ⚠️ YES |
 
 ### 2.1 Shared Packages (The Bridges)
@@ -155,4 +159,4 @@ Refer to previous documentation for detailed file lists.
 3.  Verity `turbo build` passes after changes.
 
 ---
-**Version**: v.2.1.0-beta
+**Version**: v.2.1.3

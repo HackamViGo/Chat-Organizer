@@ -523,3 +523,123 @@ function extractGeminiTitle(data) {
     
     return null;
 }
+// ============================================================================
+// OPENAI-COMPATIBLE NORMALIZER (Grok, DeepSeek, Qwen, Perplexity)
+// ============================================================================
+
+/**
+ * Common normalizer for OpenAI-style responses
+ */
+export function normalizeOpenAICompatible(rawData, platform) {
+    const messages = (rawData.messages || []).map(msg => {
+        return createMessage({
+            role: msg.role === 'user' ? ROLES.USER : ROLES.ASSISTANT,
+            content: msg.content,
+            timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now()
+        });
+    });
+
+    // If it's a completions-style response (single message)
+    if (rawData.choices && rawData.choices[0]) {
+        const choice = rawData.choices[0];
+        if (choice.message) {
+            messages.push(createMessage({
+                role: choice.message.role === 'user' ? ROLES.USER : ROLES.ASSISTANT,
+                content: choice.message.content,
+                timestamp: rawData.created ? rawData.created * 1000 : Date.now()
+            }));
+        }
+    }
+
+    return createConversation({
+        id: rawData.id || `conv_${Date.now()}`,
+        platform: platform,
+        title: rawData.title || (messages.length > 0 ? messages[0].content.substring(0, 50) : 'Untitled'),
+        messages: messages,
+        created_at: rawData.created ? rawData.created * 1000 : Date.now(),
+        metadata: {
+            model: rawData.model,
+            usage: rawData.usage,
+            citations: rawData.citations // Specific for Perplexity
+        }
+    });
+}
+
+export function normalizeGrok(rawData) {
+    const rawItems = rawData.items || [];
+    const messages = rawItems.map(item => {
+        return createMessage({
+            role: item.sender === 1 ? ROLES.USER : ROLES.ASSISTANT,
+            content: item.message,
+            timestamp: Date.now() // Grok history might not have per-message timestamp
+        });
+    });
+
+    return createConversation({
+        id: rawData.conversation_id || `conv_${Date.now()}`,
+        platform: PLATFORMS.GROK,
+        title: messages.length > 0 ? messages[0].content.substring(0, 50) : 'Grok Chat',
+        messages: messages,
+        created_at: Date.now()
+    });
+}
+
+export function normalizePerplexity(rawData) {
+    const thread = rawData.thread || {};
+    const messages = (thread.messages || []).map(msg => {
+        return createMessage({
+            role: msg.role === 'user' ? ROLES.USER : ROLES.ASSISTANT,
+            content: msg.text,
+            timestamp: Date.now()
+        });
+    });
+
+    return createConversation({
+        id: thread.slug || `conv_${Date.now()}`,
+        platform: PLATFORMS.PERPLEXITY,
+        title: thread.title || (messages.length > 0 ? messages[0].content.substring(0, 50) : 'Perplexity Thread'),
+        messages: messages,
+        created_at: Date.now(),
+        metadata: {
+            citations: rawData.citations
+        }
+    });
+}
+
+export function normalizeDeepSeek(rawData) {
+    const data = rawData.data || {};
+    const selectionList = data.selection_list || [];
+    const messages = selectionList.map(msg => {
+        return createMessage({
+            role: msg.role === 'user' ? ROLES.USER : ROLES.ASSISTANT,
+            content: msg.content,
+            timestamp: Date.now()
+        });
+    });
+
+    return createConversation({
+        id: data.session_id || `conv_${Date.now()}`,
+        platform: PLATFORMS.DEEPSEEK,
+        title: selectionList.length > 0 ? selectionList[0].content.substring(0, 50) : 'DeepSeek Chat',
+        messages: messages,
+        created_at: Date.now()
+    });
+}
+
+export function normalizeQwen(rawData) {
+    const messages = (rawData.messages || []).map(msg => {
+        return createMessage({
+            role: msg.role === 'user' ? ROLES.USER : ROLES.ASSISTANT,
+            content: msg.content,
+            timestamp: Date.now()
+        });
+    });
+
+    return createConversation({
+        id: rawData.session_id || `conv_${Date.now()}`,
+        platform: PLATFORMS.QWEN,
+        title: messages.length > 0 ? messages[0].content.substring(0, 50) : 'Qwen Chat',
+        messages: messages,
+        created_at: Date.now()
+    });
+}

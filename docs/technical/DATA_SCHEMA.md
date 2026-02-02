@@ -13,9 +13,9 @@
 **IDENTITY-LOCKED SCHEMA**: This document defines canonical data models that MUST NOT be modified without:
 1. Updating this document first
 2. Running database migrations (Supabase)
-3. Updating TypeScript types (`src/types/database.types.ts`)
-4. Updating API validation schemas (Zod in `src/app/api/*/route.ts`)
-5. Updating extension normalizers (`extension/lib/normalizers.js`)
+3. Updating TypeScript types (`packages/shared/src/types/database.ts`)
+4. Updating API validation schemas (Zod in `packages/validation/src/`)
+5. Updating extension normalizers (`apps/extension/src/lib/normalizers.js`)
 
 **VIOLATION OF THIS RULE = SYSTEM FAILURE**
 
@@ -136,7 +136,7 @@ erD diagram
 
 #### TypeScript Definition
 
-**File**: `src/types/index.ts:3-5`, `src/types/database.types.ts:17-82`
+**File**: `packages/shared/src/types/index.ts`, `packages/shared/src/types/database.ts`
 
 ```typescript
 export type Chat = {
@@ -171,7 +171,7 @@ export type Chat = {
 
 #### Message Structure (Nested JSON)
 
-**File**: `extension/lib/schemas.js:79-93`
+**File**: `packages/shared/src/types/index.ts`
 
 ```typescript
 interface Message {
@@ -213,7 +213,7 @@ interface Message {
 
 #### Validation Rules
 
-**Zod Schema**: `src/app/api/chats/route.ts:15-23`
+**Zod Schema**: `packages/validation/src/chat.ts`
 
 ```typescript
 const createChatSchema = z.object({
@@ -243,7 +243,7 @@ const createChatSchema = z.object({
 
 #### TypeScript Definition
 
-**File**: `src/types/index.ts:11-13`, `src/types/database.types.ts:268-318`
+**File**: `packages/shared/src/types/index.ts`, `packages/shared/src/types/database.ts`
 
 ```typescript
 export type Prompt = {
@@ -270,7 +270,7 @@ export type Prompt = {
 
 #### Validation Rules
 
-**Zod Schema**: `src/app/api/prompts/route.ts:24-30`
+**Zod Schema**: `packages/validation/src/prompt.ts`
 
 ```typescript
 const createPromptSchema = z.object({
@@ -297,7 +297,7 @@ const createPromptSchema = z.object({
 
 #### TypeScript Definition
 
-**File**: `src/types/index.ts:7-9`, `src/types/database.types.ts:83-133`
+**File**: `packages/shared/src/types/index.ts`, `packages/shared/src/types/database.ts`
 
 ```typescript
 export type Folder = {
@@ -354,7 +354,7 @@ Root Folders (parent_id = null)
 
 #### TypeScript Definition
 
-**File**: `src/types/index.ts:19-21`, `src/types/database.types.ts:319-345`
+**File**: `packages/shared/src/types/index.ts`, `packages/shared/src/types/database.ts`
 
 ```typescript
 export type User = {
@@ -389,7 +389,7 @@ export type User = {
 
 #### TypeScript Definition
 
-**File**: `src/types/index.ts:15-17`, `src/types/database.types.ts:134-187`
+**File**: `packages/shared/src/types/index.ts`, `packages/shared/src/types/database.ts`
 
 ```typescript
 export type Image = {
@@ -430,7 +430,7 @@ export type Image = {
 
 #### TypeScript Definition
 
-**File**: `src/types/index.ts:23-29`, `src/types/database.types.ts:223-267`
+**File**: `packages/shared/src/types/index.ts`, `packages/shared/src/types/database.ts`
 
 ```typescript
 export type List = {
@@ -486,16 +486,16 @@ export type ListItem = {
 
 | Entity | TypeScript Type | Zod Validation | Database Table | API Route |
 |--------|----------------|----------------|----------------|-----------|
-| **Chat** | `Chat` (src/types/index.ts) | `createChatSchema` (api/chats/route.ts:15) | `chats` | POST /api/chats |
-| **Prompt** | `Prompt` (src/types/index.ts) | `createPromptSchema` (api/prompts/route.ts:24) | `prompts` | POST /api/prompts |
-| **Folder** | `Folder` (src/types/index.ts) | `createFolderSchema` (api/folders/route.ts) | `folders` | POST /api/folders |
-| **User** | `User` (src/types/index.ts) | N/A (managed by Supabase Auth) | `users` | GET /api/user |
-| **Image** | `Image` (src/types/index.ts) | `uploadImageSchema` (api/upload/route.ts) | `images` | POST /api/upload |
-| **List** | `List` (src/types/index.ts) | `createListSchema` (api/lists/route.ts) | `lists` | POST /api/lists |
+| **Chat** | `Chat` (@brainbox/shared) | `createChatSchema` (@brainbox/validation) | `chats` | POST /api/chats |
+| **Prompt** | `Prompt` (@brainbox/shared) | `createPromptSchema` (@brainbox/validation) | `prompts` | POST /api/prompts |
+| **Folder** | `Folder` (@brainbox/shared) | `createFolderSchema` (@brainbox/validation) | `folders` | POST /api/folders |
+| **User** | `User` (@brainbox/shared) | N/A (managed by Supabase Auth) | `users` | GET /api/user |
+| **Image** | `Image` (@brainbox/shared) | `uploadImageSchema` (@brainbox/validation) | `images` | POST /api/upload |
+| **List** | `List` (@brainbox/shared) | `createListSchema` (@brainbox/validation) | `lists` | POST /api/lists |
 
 ### 3.2 Extension ↔ API Mapping
 
-**Normalizers** (`extension/lib/normalizers.js`) transform platform-specific API responses into canonical `Chat` objects:
+**Normalizers** (`apps/extension/src/lib/normalizers.js`) transform platform-specific API responses into canonical `Chat` objects:
 
 ```
 ChatGPT API Response → normalizeChatGPT() → Canonical Chat Object → POST /api/chats
@@ -505,7 +505,7 @@ Gemini API Response  → normalizeGemini()   → Canonical Chat Object → POST 
 
 ### 3.3 Schema Factories
 
-**File**: `extension/lib/schemas.js`
+**File**: `packages/shared/src/types/index.ts`
 
 ```javascript
 // Factory: Creates compliant conversation object
@@ -722,7 +722,7 @@ CREATE INDEX idx_list_items_position ON public.list_items(list_id, position);
 
 ### 6.1 ChatGPT Message Extraction
 
-**File**: `extension/lib/normalizers.js:10-70`
+**File**: `apps/extension/src/lib/normalizers.js`
 
 **Strategy**: Linear reconstruction from tree structure
 
@@ -742,7 +742,7 @@ messages.reverse();  // Oldest first
 
 ### 6.2 Claude Message Extraction
 
-**File**: `extension/lib/normalizers.js:76-101`
+**File**: `apps/extension/src/lib/normalizers.js`
 
 **Strategy**: Direct array mapping
 
@@ -758,7 +758,7 @@ const messages = rawData.chat_messages.map(msg => createMessage({
 
 ### 6.3 Gemini Message Extraction
 
-**File**: `extension/lib/normalizers.js:107-204`
+**File**: `apps/extension/src/lib/normalizers.js`
 
 **Strategy**: Recursive nested array traversal with deduplication
 
@@ -794,7 +794,7 @@ const role = determineGeminiRoleImproved(text, index, previousMessages);
    ```
 3. **Update TypeScript types**:
    ```typescript
-   // src/types/database.types.ts
+   // packages/shared/src/types/database.ts
    export type Chat = {
      ...
      ai_model: string | null;

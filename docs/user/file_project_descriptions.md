@@ -13,126 +13,71 @@ AI Platform (ChatGPT/Claude/Gemini) → Browser Extension → API Normalization 
 ### Дървовидна структура на проекта
 ```
 Chat Organizer Cursor/
-├── .cursorignore                 # Cursor IDE изключения
-├── .cursorrules.md               # Cursor AI правила за проекта
-├── .env.example                  # Шаблон за environment променливи
-├── .eslintrc.json                # ESLint конфигурация
-├── .gitattributes                # Git атрибути за файлове
-├── .gitignore                    # Git игнорирани файлове
-├── .nvmrc                        # Node.js версия за проекта
-├── .roomodes                     # Roo режим конфигурация
-├── next-env.d.ts                 # Next.js TypeScript declarations
-├── next.config.js                # Next.js конфигурация
-├── package-lock.json             # NPM dependency lock файл
-├── package.json                  # Node.js dependencies и скриптове
-├── playwright.config.ts          # Playwright E2E тест конфигурация
-├── postcss.config.js             # PostCSS конфигурация
-├── README.md                     # Основна документация на проекта
-├── setup-hooks.sh                # Development setup скрипт
-├── tailwind.config.ts            # Tailwind CSS конфигурация
-├── tsconfig.json                 # TypeScript конфигурация
-├── .roo/                         # 🔧 AI агент конфигурация
-├── dev/                          # 🛠️ Development инструменти
-│   ├── fix-node-path.sh          # Скрипт за поправка на Node.js път
-│   ├── README.md                 # Development README
-│   ├── setup-agent-system.sh     # Настройка на агент система
-│   └── setup-linux.sh            # Linux development setup
-├── docs/                         # 📚 Документация
-│   ├── agents/                   # AI агент документация
-│   ├── project/                  # Проектна документация
-│   └── user/                     # Потребителска документация
-├── extension/                    # 🌐 Browser Extension (Manifest V3)
-│   ├── background.js             # 🆕 Minimal background logger
-│   ├── content_script.js         # 🆕 Unified API interception engine
-│   ├── inject.js                 # 🆕 Network request interceptor
-│   ├── content-styles.css        # CSS стилове за content scripts
-│   ├── DEVELOPMENT.md            # Development ръководство за extension (deprecated)
-│   ├── manifest.json             # Chrome Extension Manifest V3
-│   ├── PRIVACY_POLICY.md         # Политика за поверителност
-│   ├── README.md                 # Extension README
-│   ├── TESTING.md                # Testing ръководство
-│   ├── background/               # Background scripts
-│   │   ├── authManager.js        # Authentication управление
-│   │   ├── dynamicMenus.js       # Dynamic context menus
-│   │   ├── promptSync.js         # Prompt синхронизация
-│   │   └── service-worker.js     # Service worker (orchestrator)
-│   ├── content/                  # Content scripts за AI платформи
-│   │   ├── brainbox_master.js    # Gemini майстор координатор
-│   │   ├── content-chatgpt.js    # ChatGPT content script
-│   │   ├── content-claude.js     # Claude content script
-│   │   ├── content-dashboard-auth.js # Dashboard auth content script
-│   │   └── inject-gemini-main.js # Gemini main world script
-│   ├── icons/                    # Extension икони
-│   │   ├── icon16.png            # 16x16 пиксел икона
-│   │   ├── icon32.png            # 32x32 пиксел икона
-│   │   ├── icon48.png            # 48x48 пиксел икона
-│   │   ├── icon128.png           # 128x128 пиксел икона
-│   │   └── README.md             # Icons README
-│   ├── image-saver/              # Image saver functionality
-│   │   └── image-saver.js        # 🆕 Complete image capture system
-│   ├── lib/                      # Utility libraries
-│   │   ├── normalizers.js        # API response нормализация
-│   │   ├── rate-limiter.js       # Rate limiting logic
-│   │   ├── schemas.js            # Data validation схеми
-│   │   └── ui.js                 # UI utility functions
-│   ├── prompt-inject/            # Prompt injection functionality
-│   │   └── prompt-inject.js      # Prompt injection logic
-│   └── ui/                       # Extension UI components
-│       ├── popup.html            # Extension popup HTML
-│       └── popup.js              # Extension popup JavaScript
-├── playwright-report/            # 📊 Автоматично генерирани тестови отчети
-│   └── index.html                # Playwright HTML отчет
-├── public/                       # 📦 Static assets за Next.js
-│   ├── icon-generator.html       # Icon generator HTML
-│   ├── manifest.json             # Web app manifest
-│   ├── sw.js                     # Service worker за PWA
-│   ├── workbox-4754cb34.js       # Workbox за PWA caching
-│   └── icons/                    # Web app икони
-├── scripts/                      # 🔨 Utility скриптове
-│   ├── README.md                 # Scripts README
-│   └── test-api.js               # API testing script
-├── src/                          # ⚛️ Next.js уеб приложение
-│   ├── middleware.ts             # Next.js middleware за authentication
-│   ├── app/                      # Next.js App Router
-│   │   ├── api/                  # API endpoints
-│   │   ├── archive/               # Archive page
-│   │   ├── auth/                 # Authentication pages
-│   │   ├── chats/                 # Chats page
-│   │   ├── download/              # Download page
-│   │   ├── extension-auth/        # Extension auth page
-│   │   ├── folder/                # Dynamic folder pages
-│   │   ├── images/                # Images page
-│   │   ├── lists/                 # Lists page
-│   │   ├── profile/               # Profile page
-│   │   ├── prompts/               # Prompts page
-│   │   ├── settings/              # Settings page
-│   │   ├── studio/                # Studio page
-│   │   ├── error.tsx              # Error boundary
-│   │   ├── global-error.tsx       # Global error boundary
-│   │   ├── globals.css            # Global CSS стилове
-│   │   ├── layout.tsx             # Root layout component
-│   │   ├── not-found.tsx          # 404 page
-│   │   └── page.tsx               # Home page
-│   ├── components/                # React компоненти
-│   │   ├── features/              # Feature-specific компоненти
-│   │   ├── layout/                # Layout компоненти
-│   │   └── providers/             # Context providers
-│   ├── lib/                       # Utility libraries
-│   │   ├── services/              # Business logic services
-│   │   ├── supabase/              # Database clients
-│   │   └── utils/                 # Utility functions
-│   ├── middleware.ts              # Authentication middleware
-│   ├── store/                     # Zustand state management
-│   └── types/                     # TypeScript type definitions
-├── test-results/                  # 🧪 Test резултати
-│   ├── .last-run.json            # Последно тест изпълнение
-│   └── check-rls.js              # RLS проверка
-└── tests/                        # 🧪 E2E тестове
-    ├── cursor-chrome-composer.js # Cursor Chrome composer тест
-    ├── README.md                 # Tests README
-    ├── start-chrome-debug.sh     # Chrome debug скрипт
-    └── e2e/                      # E2E тест файлове
-        └── extension.spec.ts      # Extension E2E тестове
+├── .cursorignore                 # Cursor IDE exceptions
+├── .cursorrules.md               # Cursor AI project rules
+├── .env.example                  # Environment variables template
+├── .eslintrc.json                # Root ESLint config
+├── .gitattributes                # Git attributes
+├── .gitignore                    # Git ignore rules
+├── .nvmrc                        # Node.js version
+├── .roomodes                     # Roo mode config
+├── package.json                  # Root Monorepo config (Turborepo)
+├── pnpm-lock.yaml                # PNPM lockfile
+├── pnpm-workspace.yaml           # PNPM workspace definition
+├── turbo.json                    # Turborepo pipeline config
+├── apps/                         # � APPLICATIONS
+│   ├── dashboard/                # Next.js Web App
+│   │   ├── src/                  # App source code
+│   │   │   ├── app/              # App Router pages
+│   │   │   ├── components/       # React components
+│   │   │   ├── lib/              # Dashboard-specific logic
+│   │   │   └── types/            # Local types
+│   │   ├── public/               # Static assets
+│   │   ├── next.config.js        # Next.js config
+│   │   ├── package.json          # Workspace package config
+│   │   └── tsconfig.json         # TypeScript config
+│   │
+│   └── extension/                # 🌐 Chrome Extension (Manifest V3)
+│       ├── src/                  # Extension source code
+│       │   ├── background/       # Service Worker & Modules
+│       │   │   ├── modules/      # Business logic modules
+│       │   │   │   ├── authManager.ts
+│       │   │   │   ├── dynamicMenus.ts
+│       │   │   │   └── promptSyncManager.ts
+│       │   │   └── service-worker.ts # Main Orchestrator
+│       │   ├── content/          # Content Scripts
+│       │   ├── popup/            # Extension Popup UI
+│       │   ├── lib/              # Extension-specific utils
+│       │   └── manifest.json     # Manifest V3 definition
+│       ├── public/               # Icons & assets
+│       ├── package.json          # Workspace package config
+│       ├── tsconfig.json         # TypeScript config
+│       └── vite.config.ts        # Vite build config
+│
+├── packages/                     # � SHARED PACKAGES
+│   ├── database/                 # Database schema & client
+│   ├── shared/                   # Core Shared Logic
+│   │   ├── src/
+│   │   │   ├── logic/            # Shared business logic
+│   │   │   ├── types/            # Centralized types (inc. Database)
+│   │   │   └── utils/            # Shared utilities
+│   │   ├── package.json
+│   │   └── tsconfig.json
+│   └── validation/               # Zod schemas (Shared)
+│
+├── docs/                         # 📚 DOCUMENTATION
+│   ├── agents/                   # AI Agent docs
+│   ├── project/                  # Project management docs
+│   │   ├── ROADMAP_TODO.md
+│   │   └── What_and_how_is_made.md
+│   └── user/                     # User guides & technical references
+│       └── file_project_descriptions.md
+│
+├── scripts/                      # 🛠️ GLOBAL SCRIPTS
+│   ├── verification.py           # Architecture verification
+│   └── ...
+│
+└── tests/                        # 🧪 INTEGRATION TESTS
 ```
 
 ## 🛠️ High Priority Fixes Applied (2025-01-15)
@@ -246,22 +191,48 @@ const DASHBOARD_URL = isProductionEnvironment()
 2. Uses `https://brainbox-alpha.vercel.app` as dashboard URL
 3. No manual configuration required
 
+### 🔧 Environment Configuration
+
+The BrainBox extension is configured to work seamlessly with the local development environment using a centralized configuration file.
+
+#### Development Setup
+
+1.  **Dashboard URL**: `http://localhost:3000`
+2.  **API Base URL**: `http://localhost:3000`
+
+**Implementation:**
+
+The configuration is centralized in `apps/extension/src/lib/config.js` (previously `extension/config/environment.js`):
+
+```javascript
+export const CONFIG = {
+    DASHBOARD_URL: 'http://localhost:3000', // Dev URL
+    // DASHBOARD_URL: 'https://brainbox-alpha.vercel.app', // Production URL
+    API_BASE_URL: 'http://localhost:3000', // Dev API
+    // API_BASE_URL: 'https://brainbox-alpha.vercel.app', // Production API
+    VERSION: '2.1.3'
+};
+```
+
 #### Manifest Configuration
 
-The `manifest.json` supports both environments:
+The `apps/extension/manifest.json` supports localhost permissions automatically:
 
 ```json
 {
   "host_permissions": [
-    "https://brainbox-alpha.vercel.app/*",  // Production
-    "http://localhost:3000/*"                // Development
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "https://brainbox-alpha.vercel.app/*",
+    "<all_urls>"
   ],
   "content_scripts": [
     {
       "matches": [
-        "https://brainbox-alpha.vercel.app/extension-auth",
-        "http://localhost:3000/extension-auth"
-      ]
+        "http://localhost:3000/extension-auth",
+        "https://brainbox-alpha.vercel.app/extension-auth"
+      ],
+      "js": ["src/content/content-dashboard-auth.js"]
     }
   ]
 }
@@ -269,43 +240,32 @@ The `manifest.json` supports both environments:
 
 #### Verification
 
-Check service worker console for correct environment detection:
+Check service worker console for correct URL loading:
 
 ```
-[BrainBox] Environment: production  // or 'development'
-[BrainBox] Dashboard URL: https://brainbox-alpha.vercel.app  // or 'http://localhost:3000'
+[BrainBox] Dashboard URL: http://localhost:3000
 ```
-
-**How to check:**
-1. Go to `chrome://extensions/`
-2. Find BrainBox extension
-3. Click "service worker" link
-4. Check console output
 
 #### Troubleshooting
 
 **"Failed to fetch" errors:**
-- Verify local server is running (`npm run dev`)
+- Verify local server is running (`pnpm dev:dashboard`)
 - Check that localhost:3000 is accessible
 - Verify CORS settings in Next.js configuration
-
-**Extension doesn't connect to localhost:**
-- Confirm extension is in development mode (automatic detection)
-- Reload extension after server start
-- Check service worker console for correct URL
 
 **Auth doesn't work on localhost:**
 - Ensure Supabase is configured for localhost
 - Check `.env.local` has correct Supabase keys
-- Verify redirect URLs in Supabase dashboard
 
 ### Функционална йерархия по системни роли
 
 #### **🎯 Core Logic Layer**
-- **extension/background/service-worker.js** - Главен оркестратор на разширението
-- **extension/lib/normalizers.js** - API response нормализация
-- **extension/lib/rate-limiter.js** - Rate limiting логика
-- **src/middleware.ts** - Authentication middleware
+- **apps/extension/src/background/service-worker.ts** - Главен оркестратор (Entry Point)
+- **apps/extension/src/background/modules/** - Изолирана бизнес логика:
+    - `NetworkObserver.ts` - Network sniffing
+    - `MessageRouter.ts` - Communication hub
+- **packages/shared/src/logic/** - Споделена логика (PromptSync и др.)
+- **apps/dashboard/src/middleware.ts** - Authentication routing
 
 #### **🔌 API Handling Layer**
 - **extension/background/service-worker.js** → Извличане от AI платформи
@@ -313,9 +273,10 @@ Check service worker console for correct environment detection:
 - **src/lib/supabase/** - Database абстракция
 
 #### **💾 Data Management Layer**
-- **src/store/** - Client-side state (Zustand)
-- **src/types/database.types.ts** - TypeScript database schema
-- **extension/lib/schemas.js** - Data validation схеми
+- **apps/dashboard/src/store/** - Client-side state (Zustand)
+- **packages/shared/src/types/** - Centralized TypeScript definitions
+    - `database.ts` - Supabase generated types
+- **packages/validation/** - Shared Zod schemas (Type Integrity)
 
 #### **🎨 UI Components Layer**
 - **extension/content/** - Browser extension UI injection

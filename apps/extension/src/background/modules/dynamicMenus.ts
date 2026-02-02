@@ -75,10 +75,21 @@ export class DynamicMenus {
                 title: '💾 Save Chat to BrainBox',
                 contexts: ['page'],
                 documentUrlPatterns: [
+                    // Original platforms
                     'https://chatgpt.com/*',
                     'https://chat.openai.com/*',
                     'https://claude.ai/*',
-                    'https://gemini.google.com/*'
+                    'https://gemini.google.com/*',
+                    // New platforms (2026)
+                    'https://chat.deepseek.com/*',
+                    'https://www.perplexity.ai/*',
+                    'https://*.perplexity.ai/*',
+                    'https://x.com/i/grok*',
+                    'https://grok.com/*',
+                    'https://chat.qwen.ai/*',
+                    'https://chat.lmsys.org/*',
+                    'https://arena.ai/*',
+                    'https://lmarena.ai/*'
                 ]
             });
 

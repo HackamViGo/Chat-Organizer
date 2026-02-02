@@ -1,0 +1,39 @@
+/**
+ * DynamicMenus Update - Add New Platforms
+ * 
+ * Replace the documentUrlPatterns in the "Save Chat" menu creation
+ * around line 73-83 in dynamicMenus.ts
+ */
+
+// REPLACE THIS:
+chrome.contextMenus.create({
+    id: saveChatId,
+    title: '💾 Save Chat to BrainBox',
+    contexts: ['page'],
+    documentUrlPatterns: [
+        'https://chatgpt.com/*',
+        'https://chat.openai.com/*',
+        'https://claude.ai/*',
+        'https://gemini.google.com/*'
+    ]
+});
+
+// WITH THIS:
+chrome.contextMenus.create({
+    id: saveChatId,
+    title: '💾 Save Chat to BrainBox',
+    contexts: ['page'],
+    documentUrlPatterns: [
+        // Original platforms
+        'https://chatgpt.com/*',
+        'https://chat.openai.com/*',
+        'https://claude.ai/*',
+        'https://gemini.google.com/*',
+        // New platforms (2026)
+        'https://chat.deepseek.com/*',
+        'https://www.perplexity.ai/*',
+        'https://x.com/i/grok*',
+        'https://chat.qwenlm.ai/*',
+        'https://chat.lmsys.org/*'
+    ]
+});

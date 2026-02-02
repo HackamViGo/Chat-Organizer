@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BrainBox - AI Chat Organizer",
-  "version": "2.1.3",
+  "version": "2.2.0",
   "description": "Organize AI conversations from ChatGPT, Gemini, and Claude into your personal dashboard",
   "permissions": [
     "storage",
@@ -19,6 +19,14 @@
     "https://chat.openai.com/*",
     "https://claude.ai/*",
     "https://gemini.google.com/*",
+    "https://chat.deepseek.com/*",
+    "https://x.com/*",
+    "https://grok.com/*",
+    "https://www.perplexity.ai/*",
+    "https://chat.qwenlm.ai/*",
+    "https://chat.lmsys.org/*",
+    "http://localhost/*",
+    "ws://localhost/*",
     "<all_urls>"
   ],
   "background": {
@@ -52,16 +60,55 @@
       "run_at": "document_idle"
     },
     {
+      "matches": ["https://gemini.google.com/*"],
+      "js": [
+        "lib/ui.js",
+        "content/brainbox_master.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://chat.deepseek.com/*"],
+      "js": [
+        "lib/ui.js",
+        "content/content-deepseek.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://www.perplexity.ai/*"],
+      "js": [
+        "lib/ui.js",
+        "content/content-perplexity.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
       "matches": [
-        "https://gemini.google.com/*"
+        "https://x.com/i/grok*",
+        "https://grok.com/*"
       ],
       "js": [
-        "lib/config-global.js",
         "lib/ui.js",
-        "content/brainbox_master.js",
-        "prompt-inject/prompt-inject.js"
+        "content/content-grok.js"
       ],
-      "run_at": "document_start"
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://chat.qwenlm.ai/*"],
+      "js": [
+        "lib/ui.js",
+        "content/content-qwen.js"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": ["https://chat.lmsys.org/*"],
+      "js": [
+        "lib/ui.js",
+        "content/content-lmarena.js"
+      ],
+      "run_at": "document_end"
     },
     {
       "matches": [
@@ -73,7 +120,13 @@
       ],
       "run_at": "document_idle",
       "exclude_matches": [
-        "https://gemini.google.com/*"
+        "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*",
+        "https://x.com/*",
+        "https://grok.com/*",
+        "https://www.perplexity.ai/*",
+        "https://chat.qwenlm.ai/*",
+        "https://chat.lmsys.org/*"
       ]
     },
     {
@@ -113,6 +166,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' ws://localhost:5173 http://localhost:5173 https://brainbox-alpha.vercel.app https://chatgpt.com https://chat.openai.com https://claude.ai https://gemini.google.com"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' ws://localhost:5173 http://localhost:5173 https://brainbox-alpha.vercel.app https://chatgpt.com https://chat.openai.com https://claude.ai https://gemini.google.com https://chat.deepseek.com https://x.com https://www.perplexity.ai https://chat.qwenlm.ai https://chat.lmsys.org"
   }
 }

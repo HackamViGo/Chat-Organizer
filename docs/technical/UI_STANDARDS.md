@@ -118,7 +118,7 @@ Tailwind utilities automatically handle state variations:
 
 ### 1.5 Extension Popup Gradient
 
-**File**: [`extension/ui/popup.html`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/extension/ui/popup.html#L18)
+**File**: [`apps/extension/src/ui/popup.html`](/apps/extension/src/ui/popup.html)
 
 ```css
 background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -142,7 +142,7 @@ color: #667eea; /* Matches gradient start */
 
 **Primary Font**: **JetBrains Mono** (monospace)
 
-**Declaration** ([`globals.css:80-84`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/src/app/globals.css#L80-L84)):
+**Declaration** ([`apps/dashboard/src/app/globals.css`](/apps/dashboard/src/app/globals.css)):
 ```css
 :root {
   --font-mono: 'JetBrains Mono', monospace;

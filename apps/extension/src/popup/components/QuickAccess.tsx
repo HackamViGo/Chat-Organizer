@@ -36,7 +36,7 @@ const platforms: Platform[] = [
     id: 'grok', 
     name: 'GROK', 
     icon: '𝕏', 
-    url: 'https://x.ai', 
+    url: 'https://grok.com', 
     glowClass: 'hover:bg-gradient-to-r hover:from-slate-500 hover:to-gray-600 hover:text-white hover:shadow-lg hover:shadow-slate-500/40' 
   },
   { 

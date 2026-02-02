@@ -6,7 +6,8 @@
       "@brainbox/shared": ["../../packages/shared"],
       "@brainbox/shared/schemas": ["../../packages/shared/schemas.js"],
       "@brainbox/shared/logic/*": ["../../packages/shared/src/logic/*"],
-      "@brainbox/shared/*": ["../../packages/shared/*"]
+      "@brainbox/shared/*": ["../../packages/shared/*"],
+      "@/*": ["src/*"]
     },
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "target": "ES2020",

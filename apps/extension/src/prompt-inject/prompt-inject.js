@@ -656,10 +656,27 @@
     
     // Platform-specific selectors
     const platformSelectors = {
-      'gemini.google.com': [
-        'textarea[aria-label*="Enter a prompt"]',
-        'div[contenteditable="true"][role="textbox"]',
-        'div[contenteditable="true"]'
+      'chat.deepseek.com': [
+        'textarea#chat-input',
+        'textarea[placeholder*="message"]'
+      ],
+      'x.com': [
+        'div[role="textbox"][data-testid="grok_input_field"]',
+        'div[role="textbox"]',
+        'textarea'
+      ],
+      'perplexity.ai': [
+        'textarea[placeholder*="Ask anything"]',
+        'textarea'
+      ],
+      'chat.qwenlm.ai': [
+        'textarea.qwen-input',
+        'textarea[placeholder*="Enter your prompt"]',
+        'textarea'
+      ],
+      'chat.lmsys.org': [
+        'textarea[data-testid="textbox"]',
+        'textarea'
       ],
       'chatgpt.com': [
         'textarea#prompt-textarea',
@@ -675,11 +692,6 @@
         'textarea[placeholder*="Message"]',
         'div[contenteditable="true"][role="textbox"]',
         'div[contenteditable="true"]'
-      ],
-      'x.com': [
-        'div[contenteditable="true"][role="textbox"]',
-        'div[data-testid="post-input"]',
-        'textarea'
       ]
     };
     
@@ -923,8 +935,6 @@
         // This handler acts as a fallback or universal listener.
         // Platform-specific content scripts (content-chatgpt.js, etc.) should handle the actual saving.
         // If this logs but nothing happens, it means the platform script is missing or failed.
-        
-        return true; 
       }
 
 

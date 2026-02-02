@@ -217,6 +217,11 @@ Open in browser for interactive test results with:
 ✅ ChatGPT (chatgpt.com)      - Context Menu Save, Prompt Injection
 ✅ Claude (claude.ai)         - Context Menu Save, Prompt Injection
 ✅ Gemini (gemini.google.com) - Context Menu Save, Prompt Injection
+✅ Grok (grok.com/x.com)      - Context Menu Save (Scraping Fallback)
+✅ Perplexity (perplexity.ai) - Context Menu Save (Scraping Fallback)
+✅ LMArena (arena.ai)         - Context Menu Save (Scraping Fallback)
+✅ DeepSeek (deepseek.com)    - Context Menu Save (Scraping Fallback)
+✅ Qwen (chat.qwen.ai)        - Context Menu Save (Scraping Fallback)
 ✅ Universal Compatibility  - Selection to Prompt & AI Enhance Selection work on ANY site
 ```
 

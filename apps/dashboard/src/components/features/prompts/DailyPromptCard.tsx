@@ -4,11 +4,12 @@ import React, { useState, useEffect } from 'react';
 import { Copy, Check, Bookmark, Zap, Play } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { usePromptStore } from '@/store/usePromptStore';
+import { Prompt } from '@/types';
 import './DailyPromptCard.css';
 
 interface DailyPromptCardProps {
   // We can pass current prompts to check if already saved
-  userPrompts?: any[];
+  userPrompts?: Prompt[];
 }
 
 export function DailyPromptCard({ userPrompts = [] }: DailyPromptCardProps) {

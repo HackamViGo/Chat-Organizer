@@ -6,7 +6,8 @@
       "@/*": ["./src/*"],
       "@brainbox/database": ["../../packages/database"],
       "@brainbox/validation": ["../../packages/validation"],
-      "@brainbox/shared": ["../../packages/shared"]
+      "@brainbox/shared": ["../../packages/shared"],
+      "@brainbox/shared/*": ["../../packages/shared/src/*"]
     },
     "plugins": [
       {

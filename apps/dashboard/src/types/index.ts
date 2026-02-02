@@ -1,4 +1,4 @@
-import { Database } from './database.types';
+import { Database } from '@brainbox/shared/types/database';
 
 export type Chat = Database['public']['Tables']['chats']['Row'];
 export type ChatInsert = Database['public']['Tables']['chats']['Insert'];

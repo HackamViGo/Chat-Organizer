@@ -1717,6 +1717,29 @@
         "path": "apps/extension/src/content/inject-gemini-main.js",
         "description": "Injected into MAIN world to access window variables"
       }
+    },
+    {
+      "id": "package-shared",
+      "type": "Package",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Workspace",
+        "priority": 1,
+        "identity_locked": true,
+        "path": "packages/shared",
+        "description": "Shared logic and types for Dashboard and Extension"
+      }
+    },
+    {
+      "id": "shared-types-db",
+      "type": "TypeDefinition",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Shared Types",
+        "priority": 1,
+        "path": "packages/shared/src/types/database.ts",
+        "description": "Centralized Supabase database types"
+      }
     }
   ],
 
@@ -2026,6 +2049,36 @@
       "to": "brainbox-inject-gemini-main",
       "relationship": "injects",
       "description": "Service worker injects script into Gemini page"
+    },
+    {
+      "from": "apps/dashboard",
+      "to": "package-shared",
+      "relationship": "depends_on",
+      "description": "Dashboard imports centralized types and utilities from Shared package"
+    },
+    {
+      "from": "apps/extension",
+      "to": "package-shared",
+      "relationship": "depends_on",
+      "description": "Extension imports centralized types and utilities from Shared package"
+    },
+    {
+      "from": "package-shared",
+      "to": "shared-types-db",
+      "relationship": "contains",
+      "description": "Shared package exports database types"
+    },
+    {
+      "from": "turborepo-orchestrator",
+      "to": "package-shared",
+      "relationship": "manages_build_pipeline",
+      "description": "Turborepo orchestrates the build process for the shared package"
+    },
+    {
+        "from": "brainbox-supabase-schema",
+        "to": "shared-types-db",
+        "relationship": "generates",
+        "description": "Database types are generated from Supabase schema directly into shared package"
     }
   ]
 }

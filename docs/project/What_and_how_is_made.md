@@ -130,7 +130,18 @@
 | `apps/extension/src/background/modules/dynamicMenus.ts` | Menu Generator | `chrome.contextMenus`, `PromptSyncManager` |
 | `apps/extension/src/prompt-inject/prompt-inject.js` | Content Script / UI | `chrome.runtime.sendMessage`, `DOM API` |
 | `packages/shared/src/logic/promptSync.ts` | Logic: Background Sync | `chrome.storage.local`, `Dashboard API` |
+
 | `apps/dashboard/src/components/providers/DataProvider.tsx` | Real-time Data Hub | `Supabase Realtime`, `Zustand` |
+| `packages/shared/src/types/database.ts` | **Centralized Types** | `Supabase Gen`, `Shared Interface` |
+
+### 📦 SHARED PACKAGE & TYPES (NEW)
+Създадена е нова структура за споделяне на код между `dashboard` и `extension`:
+- **Path**: `packages/shared`
+- **Purpose**: Централизирано място за типове, лога и (в бъдеще) валидация.
+- **Implementation**:
+  - `database.types.ts` е преместен тук.
+  - `apps/dashboard/tsconfig.json` използва alias `@brainbox/shared` -> `../../packages/shared`.
+  - Това гарантира, че frontend и extension работят с едни и същи дефиниции на данни.
 
 ---
 

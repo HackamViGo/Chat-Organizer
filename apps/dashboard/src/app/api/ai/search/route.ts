@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateEmbedding } from '@/lib/services/ai';
+import { generateEmbedding } from '../../../../lib/services/ai';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 

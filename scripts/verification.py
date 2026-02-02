@@ -20,8 +20,8 @@ from typing import List, Dict, Tuple
 PROJECT_ROOT = Path(__file__).parent.parent
 DATA_SCHEMA_PATH = PROJECT_ROOT / "docs/technical/DATA_SCHEMA.md"
 UI_STANDARDS_PATH = PROJECT_ROOT / "docs/technical/UI_STANDARDS.md"
-KNOWLEDGE_GRAPH_PATH = PROJECT_ROOT / "AI Knowlage/knowledge_graph.json"
-GLOBALS_CSS_PATH = PROJECT_ROOT / "src/app/globals.css"
+KNOWLEDGE_GRAPH_PATH = PROJECT_ROOT / "meta_architect/resources/knowledge_graph.json"
+GLOBALS_CSS_PATH = PROJECT_ROOT / "apps/dashboard/src/app/globals.css"
 
 # Identity-Locked Fields (extracted from DATA_SCHEMA.md:4.2)
 IDENTITY_LOCKED_FIELDS = {

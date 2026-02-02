@@ -130,7 +130,7 @@ Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.`,
           <div className="daily-prompt-front-content">
             <div className="daily-prompt-mystery-icon">✨</div>
             <h3>Daily Masterpiece</h3>
-            <p>Click to reveal today's premium selection</p>
+            <p>Click to reveal today&apos;s premium selection</p>
           </div>
         </div>
 

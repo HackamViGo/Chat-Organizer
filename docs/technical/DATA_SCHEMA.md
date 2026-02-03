@@ -1,9 +1,9 @@
 # Data Schema Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.0.6  
+**Version**: 2.1.3  
 **Type System**: TypeScript + Zod + Supabase PostgreSQL  
-**Generated**: 2026-01-31  
+**Generated**: 2026-02-03  
 **Authority**: Meta-Architect (Priority 1 - Identity-Locked)
 
 ---
@@ -14,8 +14,8 @@
 1. Updating this document first
 2. Running database migrations (Supabase)
 3. Updating TypeScript types (`packages/shared/src/types/database.ts`)
-4. Updating API validation schemas (Zod in `packages/validation/src/`)
-5. Updating extension normalizers (`apps/extension/src/lib/normalizers.js`)
+4. Updating API validation schemas (Zod in `packages/validation/schemas/`)
+5. Updating extension platform adapters (`apps/extension/src/background/modules/platformAdapters/`)
 
 **VIOLATION OF THIS RULE = SYSTEM FAILURE**
 
@@ -57,7 +57,7 @@ erD diagram
         string title
         text content "Formatted markdown"
         jsonb messages "Array of Message objects"
-        string platform "chatgpt|claude|gemini"
+        string platform "chatgpt|claude|gemini|grok|perplexity|lmarena|deepseek|qwen"
         string url "Deep link to conversation"
         text summary "Brief AI summary"
         text detailed_summary "Comprehensive AI summary"
@@ -132,7 +132,7 @@ erD diagram
 
 ### 2.1 The Chat Object
 
-**Purpose**: Stores synchronized AI conversations from ChatGPT, Claude, Gemini
+**Purpose**: Stores synchronized AI conversations from ChatGPT, Claude, Gemini, Grok, Perplexity, LMSYS, Qwen, DeepSeek
 
 #### TypeScript Definition
 
@@ -148,7 +148,7 @@ export type Chat = {
   title: string;                             // Required, min 1 char
   content: string | null;                    // Formatted markdown (full conversation)
   messages: Json | null;                     // Array<Message> (see section 2.1.2)
-  platform: string | null;                   // 'chatgpt' | 'claude' | 'gemini'
+  platform: string | null;                   // 'chatgpt' | 'claude' | 'gemini' | 'grok' | 'perplexity' | 'lmarena' | 'deepseek' | 'qwen'
   url: string | null;                        // Deep link (e.g. https://chatgpt.com/c/abc123)
   source_id: string | null;                  // Unique constraint with user_id
   
@@ -161,7 +161,7 @@ export type Chat = {
   detailed_summary: string | null;           // Comprehensive AI summary (markdown)
   tags: string[] | null;                     // AI-generated tags (stored as jsonb)
   tasks: string[] | null;                    // Actionable items (stored as jsonb)
-  embedding: number[] | null;                // Vector embedding for semantic search (1536d or 768d)
+  embedding: number[] | null;                // Vector embedding for semantic search (768d - Gemini text-embedding-004)
   
   // Timestamps
   created_at: string | null;                 // ISO 8601
@@ -213,7 +213,7 @@ interface Message {
 
 #### Validation Rules
 
-**Zod Schema**: `packages/validation/src/chat.ts`
+**Zod Schema**: `packages/validation/schemas/chat.ts`
 
 ```typescript
 const createChatSchema = z.object({
@@ -270,7 +270,7 @@ export type Prompt = {
 
 #### Validation Rules
 
-**Zod Schema**: `packages/validation/src/prompt.ts`
+**Zod Schema**: `packages/validation/schemas/prompt.ts`
 
 ```typescript
 const createPromptSchema = z.object({
@@ -486,21 +486,22 @@ export type ListItem = {
 
 | Entity | TypeScript Type | Zod Validation | Database Table | API Route |
 |--------|----------------|----------------|----------------|-----------|
-| **Chat** | `Chat` (@brainbox/shared) | `createChatSchema` (@brainbox/validation) | `chats` | POST /api/chats |
-| **Prompt** | `Prompt` (@brainbox/shared) | `createPromptSchema` (@brainbox/validation) | `prompts` | POST /api/prompts |
-| **Folder** | `Folder` (@brainbox/shared) | `createFolderSchema` (@brainbox/validation) | `folders` | POST /api/folders |
+| **Chat** | `Chat` (@brainbox/shared) | `createChatSchema` (@brainbox/validation/schemas) | `chats` | POST /api/chats |
+| **Prompt** | `Prompt` (@brainbox/shared) | `createPromptSchema` (@brainbox/validation/schemas) | `prompts` | POST /api/prompts |
+| **Folder** | `Folder` (@brainbox/shared) | `createFolderSchema` (@brainbox/validation/schemas) | `folders` | POST /api/folders |
 | **User** | `User` (@brainbox/shared) | N/A (managed by Supabase Auth) | `users` | GET /api/user |
-| **Image** | `Image` (@brainbox/shared) | `uploadImageSchema` (@brainbox/validation) | `images` | POST /api/upload |
-| **List** | `List` (@brainbox/shared) | `createListSchema` (@brainbox/validation) | `lists` | POST /api/lists |
+| **Image** | `Image` (@brainbox/shared) | `uploadImageSchema` (@brainbox/validation/schemas) | `images` | POST /api/upload |
+| **List** | `List` (@brainbox/shared) | `createListSchema` (@brainbox/validation/schemas) | `lists` | POST /api/lists |
 
 ### 3.2 Extension ↔ API Mapping
 
-**Normalizers** (`apps/extension/src/lib/normalizers.js`) transform platform-specific API responses into canonical `Chat` objects:
+**Platform Adapters** (`apps/extension/src/background/modules/platformAdapters/`) transform platform-specific API responses or scraped DOM data into canonical `Chat` objects:
 
 ```
 ChatGPT API Response → normalizeChatGPT() → Canonical Chat Object → POST /api/chats
 Claude API Response  → normalizeClaude()   → Canonical Chat Object → POST /api/chats
 Gemini API Response  → normalizeGemini()   → Canonical Chat Object → POST /api/chats
+... (similar for all 8 platforms)
 ```
 
 ### 3.3 Schema Factories
@@ -511,7 +512,7 @@ Gemini API Response  → normalizeGemini()   → Canonical Chat Object → POST 
 // Factory: Creates compliant conversation object
 createConversation({
   id: string,
-  platform: 'chatgpt' | 'claude' | 'gemini',
+  platform: 'chatgpt' | 'claude' | 'gemini' | 'grok' | 'perplexity' | 'lmarena' | 'deepseek' | 'qwen',
   title: string,
   messages: Message[],
   created_at: number,
@@ -787,161 +788,24 @@ const role = determineGeminiRoleImproved(text, index, previousMessages);
 
 **Correct Workflow**:
 
-1. **Update this document first** (add field to section 2.1)
-2. **Create Supabase migration**:
-   ```sql
-   ALTER TABLE chats ADD COLUMN ai_model text;
-   ```
-3. **Update TypeScript types**:
-   ```typescript
-   // packages/shared/src/types/database.ts
-   export type Chat = {
-     ...
-     ai_model: string | null;
-   };
-   ```
-4. **Update Zod validation**:
-   ```typescript
-   // src/app/api/chats/route.ts
-   const createChatSchema = z.object({
-     ...
-     ai_model: z.string().optional(),
-   });
-   ```
-5. **Update extension normalizers**:
-   ```javascript
-   // extension/lib/normalizers.js
-   metadata: {
-     model: rawData.model_slug  // Extract from platform API
-   }
-   ```
-6. **Test sync pipeline**: ChatGPT → Extension → API → Database
-7. **Update Memory MCP** with new schema entity
-
-### 7.2 Prohibited Changes
-
-❌ Renaming `user_id` to `owner_id` (breaks RLS policies)  
-❌ Making `title` nullable (violates NOT NULL constraint)  
-❌ Changing `id` from `uuid` to `integer` (breaks foreign keys)  
-❌ Removing `source_id` (breaks duplicate prevention logic)
-
----
-
-## 8. Validation Summary
-
-### 8.1 Validation Layers
-
-```
-User Input → Zod (API) → TypeScript (type safety) → Supabase (constraints) → RLS (security)
-```
-
-**Layer 1: Zod (Runtime)**  
-- Rejects invalid types, missing required fields, malformed UUIDs
-- Location: `src/app/api/*/route.ts`
-
-**Layer 2: TypeScript (Compile-time)**  
-- Prevents type mismatches during development
-- Location: `src/types/index.ts`, `src/types/database.types.ts`
-
-**Layer 3: Supabase (Database)**  
-- Enforces NOT NULL, UNIQUE, FOREIGN KEY, CHECK constraints
-- Location: PostgreSQL (managed via Supabase dashboard)
-
-**Layer 4: RLS (Authorization)**  
-- Ensures users only access their own data
-- Location: Supabase policies (SQL)
-
-### 8.2 Extension Validation
-
-**File**: `extension/lib/schemas.js:21-51`
-
-```javascript
-export function validateConversation(conversation) {
-    const requiredFields = ['id', 'platform', 'title', 'messages', 'created_at'];
-    for (const field of requiredFields) {
-        if (!conversation[field]) {
-            return { valid: false, error: `Missing required field: ${field}` };
-        }
-    }
-    
-    if (!Array.isArray(conversation.messages)) {
-        return { valid: false, error: 'messages must be an array' };
-    }
-    
-    // Validate individual messages
-    for (const msg of conversation.messages) {
-        if (!msg.content && msg.content !== '') {
-            return { valid: false, error: 'Message missing content' };
-        }
-        if (!msg.role) {
-            return { valid: false, error: 'Message missing role' };
-        }
-    }
-    
-    return { valid: true, error: null };
-}
-```
-
----
-
-## Appendix A: Field Glossary
-
-| Field | Type | Description | Example |
-|-------|------|-------------|---------|
-| `id` | `uuid` | Unique identifier (ULID or UUID v4) | `550e8400-e29b-41d4-a716-446655440000` |
-| `user_id` | `uuid` | Foreign key to authenticated user | (same format as id) |
-| `source_id` | `string` | Platform conversation ID (e.g. ChatGPT `c_abc123`) | `c_b62f7e89a92b4d3c` |
-| `platform` | `string` | Origin platform enum | `'chatgpt'` |
-| `messages` | `jsonb` | Array of Message objects (see 2.1.2) | `[{role: 'user', content: '...'}, ...]` |
-| `content` | `text` | Formatted markdown representation | `# Title\n\n👤 USER:\n...\n\n🤖 ASSISTANT:\n...` |
-| `folder_id` | `uuid` | Optional parent folder | `null` or valid uuid |
-| `parent_id` | `uuid` | Self-reference for folder nesting | `null` (root) or valid uuid |
-| `use_in_context_menu` | `boolean` | Show prompt in browser extension context menu | `true` |
-
----
-
-## Appendix B: JSON Schema Examples
-
-### B.1 Complete Chat Object (API Response)
-
-```json
-{
-  "id": "550e8400-e29b-41d4-a716-446655440000",
-  "user_id": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
-  "folder_id": null,
-  "source_id": "c_b62f7e89a92b4d3c",
-  "title": "Quantum Computing Explained",
-  "content": "# Quantum Computing Explained\n\n👤 USER:\nExplain quantum computing\n\n🤖 ASSISTANT:\nQuantum computing uses qubits...",
-  "messages": [
-    {
-      "id": "user_msg_1",
-      "role": "user",
-      "content": "Explain quantum computing",
-      "timestamp": 1738294800000,
-      "metadata": {}
-    },
-    {
-      "id": "asst_msg_1",
-      "role": "assistant",
-      "content": "Quantum computing uses qubits that can exist in superposition...",
-      "timestamp": 1738294805000,
-      "metadata": {
-        "model": "gpt-4-turbo"
-      }
-    }
-  ],
-  "platform": "chatgpt",
-  "url": "https://chatgpt.com/c/c_b62f7e89a92b4d3c",
-  "summary": null,
-  "tasks": null,
-  "is_archived": false,
-  "created_at": "2026-01-31T01:00:00.000Z",
-  "updated_at": "2026-01-31T01:00:05.000Z"
-}
-```
-
----
-
-**End of Document**  
-**Last Updated**: 2026-01-31  
-**Maintained By**: Superior Meta-Architect+ (Priority 1)
+1.  **Update this document first** (add field to section 2.1)
+2.  **Create Supabase migration**:
+    ```sql
+    ALTER TABLE chats ADD COLUMN ai_model text;
+    ```
+3.  **Update TypeScript types**:
+    ```typescript
+    // packages/shared/src/types/database.ts
+    export type Chat = {
+      ...
+      ai_model: string | null;
+    };
+    ```
+4.  **Update Zod Schema**:
+    ```typescript
+    // packages/validation/schemas/chat.ts
+    const createChatSchema = z.object({
+      ...
+      ai_model: z.string().optional(),
+    });
+    ```

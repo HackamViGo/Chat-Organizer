@@ -1,10 +1,10 @@
 # Sync Protocol Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.1.2
+**Version**: 2.1.3
 **Stack**: Chrome Extension (Manifest V3) ↔ Next.js PWA  
 **Author**: Meta-Architect  
-**Date**: 2026-02-01
+**Date**: 2026-02-03
 
 ---
 
@@ -16,7 +16,7 @@
 sequenceDiagram
     participant User
     participant Extension as Chrome Extension<br/>(Service Worker)
-    participant ContentScript as Content Script<br/>(ChatGPT/Claude/Gemini)
+    participant ContentScript as Content Script<br/>(10+ Scripts)
     participant Dashboard as Next.js Dashboard
     participant Supabase as Supabase Database
 
@@ -52,7 +52,7 @@ flowchart LR
     A[User logs in<br/>at /extension-auth] --> B{Auth successful?}
     B -->|Yes| C[content-dashboard-auth.js<br/>Extractions access_token]
     C --> D[chrome.runtime.sendMessage<br/>action: 'setAuthToken']
-    D --> E[Service worker stores<br/>in chrome.storage.local]
+    D --> E[AuthManager stores<br/>in chrome.storage.local]
     E --> F[Extension authenticated]
     B -->|No| G[Show error UI]
 ```
@@ -85,7 +85,7 @@ graph TD
 |--------|--------|---------|---------|
 | `setAuthToken` | Auth Content Script | Service Worker | Store Supabase session |
 | `triggerSaveChat` | Context Menu | Service Worker | Initiate conversation capture |
-| `saveToDashboard` | Platform Content Script | Service Worker | Sync conversation (Legacy/Manual) |
+| `saveToDashboard` | Platform Content Script | Service Worker | **[DEPRECATED]** Legacy manual save |
 | `fetchPrompts` | Content Script | Service Worker | Get user prompts (CSP bypass) |
 | `injectPrompt` | Context Menu | Content Script | Insert text into model textarea |
 

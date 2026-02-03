@@ -1,10 +1,10 @@
 # UI Standards Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.0.6  
+**Version**: 2.1.4  
 **Design System**: Custom (Tailwind CSS + HSL Variables)  
-**Component Library**: Custom components (no Shadcn)  
-**Generated**: 2026-01-31  
+**Component Library**: Custom components  
+**Generated**: 2026-02-03  
 **Authority**: Meta-Architect (Priority 1 - Visual Identity)
 
 ---
@@ -134,6 +134,36 @@ background: white;
 color: #667eea; /* Matches gradient start */
 ```
 
+### 1.6 Platform Colors (Tailwind Tokens)
+
+Mapped in `apps/extension/tailwind.config.ts`. Used for `PlatformBadge` and `QuickAccess` grid.
+
+| Platform | HSL Value | HEX (Approx) | Tailwind Class / Token |
+|----------|-----------|--------------|------------------------|
+| **ChatGPT** | `142 71% 45%` | `#10a37f` | `text-platform-chatgpt` |
+| **Claude** | `25 95% 53%` | `#d97757` | `text-platform-claude` |
+| **Gemini** | `217 91% 60%` | `#4285f4` | `text-platform-gemini` |
+| **Grok** | `0 0% 100%` | `#FFFFFF` | `text-platform-grok` |
+| **Perplexity** | `189 94% 43%` | `#20b2aa` | `text-platform-perplexity` |
+| **DeepSeek** | `217 91% 60%` | `#4285f4` | `text-platform-deepseek` |
+| **Qwen** | `262 83% 58%` | `#a855f7` | `text-platform-qwen` |
+| **LMArena** | `43 96% 56%` | `#f43f5e` | `text-platform-lmarena` |
+
+### 1.7 Glow & Glass Effects
+
+#### 1.7.1 Platform Glow (Extension)
+Defined in `apps/extension/src/popup/styles/index.css` via `@layer utilities`.
+
+```css
+.glow-[platform]:hover {
+  box-shadow: 0 0 20px hsl([platform-hsl] / 0.5);
+}
+```
+
+#### 1.7.2 Glassmorphism (Shared)
+- **Extension**: Uses `bg-glass-bg` (`hsl(222 47% 11% / 0.7)`) and `border-glass-border` (`hsl(0 0% 100% / 0.1)`).
+- **Dashboard**: Uses `.glass-card` utility for modular overlays.
+
 ---
 
 ## 2. Typography
@@ -169,7 +199,7 @@ body {
 | `text-2xl` | 1.5rem (24px) | Page headings |
 | `text-3xl` | 1.875rem (30px) | Hero text |
 
-**Markdown Content** ([`globals.css:88-91`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/src/app/globals.css#L88-L91)):
+**Markdown Content** ([`apps/dashboard/src/app/globals.css:88-91`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/apps/dashboard/src/app/globals.css#L88-L91)):
 ```css
 .markdown-content {
   font-size: 0.95rem; /* 15.2px */
@@ -245,7 +275,7 @@ body {
 
 #### 3.1.3 Extension Popup Button
 
-**Primary** ([`popup.html:79-101`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/extension/ui/popup.html#L79-L101)):
+**Primary** ([`apps/extension/src/popup/App.tsx`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/apps/extension/src/popup/App.tsx)):
 ```css
 .btn-primary {
   background: white;
@@ -262,7 +292,7 @@ body {
 }
 ```
 
-**Secondary** ([`popup.html:103-110`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/extension/ui/popup.html#L103-L110)):
+**Secondary** ([`apps/extension/src/popup/App.tsx`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/apps/extension/src/popup/App.tsx)):
 ```css
 .btn-secondary {
   background: rgba(255, 255, 255, 0.2); /* Glass effect */
@@ -305,7 +335,7 @@ body {
 
 #### 3.2.2 Glassmorphism Card
 
-**Class**: `.glass-card` ([`globals.css:134-146`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/src/app/globals.css#L134-L146))
+**Class**: `.glass-card` ([`apps/dashboard/src/app/globals.css:134-146`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/apps/dashboard/src/app/globals.css#L134-L146))
 
 **Light Mode**:
 ```css
@@ -356,7 +386,7 @@ body {
 
 ### 3.4 Extension Popup Status Card
 
-**Class**: `.status` ([`popup.html:37-42`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/extension/ui/popup.html#L37-L42))
+**Class**: `.status` ([`apps/extension/src/popup/App.tsx`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/apps/extension/src/popup/App.tsx))
 
 ```css
 .status {
@@ -432,7 +462,7 @@ BrainBox uses **Tailwind's default spacing** (based on 0.25rem = 4px):
 
 ### 5.1 Custom Animation: pulse-scale
 
-**Keyframes** ([`globals.css:62-75`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/src/app/globals.css#L62-L75)):
+**Keyframes** ([`apps/dashboard/src/app/globals.css:62-75`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/apps/dashboard/src/app/globals.css#L62-L75)):
 ```css
 @keyframes pulse-scale {
   0%, 100% {
@@ -526,7 +556,7 @@ darkMode: ['class'], // Uses .dark class strategy
 
 ### 6.3 Manual Dark Mode Styles
 
-**Markdown Code Blocks** ([`globals.css:102-105`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/src/app/globals.css#L102-L105)):
+**Markdown Code Blocks** ([`apps/dashboard/src/app/globals.css:102-105`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/apps/dashboard/src/app/globals.css#L102-L105)):
 ```css
 .markdown-content pre {
   background: rgba(15, 23, 42, 0.05); /* Light mode: subtle gray */
@@ -618,7 +648,7 @@ import { MessageSquare, Folder, Trash2 } from 'lucide-react';
 
 ### 8.1 Typography Overrides
 
-**Class**: `.markdown-content` ([`globals.css:88-132`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/src/app/globals.css#L88-L132))
+**Class**: `.markdown-content` ([`apps/dashboard/src/app/globals.css:88-132`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/apps/dashboard/src/app/globals.css#L88-L132))
 
 ```css
 .markdown-content {
@@ -680,97 +710,42 @@ import { MessageSquare, Folder, Trash2 } from 'lucide-react';
 
 ---
 
-## 9. Extension Compatibility
+### 9.1 Strategy: Scoped Tailwind
+**Problem**: Extension popup needs visual consistency with the PWA but must avoid leakage into host pages or bulky bundles.
 
-### 9.1 Challenge: Shadow DOM Isolation
+**Solution**: Dedicated Tailwind build for the React-based popup.
 
-**Problem**: Extension popup (`popup.html`) runs in Chrome's UI context, not web page.
+| Feature | Implementation |
+|---------|----------------|
+| **Build Tool** | Vite + @crxjs/vite-plugin |
+| **Styling** | Tailwind CSS v3 (Utility-first) |
+| **Config** | `apps/extension/tailwind.config.ts` |
+| **Isolation** | Scoped to `#root` in popup context |
 
-**Constraints**:
-- Cannot use Tailwind build (too large)
-- Must avoid conflicts with host page styles
-- No framework dependencies (vanilla JS)
+### 9.2 Shared Tokens vs Local Overrides
+Extension popup uses a dark-first theme with "glass" tokens for a premium feel:
 
-**Solution**: **Inline CSS** with scoped styles.
-
-### 9.2 Tailwind → Inline CSS Mapping
-
-#### 9.2.1 Colors
-
-**PWA (Tailwind)**:
-```tsx
-<button className="bg-primary text-primary-foreground">
-```
-
-**Extension (Inline CSS)**:
-```css
-.btn-primary {
-  background: white; /* Equivalent to primary-foreground in gradient context */
-  color: #667eea; /* Custom brand color (gradient start) */
+```typescript
+// apps/extension/tailwind.config.ts
+colors: {
+  glass: {
+    bg: 'hsl(222 47% 11% / 0.7)',
+    border: 'hsl(0 0% 100% / 0.1)',
+  }
 }
 ```
 
-**Conversion Table**:
+### 9.2 Component Mapping
 
-| PWA Tailwind | Extension Inline CSS | Notes |
-|--------------|---------------------|-------|
-| `bg-primary` | `background: #667eea;` | Use HEX from gradient |
-| `text-foreground` | `color: white;` | On gradient background |
-| `border-border` | `border: 1px solid rgba(255,255,255,0.1);` | Glass border |
-| `rounded-lg` | `border-radius: 8px;` | Direct pixel value |
-| `shadow-md` | `box-shadow: 0 4px 12px rgba(0,0,0,0.2);` | Manual shadow |
+| Component | PWA Tailwind | Extension Tailwind |
+|-----------|--------------|-------------------|
+| **Primary Button** | `bg-primary` | `bg-gradient-to-r from-blue-500 to-purple-600` |
+| **Card / Panel** | `bg-card` | `bg-glass-bg backdrop-blur-xl` |
+| **Text** | `text-foreground` | `text-slate-200` |
+| **Borders** | `border-border` | `border-glass-border` |
 
-#### 9.2.2 Spacing
-
-**PWA**:
-```tsx
-<div className="p-4 gap-2">
-```
-
-**Extension**:
-```css
-.container {
-  padding: 16px; /* p-4 = 1rem = 16px */
-}
-
-.actions {
-  gap: 8px; /* gap-2 = 0.5rem = 8px */
-}
-```
-
-#### 9.2.3 Hover Effects
-
-**PWA**:
-```tsx
-<button className="hover:bg-primary/90">
-```
-
-**Extension**:
-```css
-.btn:hover {
-  background: rgba(white, 0.9); /* 90% opacity */
-  /* Or use filter: brightness(0.9); */
-}
-```
-
-### 9.3 Extension Gradient Override
-
-**PWA** uses dark/light mode. **Extension** uses fixed gradient:
-
-```css
-body {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white; /* Always white text */
-}
-```
-
-**Buttons adapt to gradient**:
-- Primary: White background, gradient color text
-- Secondary: Glass effect (`rgba(255,255,255,0.2)`)
-
-### 9.4 No Dark Mode Toggle in Extension
-
-**Rationale**: Popup is ephemeral (opens/closes quickly), gradient works in all contexts.
+### 9.3 Dark Mode in Extension
+The popup uses a fixed dark glassmorphism theme to ensure high contrast and a premium feel regardless of the host page's appearance.
 
 **PWA**: Full dark mode support via `next-themes`.
 
@@ -818,303 +793,11 @@ graph TB
 
 | Component Type | Location | Styling Method |
 |----------------|----------|----------------|
-| **Layout** | `src/components/layout/` | Tailwind classes |
-| **Feature Cards** | `src/components/features/` | Tailwind + custom classes |
-| **Theme Provider** | `src/components/providers/` | `next-themes` wrapper |
-| **Extension Popup** | `extension/ui/popup.html` | Inline CSS (scoped) |
-| **Prompt Inject UI** | `extension/prompt-inject/` | Inline CSS (Shadow DOM) |
+| **Layout** | `apps/dashboard/src/components/layout/` | Tailwind classes |
+| **Feature Cards** | `apps/dashboard/src/components/features/` | Tailwind + custom classes |
+| **Theme Provider** | `apps/dashboard/src/components/providers/` | `next-themes` wrapper |
+| **Extension Popup** | `apps/extension/src/popup/` | Tailwind CSS (React) |
+| **Prompt Inject UI** | `apps/extension/src/prompt-inject/` | Scoped CSS/JS |
 
 ---
-
-## 11. Anti-Patterns (Forbidden)
-
-### 11.1 Ad-Hoc Colors
-
-**WRONG**:
-```tsx
-<div className="bg-[#FF5733]"> {/* ❌ Random hex color */}
-```
-
-**CORRECT**:
-```tsx
-<div className="bg-destructive"> {/* ✅ Uses palette */}
-```
-
-**Reason**: Breaks theme consistency, ignores dark mode.
-
-### 11.2 Hardcoded Border Radius
-
-**WRONG**:
-```css
-.custom-card {
-  border-radius: 12px; /* ❌ Doesn't scale with --radius */
-}
-```
-
-**CORRECT**:
-```tsx
-<div className="rounded-lg"> {/* ✅ Uses theme radius */}
-```
-
-### 11.3 Inline Styles in React
-
-**WRONG**:
-```tsx
-<button style={{ backgroundColor: '#3B82F6' }}> {/* ❌ Bypasses theme */}
-```
-
-**CORRECT**:
-```tsx
-<button className="bg-primary"> {/* ✅ Theme-aware */}
-```
-
-**Exception**: Extension popup (requires inline CSS for isolation).
-
-### 11.4 Mixing Font Families
-
-**WRONG**:
-```css
-.special-text {
-  font-family: 'Comic Sans MS'; /* ❌ Off-brand */
-}
-```
-
-**CORRECT**: Use `var(--font-mono)` (JetBrains Mono) or system fallback.
-
-### 11.5 Custom Shadows Without Rationale
-
-**WRONG**:
-```css
-box-shadow: 0 15px 50px rgba(255, 0, 0, 0.5); /* ❌ Arbitrary, red glow */
-```
-
-**CORRECT**: Use Tailwind shadow utilities (`shadow-sm`, `shadow-md`).
-
----
-
-## 12. Accessibility Considerations
-
-### 12.1 Focus Rings
-
-**All interactive elements** must have visible focus rings:
-
-```tsx
-focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2
-```
-
-**Colors**:
-- Light mode: `--ring: #3B82F6` (blue)
-- Dark mode: `--ring: #2563EB` (darker blue)
-
-### 12.2 Color Contrast
-
-**WCAG AA Compliance** (4.5:1 for normal text):
-
-| Combination | Light Mode | Dark Mode | Passes WCAG AA |
-|-------------|------------|-----------|----------------|
-| Foreground / Background | `#020817` / `#FFFFFF` | `#F8FAFC` / `#020817` | ✅ Yes |
-| Primary / Background | `#3B82F6` / `#FFFFFF` | `#60A5FA` / `#020817` | ✅ Yes |
-| Muted Foreground / Background | `#64748B` / `#FFFFFF` | `#94A3B8` / `#020817` | ✅ Yes |
-
-**Extension Popup** (white text on gradient):
-- Gradient is dark enough for white text to pass WCAG AA.
-
-### 12.3 Disabled States
-
-**Must be visually distinct**:
-
-```tsx
-disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed disabled:opacity-50
-```
-
-**Example**:
-- Background: `#F1F5F9` (light) / `#1E293B` (dark)
-- Text: `#64748B` (light) / `#94A3B8` (dark)
-- Cursor: `not-allowed`
-- Opacity: 50%
-
----
-
-## 13. Design Tokens Reference
-
-**Single Source of Truth**: [`globals.css`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/src/app/globals.css)
-
-### 13.1 CSS Variables (Exported for JS)
-
-```javascript
-// Read current theme color in JavaScript
-const primaryColor = getComputedStyle(document.documentElement)
-  .getPropertyValue('--primary');
-// Returns: "221.2 83.2% 53.3%" (HSL without 'hsl()')
-```
-
-**Usage**: Dynamic theming, chart colors, canvas overlays.
-
-### 13.2 Tailwind Config Reference
-
-**File**: [`tailwind.config.ts`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/tailwind.config.ts)
-
-**Key Exports**:
-- `colors`: Maps to CSS variables
-- `borderRadius`: `--radius` (8px)
-- `darkMode`: `'class'` (uses `.dark` selector)
-
----
-
-## 14. Future-Proofing Rules
-
-### 14.1 Adding New Colors
-
-**Process**:
-1. Update `globals.css` (add `--new-color` in `:root` and `.dark`)
-2. Update `tailwind.config.ts` (map to `hsl(var(--new-color))`)
-3. Update this file (add to Color Palette table)
-4. Test in light + dark mode
-
-**Example** (adding `--info` color):
-
-**`globals.css`**:
-```css
-:root {
-  --info: 200 98% 39%; /* #0891B2 - Cyan */
-  --info-foreground: 0 0% 100%; /* White */
-}
-
-.dark {
-  --info: 200 94% 56%; /* #22D3EE - Lighter cyan */
-  --info-foreground: 0 0% 0%; /* Black */
-}
-```
-
-**`tailwind.config.ts`**:
-```javascript
-colors: {
-  info: {
-    DEFAULT: 'hsl(var(--info))',
-    foreground: 'hsl(var(--info-foreground))',
-  },
-}
-```
-
-**Usage**:
-```tsx
-<div className="bg-info text-info-foreground">
-  Info message
-</div>
-```
-
-### 14.2 Adding New Animations
-
-**Process**:
-1. Add `@keyframes` to `globals.css` in `@layer utilities`
-2. Create utility class (e.g., `.animate-custom-name`)
-3. Document in this file (Section 5)
-
-**Example**:
-```css
-@layer utilities {
-  @keyframes slide-in {
-    from { transform: translateX(-100%); }
-    to { transform: translateX(0); }
-  }
-  
-  .animate-slide-in {
-    animation: slide-in 0.3s ease-out;
-  }
-}
-```
-
-### 14.3 Updating Component Patterns
-
-**Before** modifying a component's visual style:
-1. Check if pattern exists in this document
-2. If yes, update this document FIRST
-3. Then update all instances in code
-4. Test light + dark mode
-
-**Example**: Changing button border-radius from 8px → 12px:
-1. Update `--radius` in `globals.css` → `0.75rem`
-2. Update Section 3.1.1 in this doc
-3. Verify all buttons now use `rounded-lg` (not hardcoded `rounded-[12px]`)
-
----
-
-## 15. Quick Reference: Common Patterns
-
-### 15.1 Button
-
-```tsx
-<button className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold hover:bg-primary/90 transition-all duration-200">
-  Action
-</button>
-```
-
-### 15.2 Card
-
-```tsx
-<div className="bg-card border border-border rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow">
-  {content}
-</div>
-```
-
-### 15.3 Input
-
-```tsx
-<input className="w-full px-3 py-2 bg-background border border-input rounded-md focus-visible:ring-2 focus-visible:ring-ring" />
-```
-
-### 15.4 Glassmorphism Card
-
-```tsx
-<div className="glass-card rounded-lg p-6">
-  {content}
-</div>
-```
-
-### 15.5 Icon Button
-
-```tsx
-<button className="p-2 rounded-md hover:bg-accent transition-colors">
-  <Trash2 className="w-5 h-5 text-destructive" />
-</button>
-```
-
-### 15.6 Extension Popup Gradient Background
-
-```css
-body {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-}
-```
-
----
-
-## Appendix A: Color Reference Chart
-
-### A.1 Light Mode Palette
-
-| Color | HEX | HSL | Preview |
-|-------|-----|-----|---------|
-| Background | `#FFFFFF` | `0 0% 100%` | ![#FFFFFF](https://via.placeholder.com/50x20/FFFFFF/000000?text=+) |
-| Foreground | `#020817` | `222.2 84% 4.9%` | ![#020817](https://via.placeholder.com/50x20/020817/FFFFFF?text=+) |
-| Primary | `#3B82F6` | `221.2 83.2% 53.3%` | ![#3B82F6](https://via.placeholder.com/50x20/3B82F6/FFFFFF?text=+) |
-| Secondary | `#F1F5F9` | `210 40% 96.1%` | ![#F1F5F9](https://via.placeholder.com/50x20/F1F5F9/000000?text=+) |
-| Destructive | `#EF4444` | `0 84.2% 60.2%` | ![#EF4444](https://via.placeholder.com/50x20/EF4444/FFFFFF?text=+) |
-| Border | `#E2E8F0` | `214.3 31.8% 91.4%` | ![#E2E8F0](https://via.placeholder.com/50x20/E2E8F0/000000?text=+) |
-
-### A.2 Dark Mode Palette
-
-| Color | HEX | HSL | Preview |
-|-------|-----|-----|---------|
-| Background | `#020817` | `222.2 84% 4.9%` | ![#020817](https://via.placeholder.com/50x20/020817/FFFFFF?text=+) |
-| Foreground | `#F8FAFC` | `210 40% 98%` | ![#F8FAFC](https://via.placeholder.com/50x20/F8FAFC/000000?text=+) |
-| Primary | `#60A5FA` | `217.2 91.2% 59.8%` | ![#60A5FA](https://via.placeholder.com/50x20/60A5FA/000000?text=+) |
-| Secondary | `#1E293B` | `217.2 32.6% 17.5%` | ![#1E293B](https://via.placeholder.com/50x20/1E293B/FFFFFF?text=+) |
-| Destructive | `#991B1B` | `0 62.8% 30.6%` | ![#991B1B](https://via.placeholder.com/50x20/991B1B/FFFFFF?text=+) |
-| Border | `#1E293B` | `217.2 32.6% 17.5%` | ![#1E293B](https://via.placeholder.com/50x20/1E293B/FFFFFF?text=+) |
-
----
-
-**End of Document**  
-**Last Updated**: 2026-01-31  
-**Maintained By**: Superior Meta-Architect+ (Priority 1)
+**Version**: v2.1.4

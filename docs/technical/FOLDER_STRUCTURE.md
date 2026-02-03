@@ -1,11 +1,11 @@
-# BrainBox 2.1.0 - Folder Structure
+# BrainBox 2.1.3 - Folder Structure
 
 ## Monorepo Architecture (Turborepo + pnpm workspaces)
 
 ```
 brainbox/
 ├── apps/                           # Application workspaces
-│   ├── dashboard/                  # Next.js Dashboard
+│   ├── dashboard/                  # Next.js Dashboard (v2.1.3)
 │   │   ├── src/                    # App source
 │   │   │   ├── app/                # Next.js App Router
 │   │   │   ├── components/         # React components
@@ -15,14 +15,15 @@ brainbox/
 │   │   ├── next.config.js
 │   │   └── package.json            # @brainbox/dashboard
 │   │
-│   └── extension/                  # Chrome Extension (Vite)
+│   └── extension/                  # Chrome Extension (Vite + v2.2.0)
 │       ├── src/                    # Extension source
 │       │   ├── background/         # Service worker
-│       │   │   └── modules/        # Modular service worker logic
+│       │   │   └── modules/        # Modular SW logic (auth, sync, messages)
+│       │   │       └── platformAdapters/ # Multi-platform Parsers
 │       │   ├── content/            # Content scripts
 │       │   ├── lib/                # normalizers.js, config.js, etc.
 │       │   ├── prompt-inject/      # Prompt injection logic
-│       │   └── ui/                 # popup.html, popup.js
+│       │   └── ui/                 # popup.html, popup.js, tailwind
 │       ├── manifest.json           # MV3 manifest
 │       ├── package.json            # @brainbox/extension
 │       └── vite.config.ts          # CRXJS plugin config
@@ -33,8 +34,8 @@ brainbox/
 │   │   └── package.json
 │   │
 │   ├── validation/                 # @brainbox/validation (Zod schemas)
-│   │   ├── src/
-│   │   │   └── index.ts            # Re-exports (chat, prompt, folder)
+│   │   ├── schemas/                # Individual schemas (chat, prompt, etc.)
+│   │   ├── index.ts                # Main export entry
 │   │   └── package.json
 │   │
 │   └── shared/                     # @brainbox/shared (Logic & Common Types)
@@ -44,11 +45,19 @@ brainbox/
 │       └── package.json
 │
 ├── docs/                           # Documentation ("The Brain")
-│   ├── technical/                  # Architecture docs
-│   └── user/                       # User-facing docs
+│   ├── technical/                  # Architecture & Schema docs
+│   ├── project/                    # Project status & Specifications
+│   └── ChangeLogs/                 # Version history
 │
-├── scripts/                        # Build & validation
+├── scripts/                        # Build, validation & Maintenance
 │   └── verification.py             # Identity-Lock & CSP checks
+│
+├── tests/                          # Centralized E2E and Integration tests
+│   ├── chrome-env/                 # Virtual Chrome test environment
+│   └── integration/                # API and Sync tests
+│
+├── meta_architect/                 # Agentic Knowledge & Skills
+│   └── resources/
 │
 ├── turbo.json                      # Turborepo config
 ├── package.json                    # Root package (v2.1.3)
@@ -78,4 +87,4 @@ python3 scripts/verification.py --check-all  # Identity-Lock + CSP audit
 ```
 
 ---
-**Version**: v.2.1.0-beta
+**Version**: v2.1.3

@@ -1,9 +1,9 @@
 # Context Map Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.1.0-beta (Monorepo Migration)  
+**Version**: 2.1.3  
 **Architecture**: Chrome Extension (Manifest V3) + Next.js PWA (App Router)  
-**Generated**: 2026-01-31  
+**Generated**: 2026-02-03  
 **Authority**: Meta-Architect (Priority 1 - Boundary Definition)
 
 ---
@@ -32,10 +32,14 @@ graph TB
             MO[NetworkObserver.ts]
             MR[MessageRouter.ts]
             DA[dashboardApi.ts]
+            AM[authManager.ts]
+            SM[syncManager.ts]
+            CM[cacheManager.ts]
+            IM[installationManager.ts]
         end
-        CS_PLAT[Content Scripts<br/>(ChatGPT/Claude/Gemini)]
+        CS_PLAT[Content Scripts<br/>(10+ Scripts / 8 Platforms)]
         CS_AUTH[content-dashboard-auth.js<br/>Token Bridge]
-        NORM[normalizers.js<br/>Platform Parsers]
+        NORM[platformAdapters/<br/>Platform Parsers (v2.1.2)]
         
         EXT_SHARED["@brainbox/shared<br/>(Imported via Workspace)"]
     end
@@ -44,6 +48,7 @@ graph TB
         API[src/app/api/<br/>API Routes]
         STORE[src/store/<br/>Zustand State]
         LIB_AUTH[src/lib/supabase/<br/>Supabase Client]
+        MIDDLEWARE[src/middleware.ts<br/>Auth Guard]
         
         PWA_DB["@brainbox/shared<br/>(Imported via Workspace)"]
         PWA_VAL["@brainbox/validation<br/>(Imported via Workspace)"]
@@ -86,13 +91,15 @@ graph TB
 |---------------|-------|-------------------|-------------|-----------------|
 | **Auth: Supabase Session** | Dashboard | `apps/dashboard/src/lib/supabase/client.ts` | Single Source of Truth | ⚠️ YES |
 | **Auth: Token Bridge** | Extension | `apps/extension/src/content/content-dashboard-auth.js` | Read-only from Dashboard session | ⚠️ YES |
+| **Auth: Token Manager** | Extension | `apps/extension/src/background/modules/authManager.ts` | Handles storage & refresh | ⚠️ YES |
 | **Database Types** | Shared | `packages/shared/src/types/database.ts` | Auto-generated from Supabase | ⚠️ YES |
 | **Validation Schemas** | Validation | `packages/validation/src/index.ts` | Zod Schemas for API/UI | ⚠️ YES |
 | **Extension Schemas** | Shared | `packages/shared/src/types/index.ts` | Shared logic for Ext/PWA | ⚠️ YES |
 | **API: Chat Sync** | Dashboard | `apps/dashboard/src/app/api/chats/route.ts` | Dual auth (Bearer/cookies) | NO |
 | **Platform Capture** | Extension | `apps/extension/src/content/` | Isolated content scripts | NO |
-| **Normalization** | Extension | `apps/extension/src/lib/normalizers.js` | Must output canonical schema | ⚠️ YES |
+| **Normalization** | Extension | `apps/extension/src/background/modules/platformAdapters/` | Must output canonical schema | ⚠️ YES |
 | **Bridge: Ext→API** | Extension | `apps/extension/src/background/modules/dashboardApi.ts` | Token interceptors | ⚠️ YES |
+| **Sync Logic** | Extension | `apps/extension/src/background/modules/syncManager.ts` | Retail & Retry logic | YES |
 | **Config Source** | Extension | `apps/extension/src/lib/config.js` | Configuration Master | ⚠️ YES |
 
 ### 2.1 Shared Packages (The Bridges)
@@ -129,7 +136,7 @@ The Dashboard **NEVER** imports code directly from `apps/extension`.
 1.  User logs in on Dashboard (`/extension-auth`).
 2.  `content-dashboard-auth.js` detects session.
 3.  Sends token to `service-worker.js`.
-4.  `service-worker.js` saves to `chrome.storage.local`.
+4.  `AuthManager` (service-worker) saves to `chrome.storage.local`.
 5.  All subsequent API requests use `Authorization: Bearer <token>`.
 
 ### 3.3 Configuration Flow (No Hardcoded URLs)

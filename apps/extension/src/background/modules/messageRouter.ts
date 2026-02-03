@@ -7,7 +7,7 @@ import { AuthManager } from './authManager';
 import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import * as platformAdapters from './platformAdapters';
 import * as dashboardApi from './dashboardApi';
-import { CONFIG } from '../../lib/config.js';
+import { CONFIG } from '@/lib/config';
 
 interface MessageRequest {
     action: string;

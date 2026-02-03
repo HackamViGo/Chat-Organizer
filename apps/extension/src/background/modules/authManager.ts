@@ -395,7 +395,7 @@ export class AuthManager {
 
         try {
             // Using a simple fetch to verify token validity
-            const { CONFIG } = await import('../../lib/config.js');
+            const { CONFIG } = await import('@/lib/config');
             const response = await fetch(`${CONFIG.API_BASE_URL}/api/folders`, {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });

@@ -3,14 +3,6 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-// CORS headers for Chrome extension
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Credentials': 'true',
-};
-
 // Zod schemas for validation
 const updatePromptSchema = z.object({
   id: z.string().uuid(),
@@ -28,11 +20,6 @@ const createPromptSchema = z.object({
   folder_id: z.string().uuid().nullable().optional(),
   use_in_context_menu: z.boolean().optional(),
 });
-
-// Handle OPTIONS request for CORS preflight
-export async function OPTIONS(request: NextRequest) {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
 
 export async function GET(request: NextRequest) {
   try {
@@ -97,17 +84,16 @@ export async function GET(request: NextRequest) {
         throw fallbackError;
       }
       
-      return NextResponse.json({ prompts: fallbackData || [] }, { headers: corsHeaders });
+      return NextResponse.json({ prompts: fallbackData || [] });
     }
 
     if (error) throw error;
 
-    return NextResponse.json({ prompts: data || [] }, { headers: corsHeaders });
+    return NextResponse.json({ prompts: data || [] });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, { 
-      status: 500,
-      headers: corsHeaders 
+      status: 500
     });
   }
 }
@@ -167,8 +153,7 @@ export async function PUT(request: NextRequest) {
 
   if (!user) {
     return new NextResponse('Unauthorized', {
-      status: 401,
-      headers: corsHeaders
+      status: 401
     });
   }
 
@@ -188,18 +173,17 @@ export async function PUT(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(data, { headers: corsHeaders });
+    return NextResponse.json(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
-        { status: 400, headers: corsHeaders }
+        { status: 400 }
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, { 
-      status: 500,
-      headers: corsHeaders 
+      status: 500
     });
   }
 }
@@ -260,8 +244,7 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return new NextResponse('Unauthorized', {
-      status: 401,
-      headers: corsHeaders
+      status: 401
     });
   }
 
@@ -284,18 +267,17 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(data, { headers: corsHeaders });
+    return NextResponse.json(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
-        { status: 400, headers: corsHeaders }
+        { status: 400 }
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, { 
-      status: 500,
-      headers: corsHeaders 
+      status: 500
     });
   }
 }

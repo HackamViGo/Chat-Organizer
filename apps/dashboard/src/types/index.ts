@@ -40,6 +40,11 @@ export enum Platform {
   ChatGPT = 'chatgpt',
   Claude = 'claude',
   Gemini = 'gemini',
+  Grok = 'grok',
+  Perplexity = 'perplexity',
+  LMArena = 'lmarena',
+  DeepSeek = 'deepseek',
+  Qwen = 'qwen',
   Other = 'other',
 }
 

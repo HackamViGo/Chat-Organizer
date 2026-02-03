@@ -3,14 +3,6 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-// CORS headers for Chrome extension
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Credentials': 'true',
-};
-
 // Zod schemas for validation
 const createChatSchema = z.object({
   title: z.string().min(1),
@@ -63,11 +55,6 @@ function extractSourceId(url: string | undefined, platform: string | undefined):
   return url; // Fallback to full URL
 }
 
-// Handle OPTIONS request for CORS preflight
-export async function OPTIONS(request: NextRequest) {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
-
 export async function GET(request: NextRequest) {
   const cookieStore = cookies();
 
@@ -93,7 +80,7 @@ export async function GET(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ chats: [] }, { headers: corsHeaders });
+      return NextResponse.json({ chats: [] });
     }
 
     const { data, error } = await supabase
@@ -104,12 +91,11 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ chats: data || [] }, { headers: corsHeaders });
+    return NextResponse.json({ chats: data || [] });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, {
-      status: 500,
-      headers: corsHeaders
+      status: 500
     });
   }
 }
@@ -170,8 +156,7 @@ export async function POST(request: NextRequest) {
 
   if (!user) {
     return new NextResponse('Unauthorized', {
-      status: 401,
-      headers: corsHeaders
+      status: 401
     });
   }
 
@@ -205,7 +190,7 @@ export async function POST(request: NextRequest) {
         is_duplicate: true,
         is_downgrade: true,
         message: 'Stored version is more complete. Update skipped to prevent data loss.'
-      }, { headers: corsHeaders });
+      });
     }
 
     // 2. Perform the upsert (only if it's new or more/equally complete)
@@ -220,6 +205,7 @@ export async function POST(request: NextRequest) {
         folder_id: validatedData.folder_id,
         source_id: sourceId,
         messages: incomingMessages,
+        tags: validatedData.tags,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id, source_id',
@@ -235,18 +221,17 @@ export async function POST(request: NextRequest) {
       ...data,
       is_duplicate: !!existingChat,
       is_downgrade: false
-    }, { headers: corsHeaders });
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
-        { status: 400, headers: corsHeaders }
+        { status: 400 }
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, {
-      status: 500,
-      headers: corsHeaders
+      status: 500
     });
   }
 }
@@ -306,8 +291,7 @@ export async function PUT(request: NextRequest) {
 
   if (!user) {
     return new NextResponse('Unauthorized', {
-      status: 401,
-      headers: corsHeaders
+      status: 401
     });
   }
 
@@ -327,18 +311,17 @@ export async function PUT(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(data, { headers: corsHeaders });
+    return NextResponse.json(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
-        { status: 400, headers: corsHeaders }
+        { status: 400 }
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, {
-      status: 500,
-      headers: corsHeaders
+      status: 500
     });
   }
 }
@@ -398,8 +381,7 @@ export async function DELETE(request: NextRequest) {
 
   if (!user) {
     return new NextResponse('Unauthorized', {
-      status: 401,
-      headers: corsHeaders
+      status: 401
     });
   }
 
@@ -409,8 +391,7 @@ export async function DELETE(request: NextRequest) {
     
     if (!ids) {
       return new NextResponse('Chat IDs are required', {
-        status: 400,
-        headers: corsHeaders
+        status: 400
       });
     }
 
@@ -419,8 +400,7 @@ export async function DELETE(request: NextRequest) {
 
     if (chatIds.length === 0) {
       return new NextResponse('No valid chat IDs provided', {
-        status: 400,
-        headers: corsHeaders
+        status: 400
       });
     }
 
@@ -436,12 +416,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ 
       success: true, 
       deletedCount: chatIds.length 
-    }, { headers: corsHeaders });
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, {
-      status: 500,
-      headers: corsHeaders
+      status: 500
     });
   }
 }

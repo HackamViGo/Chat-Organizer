@@ -24,3 +24,15 @@
 ## Next Steps
 - Continue with regular feature development.
 - Monitor `pnpm type-check` in CI/CD pipeline.
+
+---
+
+## Knowledge Graph Update (Feb 3, 2026)
+- **Status**: ✅ Comprehensive Update Completed
+- **Changes**:
+  - **Monorepo Sync**: Updated legacy paths (root `extension/`, `src/`) to workspace paths (`apps/extension/src/`, `apps/dashboard/src/`).
+  - **New Infrastructure**: Mapped `SyncManager`, `CacheManager`, `DashboardAPI`, `NetworkObserver`, `InstallationManager`, `MessageRouter`, and `TabManager`.
+  - **Shared Logic**: Added nodes for `packages/shared`, `packages/validation`, and `packages/database`.
+  - **Documentation**: Added nodes for `SYNC_PROTOCOL.md` and `FOLDER_STRUCTURE.md`.
+  - **Platform Adapters**: Updated engine metadata to reflect v2.1.3 and support for 8 AI platforms.
+- **Agent Readiness**: Matrix of dependencies and function responsibilities verified for high-fidelity navigation.

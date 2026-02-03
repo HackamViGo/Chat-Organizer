@@ -4,14 +4,6 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 
-// CORS headers for Chrome extension
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Credentials': 'true',
-};
-
 // Zod schemas for validation
 const updateFolderSchema = z.object({
   id: z.string().uuid(),
@@ -36,7 +28,6 @@ async function getAuthenticatedUser(request: NextRequest) {
   
   // If Authorization header exists, use it (for extension)
   if (authHeader && authHeader.startsWith('Bearer ')) {
-    const accessToken = authHeader.replace('Bearer ', '');
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -73,18 +64,12 @@ async function getAuthenticatedUser(request: NextRequest) {
   return await supabase.auth.getUser();
 }
 
-// Handle OPTIONS request for CORS preflight
-export async function OPTIONS(request: NextRequest) {
-  return NextResponse.json({}, { headers: corsHeaders });
-}
-
 export async function GET(request: NextRequest) {
   try {
     const { data: { user }, error: authError } = await getAuthenticatedUser(request);
     if (authError || !user) {
       return new NextResponse('Unauthorized', { 
-        status: 401,
-        headers: corsHeaders 
+        status: 401
       });
     }
 
@@ -132,15 +117,13 @@ export async function GET(request: NextRequest) {
     const { data: { user: verifiedUser }, error: authCheckError } = await supabase.auth.getUser();
     if (authCheckError || !verifiedUser) {
       return new NextResponse('Authentication context error', { 
-        status: 401,
-        headers: corsHeaders 
+        status: 401
       });
     }
     
     if (verifiedUser.id !== user.id) {
       return new NextResponse('User ID mismatch', { 
-        status: 403,
-        headers: corsHeaders 
+        status: 403
       });
     }
 
@@ -154,13 +137,12 @@ export async function GET(request: NextRequest) {
       console.error('[API /folders] Database error:', error);
       throw error;
     }
-    return NextResponse.json({ folders: data || [] }, { headers: corsHeaders });
+    return NextResponse.json({ folders: data || [] });
   } catch (error) {
     console.error('[API /folders] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, { 
-      status: 500,
-      headers: corsHeaders 
+      status: 500
     });
   }
 }
@@ -170,8 +152,7 @@ export async function PUT(request: NextRequest) {
     const { data: { user }, error: authError } = await getAuthenticatedUser(request);
     if (authError || !user) {
       return new NextResponse('Unauthorized', { 
-        status: 401,
-        headers: corsHeaders 
+        status: 401
       });
     }
 
@@ -237,8 +218,7 @@ export async function PUT(request: NextRequest) {
         
         if (isDescendant(updatesWithParent.parent_id, id)) {
           return new NextResponse('Cannot move folder into its own descendant', {
-            status: 400,
-            headers: corsHeaders
+            status: 400
           });
         }
       }
@@ -255,18 +235,17 @@ export async function PUT(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(data, { headers: corsHeaders });
+    return NextResponse.json(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
-        { status: 400, headers: corsHeaders }
+        { status: 400 }
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, {
-      status: 500,
-      headers: corsHeaders
+    return new NextResponse(errorMessage, { 
+      status: 500
     });
   }
 }
@@ -276,8 +255,7 @@ export async function DELETE(request: NextRequest) {
     const { data: { user }, error: authError } = await getAuthenticatedUser(request);
     if (authError || !user) {
       return new NextResponse('Unauthorized', { 
-        status: 401,
-        headers: corsHeaders 
+        status: 401
       });
     }
 
@@ -286,8 +264,7 @@ export async function DELETE(request: NextRequest) {
     
     if (!id) {
       return new NextResponse('Folder ID is required', {
-        status: 400,
-        headers: corsHeaders
+        status: 400
       });
     }
 
@@ -341,12 +318,11 @@ export async function DELETE(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true }, { headers: corsHeaders });
+    return NextResponse.json({ success: true });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, {
-      status: 500,
-      headers: corsHeaders
+      status: 500
     });
   }
 }
@@ -356,8 +332,7 @@ export async function POST(request: NextRequest) {
     const { data: { user }, error: authError } = await getAuthenticatedUser(request);
     if (authError || !user) {
       return new NextResponse('Unauthorized', { 
-        status: 401,
-        headers: corsHeaders 
+        status: 401
       });
     }
 
@@ -418,18 +393,17 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json(data, { headers: corsHeaders });
+    return NextResponse.json(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Invalid request data', details: error.errors },
-        { status: 400, headers: corsHeaders }
+        { status: 400 }
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     return new NextResponse(errorMessage, { 
-      status: 500,
-      headers: corsHeaders 
+      status: 500
     });
   }
 }

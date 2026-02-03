@@ -9,7 +9,7 @@
  */
 import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import { enhancePrompt } from './dashboardApi';
-import { CONFIG } from '../../lib/config.js';
+import { CONFIG } from '@/lib/config';
 
 // We need a way to message the tab, currently utilizing the service worker's helper or rewriting it here.
 // For now, we'll assume we can emit a message or use chrome.tabs.

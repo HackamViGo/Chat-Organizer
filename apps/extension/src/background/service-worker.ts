@@ -1,13 +1,14 @@
 // BrainBox AI Chat Organizer - Service Worker
 // Manifest V3 Background Script
 
-import { CONFIG } from '../lib/config.js';
+import { CONFIG } from '@/lib/config';
 import { AuthManager } from './modules/authManager';
 import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import { DynamicMenus } from './modules/dynamicMenus';
 import { MessageRouter } from './modules/messageRouter';
 import { NetworkObserver } from './modules/networkObserver';
 import { InstallationManager } from './modules/installationManager';
+import { SyncManager } from './modules/syncManager';
 // import { TabManager } from './modules/tabManager'; // Optional for future use
 
 const DEBUG_MODE = false;
@@ -44,6 +45,12 @@ const messageRouter = new MessageRouter(
 
 authManager.initialize();
 promptSyncManager.initialize();
+
+// Trigger sync queue processing on startup
+chrome.storage.local.get(['accessToken'], ({ accessToken }) => {
+    SyncManager.initialize(accessToken);
+});
+
 dynamicMenus.initialize();
 networkObserver.initialize();
 installationManager.initialize();

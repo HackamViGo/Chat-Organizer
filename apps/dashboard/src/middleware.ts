@@ -110,14 +110,16 @@ export async function middleware(request: NextRequest) {
        const headers = new Headers();
        headers.set('Access-Control-Allow-Origin', origin || '*');
        headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-       headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+       headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-client-info, apikey');
+       headers.set('Access-Control-Allow-Credentials', 'true');
        return new NextResponse(null, { status: 200, headers });
     }
 
     if (request.nextUrl.pathname.startsWith('/api/')) {
         response.headers.set('Access-Control-Allow-Origin', origin || '*');
         response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+        response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-client-info, apikey');
+        response.headers.set('Access-Control-Allow-Credentials', 'true');
     }
 
     return response;

@@ -7,8 +7,8 @@ import './globals.css';
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Mega-Pack AI Studio',
-  description: 'AI Chat Organizer - Intelligent Knowledge Manager',
+  title: 'BrainBox - AI Chat Organizer',
+  description: 'Organize AI conversations from ChatGPT, Gemini, Claude, Grok, Perplexity, DeepSeek, and Qwen into your personal dashboard',
   manifest: '/manifest.json',
 };
 

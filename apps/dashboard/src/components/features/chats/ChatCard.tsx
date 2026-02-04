@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { MessageContent } from './MessageContent';
+import { PROVIDER_ASSETS } from '@brainbox/assets';
 import { 
   MoreVertical, CheckSquare, Trash2, 
   Archive, ArchiveRestore, Sparkles, ExternalLink, Tag,
@@ -17,7 +18,7 @@ import {
   // Dev
   Code, Terminal, Cpu, Database, Server,
   // Art
-  Palette, Image, PenTool, Wand2, Layers,
+  Palette, Image as LucideImage, PenTool, Wand2, Layers,
   // Writer
   Feather, BookOpen, Pencil, Scroll,
   // Work
@@ -25,8 +26,12 @@ import {
   // Media
   Music, Video, Mic, Film, Headphones,
   // Life
-  Globe, Heart, Coffee, Home, Sun
+  Globe, Heart, Coffee, Home, Sun,
+  // Provider Icons
+  Bot, MessageSquare, Zap, Search as SearchIcon, Globe as GlobeIcon, Layers as LayersIcon, Cpu as CpuIcon
 } from 'lucide-react';
+// Provider icons are now handled by @brainbox/assets
+
 
 interface ChatCardProps {
   chat: Chat;
@@ -37,7 +42,7 @@ const CARD_ICONS: Record<string, React.ElementType> = {
   // Dev
   Code, Terminal, Cpu, Database, Server,
   // Art
-  Palette, Image, PenTool, Wand2, Layers,
+  Palette, Image: LucideImage, PenTool, Wand2, Layers,
   // Writer
   Feather, BookOpen, FileText, Pencil, Scroll,
   // Work
@@ -61,18 +66,78 @@ const BG_COLORS: Record<string, string> = {
   default: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
 };
 
+const PROVIDER_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
+  [Platform.ChatGPT]: { 
+    color: 'text-emerald-500', 
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/20 dark:border-emerald-500/30'
+  },
+  [Platform.Claude]: { 
+    color: 'text-orange-500', 
+    bg: 'bg-orange-500/10',
+    border: 'border-orange-500/20 dark:border-orange-500/30'
+  },
+  [Platform.Gemini]: { 
+    color: 'text-blue-500', 
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/20 dark:border-blue-500/30'
+  },
+  [Platform.Grok]: { 
+    color: 'text-slate-900 dark:text-white', 
+    bg: 'bg-slate-900/10 dark:bg-white/10',
+    border: 'border-slate-900/10 dark:border-white/10'
+  },
+  [Platform.Perplexity]: { 
+    color: 'text-cyan-500', 
+    bg: 'bg-cyan-500/10',
+    border: 'border-cyan-500/20 dark:border-cyan-500/30'
+  },
+  [Platform.DeepSeek]: { 
+    color: 'text-indigo-500', 
+    bg: 'bg-indigo-500/10',
+    border: 'border-indigo-500/20 dark:border-indigo-500/30'
+  },
+  [Platform.LMArena]: { 
+    color: 'text-rose-500', 
+    bg: 'bg-rose-500/10',
+    border: 'border-rose-500/20 dark:border-rose-500/30'
+  },
+  [Platform.Qwen]: { 
+    color: 'text-purple-500', 
+    bg: 'bg-purple-500/10',
+    border: 'border-purple-500/20 dark:border-purple-500/30'
+  },
+  default: { 
+    color: 'text-cyan-500', 
+    bg: 'bg-cyan-500/10',
+    border: 'border-slate-200 dark:border-white/5'
+  }
+};
+
+const PlatformIcon: React.FC<{ platform: string; className?: string }> = ({ platform, className }) => {
+  return (
+    <div className={`w-6 h-6 rounded-sm overflow-hidden flex-shrink-0 ${className}`}>
+      <img 
+        src={PROVIDER_ASSETS[platform.toLowerCase()] || PROVIDER_ASSETS.fallback} 
+        alt={platform}
+        className="w-full h-full object-contain"
+      />
+    </div>
+  );
+};
+
 const PlatformBadge: React.FC<{ platform: Platform }> = ({ platform }) => {
-  const colors = {
-    [Platform.ChatGPT]: 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 border-emerald-500/20 dark:border-emerald-500/30',
-    [Platform.Claude]: 'bg-orange-500/10 dark:bg-orange-500/20 text-orange-600 dark:text-orange-300 border-orange-500/20 dark:border-orange-500/30',
-    [Platform.Gemini]: 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-600 dark:text-blue-300 border-blue-500/20 dark:border-blue-500/30',
-    [Platform.Other]: 'bg-gray-500/10 dark:bg-gray-500/20 text-gray-600 dark:text-gray-300 border-gray-500/20 dark:border-gray-500/30',
-  };
+  const config = PROVIDER_CONFIG[platform] || PROVIDER_CONFIG.default;
+  const assetKey = platform.toLowerCase() as keyof typeof PROVIDER_ASSETS;
+  const src = PROVIDER_ASSETS[assetKey] || PROVIDER_ASSETS.fallback;
 
   return (
-    <span className={`text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full border ${colors[platform]}`}>
-      {platform}
-    </span>
+    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${config.bg} ${config.border}`}>
+      <img src={src} alt="" className="w-3 h-3 object-contain" />
+      <span className={`text-[10px] uppercase tracking-wider font-bold ${config.color}`}>
+        {platform}
+      </span>
+    </div>
   );
 };
 
@@ -351,7 +416,9 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
           }
           setIsLongPressing(false);
         }}
-        className={`glass-card rounded-xl p-5 relative group flex flex-col h-full cursor-pointer text-slate-900 dark:text-white transition-all duration-500 hover:scale-[1.02]
+        className={`group relative flex flex-col h-full rounded-2xl transition-all duration-300
+          bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200/50 dark:border-white/5
+          hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl hover:border-cyan-500/30
           ${isHighlighted ? 'ring-2 ring-cyan-500 shadow-lg shadow-cyan-500/20 scale-[1.02]' : ''}
           ${isSelected ? 'ring-2 ring-blue-500 shadow-lg shadow-blue-500/20' : ''}
         `}
@@ -442,41 +509,51 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
           </div>
         )}
 
-        <div className="flex justify-between items-start mb-3">
-          <div className="flex gap-2 items-center flex-wrap">
-            <PlatformBadge platform={(chat.platform || Platform.Other) as Platform} />
-            
-            {/* Analyze Button */}
-            {chat.content && (
-              <button
-                onClick={handleAIAnalyze}
-                disabled={isAnalyzing}
-                className={`p-1 rounded-full border transition-all ${
-                  isAnalyzing 
-                    ? 'border-cyan-500/50 text-cyan-500 animate-pulse bg-cyan-500/10' 
-                    : 'border-slate-200 dark:border-slate-700 text-slate-400 hover:text-cyan-500 hover:border-cyan-500/50 hover:bg-cyan-500/5'
-                }`}
-                title="AI Analysis (Short & Detailed Summary, Tags, Tasks)"
-              >
-                <Sparkles size={12} className={isAnalyzing ? 'animate-spin-slow' : ''} />
-              </button>
-            )}
-
-
-            {folder && (
-              <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${folderStyleClass}`}>
-                <FolderIconComp size={10} />
-                <span className="text-[10px] font-medium">
-                  {folder.name}
-                </span>
-              </div>
-            )}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3 overflow-hidden pr-2">
+             {/* Platform Icon */}
+             <div className={`shrink-0 p-2 rounded-xl bg-slate-100 dark:bg-white/5 group-hover:bg-cyan-500/10 transition-colors border border-slate-200 dark:border-white/5`}>
+                <PlatformIcon platform={(chat.platform as Platform) || Platform.Other} />
+             </div>
+             
+             {/* Title & Meta */}
+             <div className="min-w-0 flex-1">
+               {isEditingTitle ? (
+                 <div className="flex items-center gap-2">
+                  <input
+                    ref={titleInputRef}
+                    value={editedTitle}
+                    onChange={(e) => setEditedTitle(e.target.value)}
+                    onBlur={handleTitleSave}
+                    onKeyDown={handleTitleKeyDown}
+                    className="w-full bg-white dark:bg-black/40 border border-cyan-500/50 rounded px-1 py-0.5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none"
+                    autoFocus
+                  />
+                  <button onClick={handleTitleSave} className="text-cyan-600 dark:text-cyan-400"><Check size={14}/></button>
+                </div>
+               ) : (
+                 <h3 
+                   onClick={(e) => { e.stopPropagation(); setIsEditingTitle(true); }}
+                   className="font-sans font-semibold text-base leading-tight text-slate-900 dark:text-white truncate group-hover:text-cyan-500 transition-colors cursor-text"
+                 >
+                   {chat.title}
+                 </h3>
+               )}
+                <div className="flex items-center gap-2 text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-0.5">
+                  <span className="flex items-center gap-1">
+                    <PlatformIcon platform={(chat.platform as Platform) || Platform.Other} className="!w-3 !h-3" />
+                    {chat.platform || 'AI'}
+                  </span>
+                  <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+                  <span>{chat.created_at ? new Date(chat.created_at).toLocaleDateString() : 'N/A'}</span>
+                </div>
+             </div>
           </div>
           
-          <div className="relative">
+          <div className="relative shrink-0">
             <button 
               onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-              className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1 rounded-md hover:bg-slate-200 dark:hover:bg-white/10 transition-colors"
+              className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100"
             >
               <MoreVertical size={16} />
             </button>
@@ -523,30 +600,7 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
           </div>
         </div>
 
-        {/* Title (Inline Edit) */}
-        <div className="mb-2 min-h-[28px]">
-          {isEditingTitle ? (
-            <div className="flex items-center gap-2">
-              <input
-                ref={titleInputRef}
-                value={editedTitle}
-                onChange={(e) => setEditedTitle(e.target.value)}
-                onBlur={handleTitleSave}
-                onKeyDown={handleTitleKeyDown}
-                className="w-full bg-white dark:bg-black/40 border border-cyan-500/50 rounded px-2 py-0.5 text-lg font-semibold text-slate-900 dark:text-white focus:outline-none"
-              />
-              <button onClick={handleTitleSave} className="text-cyan-600 dark:text-cyan-400"><Check size={18}/></button>
-            </div>
-          ) : (
-            <h3 
-              onClick={() => setIsEditingTitle(true)}
-              className="font-semibold text-lg leading-tight hover:text-cyan-600 dark:hover:text-cyan-300 cursor-text transition-colors truncate text-slate-800 dark:text-slate-100"
-              title="Click to rename"
-            >
-              {chat.title}
-            </h3>
-          )}
-        </div>
+        {/* Title (Removed - integrated into Header) */}
 
         {/* Summary (with Edit Mode) */}
         <div className="flex-1 mb-4 relative group/desc">
@@ -568,11 +622,11 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
             <>
               {chat.summary || chat.content ? (
                 <div 
-                  className="text-sm text-slate-600 dark:text-slate-400 line-clamp-3 cursor-text"
-                  onClick={() => setIsEditingDesc(true)}
-                  title="Click to edit description"
+                   className="text-sm text-slate-500 dark:text-slate-300 line-clamp-3 cursor-text leading-relaxed tracking-wide font-normal mix-blend-plus-lighter"
+                   onClick={(e) => { e.stopPropagation(); setIsEditingDesc(true); }}
+                   title="Click to edit description"
                 >
-                  {chat.summary || chat.content}
+                  {(chat.summary || chat.content || '').replace(/\[USER\]|You:|User:|Assistant:|Bot:/gi, '').trim()}
                 </div>
               ) : (
                 <p 

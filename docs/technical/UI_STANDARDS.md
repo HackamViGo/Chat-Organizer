@@ -1,10 +1,10 @@
 # UI Standards Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.1.4  
-**Design System**: Custom (Tailwind CSS + HSL Variables)  
+**Version**: 2.2.0  
+**Design System**: Glassmorphism + GenUI (Tailwind CSS + HSL Variables)  
 **Component Library**: Custom components  
-**Generated**: 2026-02-03  
+**Generated**: 2026-02-03 (Updated: My Chats Refactor)
 **Authority**: Meta-Architect (Priority 1 - Visual Identity)
 
 ---
@@ -256,6 +256,12 @@ body {
 - **Focus**: 2px ring with 2px offset
 - **Disabled**: Muted colors, no pointer
 
+### Target Size (Success Criterion 2.5.8)
+- **Master Toolbar Buttons**: `h-11` (Fixed 44px) and `min-w-[44px]`.
+- **Validation**: All interactive elements in `MasterToolbar.tsx` updated to `h-11 min-w-[44px]`.
+- **Container**: Toolbar container fixed to `h-11` (44px).
+- **Goal**: Full WCAG 2.2 touch target compliance.
+
 #### 3.1.2 Secondary Button (PWA)
 
 ```tsx
@@ -308,55 +314,72 @@ body {
 
 **Custom Cards** in `features/` directory.
 
-#### 3.2.1 Standard Card (Inferred from ChatCard.tsx)
+#### 3.2.1 Glassmorphic Chat Card (v2)
 
-**Visual Pattern**:
+**Visual Spec**:
 ```tsx
 <div className="
-  bg-card text-card-foreground 
-  border border-border 
-  rounded-lg 
-  p-4 
-  shadow-sm 
-  hover:shadow-md 
-  transition-shadow duration-200
+  group relative flex flex-col h-full rounded-2xl transition-all duration-300
+  bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl 
+  border border-slate-200/50 dark:border-white/5
+  hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl 
+  hover:border-cyan-500/30
 ">
   {/* Card content */}
 </div>
 ```
 
+**Typography Alignment (v2.2.1)**:
+- **Title**: `font-sans font-semibold text-base` (Switched from font-mono/bold in ChatCard.tsx).
+- **Contrast**: Secondary text updated to `text-slate-300` in Dark Mode for accessibility.
+
 **Breakdown**:
-- **Background**: Card color (white/dark)
-- **Border**: 1px solid border color
-- **Border Radius**: `8px`
-- **Padding**: `16px`
-- **Shadow**: Small shadow, grows on hover
-- **Transition**: Smooth shadow change (200ms)
+- **Background**: `white/50` / `slate-900/50` with `backdrop-blur-xl`.
+- **Border**: 1px subtle border (`slate-200/50` / `white/5`).
+- **Border Radius**: `16px` (rounded-2xl) for a modern, soft feel.
+- **Shadow**: Lift and deeper shadow on hover (`shadow-2xl`).
+- **GenUI Adaptive Theming**: Platform-specific micro-accents (e.g., `text-emerald-500` for GPT).
 
-#### 3.2.2 Glassmorphism Card
+**Icon Mapping Engine (@brainbox/assets)**:
+- **Engine**: `@brainbox/assets` centralized mapping.
+- **Library**: Brand-swapped SVGs/PNGs (No direct `react-icons` dependency for providers).
+- **Standard**: All provider icons MUST be sourced from `@brainbox/assets`.
+- **Mapping (Key Match)**: 
+  - `chatgpt` -> `openai.png`
+  - `claude` -> `claude.png`
+  - `gemini` -> `gemini.png`
+  - `grok` -> `grok.png`
+  - `perplexity` -> `perplexity.png`
+- **Usage**: rendered via `<img src={PROVIDER_ASSETS[key]} />` for maximum visual fidelity and brand compliance.
 
-**Class**: `.glass-card` ([`apps/dashboard/src/app/globals.css:134-146`](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/apps/dashboard/src/app/globals.css#L134-L146))
+#### 3.2.2 Master Toolbar (Command Center)
 
-**Light Mode**:
-```css
-.glass-card {
-  background: rgba(255, 255, 255, 0.7); /* 70% white */
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-}
-```
+**Visual Spec**:
+- **Background**: `bg-white/5 backdrop-blur-md`
+- **Border**: `border-b border-white/10`
+- **Sticky**: `sticky top-0 z-50`
+- **Minimum Tap Target**: `h-11` (44px) fixed height for all interactive buttons.
+- **Bulk Action Mode**: Transforms background to `bg-cyan-900/10` and border to `border-cyan-500/20`.
 
-**Dark Mode**:
-```css
-.dark .glass-card {
-  background: rgba(30, 41, 59, 0.4); /* 40% dark slate */
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
-}
-```
+#### 3.2.3 Global Hybrid Sidebar (v3.0)
 
-**Usage**: Overlay cards, modals, floating elements.
+**Certified Component**: ✅ Nested Navigation v3.0 (Master Prompt Compliant)
+
+**Visual Spec**:
+- **Mechanism**: Hybrid Overlay (w-20 fixed / w-64 hover overlay).
+- **Core Container**: `fixed left-0 top-0 h-screen z-[60] bg-card/95 backdrop-blur-md border-r border-border flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-300`.
+- **Global Vertical Axis**: 40px from left edge.
+  - **Symmetry Rule**: All parent icons must be mathematically centered on this 40px axis.
+  - **Hierarchy Line**: Vertical guide line (1px, bg-border/40) positioned exactly at `left-[39px]` (visually 40px center).
+- **Contextual Intelligence**: 
+  - Folders are context-sensitive children of NavItems, visible only during Hover and specific Pathname matches.
+  - Sidebar Folders are "Ghost Folders": they vanish completely when the sidebar is collapsed (w-20).
+  - Nested Logic: Folders are children of NavItems, strictly context-bound.
+  - Transitions between contexts use `AnimatePresence` with height animation.
+- **Symmetry Rule (40px axis)**:
+  - All parent icons and Level 0 items are centered on the 40px axis.
+  - Hierarchy lines exit exactly from the 40px center of parent icons.
+- **Main Content Offset**: `pl-0 md:pl-20`.
 
 ### 3.3 Input Component
 
@@ -793,11 +816,24 @@ graph TB
 
 | Component Type | Location | Styling Method |
 |----------------|----------|----------------|
-| **Layout** | `apps/dashboard/src/components/layout/` | Tailwind classes |
+| **Layout** | `apps/dashboard/src/components/layout/` | Tailwind + Framer Motion |
 | **Feature Cards** | `apps/dashboard/src/components/features/` | Tailwind + custom classes |
+| **Navigation** | `Sidebar.tsx` | Hybrid Overlay (v3.0) |
+
+### 11. Layout Governance
+- **Main Margin**: Content is pushed by `ml-20` (80px) to compensate for the fixed sidebar base.
+- **Z-Index Standard**: Sidebar is locked at `z-[60]` to override all page-level content and toolbars.
+- **Global Background**: Sidebar always uses `bg-slate-900` regardless of light/dark mode for visual stability.
+
+### 12. Shared Assets (v4.0)
+- **Library**: `@brainbox/assets`
+- **Location**: `packages/assets/icons/providers/`
+- **Standard**: All AI provider logos must be stored as 128x128 PNGs in the shared package.
+- **Usage**: Reference via `PROVIDER_ASSETS` mapping in `packages/assets/src/index.ts`.
+- **Primary Integration**: `ChatCard.tsx` uses `next/image` for optimized rendering of these assets.
 | **Theme Provider** | `apps/dashboard/src/components/providers/` | `next-themes` wrapper |
 | **Extension Popup** | `apps/extension/src/popup/` | Tailwind CSS (React) |
 | **Prompt Inject UI** | `apps/extension/src/prompt-inject/` | Scoped CSS/JS |
 
 ---
-**Version**: v2.1.4
+**Version**: v2.2.0

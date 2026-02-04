@@ -9,9 +9,10 @@
   - Main Content Grid: `gap-6` (1.5rem / 24px)
 
 ### Sidebar & Header
-- **Sidebar Width (Collapsed/Icon-only)**: `w-20` (5rem / 80px)
-- **Sidebar Width (Expanded/Nested)**: `w-20` (Stackable sidebars logic)
-  - *Note: LayoutWrapper reserves `lg:ml-64` (16rem / 256px), suggesting space for ~3 stacked sidebars or a panel.*
+- **Sidebar Width (Base/Collapsed)**: `w-20` (5rem / 80px)
+- **Sidebar Width (Hover Overlay)**: `w-64` (16rem / 256px)
+- **Main Content Offset**: `ml-20` (80px) fixed margin to compensate for base sidebar.
+- **Z-Index Standard**: `z-[60]` for Sidebar (Global priority over headers/toolbars).
 - **Header Height**: Dynamic/No fixed global header.
   - Page specific top-bar space inferred from `calc(100vh - 4rem)` -> **4rem (64px)**.
 
@@ -48,6 +49,11 @@ border-cyan-500 bg-cyan-500/10 text-cyan-600
 **Padding**: `p-6` (Metrics/Dashboard) or `p-5` (Chat Cards)
 **Radius**: `rounded-2xl` (Metrics) or `rounded-xl` (Chat Cards)
 
+**Card Cleanup Logic**:
+- **Source**: `ChatCard.tsx`
+- **Regex**: `(text).replace(/\[USER\]|You:|User:|Assistant:|Bot:/gi, '').trim()`
+- **Goal**: Removes platform-specific speaker tokens and AI-generated noise from previews to maintain high signal-to-noise ratio.
+
 **Visual Styles (Light)**:
 - Background: `rgba(255, 255, 255, 0.7)`
 - Backdrop Blur: `10px`
@@ -55,9 +61,19 @@ border-cyan-500 bg-cyan-500/10 text-cyan-600
 - Shadow: `0 8px 32px 0 rgba(31, 38, 135, 0.07)`
 
 **Visual Styles (Dark)**:
-- Background: `rgba(30, 41, 59, 0.4)`
-- Border: `1px solid rgba(255, 255, 255, 0.05)`
 - Shadow: `0 8px 32px 0 rgba(0, 0, 0, 0.3)`
+
+**Icon Mapping Engine (@brainbox/assets)**: [DONE]
+- **Engine**: Centralized `@brainbox/assets` workspace package.
+- **Provider-to-Asset Mapping**:
+  - `chatgpt` -> `openai.png`
+  - `claude` -> `claude.png`
+  - `gemini` -> `gemini.png`
+  - `grok` -> `grok.png`
+  - `perplexity` -> `perplexity.png`
+  - `fallback` -> `default-bot.png`
+- **Visual Fix**: Replaced Lucide `Sparkles` and `react-icons/si` with high-fidelity brand assets (PNG/SVG) rendered via `img` tags.
+- **Implementation**: Refactored `ChatCard.tsx`, `PlatformIcon`, and `PlatformBadge` components.
 
 ## @[Navigation & Logic]
 
@@ -78,6 +94,36 @@ border-cyan-500 bg-cyan-500/10 text-cyan-600
 ### Active State (URL)
 - **Folder Selection**: Query Parameter `?folder={id}`
 - **Determination**: `currentFolderParam === folderId`
+### Recursive Navigation Engine (v3.0)
+**File**: `Sidebar.tsx`
+**Logic**:
+1. **Tree Construction**: Flat folder array is transformed into a `children`-based recursive tree in a `usePathname()` context.
+2. **Context Filtering**:
+   - `/chats` -> Only folders with `type: 'chat'` (root level).
+   - `/prompts` -> Only folders with `type: 'prompt'` (root level).
+3. **Visual Hierarchy (L-Shape)**:
+   - **Vertical Line**: `border-l border-white/10` (ml-3).
+   - **Horizontal Segment**: `before:absolute before:w-3 before:h-[1px] before:bg-white/10 before:left-[-12px] before:top-1/2`.
+4. **Padding Calculation**:
+   - **Formula**: `level * 12 + 8` px.
+   - **Base Unit**: 12px per level of nesting.
+5. **Active State Sync**:
+   - **Classes**: `relative before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-11 before:bg-cyan-500 before:rounded-r-full`.
+   - **Height Enhancement**: 44px (h-11) active bar for WCAG visual grouping compliance.
+
+## @[Accessibility Compliance (WCAG 2.2)]
+
+### Target Size (Success Criterion 2.5.8)
+- **Master Toolbar Buttons**: `h-11` (Fixed 44px) and `min-w-[44px]`.
+- **Icon Buttons**: Minimum 44px hit inheritance enforced via `min-w-[44px]`.
+- **Verification**: Verified in `MasterToolbar.tsx` for all action buttons and the clear search button.
+
+### Color Contrast (Success Criterion 1.4.3)
+- **Primary Action (White on Cyan 600)**: ~4.1:1 (Passes AA for large text, needs 4.5:1 for small).
+- **Secondary (Slate 300 on Slate 900)**: Improved contrast (Updated in ChatCard.tsx).
+- **Secondary (Slate 400 on Slate 900)**: ~4.5:1 (Legacy baseline).
+- **Selection Mode (Cyan 400 on Cyan 900/10)**: >7:1 (Passes AAA).
+- **Status Indicators (Green/Red)**: WCAG compliant for error/success semantic meaning.
 
 ## @[Toolbar Engine]
 

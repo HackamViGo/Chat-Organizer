@@ -6,12 +6,13 @@ import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { ChatCard } from '@/components/features/chats/ChatCard';
 import { MessageSquarePlus, MessageSquare, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight, Search, Calendar, Filter, Download, ChevronDown, Sparkles } from 'lucide-react';
-import { FOLDER_ICONS } from '@/components/layout/Sidebar';
+import { FOLDER_ICONS } from '@/components/layout/HybridSidebar';
 import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
 import { createClient } from '@/lib/supabase/client';
 import { getItemsInFolderAndNested, getChildFolders } from '@/lib/utils/folders';
 import Link from 'next/link';
 import JSZip from 'jszip';
+import { MasterToolbar } from '@/components/features/chats/MasterToolbar';
 
 function ChatsPageContent() {
   const { 
@@ -73,7 +74,6 @@ function ChatsPageContent() {
   
   const chatFolders = useMemo(() => folders.filter(f => (f as any).type === 'chat' || !(f as any).type), [folders]);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
-  const [openSidebars, setOpenSidebars] = useState<string[]>([]); // Track which folders have sidebars open
   
   const displayedChats = useMemo(() => {
     let result = chats;
@@ -172,161 +172,8 @@ function ChatsPageContent() {
     return () => clearTimeout(timer);
   }, [searchQuery, isSemanticSearch]);
   
-  const toggleFolderExpansion = (folderId: string, level: number, sidebarIndex: number) => {
-    // Level 0 and 1: open sidebar on the right
-    // Level 2+: expand below in same sidebar
-    if (level < 2) {
-      setOpenSidebars(prev => {
-        const index = prev.indexOf(folderId);
-        if (index === -1) {
-          // Open sidebar - remove all sidebars after current position and add new one
-          return prev.slice(0, sidebarIndex + 1).concat(folderId);
-        } else {
-          // Close sidebar - remove this and all after it
-          return prev.slice(0, index);
-        }
-      });
-    } else {
-      // Level 2+: expand below
-      setExpandedFolders(prev => {
-        const newSet = new Set(prev);
-        if (newSet.has(folderId)) {
-          newSet.delete(folderId);
-        } else {
-          newSet.add(folderId);
-        }
-        return newSet;
-      });
-    }
-  };
   
-  const renderNestedFolders = (parentId: string | null, level: number = 0, sidebarIndex: number = 0): React.ReactNode => {
-    const childFolders = getChildFolders(chatFolders, parentId);
-    
-    return childFolders.map(f => {
-      const Icon = f.icon && FOLDER_ICONS[f.icon] ? FOLDER_ICONS[f.icon] : FolderIcon;
-      const isActive = selectedFolderId === f.id;
-      const isHovered = hoveredFolderId === f.id;
-      const isExpanded = expandedFolders.has(f.id);
-      // Level 2+: don't show subfolders, only files can be added
-      const hasChildren = level < 2 ? getChildFolders(chatFolders, f.id).length > 0 : false;
-      const folderChats = getItemsInFolderAndNested(f.id, chats, folders);
-      const showChevron = hasChildren && level < 2; // Only show chevron for levels 0 and 1
-      const sidebarIsOpen = level < 2 && openSidebars.includes(f.id);
-      
-      return (
-        <div key={f.id} className="relative flex items-center justify-center">
-          <div className="flex items-center gap-1">
-            <button
-              onClick={() => setSelectedFolderId(f.id)}
-              onMouseEnter={() => setHoveredFolderId(f.id)}
-              onMouseLeave={() => setHoveredFolderId(null)}
-              onDragOver={(e) => { 
-                e.preventDefault(); 
-                e.stopPropagation(); 
-                setHoveredFolderId(f.id); 
-              }} 
-              onDragLeave={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                const relatedTarget = e.relatedTarget as HTMLElement;
-                if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
-                  setHoveredFolderId(null);
-                }
-              }}
-              onDrop={(e) => handleDropOnFolder(e, f.id)}
-              className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative shrink-0 z-20
-                ${isActive 
-                  ? `${getFolderColorClass(f.color)} text-white shadow-lg scale-110` 
-                  : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
-                ${isHovered && !isActive 
-                  ? 'ring-2 ring-cyan-400 dark:ring-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 
-                  : ''}
-              `}
-            >
-              <Icon size={24} />
-            </button>
-            {showChevron && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFolderExpansion(f.id, level, sidebarIndex);
-                }}
-                className="p-1 hover:bg-white/10 rounded transition-colors"
-              >
-                <ChevronRight 
-                  size={12} 
-                  className={`transition-transform ${sidebarIsOpen ? 'rotate-90' : ''}`}
-                />
-              </button>
-            )}
-            {level >= 2 && hasChildren && (
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  toggleFolderExpansion(f.id, level, sidebarIndex);
-                }}
-                className="p-1 hover:bg-white/10 rounded transition-colors"
-              >
-                <ChevronRight 
-                  size={12} 
-                  className={`transition-transform ${isExpanded ? 'rotate-90' : ''}`}
-                />
-              </button>
-            )}
-          </div>
-          
-          {isHovered && (
-            <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 w-64 glass-panel rounded-xl shadow-2xl z-50 p-3 flex flex-col pointer-events-none animate-in fade-in slide-in-from-left-4 duration-200">
-              <div className="flex items-center gap-2 mb-2 border-b border-white/10 pb-2">
-                <Icon size={16} className={getFolderTextColorClass(f.color)} />
-                <span className="font-semibold text-slate-900 dark:text-white truncate">{f.name}</span>
-                <span className="ml-auto text-xs text-slate-500">{folderChats.length} chats</span>
-              </div>
-              <div className="text-xs text-slate-600 dark:text-slate-400 p-2">
-                {folderChats.length > 0 ? (
-                  <div className="space-y-1">
-                    {folderChats.slice(0, 3).map(chat => (
-                      <div key={chat.id} className="truncate">{chat.title}</div>
-                    ))}
-                    {folderChats.length > 3 && (
-                      <div className="text-slate-400">+{folderChats.length - 3} more</div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center text-slate-400 italic">Empty folder</div>
-                )}
-              </div>
-              <div className="absolute top-1/2 -translate-y-1/2 right-full -mr-1 border-8 border-transparent border-r-[rgba(255,255,255,0.65)] dark:border-r-[rgba(15,23,42,0.6)]" />
-            </div>
-          )}
-          
-          {/* Level 2+: expand below in same sidebar */}
-          {level >= 2 && isExpanded && hasChildren && (
-            <div className="w-full mt-2">
-              {renderNestedFolders(f.id, level + 1, sidebarIndex)}
-            </div>
-          )}
-        </div>
-      );
-    });
-  };
   
-  const renderSidebar = (folderId: string, level: number, sidebarIndex: number) => {
-    const childFolders = getChildFolders(chatFolders, folderId);
-    if (childFolders.length === 0) return null;
-    
-    return (
-      <aside 
-        key={`sidebar-${folderId}-${sidebarIndex}`}
-        className="w-20 hidden md:flex flex-col items-center py-8 border-r border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-black/20 backdrop-blur-sm sticky top-0 h-screen gap-4 z-10 overflow-y-auto [&::-webkit-scrollbar]:hidden"
-      >
-        <div className="flex flex-col gap-3 w-full items-center pt-3">
-          {renderNestedFolders(folderId, level, sidebarIndex)}
-        </div>
-      </aside>
-    );
-  };
 
   const fetchChats = useCallback(async () => {
     try {
@@ -648,180 +495,62 @@ function ChatsPageContent() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] md:min-h-screen relative">
-      {/* Main Sidebar */}
-      <aside className="w-20 hidden md:flex flex-col items-center py-8 border-r border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-black/20 backdrop-blur-sm sticky top-0 h-screen gap-4 z-10 overflow-y-auto [&::-webkit-scrollbar]:hidden">
-        <button
-          onClick={() => setSelectedFolderId(null)}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setHoveredFolderId('root');
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const relatedTarget = e.relatedTarget as HTMLElement;
-            if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
-              setHoveredFolderId(null);
-            }
-          }}
-          onDrop={(e) => handleDropOnFolder(e, undefined)}
-          className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative group shrink-0
-            ${!selectedFolderId
-              ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30 scale-110'
-              : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
-            ${hoveredFolderId === 'root' && selectedFolderId
-              ? 'ring-2 ring-cyan-500 dark:ring-cyan-400 bg-cyan-100 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse'
-              : ''}
-          `}
-          title="All Chats"
-        >
-          <LayoutGrid size={24} />
-        </button>
-
-        <div className="w-8 h-px bg-slate-200 dark:bg-white/10 my-2 shrink-0" />
-
-        <button
-          onClick={() => {
-            randomizeTheme();
-            setIsCreateFolderModalOpen(true);
-          }}
-          className="w-12 h-12 flex items-center justify-center rounded-2xl text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-500 transition-all duration-300 relative group shrink-0"
-        >
-          <Plus size={24} />
-        </button>
-
-        <div className="flex flex-col gap-3 w-full items-center">
-          {renderNestedFolders(null, 0, 0)}
-        </div>
-      </aside>
-      
-      {/* Nested Sidebars */}
-      {openSidebars.map((folderId, index) => renderSidebar(folderId, index + 1, index + 1))}
 
       {/* Main Content */}
-      <div className="flex-1 p-6 md:p-10 overflow-y-auto flex flex-col gap-6 relative">
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-bold mb-1">My Chats</h1>
-            <p className="text-muted-foreground text-sm">
-              Manage and organize your AI conversations
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Search */}
-            <div className="relative group min-w-[200px]">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-cyan-500" size={16} />
-              <input 
-                type="text" 
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search chats..." 
-                className="w-full bg-slate-100 dark:bg-white/5 border border-transparent focus:border-cyan-500/50 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-900 dark:text-white focus:outline-none transition-all"
-              />
-              {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"><X size={14} /></button>}
-            </div>
-
-            {/* Semantic Search Toggle */}
-            <button
-              onClick={() => setIsSemanticSearch(!isSemanticSearch)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-all ${
-                isSemanticSearch 
-                  ? 'border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400' 
-                  : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-cyan-300'
-              }`}
-              title="Semantic AI Search (Natural Language)"
-            >
-              <Sparkles size={16} className={isSearching ? 'animate-pulse' : ''} />
-              <span className="hidden sm:inline text-sm font-medium">AI Search</span>
-            </button>
-            
-            {/* Filter Toggle */}
-            <button
-              onClick={() => setShowFilters(!showFilters)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors ${
-                hasActiveFilters
-                  ? 'border-cyan-500 bg-cyan-500/10 text-cyan-600 dark:text-cyan-400'
-                  : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-cyan-300 dark:hover:border-cyan-700'
-              }`}
-            >
-              <Filter size={16} />
-              Filters
-              {hasActiveFilters && <span className="w-2 h-2 rounded-full bg-cyan-500"></span>}
-            </button>
-            
-          {selectedCount > 0 && (
-            <>
-              <span className="text-sm text-muted-foreground">
-                {selectedCount} {selectedCount === 1 ? 'chat' : 'chats'} selected
-              </span>
-              <div className="relative">
-                <button
-                  onClick={() => setShowDownloadMenu(!showDownloadMenu)}
-                  className="flex items-center gap-2 px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors"
-                >
-                  <Download className="w-4 h-4" />
-                  Download Selected
-                  <ChevronDown className="w-4 h-4" />
-                </button>
-                {showDownloadMenu && (
-                  <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-xl z-20 overflow-hidden text-sm">
-                    <button
-                      onClick={() => handleDownloadSelected('txt')}
-                      className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                    >
-                      Download as TXT
-                    </button>
-                    <button
-                      onClick={() => handleDownloadSelected('md')}
-                      className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                    >
-                      Download as MD
-                    </button>
-                    <button
-                      onClick={() => handleDownloadSelected('pdf')}
-                      className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                    >
-                      Download as PDF
-                    </button>
-                  </div>
-                )}
-              </div>
+      <div className="flex-1 overflow-y-auto flex flex-col relative">
+        <MasterToolbar 
+          searchQuery={searchQuery}
+          onSearchChange={setSearchQuery}
+          onClearSearch={() => setSearchQuery('')}
+          showFilters={showFilters}
+          onToggleFilters={() => setShowFilters(!showFilters)}
+          hasActiveFilters={!!(searchQuery || platformFilter !== 'all' || folderFilter !== 'all' || dateFrom || dateTo)}
+          onNewChat={() => setShowNewChatModal(true)}
+          isSemanticSearch={isSemanticSearch}
+          onToggleSemanticSearch={() => setIsSemanticSearch(!isSemanticSearch)}
+          selectedCount={selectedCount}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={deselectAllChats}
+          allSelected={allSelected}
+          onDeleteSelected={() => setShowDeleteConfirm(true)}
+          isDeleting={isDeleting}
+          downloadMenu={(
+            <div className="relative">
               <button
-                onClick={handleDeleteSelected}
-                disabled={isDeleting}
-                className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                className="flex items-center gap-2 px-4 h-11 bg-cyan-600 text-white rounded-md hover:bg-cyan-700 transition-colors text-sm font-medium"
               >
-                <Trash2 className="w-4 h-4" />
-                {showDeleteConfirm ? 'Confirm Delete' : 'Delete Selected'}
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Download Selected</span>
+                <ChevronDown className="w-4 h-4" />
               </button>
-            </>
+              {showDownloadMenu && (
+                <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-xl z-20 overflow-hidden text-sm">
+                  <button
+                    onClick={() => handleDownloadSelected('txt')}
+                    className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                  >
+                    Download as TXT
+                  </button>
+                  <button
+                    onClick={() => handleDownloadSelected('md')}
+                    className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                  >
+                    Download as MD
+                  </button>
+                  <button
+                    onClick={() => handleDownloadSelected('pdf')}
+                    className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
+                  >
+                    Download as PDF
+                  </button>
+                </div>
+              )}
+            </div>
           )}
-          <button
-            onClick={handleSelectAll}
-            className="flex items-center gap-2 px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-900 dark:text-white rounded-md hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors"
-          >
-            {allSelected ? (
-              <>
-                <CheckSquare className="w-5 h-5" />
-                Deselect All
-              </>
-            ) : (
-              <>
-                <Square className="w-5 h-5" />
-                Select All
-              </>
-            )}
-          </button>
-          <button
-            onClick={() => setShowNewChatModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
-          >
-            <MessageSquarePlus className="w-5 h-5" />
-            New Chat
-          </button>
-          </div>
-        </div>
+        />
+        
+        <div className="p-6 md:p-10 flex flex-col gap-6">
         
         {/* Filters Panel */}
         {showFilters && (
@@ -979,12 +708,19 @@ function ChatsPageContent() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayedChats.map((chat) => (
-              <ChatCard key={chat.id} chat={chat} />
+            {displayedChats.map((chat, i) => (
+              <div 
+                key={chat.id} 
+                className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-backwards"
+                style={{ animationDelay: `${i * 0.05}s` }}
+              >
+                <ChatCard chat={chat} />
+              </div>
             ))}
           </div>
         )}
 
+        </div>
         {/* New Chat Modal */}
         {showNewChatModal && (
         <div

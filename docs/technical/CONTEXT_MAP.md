@@ -1,7 +1,7 @@
 # Context Map Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.1.3  
+**Version**: v2.2.0  
 **Architecture**: Chrome Extension (Manifest V3) + Next.js PWA (App Router)  
 **Generated**: 2026-02-03  
 **Authority**: Meta-Architect (Priority 1 - Boundary Definition)
@@ -58,10 +58,13 @@ graph TB
         PKG_DB[packages/database]
         PKG_VAL[packages/validation]
         PKG_SHARED[packages/shared]
+        PKG_ASSETS[packages/assets]
         
         PKG_DB -.->|Database Types| PKG_SHARED
         PKG_VAL -.->|Validation| Extension
         PKG_VAL -.->|Validation| Dashboard
+        PKG_ASSETS -.->|UI Icons/Assets| Extension
+        PKG_ASSETS -.->|UI Icons/Assets| Dashboard
     end
     
     CS_PLAT -->|Captures Data| NORM
@@ -101,6 +104,8 @@ graph TB
 | **Bridge: Ext→API** | Extension | `apps/extension/src/background/modules/dashboardApi.ts` | Token interceptors | ⚠️ YES |
 | **Sync Logic** | Extension | `apps/extension/src/background/modules/syncManager.ts` | Retail & Retry logic | YES |
 | **Config Source** | Extension | `apps/extension/src/lib/config.js` | Configuration Master | ⚠️ YES |
+| **Shared Assets** | Shared Assets | `packages/assets/src/index.ts` | Unified AI Provider Branding | NO |
+
 
 ### 2.1 Shared Packages (The Bridges)
 
@@ -115,9 +120,14 @@ graph TB
     *   **Consumers**: Dashboard API (backend validation), Dashboard UI (form validation).
 
 3.  **`@brainbox/shared`**:
-    *   **Content**: Logic/Schemas shared between Extension and Dashboard (if any) or specific Extension shared utils.
-    *   **Rule**: Code that must exist in both build environments (Vite & Next.js).
+    *   **Content**: Logic/Schemas shared between Extension and Dashboard.
+    *   **Rule**: Code that must exist in both build environments.
     *   **Consumers**: Extension, Dashboard.
+
+4.  **`@brainbox/assets`**:
+    *   **Content**: Centralized provider icons and UI assets.
+    *   **Rule**: Store high-res branding assets here for global project consistency.
+    *   **Consumers**: Extension (Popup), Dashboard (ChatCards).
 
 ---
 
@@ -166,4 +176,4 @@ Refer to previous documentation for detailed file lists.
 3.  Verity `turbo build` passes after changes.
 
 ---
-**Version**: v.2.1.3
+**Version**: v2.2.0

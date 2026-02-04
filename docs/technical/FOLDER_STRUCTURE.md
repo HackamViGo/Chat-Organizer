@@ -9,6 +9,9 @@ brainbox/
 │   │   ├── src/                    # App source
 │   │   │   ├── app/                # Next.js App Router
 │   │   │   ├── components/         # React components
+│   │   │   │   ├── layout/         # HybridSidebar, LayoutWrapper
+│   │   │   │   ├── features/       # Feature modules
+│   │   │   │   └── providers/      # Context providers
 │   │   │   ├── lib/                # Utilities & services
 │   │   │   ├── store/              # Zustand stores
 │   │   │   └── types/              # TypeScript types
@@ -69,6 +72,10 @@ brainbox/
 ### Path Aliases
 - **Dashboard**: `@/*` (dashboard-only) + `@brainbox/*` (shared packages)
 - **Extension**: `@brainbox/shared`, `@brainbox/validation` (workspace aliases)
+
+### Sidebar Migration (v3.0)
+- **HybridSidebar.tsx**: New unified navigation (Overlay + Spring Physics).
+- **Sidebar.tsx / MiniBar.tsx**: [REMOVED/DEPRECATED].
 
 ### Build Commands
 ```bash

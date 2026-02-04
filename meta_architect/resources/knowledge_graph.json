@@ -950,8 +950,8 @@
         "category": "BrainBox Architecture",
         "sub_category": "Extension Logic",
         "priority": 1,
-        "file_path": "extension/lib/normalizers.js",
-        "platforms": ["ChatGPT", "Claude", "Gemini"],
+        "file_path": "apps/extension/src/normalizers.js",
+        "platforms": ["ChatGPT", "Claude", "Gemini", "Grok", "Perplexity", "LMArena", "DeepSeek", "Qwen"],
         "no_go_zone": true,
         "source": "docs/technical/CONTEXT_MAP.md:4.1"
       }
@@ -964,10 +964,10 @@
         "sub_category": "Extension Logic",
         "priority": 1,
         "file_path": "apps/extension/src/background/service-worker.ts",
-        "responsibilities": ["Token management", "Rate limiting", "API bridge", "Passive Network Sniffing (Claude Org ID)"],
+        "responsibilities": ["Token management", "Rate limiting", "API bridge", "Passive Network Sniffing (Claude Org ID)", "Sync/Cache Initialization"],
         "no_go_zone": true,
         "source": "docs/technical/CONTEXT_MAP.md:4.1",
-        "version": "2.1.2"
+        "version": "2.1.3"
       }
     },
     {
@@ -978,8 +978,8 @@
         "sub_category": "Extension Logic",
         "priority": 1,
         "description": "Centralized dynamic context menu management. Handles Save Chat, Create Prompt, and Inject Prompt menus uniformly to prevent race conditions.",
-        "file_path": "extension/background/modules/dynamicMenus.ts",
-        "version": "2.1.2"
+        "file_path": "apps/extension/src/background/modules/dynamicMenus.ts",
+        "version": "2.1.3"
       }
     },
     {
@@ -1030,11 +1030,80 @@
         "category": "BrainBox Technical",
         "sub_category": "Extension Backend",
         "priority": 1,
-        "description": "Centralized platform adapter engine. v2.1.2 adds passive Org ID sniffing for Claude and direct 'My Chats' saving for all platforms.",
-        "file_path": "/apps/extension/src/background/modules/platformAdapters/",
+        "description": "Centralized platform adapter engine. v2.1.3 adds support for 8 platforms with improved participant detection for LMArena.",
+        "file_path": "apps/extension/src/background/modules/platformAdapters/",
         "pattern": "Factory Pattern + OOP Adapters",
-        "platforms": ["chatgpt", "claude", "gemini"],
-        "test_coverage": "10/10 Vitest unit tests"
+        "platforms": ["chatgpt", "claude", "gemini", "grok", "perplexity", "lmarena", "deepseek", "qwen"],
+        "test_coverage": "18 unit tests covering all adapters"
+      }
+    },
+    {
+      "id": "brainbox-sync-manager",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Sync Logic",
+        "priority": 1,
+        "description": "Handles persistent synchronization queue for offline chat saves.",
+        "file_path": "apps/extension/src/background/modules/syncManager.ts",
+        "version": "2.1.3"
+      }
+    },
+    {
+      "id": "brainbox-cache-manager",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Cache Logic",
+        "priority": 1,
+        "description": "Manages local storage-based caching for dashboard data (folders, settings).",
+        "file_path": "apps/extension/src/background/modules/cacheManager.ts",
+        "version": "2.1.3"
+      }
+    },
+    {
+      "id": "brainbox-dashboard-api-link",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "API Bridge",
+        "priority": 1,
+        "description": "Bridge between extension and Dashboard API with SWR (Stale-While-Revalidate) support.",
+        "file_path": "apps/extension/src/background/modules/dashboardApi.ts",
+        "version": "2.1.3"
+      }
+    },
+    {
+      "id": "brainbox-network-observer",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 2,
+        "description": "Observes network requests to capture context-specific IDs (e.g., Claude Org ID).",
+        "file_path": "apps/extension/src/background/modules/networkObserver.ts"
+      }
+    },
+    {
+      "id": "package-validation",
+      "type": "Package",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Shared Packages",
+        "priority": 1,
+        "path": "packages/validation",
+        "description": "Centralized Zod schemas for project-wide data validation."
+      }
+    },
+    {
+      "id": "package-database",
+      "type": "Package",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Shared Packages",
+        "priority": 1,
+        "path": "packages/database",
+        "description": "Shared database types and utility functions."
       }
     },
     {
@@ -1740,6 +1809,85 @@
         "path": "packages/shared/src/types/database.ts",
         "description": "Centralized Supabase database types"
       }
+    },
+    {
+      "id": "brainbox-message-router",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 1,
+        "description": "Central message router for handling cross-component communication (background, content, popup).",
+        "file_path": "apps/extension/src/background/modules/messageRouter.ts"
+      }
+    },
+    {
+      "id": "brainbox-tab-manager",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 2,
+        "description": "Manages browser tab states and injections.",
+        "file_path": "apps/extension/src/background/modules/tabManager.ts"
+      }
+    },
+    {
+      "id": "brainbox-installation-manager",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 2,
+        "description": "Handles extension lifecycle events (install, update).",
+        "file_path": "apps/extension/src/background/modules/installationManager.ts"
+      }
+    },
+    {
+      "id": "dashboard-stores-zustand",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Dashboard Logic",
+        "priority": 1,
+        "description": "Zustand stores for global dashboard state.",
+        "path": "apps/dashboard/src/store/",
+        "modules": ["useChatStore", "useFolderStore", "usePromptStore", "useListStore", "useImageStore"]
+      }
+    },
+    {
+      "id": "dashboard-services-logic",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Dashboard Logic",
+        "priority": 2,
+        "description": "Service layers for AI interactions and prompt library fetching.",
+        "path": "apps/dashboard/src/lib/services/",
+        "modules": ["ai.ts", "prompt-library-fetcher.ts", "smart-prompt-search.ts"]
+      }
+    },
+    {
+      "id": "doc-sync-protocol",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Protocol",
+        "priority": 1,
+        "path": "docs/technical/SYNC_PROTOCOL.md",
+        "description": "Detailed specification of the synchronization logic between extension and dashboard."
+      }
+    },
+    {
+      "id": "doc-folder-structure",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Architecture",
+        "priority": 1,
+        "path": "docs/technical/FOLDER_STRUCTURE.md",
+        "description": "Comprehensive map of the project's folder hierarchy and monorepo layout."
+      }
     }
   ],
 
@@ -2079,6 +2227,170 @@
         "to": "shared-types-db",
         "relationship": "generates",
         "description": "Database types are generated from Supabase schema directly into shared package"
+    },
+    {
+      "from": "brainbox-dashboard-api-link",
+      "to": "brainbox-sync-manager",
+      "relationship": "uses",
+      "description": "Dashboard API delegates offline saving to SyncManager"
+    },
+    {
+      "from": "brainbox-dashboard-api-link",
+      "to": "brainbox-cache-manager",
+      "relationship": "uses",
+      "description": "Dashboard API implements SWR using CacheManager for persistence"
+    },
+    {
+      "from": "brainbox-service-worker",
+      "to": "brainbox-sync-manager",
+      "relationship": "initializes",
+      "description": "Service worker starts SyncManager on startup to process queue"
+    },
+    {
+      "from": "brainbox-service-worker",
+      "to": "brainbox-cache-manager",
+      "relationship": "initializes",
+      "description": "Service worker prepares CacheManager for data persistence"
+    },
+    {
+      "from": "brainbox-service-worker",
+      "to": "brainbox-network-observer",
+      "relationship": "initializes",
+      "description": "Service worker starts active/passive network monitoring"
+    },
+    {
+      "from": "brainbox-service-worker",
+      "to": "brainbox-installation-manager",
+      "relationship": "initializes",
+      "description": "Service worker delegates lifecycle events cleanup/onboarding"
+    },
+    {
+      "from": "apps/extension",
+      "to": "package-validation",
+      "relationship": "depends_on",
+      "description": "Extension uses shared Zod schemas for validation"
+    },
+    {
+      "from": "apps/dashboard",
+      "to": "package-validation",
+      "relationship": "depends_on",
+      "description": "Dashboard uses shared Zod schemas for validation"
+    },
+    {
+      "from": "brainbox-service-worker",
+      "to": "brainbox-message-router",
+      "relationship": "initializes",
+      "description": "Service worker delegates message handling to the router"
+    },
+    {
+      "from": "brainbox-message-router",
+      "to": "brainbox-auth-manager",
+      "relationship": "routes_to",
+      "description": "Router handles auth-related messages by calling AuthManager"
+    },
+    {
+      "from": "apps/dashboard",
+      "to": "dashboard-stores-zustand",
+      "relationship": "uses",
+      "description": "Dashboard components consume global state from Zustand stores"
+    },
+    {
+      "from": "apps/dashboard",
+      "to": "dashboard-services-logic",
+      "relationship": "delegates_to",
+      "description": "Complex logic and remote fetching are delegated to services"
+    },
+    {
+      "from": "brainbox-sync-manager",
+      "to": "doc-sync-protocol",
+      "relationship": "adheres_to",
+      "description": "SyncManager implementation follows the defined sync protocol"
+    },
+    {
+      "from": "turborepo-orchestrator",
+      "to": "doc-folder-structure",
+      "relationship": "implemented_via",
+      "description": "The monorepo structure is defined and documented in the folder structure guide"
+    },
+    {
+      "id": "project-brainbox-dashboard",
+      "type": "Application",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Applications",
+        "priority": 1,
+        "access_url": "apps/dashboard"
+      },
+      "connections": [
+        "project-brainbox-database",
+        "project-brainbox-assets",
+        "project-brainbox-validation",
+        "google-gemini-docs",
+        "nextjs-docs-main",
+        "react-dev-official",
+        "tailwindcss-docs-main"
+      ]
+    },
+    {
+      "id": "project-brainbox-extension",
+      "type": "Application",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Applications",
+        "priority": 1,
+        "access_url": "apps/extension"
+      },
+      "connections": [
+        "project-brainbox-shared",
+        "react-dev-official",
+        "vite-docs-main"
+      ]
+    },
+    {
+      "id": "project-brainbox-database",
+      "type": "Library",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Packages",
+        "priority": 2,
+        "access_url": "packages/database"
+      },
+      "connections": [
+        "supabase-docs-main"
+      ]
+    },
+    {
+      "id": "project-brainbox-validation",
+      "type": "Library",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Packages",
+        "priority": 2,
+        "access_url": "packages/validation"
+      },
+      "connections": [
+        "zod-docs-main"
+      ]
+    },
+    {
+      "id": "project-brainbox-shared",
+      "type": "Library",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Packages",
+        "priority": 2,
+        "access_url": "packages/shared"
+      }
+    },
+    {
+      "id": "project-brainbox-assets",
+      "type": "Library",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Packages",
+        "priority": 2,
+        "access_url": "packages/assets"
+      }
     }
   ]
 }

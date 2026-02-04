@@ -1,8 +1,8 @@
-audit_date: '2026-01-31T22:57:08.199425'
+audit_date: '2026-02-04T05:18:52.174946'
 breakdown:
   critical: 0
-  high: 67
-  low: 43
+  high: 86
+  low: 61
   medium: 11
 phases:
 - duration_estimate: 1-2 weeks
@@ -69,278 +69,373 @@ phases:
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/background/service-worker.js
+    file: apps/extension/src/rate-limiter.js
     id: HIGH-013
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/content/brainbox_master.js
+    file: apps/extension/src/inject-gemini-main.js
     id: HIGH-014
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/content/content-claude.js
+    file: apps/extension/src/content/brainbox_master.js
     id: HIGH-015
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/content/inject-gemini-main.js
+    file: apps/extension/src/content/content-claude.js
     id: HIGH-016
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/content/content-dashboard-auth.js
+    file: apps/extension/src/content/inject-gemini-main.js
     id: HIGH-017
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/ui/popup.js
+    file: apps/extension/src/content/content-dashboard-auth.js
     id: HIGH-018
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/lib/rate-limiter.js
+    file: apps/extension/src/prompt-inject/prompt-inject.js
     id: HIGH-019
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/prompt-inject/prompt-inject.js
+    file: тестове/authManager.test.ts
     id: HIGH-020
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: src/app/api/folders/route.ts
+    file: тестове/platformSave.test.ts
     id: HIGH-021
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: src/app/api/prompts/route.ts
+    file: тестове/integration.test.ts
     id: HIGH-022
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: src/app/api/upload/route.ts
+    file: тестове/messageRouter.test.ts
     id: HIGH-023
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: src/app/api/images/route.ts
+    file: src/app/api/folders/route.ts
     id: HIGH-024
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: src/app/api/stats/route.ts
+    file: src/app/api/prompts/route.ts
     id: HIGH-025
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: src/app/api/chats/route.ts
+    file: src/app/api/upload/route.ts
     id: HIGH-026
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: src/app/api/avatar/upload/route.ts
+    file: src/app/api/images/route.ts
     id: HIGH-027
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: src/app/api/auth/refresh/route.ts
+    file: src/app/api/stats/route.ts
     id: HIGH-028
     status: PENDING
   - assigned_to: backend_specialist
-    description: Possible hardcoded API key
-    file: src/app/api/ai/generate/route.ts
+    description: Possible hardcoded token
+    file: src/app/api/chats/route.ts
     id: HIGH-029
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: src/app/api/chats/extension/route.ts
+    file: src/app/api/avatar/upload/route.ts
     id: HIGH-030
     status: PENDING
   - assigned_to: backend_specialist
-    description: Possible hardcoded API key
-    file: src/lib/services/ai.ts
+    description: Possible hardcoded token
+    file: src/app/api/auth/refresh/route.ts
     id: HIGH-031
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded API key
-    file: src/lib/services/smart-prompt-search.ts
+    file: src/app/api/ai/generate/route.ts
     id: HIGH-032
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: packages/shared/src/logic/promptSync.ts
+    file: src/app/api/chats/extension/route.ts
     id: HIGH-033
     status: PENDING
   - assigned_to: backend_specialist
-    description: Possible hardcoded token
-    file: tests/e2e/extension.spec.ts
+    description: Possible hardcoded API key
+    file: src/lib/services/ai.ts
     id: HIGH-034
     status: PENDING
   - assigned_to: backend_specialist
-    description: Possible hardcoded token
-    file: apps/extension/src/popup/hooks/useAuth.ts
+    description: Possible hardcoded API key
+    file: src/lib/services/smart-prompt-search.ts
     id: HIGH-035
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/background/modules/dashboardApi.ts
+    file: packages/shared/src/logic/promptSync.ts
     id: HIGH-036
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/background/modules/authManager.ts
+    file: tests/e2e/extension.spec.ts
     id: HIGH-037
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/background/modules/platformAdapters/chatgpt.adapter.ts
+    file: apps/extension/src/background/service-worker.ts
     id: HIGH-038
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/background/modules/platformAdapters/gemini.adapter.ts
+    file: apps/extension/src/lib/rate-limiter.ts
     id: HIGH-039
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/background/modules/platformAdapters/__tests__/gemini.adapter.test.ts
+    file: apps/extension/src/popup/hooks/useAuth.ts
     id: HIGH-040
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/extension/src/background/modules/platformAdapters/__tests__/chatgpt.adapter.test.ts
+    file: apps/extension/src/background/modules/messageRouter.ts
     id: HIGH-041
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/dashboard/src/app/api/folders/route.ts
+    file: apps/extension/src/background/modules/dashboardApi.ts
     id: HIGH-042
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/dashboard/src/app/api/prompts/route.ts
+    file: apps/extension/src/background/modules/authManager.ts
     id: HIGH-043
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/dashboard/src/app/api/upload/route.ts
+    file: apps/extension/src/background/modules/dynamicMenus.ts
     id: HIGH-044
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/dashboard/src/app/api/images/route.ts
+    file: apps/extension/src/background/modules/platformAdapters/chatgpt.adapter.ts
     id: HIGH-045
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/dashboard/src/app/api/stats/route.ts
+    file: apps/extension/src/background/modules/platformAdapters/gemini.adapter.ts
     id: HIGH-046
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/dashboard/src/app/api/chats/route.ts
+    file: apps/extension/src/background/modules/platformAdapters/qwen.adapter.ts
     id: HIGH-047
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/dashboard/src/app/api/avatar/upload/route.ts
+    file: apps/extension/src/background/modules/platformAdapters/grok.adapter.ts
     id: HIGH-048
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/dashboard/src/app/api/auth/refresh/route.ts
+    file: apps/extension/src/background/modules/platformAdapters/deepseek.adapter.ts
     id: HIGH-049
     status: PENDING
   - assigned_to: backend_specialist
-    description: Possible hardcoded API key
-    file: apps/dashboard/src/app/api/ai/generate/route.ts
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/__tests__/authManager.test.ts
     id: HIGH-050
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded token
-    file: apps/dashboard/src/app/api/chats/extension/route.ts
+    file: apps/extension/src/background/modules/__tests__/integration.test.ts
     id: HIGH-051
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/__tests__/messageRouter.test.ts
+    id: HIGH-052
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/__tests__/newPlatforms.integration.test.ts
+    id: HIGH-053
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/platformAdapters/__tests__/gemini.adapter.test.ts
+    id: HIGH-054
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/platformAdapters/__tests__/perplexity.test.ts
+    id: HIGH-055
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/platformAdapters/__tests__/grok.test.ts
+    id: HIGH-056
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/platformAdapters/__tests__/platformSave.test.ts
+    id: HIGH-057
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/platformAdapters/__tests__/qwen.test.ts
+    id: HIGH-058
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/platformAdapters/__tests__/chatgpt.adapter.test.ts
+    id: HIGH-059
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/background/modules/platformAdapters/__tests__/deepseek.test.ts
+    id: HIGH-060
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/dashboard/src/app/api/prompts/route.ts
+    id: HIGH-061
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/dashboard/src/app/api/upload/route.ts
+    id: HIGH-062
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/dashboard/src/app/api/images/route.ts
+    id: HIGH-063
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/dashboard/src/app/api/stats/route.ts
+    id: HIGH-064
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/dashboard/src/app/api/chats/route.ts
+    id: HIGH-065
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/dashboard/src/app/api/avatar/upload/route.ts
+    id: HIGH-066
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/dashboard/src/app/api/auth/refresh/route.ts
+    id: HIGH-067
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded API key
+    file: apps/dashboard/src/app/api/ai/generate/route.ts
+    id: HIGH-068
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: Possible hardcoded token
+    file: apps/dashboard/src/app/api/chats/extension/route.ts
+    id: HIGH-069
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded API key
     file: apps/dashboard/src/lib/services/ai.ts
-    id: HIGH-052
+    id: HIGH-070
     status: PENDING
   - assigned_to: backend_specialist
     description: Possible hardcoded API key
     file: apps/dashboard/src/lib/services/smart-prompt-search.ts
-    id: HIGH-053
+    id: HIGH-071
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded token
     file: src/app/page.tsx
-    id: HIGH-054
+    id: HIGH-072
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded token
     file: src/app/extension-auth/page.tsx
-    id: HIGH-055
+    id: HIGH-073
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded password
     file: src/app/profile/page.tsx
-    id: HIGH-056
+    id: HIGH-074
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded password
     file: src/app/auth/signin/page.tsx
-    id: HIGH-057
+    id: HIGH-075
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded password
     file: src/app/auth/signup/page.tsx
-    id: HIGH-058
+    id: HIGH-076
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded password
     file: src/components/features/chats/ChatStudio.tsx
-    id: HIGH-059
+    id: HIGH-077
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded API key
     file: src/components/features/chats/ChatStudio.tsx
-    id: HIGH-060
+    id: HIGH-078
+    status: PENDING
+  - assigned_to: frontend_specialist
+    description: Possible hardcoded token
+    file: apps/extension/src/popup/components/StatusBar.tsx
+    id: HIGH-079
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded token
     file: apps/dashboard/src/app/page.tsx
-    id: HIGH-061
+    id: HIGH-080
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded token
     file: apps/dashboard/src/app/extension-auth/page.tsx
-    id: HIGH-062
+    id: HIGH-081
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded password
     file: apps/dashboard/src/app/profile/page.tsx
-    id: HIGH-063
+    id: HIGH-082
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded password
     file: apps/dashboard/src/app/auth/signin/page.tsx
-    id: HIGH-064
+    id: HIGH-083
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded password
     file: apps/dashboard/src/app/auth/signup/page.tsx
-    id: HIGH-065
+    id: HIGH-084
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded password
     file: apps/dashboard/src/components/features/chats/ChatStudio.tsx
-    id: HIGH-066
+    id: HIGH-085
     status: PENDING
   - assigned_to: frontend_specialist
     description: Possible hardcoded API key
     file: apps/dashboard/src/components/features/chats/ChatStudio.tsx
-    id: HIGH-067
+    id: HIGH-086
     status: PENDING
   name: High Priority Fixes
   phase: 1
@@ -359,27 +454,27 @@ phases:
     status: PENDING
   - assigned_to: backend_specialist
     description: 1 TODO/FIXME comments found
-    file: packages/shared/src/logic/promptSync.ts
-    id: MEDIUM-003
-    status: PENDING
-  - assigned_to: backend_specialist
-    description: 1 TODO/FIXME comments found
     file: apps/extension/src/background/modules/authManager.ts
-    id: MEDIUM-004
+    id: MEDIUM-003
     status: PENDING
   - assigned_to: frontend_specialist
     description: 1 TODO/FIXME comments found
     file: src/app/download/page.tsx
-    id: MEDIUM-005
+    id: MEDIUM-004
     status: PENDING
   - assigned_to: frontend_specialist
     description: 1 TODO/FIXME comments found
     file: src/components/features/folders/FolderHeader.tsx
-    id: MEDIUM-006
+    id: MEDIUM-005
     status: PENDING
   - assigned_to: frontend_specialist
     description: 1 TODO/FIXME comments found
     file: src/components/features/images/ImagesPage.tsx
+    id: MEDIUM-006
+    status: PENDING
+  - assigned_to: frontend_specialist
+    description: 2 TODO/FIXME comments found
+    file: apps/extension/src/popup/components/Actions.tsx
     id: MEDIUM-007
     status: PENDING
   - assigned_to: frontend_specialist
@@ -409,221 +504,311 @@ phases:
   issues:
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: extension/background/service-worker.js
+    file: scripts/verify_extension.js
     id: LOW-001
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: extension/content/content-chatgpt.js
+    file: scripts/validate-commit.js
     id: LOW-002
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: extension/content/brainbox_master.js
+    file: scripts/debug_live.js
     id: LOW-003
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: extension/content/content-claude.js
+    file: extension/background/service-worker.js
     id: LOW-004
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: extension/content/inject-gemini-main.js
+    file: extension/content/content-chatgpt.js
     id: LOW-005
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: extension/content/content-dashboard-auth.js
+    file: extension/content/brainbox_master.js
     id: LOW-006
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: extension/prompt-inject/prompt-inject.js
+    file: extension/content/content-claude.js
     id: LOW-007
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: extension/content/inject-gemini-main.js
+    id: LOW-008
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: extension/content/content-dashboard-auth.js
+    id: LOW-009
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: extension/prompt-inject/prompt-inject.js
+    id: LOW-010
     status: PENDING
   - assigned_to: db_architect
     description: console.log statements found (should be removed in production)
     file: scripts/pre-migration/dependency-audit.js
-    id: LOW-008
+    id: LOW-011
     status: PENDING
   - assigned_to: db_architect
     description: console.log statements found (should be removed in production)
     file: scripts/pre-migration/path-integrity-check.js
-    id: LOW-009
+    id: LOW-012
     status: PENDING
   - assigned_to: db_architect
     description: console.log statements found (should be removed in production)
     file: scripts/pre-migration/circular-dependency-scan.js
-    id: LOW-010
-    status: PENDING
-  - assigned_to: backend_specialist
-    description: console.log statements found (should be removed in production)
-    file: tests/integration/api-health.test.js
-    id: LOW-011
-    status: PENDING
-  - assigned_to: backend_specialist
-    description: console.log statements found (should be removed in production)
-    file: tests/chrome-env/cursor-chrome-composer.js
-    id: LOW-012
-    status: PENDING
-  - assigned_to: backend_specialist
-    description: console.log statements found (should be removed in production)
-    file: tests/scripts/validate_extension_sync.js
     id: LOW-013
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: tests/scripts/test-api.js
+    file: tests/integration/api-health.test.js
     id: LOW-014
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: tests/unit/schema-validation.test.js
+    file: tests/chrome-env/cursor-chrome-composer.js
     id: LOW-015
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: tests/database/check-rls.js
+    file: tests/scripts/validate_extension_sync.js
     id: LOW-016
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/background/service-worker.js
+    file: tests/scripts/test-api.js
     id: LOW-017
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/content/content-chatgpt.js
+    file: tests/unit/schema-validation.test.js
     id: LOW-018
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/content/brainbox_master.js
+    file: tests/database/check-rls.js
     id: LOW-019
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/content/content-claude.js
+    file: apps/extension/src/inject-gemini-main.js
     id: LOW-020
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/content/inject-gemini-main.js
+    file: apps/extension/src/content/content-grok.js
     id: LOW-021
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/content/content-dashboard-auth.js
+    file: apps/extension/src/content/content-qwen.js
     id: LOW-022
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/prompt-inject/prompt-inject.js
+    file: apps/extension/src/content/content-chatgpt.js
     id: LOW-023
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: src/app/api/avatar/upload/route.ts
+    file: apps/extension/src/content/brainbox_master.js
     id: LOW-024
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: src/lib/services/prompt-library-fetcher.ts
+    file: apps/extension/src/content/content-perplexity.js
     id: LOW-025
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: packages/shared/src/logic/promptSync.ts
+    file: apps/extension/src/content/content-deepseek.js
     id: LOW-026
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: tests/e2e/extension.spec.ts
+    file: apps/extension/src/content/content-claude.js
     id: LOW-027
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/popup/hooks/useAuth.ts
+    file: apps/extension/src/content/content-lmarena.js
     id: LOW-028
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/background/modules/authManager.ts
+    file: apps/extension/src/content/inject-gemini-main.js
     id: LOW-029
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/extension/src/background/modules/dynamicMenus.ts
+    file: apps/extension/src/content/content-dashboard-auth.js
     id: LOW-030
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/dashboard/src/app/api/avatar/upload/route.ts
+    file: apps/extension/src/prompt-inject/prompt-inject.js
     id: LOW-031
     status: PENDING
   - assigned_to: backend_specialist
     description: console.log statements found (should be removed in production)
-    file: apps/dashboard/src/lib/services/prompt-library-fetcher.ts
+    file: src/app/api/avatar/upload/route.ts
     id: LOW-032
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: src/lib/services/prompt-library-fetcher.ts
+    id: LOW-033
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: packages/shared/src/logic/promptSync.ts
+    id: LOW-034
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: tests/e2e/extension.spec.ts
+    id: LOW-035
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/service-worker.ts
+    id: LOW-036
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/popup/hooks/useTheme.ts
+    id: LOW-037
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/popup/hooks/useAuth.ts
+    id: LOW-038
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/messageRouter.ts
+    id: LOW-039
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/dashboardApi.ts
+    id: LOW-040
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/tabManager.ts
+    id: LOW-041
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/networkObserver.ts
+    id: LOW-042
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/syncManager.ts
+    id: LOW-043
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/installationManager.ts
+    id: LOW-044
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/authManager.ts
+    id: LOW-045
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/dynamicMenus.ts
+    id: LOW-046
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/platformAdapters/lmsys.adapter.ts
+    id: LOW-047
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/extension/src/background/modules/__tests__/messageRouter.test.ts
+    id: LOW-048
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/dashboard/src/app/api/avatar/upload/route.ts
+    id: LOW-049
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/dashboard/src/app/api/ai/generate/route.ts
+    id: LOW-050
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/dashboard/src/lib/services/ai.ts
+    id: LOW-051
+    status: PENDING
+  - assigned_to: backend_specialist
+    description: console.log statements found (should be removed in production)
+    file: apps/dashboard/src/lib/services/prompt-library-fetcher.ts
+    id: LOW-052
     status: PENDING
   - assigned_to: frontend_specialist
     description: console.log statements found (should be removed in production)
     file: src/app/extension-auth/page.tsx
-    id: LOW-033
+    id: LOW-053
     status: PENDING
   - assigned_to: frontend_specialist
     description: console.log statements found (should be removed in production)
     file: src/app/profile/page.tsx
-    id: LOW-034
+    id: LOW-054
     status: PENDING
   - assigned_to: frontend_specialist
     description: console.log statements found (should be removed in production)
     file: src/components/providers/FolderProvider.tsx
-    id: LOW-035
+    id: LOW-055
     status: PENDING
   - assigned_to: frontend_specialist
     description: console.log statements found (should be removed in production)
     file: src/components/features/lists/ListsPage.tsx
-    id: LOW-036
+    id: LOW-056
     status: PENDING
   - assigned_to: frontend_specialist
     description: console.log statements found (should be removed in production)
     file: src/components/features/images/ImagesPage.tsx
-    id: LOW-037
-    status: PENDING
-  - assigned_to: frontend_specialist
-    description: console.log statements found (should be removed in production)
-    file: apps/extension/src/popup/components/Header.tsx
-    id: LOW-038
+    id: LOW-057
     status: PENDING
   - assigned_to: frontend_specialist
     description: console.log statements found (should be removed in production)
     file: apps/dashboard/src/app/extension-auth/page.tsx
-    id: LOW-039
+    id: LOW-058
     status: PENDING
   - assigned_to: frontend_specialist
     description: console.log statements found (should be removed in production)
     file: apps/dashboard/src/app/profile/page.tsx
-    id: LOW-040
-    status: PENDING
-  - assigned_to: frontend_specialist
-    description: console.log statements found (should be removed in production)
-    file: apps/dashboard/src/components/providers/FolderProvider.tsx
-    id: LOW-041
+    id: LOW-059
     status: PENDING
   - assigned_to: frontend_specialist
     description: console.log statements found (should be removed in production)
     file: apps/dashboard/src/components/features/lists/ListsPage.tsx
-    id: LOW-042
+    id: LOW-060
     status: PENDING
   - assigned_to: frontend_specialist
     description: console.log statements found (should be removed in production)
     file: apps/dashboard/src/components/features/images/ImagesPage.tsx
-    id: LOW-043
+    id: LOW-061
     status: PENDING
   name: Optimizations & Polish
   phase: 3
   priority: OPTIONAL
 project_name: Chat Organizer Cursor
-total_issues: 121
+total_issues: 158

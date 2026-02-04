@@ -1,7 +1,7 @@
 /// <reference types="chrome"/>
 
 import React from 'react';
-import { CONFIG } from '../../lib/config';
+import { CONFIG } from '@/lib/config';
 
 export default function Actions() {
   const openDashboard = () => {

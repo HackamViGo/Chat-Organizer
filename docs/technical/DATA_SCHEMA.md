@@ -1,7 +1,7 @@
 # Data Schema Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.1.3  
+**Version**: 2.2.0  
 **Type System**: TypeScript + Zod + Supabase PostgreSQL  
 **Generated**: 2026-02-03  
 **Authority**: Meta-Architect (Priority 1 - Identity-Locked)

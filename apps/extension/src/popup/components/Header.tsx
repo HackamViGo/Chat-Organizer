@@ -2,7 +2,7 @@
 
 import React from 'react';
 import { useTheme } from '../hooks/useTheme';
-import { CONFIG } from '../../lib/config';
+import { CONFIG } from '@/lib/config';
 
 export default function Header() {
   const { theme, toggleTheme } = useTheme();

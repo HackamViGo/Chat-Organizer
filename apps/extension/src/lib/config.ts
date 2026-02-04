@@ -9,4 +9,6 @@ export const CONFIG = {
     API_BASE_URL: 'http://localhost:3000', // Dev API
     // API_BASE_URL: 'https://brainbox-alpha.vercel.app', // Production API
     VERSION: '2.1.3'
-};
+} as const;
+
+export type Config = typeof CONFIG;

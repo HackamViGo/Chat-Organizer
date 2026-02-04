@@ -9,7 +9,7 @@ import {
   Check, AlertTriangle, Dice5, Search, CheckSquare, Square, FolderInput, FileImage, 
   Calendar, HardDrive, ArrowUpAZ, FolderPlus, FolderMinus, Activity, Pill
 } from 'lucide-react';
-import { FOLDER_ICONS } from '@/components/layout/Sidebar';
+import { FOLDER_ICONS } from '@/components/layout/HybridSidebar';
 import { getFolderColorClass, getFolderTextColorClass, getFolderTextColorClasses, getFolderBorderColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
 import { useImageStore } from '@/store/useImageStore';
 import { useFolderStore } from '@/store/useFolderStore';
@@ -608,139 +608,6 @@ export function ImagesPage() {
 
   return (
     <div className="flex min-h-[calc(100vh-4rem)] md:min-h-screen relative">
-       <aside className="w-20 hidden md:flex flex-col items-center py-8 border-r border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-black/20 backdrop-blur-sm sticky top-0 h-screen gap-4 z-10 overflow-y-auto [&::-webkit-scrollbar]:hidden">
-          
-          <button 
-             onClick={() => setSelectedFolderId(null)}
-             onDragOver={(e) => { 
-               e.preventDefault(); 
-               e.stopPropagation();
-               setHoveredFolderId('root'); 
-             }}
-             onDragLeave={(e) => {
-               e.preventDefault();
-               e.stopPropagation();
-               const relatedTarget = e.relatedTarget as HTMLElement;
-               if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
-                 setHoveredFolderId(null);
-               }
-             }}
-             onDrop={(e) => handleDropOnFolder(e, undefined)}
-             className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative group shrink-0
-               ${!selectedFolderId 
-                 ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30 scale-110' 
-                 : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
-               ${hoveredFolderId === 'root' && selectedFolderId
-                 ? 'ring-2 ring-cyan-500 dark:ring-cyan-400 bg-cyan-100 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 
-                 : ''}  
-             `}
-             title="All Images"
-          >
-            <LayoutGrid size={24} />
-          </button>
-          
-          <div className="w-8 h-px bg-slate-200 dark:bg-white/10 my-2 shrink-0" />
-
-          <button
-             onClick={() => {
-               setIsCreatingGroupFromSelection(false);
-               setIsCreateModalOpen(true);
-             }}
-             className="w-12 h-12 flex items-center justify-center rounded-2xl text-slate-400 hover:bg-cyan-500/10 hover:text-cyan-500 transition-all duration-300 relative group shrink-0"
-          >
-            <Plus size={24} />
-          </button>
-
-          <div className="flex flex-col gap-3 w-full items-center">
-            {imageFolders.map(f => {
-               const Icon = f.icon && FOLDER_ICONS[f.icon] ? FOLDER_ICONS[f.icon] : FolderIcon;
-               const isActive = selectedFolderId === f.id;
-               const isHovered = hoveredFolderId === f.id;
-               
-               const folderImages = images.filter(img => img.folder_id === f.id);
-               const hasImages = folderImages.length > 0;
-               const currentPreviewImage = hasImages ? folderImages[previewIndex % folderImages.length] : null;
-
-               return (
-                 <div key={f.id} className="relative flex items-center justify-center">
-                    <button
-                      onClick={() => setSelectedFolderId(f.id)}
-                      onMouseEnter={() => setHoveredFolderId(f.id)}
-                      onMouseLeave={() => setHoveredFolderId(null)}
-                      onDragOver={(e) => { 
-                        e.preventDefault(); 
-                        e.stopPropagation();
-                        setHoveredFolderId(f.id); 
-                      }} 
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const relatedTarget = e.relatedTarget as HTMLElement;
-                        if (!relatedTarget || !e.currentTarget.contains(relatedTarget)) {
-                          setHoveredFolderId(null);
-                        }
-                      }}
-                      onDrop={(e) => handleDropOnFolder(e, f.id)}
-                      className={`w-12 h-12 flex items-center justify-center rounded-2xl transition-all duration-200 relative shrink-0 z-20
-                        ${isActive 
-                          ? `${getFolderColorClass(f.color)} text-white shadow-lg scale-110` 
-                          : 'text-slate-400 hover:bg-white dark:hover:bg-white/10 hover:text-slate-700 dark:hover:text-slate-200'}
-                        ${isHovered && !isActive 
-                          ? 'ring-2 ring-cyan-400 dark:ring-cyan-500 bg-cyan-50 dark:bg-cyan-900/20 scale-110 shadow-lg shadow-cyan-500/30 animate-pulse' 
-                          : ''}
-                      `}
-                    >
-                      <Icon size={24} />
-                    </button>
-
-                    {isHovered && (
-                      <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 w-64 h-64 glass-panel rounded-xl shadow-2xl z-50 p-3 flex flex-col pointer-events-none animate-in fade-in slide-in-from-left-4 duration-200">
-                         <div className="flex items-center gap-2 mb-3 border-b border-white/10 pb-2">
-                           <Icon size={16} className={getFolderTextColorClass(f.color)} />
-                           <span className="font-semibold text-slate-900 dark:text-white truncate">{f.name}</span>
-                           <span className="ml-auto text-xs text-slate-500">{folderImages.length} items</span>
-                         </div>
-                         
-                         <div className="flex-1 rounded-lg bg-slate-100 dark:bg-black/30 overflow-hidden relative">
-                            {currentPreviewImage ? (
-                               <div key={currentPreviewImage.id} className="w-full h-full animate-in fade-in duration-500">
-                                 {currentPreviewImage.url && (
-                                   // eslint-disable-next-line @next/next/no-img-element
-                                   <img 
-                                     src={currentPreviewImage.url} 
-                                     className="w-full h-full object-cover" 
-                                     alt="Preview" 
-                                   />
-                                 )}
-                                 {folderImages.length > 1 && (
-                                    <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1">
-                                      {folderImages.slice(0, 5).map((_, idx) => (
-                                        <div 
-                                          key={idx} 
-                                          className={`w-1.5 h-1.5 rounded-full shadow-sm transition-colors ${
-                                            (previewIndex % folderImages.length) === idx ? 'bg-white' : 'bg-white/40'
-                                          }`} 
-                                        />
-                                      ))}
-                                    </div>
-                                 )}
-                               </div>
-                            ) : (
-                               <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 text-xs italic p-4 text-center">
-                                 <ImageIcon size={32} className="mb-2 opacity-20" />
-                                 <span>Empty Folder</span>
-                               </div>
-                            )}
-                         </div>
-                         
-                         <div className="absolute top-1/2 -translate-y-1/2 right-full -mr-1 border-8 border-transparent border-r-[rgba(255,255,255,0.65)] dark:border-r-[rgba(15,23,42,0.6)]" />
-                      </div>
-                    )}
-                 </div>
-               )
-            })}
-          </div>
-       </aside>
 
        {isCreateModalOpen && (
          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">

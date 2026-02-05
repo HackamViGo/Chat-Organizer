@@ -2,38 +2,7 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-
-// Zod schemas for validation
-const createChatSchema = z.object({
-  title: z.string().min(1),
-  content: z.string(),
-  platform: z.string().optional(),
-  url: z.string().url().optional().or(z.literal('')),
-  folder_id: z.string().uuid().nullable().optional(),
-  source_id: z.string().optional(),
-  messages: z.array(z.any()).optional(),
-  summary: z.string().optional().nullable(),
-  detailed_summary: z.string().optional().nullable(),
-  tags: z.any().optional(),
-  tasks: z.any().optional(),
-  embedding: z.array(z.number()).optional().nullable(),
-});
-
-const updateChatSchema = z.object({
-  id: z.string().uuid(),
-  title: z.string().min(1).optional(),
-  content: z.string().optional(),
-  platform: z.string().optional(),
-  url: z.string().url().optional().or(z.literal('')),
-  folder_id: z.string().uuid().nullable().optional(),
-  source_id: z.string().optional(),
-  messages: z.array(z.any()).optional(),
-  summary: z.string().optional().nullable(),
-  detailed_summary: z.string().optional().nullable(),
-  tags: z.any().optional(),
-  tasks: z.any().optional(),
-  embedding: z.array(z.number()).optional().nullable(),
-});
+import { createChatSchema, updateChatSchema } from '@brainbox/validation';
 
 // Helper to extract source_id from URL if not provided
 function extractSourceId(url: string | undefined, platform: string | undefined): string | null {
@@ -205,7 +174,11 @@ export async function POST(request: NextRequest) {
         folder_id: validatedData.folder_id,
         source_id: sourceId,
         messages: incomingMessages,
+        summary: validatedData.summary,
+        detailed_summary: validatedData.detailed_summary,
         tags: validatedData.tags,
+        tasks: validatedData.tasks,
+        embedding: validatedData.embedding,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id, source_id',

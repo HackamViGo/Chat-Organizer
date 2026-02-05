@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Chat } from '@/types';
+import type { Chat } from '@brainbox/shared';
 
 interface ChatStore {
   chats: Chat[];

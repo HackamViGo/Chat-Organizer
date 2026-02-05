@@ -5,7 +5,16 @@ capabilities:
 - TypeScript type definitions
 - CSS/Tailwind styling
 - Frontend testing
-current_task: null
+current_task:
+  - description: Possible hardcoded token in apps/dashboard/src/lib/services/smart-prompt-search.ts
+    id: HIGH-071
+    status: IN_PROGRESS
+  - description: Possible hardcoded token in src/app/page.tsx
+    id: HIGH-072
+    status: IN_PROGRESS
+  - description: Possible hardcoded token in src/app/extension-auth/page.tsx
+    id: HIGH-073
+    status: IN_PROGRESS
 escalations: []
 knowledge_context: '# KNOWLEDGE INJECTION FOR: FRONTEND_SPECIALIST
 
@@ -88,5 +97,5 @@ restrictions:
 - Must reference Graph nodes for all architectural decisions
 - Cannot directly access other agents' state files
 role: frontend_specialist
-status: READY
+status: BUSY
 work_log: []

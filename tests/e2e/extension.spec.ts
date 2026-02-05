@@ -257,7 +257,7 @@ test.describe('Extension Configuration', () => {
             'extension/background/service-worker.js',
             'extension/content/content-chatgpt.js',
             'extension/content/content-claude.js',
-            'extension/content/content-gemini.js',
+            'extension/content/inject-gemini-main.js',
             'extension/lib/normalizers.js',
             'extension/lib/schemas.js',
             'extension/lib/rate-limiter.js',

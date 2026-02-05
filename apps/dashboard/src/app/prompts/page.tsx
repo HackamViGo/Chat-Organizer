@@ -11,8 +11,8 @@ import { DailyPromptCard } from '@/components/features/prompts/DailyPromptCard';
 import { createClient } from '@/lib/supabase/client';
 import { FileEdit, Plus, Search, ArrowUpDown, LayoutGrid, Folder as FolderIcon, X, Trash2, CheckSquare } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/HybridSidebar';
-import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
-import { Prompt, Folder } from '@/types';
+import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@brainbox/shared';
+import { Prompt, Folder } from '@brainbox/shared';
 
 type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 

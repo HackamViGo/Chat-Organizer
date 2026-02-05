@@ -7,9 +7,10 @@ import { useTheme } from 'next-themes';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
-import { Chat, Folder } from '@/types';
-import { getFolderIconContainerClasses, getCategoryColorClasses } from '@/lib/utils/colors';
+import { Chat, Folder } from '@brainbox/shared';
+import { getFolderIconContainerClasses, getCategoryColorClasses } from '@brainbox/shared';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useShallow } from 'zustand/react/shallow';
 import {
   LayoutGrid, Archive, FileEdit, Settings,
   Folder as FolderIcon, Plus, ChevronRight, ChevronDown, User, X, Search, Trash2,
@@ -110,8 +111,9 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
   const searchParams = useSearchParams();
   const currentFolderParam = searchParams.get('folder');
   const [isHovered, setIsHovered] = useState(false);
-  const { folders, isLoading: foldersLoading } = useFolderStore();
-  const { chats } = useChatStore();
+  const folders = useFolderStore(useShallow(s => s.folders));
+  const foldersLoading = useFolderStore(s => s.isLoading);
+  const chats = useChatStore(useShallow(s => s.chats));
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
 
   // 1. PATHNAME DETECTION & Context

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { analyzeChatContent } from '@/lib/services/ai';
+import { analyzeChatContent } from '@brainbox/shared';
 import { z } from 'zod';
 
 const requestSchema = z.object({

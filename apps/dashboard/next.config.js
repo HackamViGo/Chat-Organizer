@@ -9,7 +9,7 @@ const withPWA = require('next-pwa')({
 const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
-    unoptimized: true,
+
     remotePatterns: [
       {
         protocol: 'https',
@@ -17,6 +17,7 @@ const nextConfig = {
       },
     ],
   },
+  transpilePackages: ['@brainbox/assets', '@brainbox/database', '@brainbox/validation', '@brainbox/shared'],
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },

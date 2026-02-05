@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Copy, Check, Bookmark, Zap, Play } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { usePromptStore } from '@/store/usePromptStore';
-import { Prompt } from '@/types';
+import { Prompt } from '@brainbox/shared';
 import './DailyPromptCard.css';
 
 interface DailyPromptCardProps {

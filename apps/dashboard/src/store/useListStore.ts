@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ListWithItems, ListItem } from '@/types';
+import type { ListWithItems, ListItem } from '@brainbox/shared';
 
 interface ListStore {
   lists: ListWithItems[];

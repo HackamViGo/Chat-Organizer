@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Folder } from '@/types';
+import type { Folder } from '@brainbox/shared';
 
 interface FolderStore {
   folders: Folder[];

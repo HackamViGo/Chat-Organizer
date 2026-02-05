@@ -1,59 +1,29 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Chat, Platform } from '@/types';
+import { Chat, Platform } from '@brainbox/shared';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
-import { generateEmbedding } from '@/lib/services/ai';
+import { useShallow } from 'zustand/react/shallow';
+import { generateEmbedding } from '@brainbox/shared';
 import { usePathname } from 'next/navigation';
 import { marked } from 'marked';
 import DOMPurify from 'dompurify';
 import { MessageContent } from './MessageContent';
 import { PROVIDER_ASSETS } from '@brainbox/assets';
 import { 
-  MoreVertical, CheckSquare, Trash2, 
-  Archive, ArchiveRestore, Sparkles, ExternalLink, Tag,
-  FolderInput, Edit2, X, Check, AlertTriangle, FileText,
-  Folder as DefaultFolderIcon, Link as LinkIcon, Square, Download, Maximize, Minimize,
-  // Dev
-  Code, Terminal, Cpu, Database, Server,
-  // Art
-  Palette, Image as LucideImage, PenTool, Wand2, Layers,
-  // Writer
-  Feather, BookOpen, Pencil, Scroll,
-  // Work
-  Briefcase, DollarSign, PieChart, Target, Calculator,
-  // Media
-  Music, Video, Mic, Film, Headphones,
-  // Life
-  Globe, Heart, Coffee, Home, Sun,
-  // Provider Icons
-  Bot, MessageSquare, Zap, Search as SearchIcon, Globe as GlobeIcon, Layers as LayersIcon, Cpu as CpuIcon
+  Check, CheckSquare, ExternalLink, Sparkles, MoreVertical
 } from 'lucide-react';
 // Provider icons are now handled by @brainbox/assets
 
 
+import { ChatBadges, PlatformIcon } from './components/ChatBadges';
+import { ChatActionMenu } from './components/ChatActionMenu';
+import { AIAnalysisModal } from './components/AIAnalysisModal';
+
 interface ChatCardProps {
   chat: Chat;
 }
-
-// Icon mapping for folders
-const CARD_ICONS: Record<string, React.ElementType> = {
-  // Dev
-  Code, Terminal, Cpu, Database, Server,
-  // Art
-  Palette, Image: LucideImage, PenTool, Wand2, Layers,
-  // Writer
-  Feather, BookOpen, FileText, Pencil, Scroll,
-  // Work
-  Briefcase, DollarSign, PieChart, Target, Calculator,
-  // Media
-  Music, Video, Mic, Film, Headphones,
-  // Life
-  Globe, Heart, Coffee, Home, Sun,
-  // Fallback
-  Folder: DefaultFolderIcon
-};
 
 // Map for semantic colors to background utility classes
 const BG_COLORS: Record<string, string> = {
@@ -66,118 +36,38 @@ const BG_COLORS: Record<string, string> = {
   default: 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700'
 };
 
-const PROVIDER_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
-  [Platform.ChatGPT]: { 
-    color: 'text-emerald-500', 
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/20 dark:border-emerald-500/30'
-  },
-  [Platform.Claude]: { 
-    color: 'text-orange-500', 
-    bg: 'bg-orange-500/10',
-    border: 'border-orange-500/20 dark:border-orange-500/30'
-  },
-  [Platform.Gemini]: { 
-    color: 'text-blue-500', 
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/20 dark:border-blue-500/30'
-  },
-  [Platform.Grok]: { 
-    color: 'text-slate-900 dark:text-white', 
-    bg: 'bg-slate-900/10 dark:bg-white/10',
-    border: 'border-slate-900/10 dark:border-white/10'
-  },
-  [Platform.Perplexity]: { 
-    color: 'text-cyan-500', 
-    bg: 'bg-cyan-500/10',
-    border: 'border-cyan-500/20 dark:border-cyan-500/30'
-  },
-  [Platform.DeepSeek]: { 
-    color: 'text-indigo-500', 
-    bg: 'bg-indigo-500/10',
-    border: 'border-indigo-500/20 dark:border-indigo-500/30'
-  },
-  [Platform.LMArena]: { 
-    color: 'text-rose-500', 
-    bg: 'bg-rose-500/10',
-    border: 'border-rose-500/20 dark:border-rose-500/30'
-  },
-  [Platform.Qwen]: { 
-    color: 'text-purple-500', 
-    bg: 'bg-purple-500/10',
-    border: 'border-purple-500/20 dark:border-purple-500/30'
-  },
-  default: { 
-    color: 'text-cyan-500', 
-    bg: 'bg-cyan-500/10',
-    border: 'border-slate-200 dark:border-white/5'
-  }
-};
-
-const PlatformIcon: React.FC<{ platform: string; className?: string }> = ({ platform, className }) => {
-  return (
-    <div className={`w-6 h-6 rounded-sm overflow-hidden flex-shrink-0 ${className}`}>
-      <img 
-        src={PROVIDER_ASSETS[platform.toLowerCase()] || PROVIDER_ASSETS.fallback} 
-        alt={platform}
-        className="w-full h-full object-contain"
-      />
-    </div>
-  );
-};
-
-const PlatformBadge: React.FC<{ platform: Platform }> = ({ platform }) => {
-  const config = PROVIDER_CONFIG[platform] || PROVIDER_CONFIG.default;
-  const assetKey = platform.toLowerCase() as keyof typeof PROVIDER_ASSETS;
-  const src = PROVIDER_ASSETS[assetKey] || PROVIDER_ASSETS.fallback;
-
-  return (
-    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${config.bg} ${config.border}`}>
-      <img src={src} alt="" className="w-3 h-3 object-contain" />
-      <span className={`text-[10px] uppercase tracking-wider font-bold ${config.color}`}>
-        {platform}
-      </span>
-    </div>
-  );
-};
-
 export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
-  const { updateChat, deleteChat, selectedChatIds, toggleChatSelection } = useChatStore();
-  const { folders } = useFolderStore();
+  const updateChat = useChatStore(s => s.updateChat);
+  const deleteChat = useChatStore(s => s.deleteChat);
+  const selectedChatIds = useChatStore(s => s.selectedChatIds);
+  const toggleChatSelection = useChatStore(s => s.toggleChatSelection);
+  const folders = useFolderStore(useShallow(s => s.folders));
   const pathname = usePathname();
   const isSelected = selectedChatIds.has(chat.id);
   
   // State
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisStatus, setAnalysisStatus] = useState<string>('');
-  const [showMenu, setShowMenu] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showMoveModal, setShowMoveModal] = useState(false);
-  const [isHighlighted, setIsHighlighted] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   
   // Editing Title
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(chat.title);
-  const titleInputRef = useRef<HTMLInputElement>(null);
-
-  // Editing Description (Summary)
-  const [isEditingDesc, setIsEditingDesc] = useState(false);
-  const [editedDesc, setEditedDesc] = useState(chat.content || '');
-  const [isEditingInModal, setIsEditingInModal] = useState(false);
-  const [modalContent, setModalContent] = useState(chat.content || '');
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const modalContentRef = useRef<HTMLDivElement>(null);
-
-  // Editing URL
-  const [isEditingUrl, setIsEditingUrl] = useState(false);
-  const [editedUrl, setEditedUrl] = useState(chat.url || '');
+  const [isHighlighted, setIsHighlighted] = useState(false);
 
   // Selection mode state
   const [isLongPressing, setIsLongPressing] = useState(false);
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // Title Editing Logic
+  const handleTitleSave = async (title: string) => {
+    if (title.trim() && title !== chat.title) {
+      await updateChat(chat.id, { title: title.trim() });
+    }
+    setIsEditingTitle(false);
+  };
+
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (isEditingTitle && titleInputRef.current) {
@@ -185,198 +75,26 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
     }
   }, [isEditingTitle]);
 
-  // Handle click outside to close editing
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      if (cardRef.current && !cardRef.current.contains(e.target as Node)) {
-        if (isEditingTitle) setIsEditingTitle(false);
-        if (isEditingDesc) setIsEditingDesc(false);
-        if (isEditingUrl) setIsEditingUrl(false);
-      }
-    };
-
-    if (isEditingTitle || isEditingDesc || isEditingUrl) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-  }, [isEditingTitle, isEditingDesc, isEditingUrl]);
-
-  // Handle long press for selection
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return; // Only left mouse button
-    
-    longPressTimerRef.current = setTimeout(() => {
-      setIsLongPressing(true);
-      toggleChatSelection(chat.id);
-    }, 500); // 500ms hold
-  };
-
-  const handleMouseUp = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
-
-  const handleMouseLeave = () => {
-    if (longPressTimerRef.current) {
-      clearTimeout(longPressTimerRef.current);
-      longPressTimerRef.current = null;
-    }
-  };
-
-  // Check for hash highlight
-  useEffect(() => {
-    if (typeof window !== 'undefined' && window.location.hash === `#${chat.id}`) {
-      setIsHighlighted(true);
-      const timer = setTimeout(() => setIsHighlighted(false), 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [pathname, chat.id]);
-
-  // AI Analysis Logic (Server-side)
-  const handleAIAnalyze = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!chat.content) return;
-    setIsAnalyzing(true);
-    setAnalysisStatus('Generating Title...');
-    
-    const stepTimer = setTimeout(() => setAnalysisStatus('Summarizing content...'), 1000);
-    const stepTimer2 = setTimeout(() => setAnalysisStatus('Extracting tasks...'), 2000);
-
-    try {
-      const response = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: chat.content, chatId: chat.id }),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        console.error('[ChatCard] AI Analysis server error:', errorData);
-        throw new Error(errorData.message || 'AI analysis failed');
-      }
-      
-      const result = await response.json();
-      
-      await updateChat(chat.id, ({
-        title: result.title,
-        summary: result.summary,
-        detailed_summary: result.detailedSummary,
-        tags: result.tags,
-        tasks: result.tasks,
-        embedding: result.embedding,
-      } as any));
-    } catch (e) {
-      console.error('AI Analysis error:', e);
-    } finally {
-      clearTimeout(stepTimer);
-      clearTimeout(stepTimer2);
-      setIsAnalyzing(false);
-      setAnalysisStatus('');
-    }
-  };
-
-  // Drag and Drop Logic
-  const handleDragStart = (e: React.DragEvent) => {
-    e.dataTransfer.setData('chatId', chat.id);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  // Title Editing Logic
-  const handleTitleSave = async () => {
-    if (editedTitle.trim() && editedTitle !== chat.title) {
-      await updateChat(chat.id, { title: editedTitle.trim() });
-    } else {
-      setEditedTitle(chat.title); // Revert if empty
-    }
-    setIsEditingTitle(false);
-  };
-
-  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') handleTitleSave();
-    if (e.key === 'Escape') {
-      setEditedTitle(chat.title);
-      setIsEditingTitle(false);
-    }
-  };
-
   // Description Editing Logic
-  const handleDescSave = async () => {
-    if (editedDesc !== chat.content) {
-      await updateChat(chat.id, { content: editedDesc });
+  const handleDescSave = async (content: string) => {
+    if (content !== chat.content) {
+      await updateChat(chat.id, { content });
     }
-    setIsEditingDesc(false);
-  };
-  // URL Editing Logic
-  const handleUrlSave = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (editedUrl !== chat.url) {
-      await updateChat(chat.id, { url: editedUrl });
-    }
-    setIsEditingUrl(false);
-  };
-
-  // Removed legacy regex-based handleAnalyze logic in favor of AI-powered analysis
-  // Modal content save
-  const handleSaveModalContent = async () => {
-    if (modalContent !== chat.content) {
-      await updateChat(chat.id, { content: modalContent });
-    }
-    setIsEditingInModal(false);
-    setShowViewModal(false);
-  };
-
-  // Text formatting functions
-  const insertFormatting = (before: string, after: string = '') => {
-    const textarea = textareaRef.current;
-    if (!textarea) return;
-
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const selectedText = modalContent.substring(start, end);
-    
-    // If nothing selected and we're adding markers, add placeholder
-    const textToWrap = selectedText || 'text';
-    
-    const beforeText = modalContent.substring(0, start);
-    const afterText = modalContent.substring(end);
-    const newText = beforeText + before + textToWrap + after + afterText;
-    
-    // Calculate new selection position
-    const newStart = start + before.length;
-    const newEnd = newStart + textToWrap.length;
-    
-    // Update content
-    setModalContent(newText);
-    
-    // Restore selection immediately after React updates
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.focus();
-        textareaRef.current.setSelectionRange(newStart, newEnd);
-      }
-    }, 10);
-  };
-
-
-  // Move Folder Logic
-  const handleMoveFolder = async (folderId?: string) => {
-    await updateChat(chat.id, { folder_id: folderId });
-    setShowMoveModal(false);
-    setShowMenu(false);
   };
 
   // Archive Logic
   const handleArchive = async () => {
     await updateChat(chat.id, { is_archived: !chat.is_archived });
-    setShowMenu(false);
   };
 
-  // Download Logic
+  const handleUrlSave = async (url: string) => {
+    if (url !== chat.url) {
+      await updateChat(chat.id, { url });
+    }
+  };
+
   const handleDownload = () => {
     const content = `Title: ${chat.title}\nPlatform: ${chat.platform || 'Unknown'}\nDate: ${chat.created_at ? new Date(chat.created_at).toLocaleString() : 'Unknown'}\n${chat.url ? `URL: ${chat.url}\n` : ''}\n${chat.summary ? `Summary:\n${chat.summary}\n\n` : ''}${chat.content ? `Content:\n${chat.content}` : 'No content'}`;
-    
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -386,14 +104,44 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
-    setShowMenu(false);
   };
 
-  const folder = folders.find(f => f.id === chat.folder_id);
-  
-  // Resolve Folder Icon (folders don't have icon field in DB, use default)
-  const FolderIconComp = DefaultFolderIcon;
-  const folderStyleClass = folder?.color ? (BG_COLORS[folder.color] || BG_COLORS.default) : '';
+  const handleMoveFolder = async (folderId?: string) => {
+    await updateChat(chat.id, { folder_id: folderId });
+  };
+
+  // AI Analysis Logic
+  const handleAIAnalyze = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!chat.content) return;
+    setIsAnalyzing(true);
+    setAnalysisStatus('Generating Title...');
+    
+    try {
+      const response = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: chat.content, chatId: chat.id }),
+      });
+      
+      if (!response.ok) throw new Error('AI analysis failed');
+      
+      const result = await response.json();
+      await updateChat(chat.id, {
+        title: result.title,
+        summary: result.summary,
+        detailed_summary: result.detailedSummary,
+        tags: result.tags,
+        tasks: result.tasks,
+        embedding: result.embedding,
+      } as any);
+    } catch (e) {
+      console.error('AI Analysis error:', e);
+    } finally {
+      setIsAnalyzing(false);
+      setAnalysisStatus('');
+    }
+  };
 
   return (
     <>
@@ -401,18 +149,27 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
         ref={cardRef}
         id={chat.id}
         draggable
-        onDragStart={handleDragStart}
-        onMouseDown={handleMouseDown}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={handleMouseLeave}
+        onDragStart={(e) => {
+          e.dataTransfer.setData('chatId', chat.id);
+          e.dataTransfer.effectAllowed = 'move';
+        }}
+        onMouseDown={(e) => {
+          if (e.button !== 0) return;
+          longPressTimerRef.current = setTimeout(() => {
+            setIsLongPressing(true);
+            toggleChatSelection(chat.id);
+          }, 500);
+        }}
+        onMouseUp={() => {
+          if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+        }}
+        onMouseLeave={() => {
+          if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+        }}
         onClick={() => {
           if (!isLongPressing) {
-            // If in selection mode, toggle selection instead of opening
-            if (selectedChatIds.size > 0) {
-              toggleChatSelection(chat.id);
-            } else {
-              setShowViewModal(true);
-            }
+            if (selectedChatIds.size > 0) toggleChatSelection(chat.id);
+            else setShowViewModal(true);
           }
           setIsLongPressing(false);
         }}
@@ -421,115 +178,44 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
           hover:scale-[1.02] hover:-translate-y-1 hover:shadow-2xl hover:border-cyan-500/30
           ${isHighlighted ? 'ring-2 ring-cyan-500 shadow-lg shadow-cyan-500/20 scale-[1.02]' : ''}
           ${isSelected ? 'ring-2 ring-blue-500 shadow-lg shadow-blue-500/20' : ''}
+          p-5
         `}
       >
         {/* Selection Checkbox */}
         {(isSelected || isLongPressing || selectedChatIds.size > 0) && (
-          <div 
-            className="absolute top-3 left-3 z-10"
-            onClick={(e) => {
-              e.stopPropagation();
-              toggleChatSelection(chat.id);
-            }}
-          >
+          <div className="absolute top-3 left-3 z-10" onClick={(e) => e.stopPropagation()}>
             <button
               className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all
                 ${isSelected 
                   ? 'bg-blue-600 border-blue-600 text-white opacity-100 scale-100' 
                   : 'bg-white dark:bg-slate-800 border-slate-300 dark:border-slate-600 hover:border-blue-500 opacity-0 group-hover:opacity-100 scale-95 group-hover:scale-100'
                 }`}
-              onClick={(e) => e.stopPropagation()}
+              onClick={() => toggleChatSelection(chat.id)}
             >
               {isSelected && <Check size={14} className="text-white" />}
             </button>
           </div>
         )}
-        {/* Delete Confirmation Overlay */}
-        {showDeleteConfirm && (
-          <div className="absolute inset-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center text-center p-4 animate-in fade-in duration-200">
-            <AlertTriangle className="text-red-500 mb-2" size={32} />
-            <h4 className="font-bold mb-1 text-slate-900 dark:text-white">Delete Chat?</h4>
-            <p className="text-slate-500 dark:text-slate-400 text-sm mb-4">This action cannot be undone.</p>
-            <div className="flex gap-2 w-full">
-              <button 
-                onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(false); }}
-                className="flex-1 px-3 py-2 rounded-lg bg-slate-200 dark:bg-white/10 hover:bg-slate-300 dark:hover:bg-white/20 text-sm transition-colors text-slate-700 dark:text-slate-200"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={async (e) => { 
-                  e.stopPropagation(); 
-                  try {
-                    await deleteChat(chat.id);
-                    setShowDeleteConfirm(false);
-                  } catch (error) {
-                    console.error('Failed to delete chat:', error);
-                    alert('Failed to delete chat. Please try again.');
-                  }
-                }}
-                className="flex-1 px-3 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-sm text-white transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Move Modal Overlay */}
-        {showMoveModal && (
-          <div className="absolute inset-0 z-20 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm rounded-xl p-4 animate-in fade-in duration-200 flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <h4 className="font-bold">Move to...</h4>
-              <button onClick={() => setShowMoveModal(false)} className="text-slate-400 hover:text-slate-900 dark:hover:text-white"><X size={16}/></button>
-            </div>
-            <div className="flex-1 overflow-y-auto space-y-1 custom-scrollbar">
-              <button 
-                onClick={() => handleMoveFolder(undefined)}
-                className="w-full text-left px-3 py-2 rounded text-sm text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-white/10"
-              >
-                No Folder (Root)
-              </button>
-              {folders.map(f => {
-                 const ListIcon = DefaultFolderIcon;
-                 return (
-                  <button 
-                    key={f.id}
-                    onClick={() => handleMoveFolder(f.id)}
-                    className={`w-full text-left px-3 py-2 rounded text-sm hover:bg-slate-200 dark:hover:bg-white/10 flex items-center gap-2
-                      ${chat.folder_id === f.id ? 'text-cyan-600 dark:text-cyan-400 bg-cyan-50 dark:bg-white/5' : 'text-slate-700 dark:text-slate-300'}
-                    `}
-                  >
-                    <ListIcon size={14} className={chat.folder_id === f.id ? 'text-cyan-500' : 'text-slate-400'} />
-                    {f.name}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         <div className="flex justify-between items-start mb-4">
           <div className="flex items-center gap-3 overflow-hidden pr-2">
-             {/* Platform Icon */}
-             <div className={`shrink-0 p-2 rounded-xl bg-slate-100 dark:bg-white/5 group-hover:bg-cyan-500/10 transition-colors border border-slate-200 dark:border-white/5`}>
+             <div className="shrink-0 p-2 rounded-xl bg-slate-100 dark:bg-white/5 group-hover:bg-cyan-500/10 transition-colors border border-slate-200 dark:border-white/5">
                 <PlatformIcon platform={(chat.platform as Platform) || Platform.Other} />
              </div>
-             
-             {/* Title & Meta */}
              <div className="min-w-0 flex-1">
                {isEditingTitle ? (
                  <div className="flex items-center gap-2">
                   <input
                     ref={titleInputRef}
-                    value={editedTitle}
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                    onBlur={handleTitleSave}
-                    onKeyDown={handleTitleKeyDown}
+                    defaultValue={chat.title}
+                    onBlur={(e) => handleTitleSave(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleTitleSave((e.target as HTMLInputElement).value);
+                      if (e.key === 'Escape') setIsEditingTitle(false);
+                    }}
                     className="w-full bg-white dark:bg-black/40 border border-cyan-500/50 rounded px-1 py-0.5 text-sm font-semibold text-slate-900 dark:text-white focus:outline-none"
                     autoFocus
                   />
-                  <button onClick={handleTitleSave} className="text-cyan-600 dark:text-cyan-400"><Check size={14}/></button>
                 </div>
                ) : (
                  <h3 
@@ -550,417 +236,82 @@ export const ChatCard: React.FC<ChatCardProps> = ({ chat }) => {
              </div>
           </div>
           
-          <div className="relative shrink-0">
-            <button 
-              onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-              className="text-slate-400 hover:text-slate-900 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <MoreVertical size={16} />
-            </button>
-            
-            {showMenu && (
-              <div 
-                onClick={(e) => e.stopPropagation()}
-                className="absolute right-0 top-8 w-44 bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-lg shadow-xl z-10 overflow-hidden text-sm animate-in fade-in zoom-in-95 duration-200"
-              >
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setShowViewModal(true); setShowMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                >
-                  <Edit2 size={14} /> Edit
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setShowMoveModal(true); setShowMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                >
-                  <FolderInput size={14} /> Move to Folder
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleDownload(); }}
-                  className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                >
-                  <Download size={14} /> Download
-                </button>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); handleArchive(); }}
-                  className="w-full text-left px-4 py-2 hover:bg-slate-100 dark:hover:bg-white/10 flex items-center gap-2 text-slate-700 dark:text-slate-300"
-                >
-                  {chat.is_archived ? <ArchiveRestore size={14}/> : <Archive size={14}/>}
-                  {chat.is_archived ? 'Restore' : 'Archive'}
-                </button>
-                <div className="h-px bg-slate-200 dark:bg-white/5 my-1" />
-                <button 
-                  onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); setShowMenu(false); }}
-                  className="w-full text-left px-4 py-2 hover:bg-red-50 dark:hover:bg-red-500/20 text-red-600 dark:text-red-400 flex items-center gap-2"
-                >
-                  <Trash2 size={14} /> Delete
-                </button>
-              </div>
-            )}
-          </div>
+          <ChatActionMenu 
+            chat={chat}
+            onEdit={() => setShowViewModal(true)}
+            onArchive={handleArchive}
+            onDownload={handleDownload}
+            onDelete={() => deleteChat(chat.id)}
+            onMove={handleMoveFolder}
+          />
         </div>
 
-        {/* Title (Removed - integrated into Header) */}
-
-        {/* Summary (with Edit Mode) */}
-        <div className="flex-1 mb-4 relative group/desc">
-          {isEditingDesc ? (
-            <div className="h-full flex flex-col gap-2">
-               <textarea 
-                  autoFocus
-                  className="w-full h-full min-h-[100px] bg-slate-50 dark:bg-black/30 border border-cyan-500 rounded p-2 text-sm text-slate-800 dark:text-slate-200 focus:outline-none resize-none"
-                  value={editedDesc}
-                  onChange={(e) => setEditedDesc(e.target.value)}
-                  placeholder="Enter a description..."
-               />
-               <div className="flex justify-end gap-2">
-                 <button onClick={() => { setEditedDesc(chat.content || ''); setIsEditingDesc(false); }} className="text-xs px-2 py-1 text-slate-500">Cancel</button>
-                 <button onClick={handleDescSave} className="text-xs px-2 py-1 bg-cyan-600 text-white rounded">Save</button>
-               </div>
-            </div>
-          ) : (
-            <>
-              {chat.summary || chat.content ? (
-                <div 
-                   className="text-sm text-slate-500 dark:text-slate-300 line-clamp-3 cursor-text leading-relaxed tracking-wide font-normal mix-blend-plus-lighter"
-                   onClick={(e) => { e.stopPropagation(); setIsEditingDesc(true); }}
-                   title="Click to edit description"
-                >
-                  {(chat.summary || chat.content || '').replace(/\[USER\]|You:|User:|Assistant:|Bot:/gi, '').trim()}
-                </div>
-              ) : (
-                <p 
-                  className="text-sm text-slate-500 italic cursor-pointer hover:text-cyan-600"
-                  onClick={() => setIsEditingDesc(true)}
-                >
-                  No description. Click to add.
-                </p>
-              )}
-            </>
-          )}
+        {/* Summary */}
+        <div 
+          className="flex-1 mb-4 text-sm text-slate-500 dark:text-slate-300 line-clamp-3 leading-relaxed tracking-wide font-normal mix-blend-plus-lighter cursor-pointer"
+          onClick={() => setShowViewModal(true)}
+        >
+          {(chat.summary || chat.content || '').replace(/\[USER\]|You:|User:|Assistant:|Bot:/gi, '').trim() || 'No description available.'}
         </div>
 
-        {/* Tags Display */}
-        {chat.tags && Array.isArray(chat.tags) && (chat.tags as string[]).length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-3">
-            {(chat.tags as string[]).slice(0, 5).map((tag, i) => (
-              <span key={i} className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-white/50 dark:bg-black/20 border border-slate-200 dark:border-white/5 text-[10px] text-slate-600 dark:text-slate-400">
-                <Tag size={8} /> {tag}
+        {/* Badges, Tags, Tasks */}
+        <ChatBadges chat={chat} compact />
+
+        {/* Footer Actions */}
+        <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/5 flex justify-between items-center">
+          <div className="flex gap-3 items-center">
+            {chat.messages && Array.isArray(chat.messages) && chat.messages.length > 0 && (
+              <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
+                {chat.messages.length} msg{chat.messages.length !== 1 ? 's' : ''}
               </span>
-            ))}
-          </div>
-        )}
-
-
-        {/* Tasks Preview */}
-        {chat.tasks && Array.isArray(chat.tasks) && chat.tasks.length > 0 && (
-          <div className="mb-4 space-y-1">
-            {(chat.tasks as string[]).slice(0, 2).map((task, i) => (
-              <div key={i} className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-300">
-                <CheckSquare size={12} className="text-cyan-600 dark:text-cyan-400 shrink-0" />
-                <span className="truncate">{task}</span>
-              </div>
-            ))}
-            {chat.tasks.length > 2 && (
-              <div className="text-xs text-slate-400 dark:text-slate-500 pl-5">+{chat.tasks.length - 2} more tasks</div>
             )}
           </div>
-        )}
-
-        {/* Footer / Actions / URL Editing */}
-        <div className="mt-auto">
-          {isEditingUrl ? (
-            <div className="pt-4 border-t border-slate-200 dark:border-white/5 flex flex-col gap-2">
-               <div className="flex items-center gap-2">
-                  <LinkIcon size={14} className="text-slate-400" />
-                  <input 
-                    autoFocus
-                    className="flex-1 bg-slate-50 dark:bg-black/30 border border-cyan-500/50 rounded px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none"
-                    placeholder="https://..."
-                    value={editedUrl}
-                    onChange={(e) => setEditedUrl(e.target.value)}
-                  />
-               </div>
-               <div className="flex justify-end gap-2">
-                 <button 
-                   onClick={() => { setEditedUrl(chat.url || ''); setIsEditingUrl(false); }} 
-                   className="text-[10px] px-2 py-1 bg-slate-200 dark:bg-white/10 rounded hover:bg-slate-300 dark:hover:bg-white/20 text-slate-600 dark:text-slate-300"
-                 >
-                   Cancel
-                 </button>
-                 <button 
-                   onClick={handleUrlSave} 
-                   className="text-[10px] px-2 py-1 bg-cyan-600 hover:bg-cyan-500 text-white rounded font-medium"
-                 >
-                   Save URL
-                 </button>
-               </div>
-            </div>
-          ) : (
-            <div className="pt-4 border-t border-slate-200 dark:border-white/5 flex justify-between items-center">
-              <div className="flex gap-3 items-center">
-                <span className="text-xs text-slate-500">
-                  {chat.created_at ? new Date(chat.created_at).toLocaleDateString() : 'N/A'}
-                </span>
-                {chat.messages && Array.isArray(chat.messages) && chat.messages.length > 0 && (
-                  <span className="text-sm font-semibold text-purple-600 dark:text-purple-400">
-                    {chat.messages.length} msg{chat.messages.length !== 1 ? 's' : ''}
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex gap-2">
-                {chat.url && (
-                  <a 
-                    href={chat.url} 
-                    target="_blank" 
-                    rel="noreferrer"
-                    className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
-                    title="Open Original"
-                  >
-                    <ExternalLink size={16} />
-                  </a>
-                )}
-                <button 
-                  onClick={handleAIAnalyze}
-                  disabled={isAnalyzing}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all min-w-[100px] justify-center
-                    ${isAnalyzing 
-                      ? 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30' 
-                      : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-[0_0_15px_-3px_rgba(8,145,178,0.4)]'
-                    }`}
-                >
-                  {isAnalyzing ? (
-                     <span>{analysisStatus || 'Processing...'}</span>
-                  ) : (
-                    <>
-                      <Sparkles size={14} /> Analyze
-                    </>
-                  )}
-                </button>
-              </div>
-            </div>
-          )}
+          
+          <div className="flex gap-2">
+            {chat.url && (
+              <a 
+                href={chat.url} 
+                target="_blank" 
+                rel="noreferrer"
+                className="p-2 rounded-lg bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors"
+                title="Open Original"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <ExternalLink size={16} />
+              </a>
+            )}
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                handleAIAnalyze(e);
+              }}
+              disabled={isAnalyzing}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-medium transition-all min-w-[100px] justify-center
+                ${isAnalyzing 
+                  ? 'bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-500/30' 
+                  : 'bg-cyan-600 hover:bg-cyan-500 text-white shadow-lg shadow-cyan-500/20'
+                }`}
+            >
+              {isAnalyzing ? (
+                 <span className="animate-pulse">{analysisStatus || 'Analyzing...'}</span>
+              ) : (
+                <>
+                  <Sparkles size={14} /> Analyze
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* View Chat Modal */}
-      {showViewModal && (
-        <div 
-          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[100] p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowViewModal(false);
-              setIsEditingInModal(false);
-              setModalContent(chat.content || '');
-            }
-          }}
-        >
-          <div className={`bg-white dark:bg-slate-900 rounded-xl shadow-2xl w-full overflow-hidden flex flex-col transition-all ${
-            isFullscreen ? 'max-w-[95vw] max-h-[95vh]' : 'max-w-4xl max-h-[90vh]'
-          }`}>
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{chat.title}</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsFullscreen(!isFullscreen)}
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                  title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
-                >
-                  {isFullscreen ? <Minimize size={20} /> : <Maximize size={20} />}
-                </button>
-                <button
-                  onClick={() => {
-                    setShowViewModal(false);
-                    setIsEditingInModal(false);
-                    setModalContent(chat.content || '');
-                    setIsFullscreen(false);
-                  }}
-                  className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-            </div>
-            
-            <div ref={modalContentRef} className="flex-1 overflow-y-auto p-6 bg-slate-50 dark:bg-slate-900/50">
-              {isEditingInModal ? (
-                <textarea
-                  ref={textareaRef}
-                  value={modalContent}
-                  onChange={(e) => setModalContent(e.target.value)}
-                  className="w-full h-full min-h-[400px] font-mono text-sm bg-white dark:bg-slate-800 p-4 rounded-lg border border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
-                />
-              ) : (
-                <>
-                  {/* Detailed Summary Section */}
-                  {chat.detailed_summary && (
-                    <div className="mb-8 p-6 bg-cyan-500/5 border border-cyan-500/10 rounded-2xl">
-                      <h3 className="text-lg font-bold text-cyan-600 dark:text-cyan-400 mb-3 flex items-center gap-2">
-                        <Sparkles size={18} /> Detailed Analysis
-                      </h3>
-                      <div 
-                        className="prose dark:prose-invert max-w-none text-sm text-slate-700 dark:text-slate-300 leading-relaxed"
-                        dangerouslySetInnerHTML={{ 
-                          __html: DOMPurify.sanitize(marked.parse(chat.detailed_summary) as string) 
-                        }}
-                      />
-                    </div>
-                  )}
-
-                  {chat.messages && Array.isArray(chat.messages) && chat.messages.length > 0 ? (
-                    <div className="space-y-6">
-                      {(chat.messages as any[]).map((msg, idx) => (
-                        <div key={msg.id || idx} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                          <div className={`max-w-[85%] rounded-2xl p-4 ${
-                            msg.role === 'user' 
-                              ? 'bg-purple-600 text-white rounded-tr-none' 
-                              : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 border border-slate-200 dark:border-slate-700 rounded-tl-none shadow-sm'
-                          }`}>
-                            <div className="text-[10px] uppercase tracking-wider font-bold mb-1 opacity-70">
-                              {msg.role === 'user' ? 'You' : (chat.platform || 'Assistant').toUpperCase()}
-                            </div>
-                            <MessageContent content={msg.content || ''} />
-                            {msg.metadata?.images && Array.isArray(msg.metadata.images) && msg.metadata.images.length > 0 && (
-                                <div className="mt-3 grid grid-cols-2 gap-2">
-                                    {msg.metadata.images.map((img: string, i: number) => (
-                                        <img key={i} src={img} alt="Gemini generated" className="rounded-lg w-full h-auto border border-white/10" />
-                                    ))}
-                                </div>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div 
-                      className="prose dark:prose-invert max-w-none cursor-text markdown-content"
-                      onClick={() => setIsEditingInModal(true)}
-                      dangerouslySetInnerHTML={{ 
-                        __html: DOMPurify.sanitize(marked.parse(chat.content || 'No content available') as string) 
-                      }}
-                    />
-                  )}
-                </>
-              )}
-            </div>
-
-            {/* Toolbar */}
-            {isEditingInModal && (
-              <div className="px-6 py-3 border-t border-slate-200 dark:border-slate-700 flex gap-2 flex-wrap bg-slate-50 dark:bg-slate-800/50">
-                <button
-                  onClick={() => insertFormatting('**', '**')}
-                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors font-bold"
-                  title="Bold"
-                >
-                  B
-                </button>
-                <button
-                  onClick={() => insertFormatting('_', '_')}
-                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors italic"
-                  title="Italic"
-                >
-                  I
-                </button>
-                <button
-                  onClick={() => insertFormatting('~~', '~~')}
-                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors line-through"
-                  title="Strikethrough"
-                >
-                  S
-                </button>
-                <div className="w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                <button
-                  onClick={() => insertFormatting('==', '==')}
-                  className="px-2 py-1 hover:bg-yellow-200 dark:hover:bg-yellow-500/30 rounded-lg transition-colors bg-yellow-100 dark:bg-yellow-500/20 text-sm"
-                  title="Highlight"
-                >
-                  ⬤
-                </button>
-                <button
-                  onClick={() => insertFormatting('`', '`')}
-                  className="px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors font-mono text-sm"
-                  title="Code"
-                >
-                  {'</>'}
-                </button>
-                <div className="w-px bg-slate-300 dark:bg-slate-600 mx-1"></div>
-                <button
-                  onClick={() => insertFormatting('# ', '')}
-                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors font-bold text-lg"
-                  title="Heading"
-                >
-                  H
-                </button>
-                <button
-                  onClick={() => insertFormatting('- ', '')}
-                  className="p-2 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                  title="List"
-                >
-                  ≡
-                </button>
-              </div>
-            )}
-
-            <div className="p-4 border-t border-slate-200 dark:border-slate-700 flex justify-between items-center">
-              <div className="flex gap-2 items-center text-sm text-slate-600 dark:text-slate-400">
-                <PlatformBadge platform={chat.platform as Platform} />
-                {chat.url && (
-                  <a 
-                    href={chat.url} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-cyan-600 dark:text-cyan-400 hover:underline"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <ExternalLink size={14} />
-                    Open Original
-                  </a>
-                )}
-              </div>
-              <div className="flex gap-2">
-                {isEditingInModal ? (
-                  <>
-                    <button
-                      onClick={() => {
-                        setIsEditingInModal(false);
-                        setModalContent(chat.content || '');
-                      }}
-                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSaveModalContent}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg hover:from-purple-700 hover:to-purple-800 transition-all"
-                    >
-                      Save Changes
-                    </button>
-                  </>
-                ) : (
-                  <>
-                    <button
-                      onClick={() => setIsEditingInModal(true)}
-                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => {
-                        setShowViewModal(false);
-                        setModalContent(chat.content || '');
-                      }}
-                      className="px-4 py-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                    >
-                      Close
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <AIAnalysisModal 
+        chat={chat}
+        isOpen={showViewModal}
+        onClose={() => setShowViewModal(false)}
+        onSaveContent={handleDescSave}
+        isAnalyzing={isAnalyzing}
+        analysisStatus={analysisStatus}
+      />
     </>
   );
 };

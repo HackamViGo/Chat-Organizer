@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Zap, Play, Copy, Check } from 'lucide-react';
-import { Prompt } from '@/types';
+import { Prompt } from '@brainbox/shared';
 import { useState } from 'react';
 
 interface DailyPickCardProps {

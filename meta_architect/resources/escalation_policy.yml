@@ -1,0 +1,12 @@
+# Escalation Handler Configuration
+policy:
+  auto_escalate: true
+  levels:
+    - role: meta_architect
+      triggers:
+        - health_score_below: 60
+        - test_failure_count_above: 3
+    - role: user
+      triggers:
+        - block_duration_above: 3600
+        - critical_architecture_conflict: true

@@ -1,115 +1,16 @@
-# escalation_handler.yml
-# Escalation Processing Workflow
-# Version: 2.0 - Superior Meta-Architect+
-
 version: "2.0"
 name: "Escalation Handler"
-description: "Process escalations from sub-agents and resolve or route to user"
-
-trigger:
-  event: agent_escalation
-  source: agent_state_file
-
-inputs:
-  agent_id: string
-  escalation:
-    issue: string
-    context: list[string]
-    suggested_actions: list[string]
-    timestamp: datetime
-
-escalation_types:
-  missing_documentation:
-    pattern: "Missing.*documentation"
-    auto_resolve: true
-    actions:
-      - query_graph_deeper
-      - invoke_mcp_web_search
-      - update_agent_context
-      
-  conflicting_data:
-    pattern: "Conflict.*|Contradiction.*"
-    auto_resolve: false
-    actions:
-      - identify_conflict_nodes
-      - present_options_to_user
-      - await_user_decision
-      - update_graph
-      
-  identity_lock_violation:
-    pattern: "Identity-locked.*|priority=1.*"
-    auto_resolve: false
-    actions:
-      - block_agent
-      - notify_meta_architect
-      - await_explicit_approval
-      
-  unknown_pattern:
-    pattern: "Unknown.*pattern|Uncertain.*"
-    auto_resolve: true
-    actions:
-      - query_graph_for_examples
-      - invoke_mcp_web_search
-      - update_agent_context
 
 steps:
-  - id: classify_escalation
-    action: pattern_match
-    input: "${inputs.escalation.issue}"
-    patterns: "${escalation_types}"
-    
-  - id: check_auto_resolve
-    action: decide
-    condition: "${escalation_types[steps.classify_escalation.match].auto_resolve}"
-    on_true: auto_resolve_path
-    on_false: manual_resolve_path
-
-  # Auto-resolve path
-  - id: auto_resolve_path
-    action: execute_actions
-    actions: "${escalation_types[steps.classify_escalation.match].actions}"
-    
-  - id: update_agent_state
+  - id: log_escalation
     action: python_exec
-    script: scripts/state_manager.py
-    function: resolve_escalation
+    script: "meta_architect/scripts/state_manager.py"
+    function: "add_escalation"
     args:
       agent_id: "${inputs.agent_id}"
-      resolution: "${steps.auto_resolve_path.result}"
-    depends_on: auto_resolve_path
-    
-  - id: resume_agent
-    action: python_exec
-    script: scripts/state_manager.py
-    function: update_status
-    args:
-      agent_id: "${inputs.agent_id}"
-      new_status: "ACTIVE"
-    depends_on: update_agent_state
+      issue: "${inputs.issue}"
 
-  # Manual resolve path
-  - id: manual_resolve_path
-    action: notify_user
-    message: |
-      **ESCALATION REQUIRES USER INPUT**
-      
-      Agent: ${inputs.agent_id}
-      Issue: ${inputs.escalation.issue}
-      
-      Suggested Actions:
-      ${inputs.escalation.suggested_actions}
-    await_response: true
-    
-  - id: apply_user_decision
+  - id: run_custom_hooks
     action: python_exec
-    script: scripts/state_manager.py
-    function: apply_resolution
-    args:
-      agent_id: "${inputs.agent_id}"
-      user_decision: "${steps.manual_resolve_path.response}"
-    depends_on: manual_resolve_path
-
-outputs:
-  resolution_type: "${steps.classify_escalation.match}"
-  auto_resolved: "${escalation_types[steps.classify_escalation.match].auto_resolve}"
-  agent_status: "ACTIVE"
+    script: "meta_architect/scripts/agent_hooks.py"
+    function: "on_escalation"

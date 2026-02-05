@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generatePromptImprovement } from '@/lib/services/ai';
+import { generatePromptImprovement } from '@brainbox/shared';
 import { z } from 'zod';
 
 const requestSchema = z.object({

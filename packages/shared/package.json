@@ -2,12 +2,14 @@
   "name": "@brainbox/shared",
   "version": "0.0.0",
   "private": true,
-  "main": "./index.js",
-  "types": "./index.d.ts",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
   "exports": {
-    ".": "./index.js",
-    "./schemas": "./schemas.js",
-    "./logic/promptSync": "./src/logic/promptSync.ts"
+    ".": "./src/index.ts",
+    "./utils": "./src/utils",
+    "./validation": "./src/validation",
+    "./types": "./src/types",
+    "./services": "./src/services"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.36",

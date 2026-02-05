@@ -5,7 +5,7 @@ import { ChatCard } from '@/components/features/chats/ChatCard';
 import { Archive } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Chat } from '@/types';
+import { Chat } from '@brainbox/shared';
 
 export default function ArchivePage() {
   const { chats } = useChatStore();

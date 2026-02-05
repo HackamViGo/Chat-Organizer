@@ -1,7 +1,7 @@
 import React from 'react';
 import { notFound, redirect } from 'next/navigation';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { Chat, Folder as FolderType } from '@/types';
+import { Chat, Folder as FolderType } from '@brainbox/shared';
 import Link from 'next/link';
 import { ChevronRight, Home, Folder as FolderIcon } from 'lucide-react';
 import { ChatCard } from '@/components/features/chats/ChatCard';
@@ -53,12 +53,14 @@ export default async function FolderPage({ params }: FolderPageProps) {
   }
 
   // Fetch chats in this folder
-  const { data: chats = [] } = await (supabase as any)
+  const { data: chatsData } = await (supabase as any)
     .from('chats')
     .select('*')
     .eq('folder_id', params.id)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false });
+
+  const chats = (chatsData || []) as Chat[];
 
   return (
     <div className="flex flex-col gap-8">

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Folder as FolderType } from '@/types';
+import { Folder as FolderType } from '@brainbox/shared';
 import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';

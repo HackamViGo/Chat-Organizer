@@ -5,7 +5,16 @@ capabilities:
 - Authentication & authorization
 - Business logic
 - Backend testing
-current_task: null
+current_task:
+  - description: Possible hardcoded token in extension/background/service-worker.js
+    id: HIGH-001
+    status: IN_PROGRESS
+  - description: Possible hardcoded token in extension/content/brainbox_master.js
+    id: HIGH-002
+    status: IN_PROGRESS
+  - description: Possible hardcoded token in extension/content/content-claude.js
+    id: HIGH-003
+    status: IN_PROGRESS
 escalations: []
 knowledge_context: '# KNOWLEDGE INJECTION FOR: BACKEND_SPECIALIST
 
@@ -97,5 +106,5 @@ restrictions:
 - Must reference Graph nodes for all architectural decisions
 - Cannot directly access other agents' state files
 role: backend_specialist
-status: READY
+status: BUSY
 work_log: []

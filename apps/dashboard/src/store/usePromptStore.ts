@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Prompt } from '@/types';
+import type { Prompt } from '@brainbox/shared';
 
 interface PromptStore {
   prompts: Prompt[];

@@ -25,7 +25,11 @@
     "test:rls": "node tests/database/check-rls.js",
     "test:unit": "node tests/unit/schema-validation.test.js",
     "test:integration": "node tests/integration/api-health.test.js",
-    "verify": "python scripts/verification.py --check-all",
+    "verify": "python3 meta_architect/scripts/project_health_check.py --min-score 70",
+    "audit": "python3 meta_architect/scripts/project_planner.py",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
     "legacy:dev": "next dev",
     "legacy:build": "next build"
   },

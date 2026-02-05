@@ -7,7 +7,7 @@ import { promptSchema, type PromptFormData } from '@brainbox/validation';
 import { usePromptStore } from '@/store/usePromptStore';
 import { createClient } from '@/lib/supabase/client';
 import { X, Check } from 'lucide-react';
-import { Prompt } from '@/types';
+import { Prompt } from '@brainbox/shared';
 
 interface CreatePromptModalProps {
   isOpen: boolean;

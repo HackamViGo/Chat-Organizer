@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Prompt, PromptUpdate } from '@/types';
+import { Prompt, PromptUpdate } from '@brainbox/shared';
 import { usePromptStore } from '@/store/usePromptStore';
 import { createClient } from '@/lib/supabase/client';
 import { 

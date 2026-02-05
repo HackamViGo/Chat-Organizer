@@ -35,8 +35,8 @@
     "https://api.together.xyz/*",
     "https://lmarena.ai/*",
     "https://arena.ai/*",
-    "https://chat.qwen.ai/*",
-    "<all_urls>"
+    "https://chat.qwen.ai/*"
+
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -49,9 +49,9 @@
         "https://chat.openai.com/*"
       ],
       "js": [
-        "src/lib/ui.js",
-        "src/content/content-chatgpt.js",
-        "src/prompt-inject/prompt-inject.js"
+        "src/lib/ui.ts",
+        "src/content/content-chatgpt.ts",
+        "src/prompt-inject/prompt-inject.ts"
       ],
       "run_at": "document_idle"
     },
@@ -60,9 +60,9 @@
         "https://claude.ai/*"
       ],
       "js": [
-        "src/lib/ui.js",
-        "src/content/content-claude.js",
-        "src/prompt-inject/prompt-inject.js"
+        "src/lib/ui.ts",
+        "src/content/content-claude.ts",
+        "src/prompt-inject/prompt-inject.ts"
       ],
       "run_at": "document_idle"
     },
@@ -71,9 +71,9 @@
         "https://gemini.google.com/*"
       ],
       "js": [
-        "src/lib/ui.js",
-        "src/content/brainbox_master.js",
-        "src/prompt-inject/prompt-inject.js"
+        "src/lib/ui.ts",
+        "src/content/brainbox_master.ts",
+        "src/prompt-inject/prompt-inject.ts"
       ],
       "run_at": "document_start"
     },
@@ -82,7 +82,7 @@
         "<all_urls>"
       ],
       "js": [
-        "src/prompt-inject/prompt-inject.js"
+        "src/prompt-inject/prompt-inject.ts"
       ],
       "run_at": "document_idle",
       "exclude_matches": [
@@ -94,8 +94,8 @@
         "https://chat.deepseek.com/*"
       ],
       "js": [
-        "src/lib/ui.js",
-        "src/content/content-deepseek.js"
+        "src/lib/ui.ts",
+        "src/content/content-deepseek.ts"
       ],
       "run_at": "document_end"
     },
@@ -104,8 +104,8 @@
         "https://www.perplexity.ai/*"
       ],
       "js": [
-        "src/lib/ui.js",
-        "src/content/content-perplexity.js"
+        "src/lib/ui.ts",
+        "src/content/content-perplexity.ts"
       ],
       "run_at": "document_end"
     },
@@ -115,8 +115,8 @@
         "https://grok.com/*"
       ],
       "js": [
-        "src/lib/ui.js",
-        "src/content/content-grok.js"
+        "src/lib/ui.ts",
+        "src/content/content-grok.ts"
       ],
       "run_at": "document_end"
     },
@@ -125,8 +125,8 @@
         "https://chat.qwen.ai/*"
       ],
       "js": [
-        "src/lib/ui.js",
-        "src/content/content-qwen.js"
+        "src/lib/ui.ts",
+        "src/content/content-qwen.ts"
       ],
       "run_at": "document_end"
     },
@@ -136,8 +136,8 @@
         "https://arena.ai/*"
       ],
       "js": [
-        "src/lib/ui.js",
-        "src/content/content-lmarena.js"
+        "src/lib/ui.ts",
+        "src/content/content-lmarena.ts"
       ],
       "run_at": "document_end"
     },
@@ -148,7 +148,7 @@
         "http://127.0.0.1:3000/extension-auth"
       ],
       "js": [
-        "src/content/content-dashboard-auth.js"
+        "src/content/content-dashboard-auth.ts"
       ],
       "run_at": "document_idle"
     }

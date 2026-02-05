@@ -3,7 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useChatStore } from '@/store/useChatStore';
-import { Chat, Platform } from '@/types';
+import { Chat, Platform } from '@brainbox/shared';
 import { 
   Send, Bot, Sparkles, Plus, MessageSquare, 
   Cpu, Zap, MoreVertical, Trash2, ArrowLeft,

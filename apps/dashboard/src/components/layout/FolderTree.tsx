@@ -11,7 +11,7 @@ import {
   Plus, User, Search, Trash2, ListTodo, 
   MessageSquarePlus, Brain
 } from 'lucide-react';
-import { Chat, Folder } from '@/types';
+import { Chat, Folder } from '@brainbox/shared';
 
 // --- Configuration ---
 

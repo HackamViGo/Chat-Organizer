@@ -1,19 +1,51 @@
 import { defineConfig } from 'vite';
 import { crx } from '@crxjs/vite-plugin';
 import { resolve } from 'path';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import fs from 'fs';
 
-// Read manifest directly (CRXJS needs JSON object, not import)
-import manifest from './manifest.json' with { type: 'json' };
+// Read manifest using fs to avoid Import Attributes syntax issues
+const manifestCallback = () => {
+  const manifest = JSON.parse(fs.readFileSync(resolve(__dirname, 'manifest.json'), 'utf-8'));
+  return manifest;
+};
+
+// Custom plugin to strip Dev CSP in production
+const stripDevCSP = () => {
+  return {
+    name: 'stripDevCSP',
+    writeBundle() {
+      const outDir = resolve(__dirname, 'dist');
+      const manifestPath = resolve(outDir, 'manifest.json');
+      
+      if (fs.existsSync(manifestPath)) {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        
+        if (manifest.content_security_policy?.extension_pages) {
+          // Remove localhost dev server origins
+          manifest.content_security_policy.extension_pages = manifest.content_security_policy.extension_pages
+            .replace(/\s*ws:\/\/localhost:5173/g, '')
+            .replace(/\s*http:\/\/localhost:5173/g, '')
+            .trim();
+            
+          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+          console.log('✓ Security: Stripped localhost dev servers from CSP');
+        }
+      }
+    }
+  };
+};
 
 export default defineConfig({
   plugins: [
-    crx({ manifest }),
+    tsconfigPaths({
+      root: __dirname,
+    }),
+    crx({ manifest: manifestCallback() }),
+    stripDevCSP(),
   ],
   resolve: {
     alias: {
-      '@brainbox/shared/schemas': resolve(__dirname, '../../packages/shared/schemas.js'),
-      '@brainbox/shared/logic': resolve(__dirname, '../../packages/shared/src/logic'),
-      '@brainbox/shared': resolve(__dirname, '../../packages/shared'),
       '@': resolve(__dirname, './src'),
     },
   },

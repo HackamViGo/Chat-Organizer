@@ -43,3 +43,17 @@ gemini-share-exporter/
 
 # Turborepo
 .turbo/
+
+# Build logs and temporary outputs
+build_*.txt
+build_output.txt
+
+# Audit and migration reports
+audit_report.md
+docs/audit_report.md
+docs/project/audit_summary.md
+scripts/pre-migration/
+
+# Project state and internal docs
+walkthrough.md
+*.tsbuildinfo

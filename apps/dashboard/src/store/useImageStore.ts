@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Image, UploadItem } from '@/types';
+import { Image, UploadItem } from '@brainbox/shared';
 import { createClient } from '@/lib/supabase/client';
 
 interface ImageStore {

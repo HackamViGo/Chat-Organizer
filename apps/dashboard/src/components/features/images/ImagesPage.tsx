@@ -10,11 +10,11 @@ import {
   Calendar, HardDrive, ArrowUpAZ, FolderPlus, FolderMinus, Activity, Pill
 } from 'lucide-react';
 import { FOLDER_ICONS } from '@/components/layout/HybridSidebar';
-import { getFolderColorClass, getFolderTextColorClass, getFolderTextColorClasses, getFolderBorderColorClass, getCategoryIconContainerClasses } from '@/lib/utils/colors';
+import { getFolderColorClass, getFolderTextColorClass, getFolderTextColorClasses, getFolderBorderColorClass, getCategoryIconContainerClasses } from '@brainbox/shared';
 import { useImageStore } from '@/store/useImageStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { createClient } from '@/lib/supabase/client';
-import type { Image as ImageType } from '@/types';
+import type { Image as ImageType } from '@brainbox/shared';
 
 
 interface SelectionBox {

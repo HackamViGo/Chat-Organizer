@@ -1,0 +1,43 @@
+# Meta-Architect Audit Configuration
+# Deterministic health check parameters
+
+exclusions:
+  directories:
+    - .next
+    - node_modules
+    - dist
+    - .git
+    - artifacts
+    - тестове
+    - tests
+    - .agent
+    - agent_states
+    - public
+  files:
+    - pnpm-lock.yaml
+    - package-lock.json
+    - knowledge_graph.json
+    - .env.example
+    - postcss.config.js
+    - tailwind.config.ts
+    - database.types.ts
+    - database.ts
+    - sw.js
+
+allowed_patterns:
+  - "lucide"
+  - "radix"
+  - "framer"
+  - "shadcn"
+  - "google-fonts"
+
+weights:
+  hardcoded_token: 5
+  missing_gitignore_env: 20
+  broken_import: 10
+  console_log: 0.1
+
+thresholds:
+  critical: 85
+  high: 70
+  warning: 50

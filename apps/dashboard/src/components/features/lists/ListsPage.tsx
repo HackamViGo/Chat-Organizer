@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useListStore } from '@/store/useListStore';
-import type { ListWithItems, ListColor, ListItem } from '@/types';
+import type { ListWithItems, ListColor, ListItem } from '@brainbox/shared';
 import { createClient } from '@/lib/supabase/client';
 import { listSchema, listItemSchema } from '@brainbox/validation';
 import { 

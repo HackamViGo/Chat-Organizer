@@ -913,8 +913,8 @@
         "identity_locked_fields": ["id", "user_id", "source_id"],
         "source": "docs/technical/DATA_SCHEMA.md:2.1",
         "supabase_table": "chats",
-        "typescript_type": "src/types/index.ts:Chat",
-        "zod_schema": "src/app/api/chats/route.ts:createChatSchema"
+        "typescript_type": "packages/shared/src/types/index.ts:Chat",
+        "zod_schema": "apps/dashboard/src/app/api/chats/route.ts:createChatSchema"
       }
     },
     {
@@ -1004,7 +1004,7 @@
         "priority": 1,
         "primary_light": "#3B82F6",
         "primary_dark": "#60A5FA",
-        "file_path": "src/app/globals.css",
+        "file_path": "apps/dashboard/src/app/globals.css",
         "no_modification_allowed": ["--primary", "--destructive", "--background", "--foreground"],
         "source": "docs/technical/UI_STANDARDS.md:1"
       }
@@ -1017,7 +1017,7 @@
         "sub_category": "Data Layer",
         "priority": 1,
         "identity_locked": true,
-        "auto_generated_file": "src/types/database.types.ts",
+        "auto_generated_file": "packages/shared/src/types/database.types.ts",
         "manual_edit_forbidden": true,
         "modification_process": ["Create migration", "Run supabase db pull", "Update DATA_SCHEMA.md"],
         "source": "docs/technical/CONTEXT_MAP.md:4.1"

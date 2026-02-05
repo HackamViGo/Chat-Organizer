@@ -33,7 +33,7 @@ export class ClaudeAdapter extends BasePlatformAdapter {
 
             // Parse and normalize response
             const data = await response.json();
-            const conversation = normalizeClaude(data);
+            const conversation = normalizeClaude(data) as any;
 
             // Set URL
             if (providedUrl && providedUrl.includes('claude.ai')) {

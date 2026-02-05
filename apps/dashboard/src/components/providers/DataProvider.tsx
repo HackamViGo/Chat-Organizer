@@ -3,11 +3,13 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { useFolderStore } from '@/store/useFolderStore';
 import { usePromptStore } from '@/store/usePromptStore';
+import { useChatStore } from '@/store/useChatStore';
 import { createClient } from '@/lib/supabase/client';
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { setFolders, setLoading: setFoldersLoading, addFolder, updateFolder, deleteFolder } = useFolderStore();
   const { setPrompts, setLoading: setPromptsLoading, addPrompt, updatePrompt, deletePrompt } = usePromptStore();
+  const { setChats, setLoading: setChatsLoading, addChat, updateChat: updateChatInStore, deleteChat: deleteChatInStore } = useChatStore();
   const isFetchingRef = useRef(false);
   const supabase = createClient();
 
@@ -16,8 +18,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     isFetchingRef.current = true;
     setFoldersLoading(true);
     setPromptsLoading(true);
+    setChatsLoading(true);
 
     try {
+      // Fetch Chats
+      const chatsRes = await fetch('/api/chats', { credentials: 'include', cache: 'no-store' });
+      if (chatsRes.ok) {
+        const data = await chatsRes.json();
+        setChats(data.chats || []);
+      }
+
       // Fetch Folders
       const foldersRes = await fetch('/api/folders', { credentials: 'include', cache: 'no-store' });
       if (foldersRes.ok) {
@@ -44,8 +54,9 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       isFetchingRef.current = false;
       setFoldersLoading(false);
       setPromptsLoading(false);
+      setChatsLoading(false);
     }
-  }, [setFolders, setFoldersLoading, setPrompts, setPromptsLoading, supabase]);
+  }, [setFolders, setFoldersLoading, setPrompts, setPromptsLoading, setChats, setChatsLoading, supabase]);
 
   useEffect(() => {
     // Initial fetch
@@ -96,13 +107,38 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .subscribe();
+      
+    const chatsChannel = supabase
+      .channel('chats-realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, (payload) => {
+        const { eventType, new: newRecord, old: oldRecord } = payload;
+        if (eventType === 'INSERT') {
+          const state = useChatStore.getState();
+          if (!state.chats.some(c => c.id === newRecord.id)) {
+            addChat(newRecord as any);
+          }
+        } else if (eventType === 'UPDATE') {
+          // Note: we don't call the API again here, just update local store
+          useChatStore.setState((state) => ({
+            chats: state.chats.map((chat) =>
+              chat.id === newRecord.id ? { ...chat, ...newRecord } : chat
+            ),
+          }));
+        } else if (eventType === 'DELETE') {
+          useChatStore.setState((state) => ({
+            chats: state.chats.filter((chat) => chat.id !== oldRecord.id),
+          }));
+        }
+      })
+      .subscribe();
 
     return () => {
       authSub.unsubscribe();
       supabase.removeChannel(foldersChannel);
       supabase.removeChannel(promptsChannel);
+      supabase.removeChannel(chatsChannel);
     };
-  }, [fetchData, addFolder, updateFolder, deleteFolder, addPrompt, updatePrompt, deletePrompt, setFolders, setPrompts, supabase]);
+  }, [fetchData, addFolder, updateFolder, deleteFolder, addPrompt, updatePrompt, deletePrompt, addChat, setFolders, setPrompts, setChats, supabase]);
 
   return <>{children}</>;
 }

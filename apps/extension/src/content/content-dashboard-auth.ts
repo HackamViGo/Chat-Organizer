@@ -7,11 +7,12 @@
     console.log('[BrainBox] Dashboard auth content script loaded');
 
     // Listen for custom event from page
-    window.addEventListener('brainbox-auth-ready', async (event) => {
-        console.log('[BrainBox] Auth event received:', event.detail);
+    window.addEventListener('brainbox-auth-ready', async (event: Event) => {
+        const customEvent = event as CustomEvent;
+        console.log('[BrainBox] Auth event received:', customEvent.detail);
 
         try {
-            const { accessToken, refreshToken, expiresAt, rememberMe } = event.detail;
+            const { accessToken, refreshToken, expiresAt, rememberMe } = customEvent.detail;
 
             // Send to service worker
             const response = await chrome.runtime.sendMessage({
@@ -49,7 +50,7 @@
                     setTimeout(() => successDiv.remove(), 300);
                 }, 2500);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('[BrainBox] Failed to store auth token:', error);
         }
     });

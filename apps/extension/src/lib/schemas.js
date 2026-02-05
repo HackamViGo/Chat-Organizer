@@ -8,7 +8,8 @@ export const PLATFORMS = {
     GROK: 'grok',
     PERPLEXITY: 'perplexity',
     DEEPSEEK: 'deepseek',
-    QWEN: 'qwen'
+    QWEN: 'qwen',
+    LMSYS: 'lmsys'
 };
 
 export const ROLES = {
@@ -71,6 +72,7 @@ export function createConversation({
         platform,
         title: title || 'Untitled Conversation',
         messages,
+        url: undefined,
         created_at,
         updated_at,
         metadata

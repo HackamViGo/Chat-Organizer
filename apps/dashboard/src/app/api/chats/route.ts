@@ -3,6 +3,57 @@ import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createChatSchema, updateChatSchema } from '@brainbox/validation';
+import { createClient as createSupabaseClient } from '@supabase/supabase-js';
+
+// --- Helpers ---
+
+/**
+ * Centrailzed helper to get an authenticated Supabase client for both Web and Extension
+ */
+async function getAuthenticatedClient(request: NextRequest) {
+  const cookieStore = cookies();
+  const authHeader = request.headers.get('Authorization');
+  const token = authHeader?.replace('Bearer ', '');
+
+  let supabase;
+  
+  if (token) {
+    // Extension Request (Bearer Token)
+    supabase = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        global: {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      }
+    );
+  } else {
+    // Web App Request (Cookies)
+    supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return cookieStore.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            cookieStore.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            cookieStore.set({ name, value: '', ...options });
+          },
+        },
+      }
+    );
+  }
+
+  const { data: { user }, error } = await supabase.auth.getUser();
+  return { supabase, user: error ? null : user };
+}
 
 // Helper to extract source_id from URL if not provided
 function extractSourceId(url: string | undefined, platform: string | undefined): string | null {
@@ -24,34 +75,16 @@ function extractSourceId(url: string | undefined, platform: string | undefined):
   return url; // Fallback to full URL
 }
 
-export async function GET(request: NextRequest) {
-  const cookieStore = cookies();
+// --- Handlers ---
 
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        get(name: string) {
-          return cookieStore.get(name)?.value;
-        },
-        set(name: string, value: string, options: CookieOptions) {
-          cookieStore.set({ name, value, ...options });
-        },
-        remove(name: string, options: CookieOptions) {
-          cookieStore.set({ name, value: '', ...options });
-        },
-      },
-    }
-  );
+export async function GET(request: NextRequest) {
+  const { supabase, user } = await getAuthenticatedClient(request);
+
+  if (!user) {
+    return NextResponse.json({ chats: [] }); // or 401, but usually 200 [] is safer for FE
+  }
 
   try {
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ chats: [] });
-    }
-
     const { data, error } = await supabase
       .from('chats')
       .select('*')
@@ -59,74 +92,18 @@ export async function GET(request: NextRequest) {
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-
     return NextResponse.json({ chats: data || [] });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, {
-      status: 500
-    });
+    return new NextResponse(errorMessage, { status: 500 });
   }
 }
 
 export async function POST(request: NextRequest) {
-  const cookieStore = cookies();
-
-  // Check for Authorization header (for extension)
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.replace('Bearer ', '');
-
-  let supabase;
-  let user;
-
-  // Scenario 1: Extension Request (Bear Token)
-  if (token) {
-    // Create a client specifically using this token
-    const { createClient } = await import('@supabase/supabase-js');
-    supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    );
-
-    const { data: { user: tokenUser }, error } = await supabase.auth.getUser();
-    if (!error && tokenUser) {
-      user = tokenUser;
-    }
-  } else {
-    // Scenario 2: Web App Request (Cookies)
-    supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options });
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options });
-          },
-        },
-      }
-    );
-
-    const { data: { user: cookieUser } } = await supabase.auth.getUser();
-    user = cookieUser;
-  }
+  const { supabase, user } = await getAuthenticatedClient(request);
 
   if (!user) {
-    return new NextResponse('Unauthorized', {
-      status: 401
-    });
+    return new NextResponse('Unauthorized', { status: 401 });
   }
 
   try {
@@ -151,8 +128,6 @@ export async function POST(request: NextRequest) {
     const existingMessages = Array.isArray(existingChat?.messages) ? existingChat.messages : [];
 
     // DATA LOSS PREVENTION: 
-    // If the existing chat has MORE messages than the incoming sync, 
-    // we don't perform the upsert to avoid overwriting a complete chat with a partial one.
     if (existingChat && incomingMessages.length < existingMessages.length) {
       return NextResponse.json({
         ...existingChat,
@@ -162,23 +137,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 2. Perform the upsert (only if it's new or more/equally complete)
+    // 2. Perform the upsert
     const { data, error } = await supabase
       .from('chats')
       .upsert({
         user_id: user.id,
-        title: validatedData.title,
-        content: validatedData.content,
-        platform: validatedData.platform,
-        url: validatedData.url,
-        folder_id: validatedData.folder_id,
+        ...validatedData,
         source_id: sourceId,
-        messages: incomingMessages,
-        summary: validatedData.summary,
-        detailed_summary: validatedData.detailed_summary,
-        tags: validatedData.tags,
-        tasks: validatedData.tasks,
-        embedding: validatedData.embedding,
         updated_at: new Date().toISOString(),
       }, {
         onConflict: 'user_id, source_id',
@@ -189,7 +154,6 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
-    // 3. Return data with status flags
     return NextResponse.json({
       ...data,
       is_duplicate: !!existingChat,
@@ -197,75 +161,18 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request data', details: error.errors }, { status: 400 });
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, {
-      status: 500
-    });
+    return new NextResponse(errorMessage, { status: 500 });
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const cookieStore = cookies();
-
-  // Check for Authorization header (for extension)
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.replace('Bearer ', '');
-
-  let supabase;
-  let user;
-
-  // Scenario 1: Extension Request (Bearer Token)
-  if (token) {
-    const { createClient } = await import('@supabase/supabase-js');
-    supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    );
-
-    const { data: { user: tokenUser }, error } = await supabase.auth.getUser();
-    if (!error && tokenUser) {
-      user = tokenUser;
-    }
-  } else {
-    // Scenario 2: Web App Request (Cookies)
-    supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options });
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options });
-          },
-        },
-      }
-    );
-
-    const { data: { user: cookieUser } } = await supabase.auth.getUser();
-    user = cookieUser;
-  }
+  const { supabase, user } = await getAuthenticatedClient(request);
 
   if (!user) {
-    return new NextResponse('Unauthorized', {
-      status: 401
-    });
+    return new NextResponse('Unauthorized', { status: 401 });
   }
 
   try {
@@ -273,7 +180,6 @@ export async function PUT(request: NextRequest) {
     const validatedData = updateChatSchema.parse(body);
     const { id, ...updates } = validatedData;
 
-    // Update chat that belongs to the user
     const { data, error } = await supabase
       .from('chats')
       .update(updates)
@@ -283,101 +189,31 @@ export async function PUT(request: NextRequest) {
       .single();
 
     if (error) throw error;
-
     return NextResponse.json(data);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Invalid request data', details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Invalid request data', details: error.errors }, { status: 400 });
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, {
-      status: 500
-    });
+    return new NextResponse(errorMessage, { status: 500 });
   }
 }
 
 export async function DELETE(request: NextRequest) {
-  const cookieStore = cookies();
-
-  // Check for Authorization header (for extension)
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.replace('Bearer ', '');
-
-  let supabase;
-  let user;
-
-  // Scenario 1: Extension Request (Bearer Token)
-  if (token) {
-    const { createClient } = await import('@supabase/supabase-js');
-    supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        global: {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      }
-    );
-
-    const { data: { user: tokenUser }, error } = await supabase.auth.getUser();
-    if (!error && tokenUser) {
-      user = tokenUser;
-    }
-  } else {
-    // Scenario 2: Web App Request (Cookies)
-    supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            return cookieStore.get(name)?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            cookieStore.set({ name, value, ...options });
-          },
-          remove(name: string, options: CookieOptions) {
-            cookieStore.set({ name, value: '', ...options });
-          },
-        },
-      }
-    );
-
-    const { data: { user: cookieUser } } = await supabase.auth.getUser();
-    user = cookieUser;
-  }
+  const { supabase, user } = await getAuthenticatedClient(request);
 
   if (!user) {
-    return new NextResponse('Unauthorized', {
-      status: 401
-    });
+    return new NextResponse('Unauthorized', { status: 401 });
   }
 
   try {
     const { searchParams } = new URL(request.url);
     const ids = searchParams.get('ids');
-    
-    if (!ids) {
-      return new NextResponse('Chat IDs are required', {
-        status: 400
-      });
-    }
+    if (!ids) return new NextResponse('Chat IDs are required', { status: 400 });
 
-    // Parse IDs - can be single ID or comma-separated list
     const chatIds = ids.split(',').filter(id => id.trim());
+    if (chatIds.length === 0) return new NextResponse('No valid chat IDs provided', { status: 400 });
 
-    if (chatIds.length === 0) {
-      return new NextResponse('No valid chat IDs provided', {
-        status: 400
-      });
-    }
-
-    // Delete chats that belong to the user
     const { error } = await supabase
       .from('chats')
       .delete()
@@ -385,15 +221,9 @@ export async function DELETE(request: NextRequest) {
       .in('id', chatIds);
 
     if (error) throw error;
-
-    return NextResponse.json({ 
-      success: true, 
-      deletedCount: chatIds.length 
-    });
+    return NextResponse.json({ success: true, deletedCount: chatIds.length });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, {
-      status: 500
-    });
+    return new NextResponse(errorMessage, { status: 500 });
   }
 }

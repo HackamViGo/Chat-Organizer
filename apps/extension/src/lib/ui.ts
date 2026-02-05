@@ -1,10 +1,9 @@
 // BrainBox - Shared UI Components
 // Contains the Folder Selector and Toast logic to be reused across content scripts
 
-// BrainBox - Shared UI Components
-// Contains the Folder Selector and Toast logic to be reused across content scripts
+(window as any).BrainBoxUI = class BrainBoxUI {
+    private styleInjected: boolean;
 
-window.BrainBoxUI = class BrainBoxUI {
     constructor() {
         this.styleInjected = false;
     }
@@ -118,7 +117,7 @@ window.BrainBoxUI = class BrainBoxUI {
         this.styleInjected = true;
     }
 
-    async showFolderSelector(folders, onSelect) {
+    async showFolderSelector(folders: any[], onSelect?: (id: string | null) => void): Promise<string | null | undefined> {
         this.injectStyles();
 
         return new Promise((resolve) => {
@@ -134,10 +133,10 @@ window.BrainBoxUI = class BrainBoxUI {
             const list = document.createElement('div');
             list.className = 'brainbox-folder-list';
 
-            let selectedId = null;
+            let selectedId: string | null = null;
 
             // Default "Uncategorized" option
-            const renderItem = (id, name) => {
+            const renderItem = (id: string | null, name: string) => {
                 const item = document.createElement('div');
                 item.className = 'brainbox-folder-item';
                 item.innerHTML = `<span>📁</span> <span>${name}</span>`;
@@ -171,6 +170,7 @@ window.BrainBoxUI = class BrainBoxUI {
             saveBtn.textContent = 'Save';
             saveBtn.onclick = () => {
                 overlay.remove();
+                if (onSelect) onSelect(selectedId);
                 resolve(selectedId);
             };
 
@@ -185,7 +185,7 @@ window.BrainBoxUI = class BrainBoxUI {
             document.body.appendChild(overlay);
 
             // ESC key to close
-            const escHandler = (e) => {
+            const escHandler = (e: KeyboardEvent) => {
                 if (e.key === 'Escape') {
                     overlay.remove();
                     document.removeEventListener('keydown', escHandler);
@@ -195,7 +195,7 @@ window.BrainBoxUI = class BrainBoxUI {
             document.addEventListener('keydown', escHandler);
 
             // Click outside to close
-            overlay.onclick = (e) => {
+            overlay.onclick = (e: MouseEvent) => {
                 if (e.target === overlay) {
                     overlay.remove();
                     document.removeEventListener('keydown', escHandler);
@@ -205,7 +205,7 @@ window.BrainBoxUI = class BrainBoxUI {
         });
     }
 
-    showToast(msg, type, retryAction = null) {
+    showToast(msg: string, type: string, retryAction: (() => void) | null = null) {
         const existing = document.querySelector('.brainbox-toast');
         if (existing) existing.remove();
 
@@ -303,7 +303,7 @@ window.BrainBoxUI = class BrainBoxUI {
         }, duration);
     }
 
-    async showConfirmation(title, message, confirmText = 'Confirm', cancelText = 'Cancel') {
+    async showConfirmation(title: string, message: string, confirmText = 'Confirm', cancelText = 'Cancel'): Promise<boolean> {
         this.injectStyles();
 
         return new Promise((resolve) => {

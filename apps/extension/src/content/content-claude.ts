@@ -6,8 +6,8 @@
 
     let hoverButtons = new WeakMap();
     let hoverButtonsRegistry = new Map();
-    let observer = null;
-    let ui = null;
+    let observer: MutationObserver | null = null;
+    let ui: any = null;
 
     // ============================================================================
     // INITIALIZATION
@@ -15,8 +15,8 @@
 
     function init() {
         console.log('[BrainBox] Claude init() called');
-        if (window.BrainBoxUI) {
-            ui = new window.BrainBoxUI();
+        if ((window as any).BrainBoxUI) {
+            ui = new (window as any).BrainBoxUI();
             console.log('[BrainBox] UI library loaded');
         } else {
             console.log('[BrainBox] UI library not found');
@@ -135,7 +135,7 @@
         const conversations = document.querySelectorAll('a[href^="/chat/"]');
 
         conversations.forEach(conv => {
-            const conversationId = extractConversationId(conv.href);
+            const conversationId = extractConversationId((conv as HTMLAnchorElement).href);
 
             if (!conversationId || hoverButtonsRegistry.has(conversationId)) return;
 
@@ -181,7 +181,7 @@
         });
     }
 
-    function createButton(icon, title) {
+    function createButton(icon: string, title: string) {
         const btn = document.createElement('button');
         btn.className = 'brainbox-hover-btn';
         btn.textContent = icon;
@@ -189,7 +189,7 @@
         return btn;
     }
 
-    function extractConversationId(href) {
+    function extractConversationId(href: string) {
         const match = href.match(/\/chat\/([a-f0-9-]+)/);
         return match ? match[1] : null;
     }
@@ -209,7 +209,7 @@
     // ACTIONS
     // ============================================================================
 
-    async function handleSave(conversationId, titleElement, folderId = null) {
+    async function handleSave(conversationId: string, titleElement: Element, folderId: string | null = null) {
         try {
             console.log('[BrainBox] Claude handleSave called', { conversationId, folderId });
             
@@ -252,7 +252,7 @@
             
             showToast('Fetching Claude chat...', 'info');
 
-            const title = titleElement.innerText || "Claude Conversation";
+            const title = (titleElement as HTMLElement).innerText || "Claude Conversation";
             console.log('[BrainBox] Claude title:', title);
 
             // Get current page URL for org_id extraction
@@ -310,7 +310,7 @@
             console.error('[BrainBox] Claude Save error:', error);
             
             // Safely get error message
-            const errorMessage = error?.message || String(error) || 'Unknown error';
+            const errorMessage = (error as any)?.message || String(error) || 'Unknown error';
             
             // Handle extension context invalidated
             if (errorMessage.includes('Extension context invalidated') || 
@@ -346,7 +346,7 @@
         }
     }
 
-    async function handleFolderSelect(conversationId, titleElement) {
+    async function handleFolderSelect(conversationId: string, titleElement: Element) {
         try {
             const response = await chrome.runtime.sendMessage({ action: 'getUserFolders' });
             const folders = response.folders || [];
@@ -369,14 +369,14 @@
     // UTILITIES
     // ============================================================================
 
-    function showToast(msg, type, retryAction = null) {
+    function showToast(msg: string, type: string, retryAction: (() => void) | null = null) {
         if (ui) ui.showToast(msg, type, retryAction);
         else console.log(`[BrainBox Toast] ${type}: ${msg}`);
     }
 
-    function debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
+    function debounce(func: Function, wait: number) {
+        let timeout: any;
+        return function executedFunction(...args: any[]) {
             const later = () => {
                 clearTimeout(timeout);
                 func(...args);
@@ -449,7 +449,7 @@
             if (!orgId) {
                 const orgLink = document.querySelector('a[href*="/organizations/"]');
                 if (orgLink) {
-                    const linkMatch = orgLink.href.match(/organizations\/([^\/]+)/);
+                const linkMatch = (orgLink as HTMLAnchorElement).href.match(/organizations\/([^\/]+)/);
                     if (linkMatch) orgId = linkMatch[1];
                 }
             }
@@ -457,7 +457,7 @@
             // 5. Check Meta Tags
             if (!orgId) {
                 const metaOrg = document.querySelector('meta[name="organization-id"]');
-                if (metaOrg) orgId = metaOrg.content;
+                if (metaOrg) orgId = (metaOrg as HTMLMetaElement).content;
             }
 
             if (orgId) {
@@ -476,7 +476,7 @@
     // MESSAGE HANDLER - For context menu support
     // ============================================================================
 
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: any) => {
         if (request.action === 'getClaudeOrgId') {
             const orgId = detectAndSaveOrgId(); // Try to detect fresh
             
@@ -507,7 +507,7 @@
                 const titleElement = { innerText: document.title || 'Claude Conversation' };
                 
                 // Bypass folder selector -> save directly
-                handleSave(conversationId, titleElement); 
+                handleSave(conversationId, titleElement as any); 
                 
                 sendResponse({ success: true });
             } else {

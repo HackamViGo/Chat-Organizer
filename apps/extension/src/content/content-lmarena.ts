@@ -2,7 +2,7 @@
 (function() {
     const PLATFORM = 'lmarena';
     
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: any) => {
         if (request.action === 'triggerSaveChat') {
             handleSave();
         }
@@ -20,7 +20,7 @@
 
         // Scrape payload from DOM
         // Arena.ai uses .prose classes for messages
-        const payload = {
+        const payload: { title: string, messages: any[] } = {
             title: document.title.replace(' - Arena', ''),
             messages: []
         };
@@ -46,7 +46,7 @@
                     // If we can't tell, default to assistant or alternate.
                      
                     // Alternative: Just capture the text.
-                    const text = el.innerText;
+                    const text = (el as HTMLElement).innerText;
                     if (text) {
                         payload.messages.push({
                             role: 'unknown', // generic role, let UI handle or assume alternating
@@ -66,14 +66,14 @@
             conversationId,
             url,
             payload
-        }, (response) => {
+        }, (response: any) => {
             if (response && response.success) {
                 chrome.runtime.sendMessage({
                     action: 'saveToDashboard',
                     data: response.data,
                     folderId: null,
                     silent: false
-                }, (saveResponse) => {
+                }, (saveResponse: any) => {
                     if (saveResponse && saveResponse.success) {
                         showToast('Arena battle saved!', 'success');
                     } else {
@@ -86,11 +86,11 @@
         });
     }
 
-    let ui = null;
+    let ui: any = null;
 
-    function showToast(message, type) {
-        if (window.BrainBoxUI) {
-            if (!ui) ui = new window.BrainBoxUI();
+    function showToast(message: string, type: string) {
+        if ((window as any).BrainBoxUI) {
+            if (!ui) ui = new (window as any).BrainBoxUI();
             ui.showToast(message, type);
         } else {
             console.log('[BrainBox]', message);

@@ -2,17 +2,17 @@
 (function() {
     const PLATFORM = 'grok';
     
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: any) => {
         if (request.action === 'triggerSaveChat') {
             handleSave();
         }
     });
 
-    let ui = null;
+    let ui: any = null;
 
-    function showToast(message, type) {
-        if (window.BrainBoxUI) {
-            if (!ui) ui = new window.BrainBoxUI();
+    function showToast(message: string, type: string) {
+        if ((window as any).BrainBoxUI) {
+            if (!ui) ui = new (window as any).BrainBoxUI();
             ui.showToast(message, type);
         } else {
             console.log('[BrainBox]', message);
@@ -44,7 +44,7 @@
         }
 
         // Scrape payload as fallback
-        const payload = {
+        const payload: { title: string, messages: any[] } = {
             title: document.title.replace(' - Grok', ''),
             messages: []
         };
@@ -57,7 +57,7 @@
                 // formatting it as a single block if we can't separate it easily.
                 
                 // Try to split by obvious visual breaks if possible, otherwise plain text.
-                const fullText = mainContainer.innerText;
+                const fullText = (mainContainer as HTMLElement).innerText;
                 
                 if (fullText.trim().length > 0) {
                     payload.messages.push({
@@ -77,14 +77,14 @@
             conversationId,
             url,
             payload // Send proper payload
-        }, (response) => {
+        }, (response: any) => {
             if (response && response.success) {
                 chrome.runtime.sendMessage({
                     action: 'saveToDashboard',
                     data: response.data,
                     folderId: null,
                     silent: false
-                }, (saveResponse) => {
+                }, (saveResponse: any) => {
                     if (saveResponse && saveResponse.success) {
                         showToast('Chat saved to BrainBox!', 'success');
                     } else {

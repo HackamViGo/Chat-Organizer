@@ -157,7 +157,7 @@ export class AuthManager {
 
     handleChatGPTHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'authorization'
+            (h: any) => h.name.toLowerCase() === 'authorization'
         );
 
         if (authHeader && authHeader.value?.startsWith('Bearer ')) {
@@ -259,7 +259,7 @@ export class AuthManager {
 
     handleDeepSeekHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'authorization'
+            (h: any) => h.name.toLowerCase() === 'authorization'
         );
 
         if (authHeader && authHeader.value?.startsWith('Bearer ')) {
@@ -271,7 +271,7 @@ export class AuthManager {
             }
         }
 
-        const dsVersionHeader = details.requestHeaders?.find(h => h.name.toLowerCase() === 'x-client-version');
+        const dsVersionHeader = details.requestHeaders?.find((h: any) => h.name.toLowerCase() === 'x-client-version');
         if (dsVersionHeader && details.url.includes('deepseek.com')) {
             if (this.tokens.deepseek_version !== dsVersionHeader.value) {
                 this.tokens.deepseek_version = dsVersionHeader.value;
@@ -283,7 +283,7 @@ export class AuthManager {
 
     handlePerplexityHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'authorization'
+            (h: any) => h.name.toLowerCase() === 'authorization'
         );
 
         if (authHeader && authHeader.value?.startsWith('Bearer ')) {
@@ -296,7 +296,7 @@ export class AuthManager {
         }
 
         // Capture session cookies specifically for Perplexity (web API fallback)
-        const cookieHeader = details.requestHeaders?.find(h => h.name.toLowerCase() === 'cookie');
+        const cookieHeader = details.requestHeaders?.find((h: any) => h.name.toLowerCase() === 'cookie');
         if (cookieHeader && details.url.includes('perplexity.ai') && !authHeader) {
             if (this.tokens.perplexity_session !== cookieHeader.value) {
                 this.tokens.perplexity_session = cookieHeader.value;
@@ -308,10 +308,10 @@ export class AuthManager {
 
     handleGrokHeaders(details: any) {
         const csrfHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'x-csrf-token'
+            (h: any) => h.name.toLowerCase() === 'x-csrf-token'
         );
         const authHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'authorization'
+            (h: any) => h.name.toLowerCase() === 'authorization'
         );
 
         let updated = false;
@@ -335,10 +335,10 @@ export class AuthManager {
 
     handleQwenHeaders(details: any) {
         const xsrfHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'x-xsrf-token'
+            (h: any) => h.name.toLowerCase() === 'x-xsrf-token'
         );
         const appIdHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'x-app-id'
+            (h: any) => h.name.toLowerCase() === 'x-app-id'
         );
 
         let updated = false;
@@ -364,7 +364,7 @@ export class AuthManager {
     // Public API
     // ========================================================================
 
-    async setDashboardSession(session) {
+    async setDashboardSession(session: any) {
         await chrome.storage.local.set({
             accessToken: session.accessToken,
             refreshToken: session.refreshToken,
@@ -418,7 +418,7 @@ export class AuthManager {
         }
     }
 
-    async getHeader(platform) {
+    async getHeader(platform: any) {
         // Return necessary headers for a platform request
         // This abstracts token retrieval for the API handlers
         // TODO: Implement cleaner interface for API calls

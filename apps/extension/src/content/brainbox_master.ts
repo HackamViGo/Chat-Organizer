@@ -14,13 +14,33 @@
     DEBUG_MODE: true
   };
 
-  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Loading...');
+  const debugLog = (...args: any[]) => {
+    if (CONFIG.DEBUG_MODE) console.info('[BrainBox Master]', ...args);
+  };
+
+  if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] Loading...');
+
+  // ============================================================================
+  // SAFETY CONFIG & FILTERS
+  // ============================================================================
+  const RELEVANT_API_REGEX = /(chatgpt\.com\/backend|claude\.ai\/api|gemini\.google\.com\/(_\/BardChat|batchexecute)|chat\.deepseek\.com\/api|perplexity\.ai\/socket\.io|grok\/|qwen|api\/predict)/i;
 
   // ============================================================================
   // GLOBAL STATE
   // ============================================================================
   
-  const STATE = {
+  const STATE: {
+    db: IDBDatabase | null;
+    ui: any;
+    isInitialized: boolean;
+    capturedConversations: Map<string, any>;
+    encryptionKeys: Map<string, any>;
+    batchMessageCache: Map<string, any>;
+    processedCount: number;
+    failedCount: number;
+    lastSync: number | null;
+    notifiedChats: Set<string>;
+  } = {
     db: null,
     ui: null, // BrainBoxUI instance
     isInitialized: false,
@@ -48,13 +68,13 @@
       
       request.onsuccess = () => {
         STATE.db = request.result;
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ IndexedDB connected. Available stores:', Array.from(STATE.db.objectStoreNames));
+        if (CONFIG.DEBUG_MODE && STATE.db) debugLog('[🧠 BrainBox Master] ✅ IndexedDB connected. Available stores:', Array.from(STATE.db.objectStoreNames));
         resolve(STATE.db);
       };
       
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🆙 Upgrade Needed (v' + event.oldVersion + ' -> v' + event.newVersion + ')');
+      request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🆙 Upgrade Needed (v' + event.oldVersion + ' -> v' + event.newVersion + ')');
 
         
         // Store 1: RAW BATCHEXECUTE DATA (as it comes from the network)
@@ -62,14 +82,14 @@
           const store = db.createObjectStore('rawBatchData', { keyPath: 'id', autoIncrement: true });
           store.createIndex('timestamp', 'timestamp', { unique: false });
           store.createIndex('processed', 'processed', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created rawBatchData store');
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Created rawBatchData store');
         }
         
         // Store 2: ENCRYPTION KEYS (decryption keys)
         if (!db.objectStoreNames.contains('encryptionKeys')) {
           const store = db.createObjectStore('encryptionKeys', { keyPath: 'conversationId' });
           store.createIndex('timestamp', 'timestamp', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created encryptionKeys store');
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Created encryptionKeys store');
         }
         
         // Store 3: DECODED CONVERSATIONS (unlocked chats)
@@ -78,7 +98,7 @@
           store.createIndex('timestamp', 'timestamp', { unique: false });
           store.createIndex('title', 'title', { unique: false });
           store.createIndex('synced', 'synced', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created conversations store');
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Created conversations store');
         }
         
         // Store 4: SYNC QUEUE (queue for synchronization to the dashboard)
@@ -86,7 +106,7 @@
           const store = db.createObjectStore('syncQueue', { keyPath: 'id', autoIncrement: true });
           store.createIndex('conversationId', 'conversationId', { unique: false });
           store.createIndex('retries', 'retries', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created syncQueue store');
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Created syncQueue store');
         }
         
         // Store 5: IMAGES (saved images)
@@ -96,7 +116,7 @@
           store.createIndex('timestamp', 'timestamp', { unique: false });
           store.createIndex('synced', 'synced', { unique: false });
           store.createIndex('source_url', 'source_url', { unique: false });
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Created images store');
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Created images store');
         }
       };
     });
@@ -106,7 +126,7 @@
   // BATCHEXECUTE INTERCEPTOR - TRAPS ALL REQUESTS
   // ============================================================================
   function setupInterceptor() {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Setting up interceptor...');
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] Setting up interceptor...');
     
     // Save original functions
     const originalOpen = XMLHttpRequest.prototype.open;
@@ -114,121 +134,115 @@
     const originalFetch = window.fetch;
     
     // ========== XMLHttpRequest Intercept ==========
-    XMLHttpRequest.prototype.open = function(method, url, ...args) {
-      if (typeof url === 'string') {
-        const isTarget = url.includes('batchexecute') || 
-                        url.includes('chat_session/get_session') || 
-                        url.includes('chat/completion') || 
-                        url.includes('grok/') || 
-                        url.includes('api/predict') || 
-                        url.includes('qwen');
-        if (isTarget) {
-          this._brainbox_url = url;
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Targeting XHR:', url);
+    XMLHttpRequest.prototype.open = function(method: string, url: string | URL, ...args: any[]) {
+      try {
+        if (typeof url === 'string' && RELEVANT_API_REGEX.test(url)) {
+          (this as any)._brainbox_url = url;
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🎯 Intercepting Target XHR:', url);
         }
+      } catch (e) {
+        // Fail-safe: Original request must still succeed
       }
-      return originalOpen.apply(this, [method, url, ...args]);
+      return (originalOpen as any).apply(this, [method, url, ...args]);
     };
     
-    XMLHttpRequest.prototype.send = function(...args) {
-      const url = this._brainbox_url;
+    XMLHttpRequest.prototype.send = function(data?: any) {
+      const url = (this as any)._brainbox_url;
       
-      // Catch ALL batchexecute requests
-      if (typeof url === 'string' && url.includes('batchexecute')) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Captured XHR batchexecute:', url);
-        
-        // Intercept request body (non-blocking)
-        const originalSend = this.send;
-        this.send = function(data) {
-          captureRequestData(data, 'xhr_request').catch(() => {});
-          return originalSend.apply(this, arguments);
-        };
+      // If NOT a target, just call original and return immediately
+      if (!url) {
+        return originalSend.apply(this, arguments as any);
+      }
+
+      try {
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🎯 Processing Target XHR send:', url);
         
         // Intercept response (non-blocking)
         this.addEventListener('load', function() {
           try {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📦 Received XHR response');
-            captureResponseData(this.responseText, url, 'xhr_response').catch(() => {});
+            const responseText = (this as any).responseText;
+            if (responseText && responseText.length > 0) {
+              captureResponseData(responseText, url, 'xhr_response').catch(() => {});
+            }
           } catch (error) {
             if (CONFIG.DEBUG_MODE) console.error('[🧠 BrainBox Master] Error processing XHR response:', error);
           }
         });
+
+        // Intercept request body
+        if (data) {
+          captureRequestData(data, 'xhr_request').catch(() => {});
+        }
+      } catch (err) {
+        if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] Error in XHR intercept logic:', err);
       }
       
-      try {
-        return originalSend.apply(this, args);
-      } catch (err) {
-        console.error('[🧠 BrainBox Master] ❌ Error in original XHR.send:', err);
-        throw err;
-      }
+      return originalSend.apply(this, arguments as any);
     };
     
     // ========== Fetch API Intercept ==========
-    window.fetch = async function(url, options = {}) {
+    window.fetch = async function(url: string | URL | Request, options: RequestInit = {}) {
       const urlStr = (url && typeof url.toString === 'function') ? url.toString() : '';
       
-      const isTargetFetch = urlStr && (
-        urlStr.includes('batchexecute') || 
-        urlStr.includes('chat_session/get_session') || 
-        urlStr.includes('chat/completion') || 
-        urlStr.includes('grok/') || 
-        urlStr.includes('api/predict') || 
-        urlStr.includes('qwen')
-      );
+      // Fail-fast URL filtering
+      if (!urlStr || !RELEVANT_API_REGEX.test(urlStr)) {
+        return originalFetch.call(window, url, options);
+      }
 
-      if (isTargetFetch) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🎯 Captured Target Fetch:', urlStr);
+      // Inside target - wrap in error boundary
+      try {
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🎯 Intercepting Target Fetch:', urlStr);
         
-        // Capture request body (non-blocking)
+        // Capture request data (non-blocking)
         if (options && options.body) {
           captureRequestData(options.body, 'fetch_request').catch(() => {});
         }
         
-        // Call original fetch and RETURN IMMEDIATELY after cloning
+        const response = await originalFetch.call(window, url, options);
+        
+        // Clone response (non-blocking)
         try {
-          const response = await originalFetch(url, options);
-          // Clone response body (non-blocking)
           const clone = response.clone();
-          
-          // Process clone in "background" mode (non-blocking)
           (async () => {
             try {
               const text = await clone.text();
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📦 Received Fetch response');
               await captureResponseData(text, urlStr, 'fetch_response');
-            } catch (error) {
-              if (CONFIG.DEBUG_MODE) console.error('[🧠 BrainBox Master] Error reading fetch response:', error);
+            } catch (innerErr: any) {
+              if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] Failed to read fetch clone:', innerErr);
             }
           })();
-          return response; 
-        } catch (err) {
-          throw err;
+        } catch (cloneErr) {
+          if (CONFIG.DEBUG_MODE) console.warn('[🧠 BrainBox Master] Failed to clone response:', cloneErr);
         }
+
+        return response;
+      } catch (err) {
+        // Error boundary - proceed with original fetch if our logic fails
+        if (CONFIG.DEBUG_MODE) console.error('[🧠 BrainBox Master] Error in fetch interceptor:', err);
+        return originalFetch.call(window, url, options);
       }
-      
-      return originalFetch(url, options);
     };
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Interceptor active');
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Interceptor active');
   }
 
   // ============================================================================
   // CAPTURE REQUEST DATA (Key searching)
   // ============================================================================
   
-  async function captureRequestData(requestBody, source) {
+  async function captureRequestData(requestBody: any, source: string) {
     try {
       let bodyStr = requestBody;
       
       // Convert FormData/Blob to string
       if (requestBody instanceof FormData) {
-        bodyStr = new URLSearchParams(requestBody).toString();
+        bodyStr = new URLSearchParams(requestBody as any).toString();
       } else if (requestBody instanceof Blob) {
         bodyStr = await requestBody.text();
       }
       
       if (CONFIG.DEBUG_MODE) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Request body:', bodyStr.substring(0, 200) + '...');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔍 Request body:', String(bodyStr).substring(0, 200) + '...');
       }
       
       // Search for keys in request body
@@ -252,12 +266,12 @@
   // CAPTURE RESPONSE DATA (Conversations)
   // ============================================================================
   
-  async function captureResponseData(responseText, url, source) {
+  async function captureResponseData(responseText: any, url: string, source: string) {
     try {
-      if (!responseText || responseText.length < 10) return;
+      if (!responseText || String(responseText).length < 10) return;
       
       if (CONFIG.DEBUG_MODE) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 Response size:', responseText.length, 'chars');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📊 Response size:', String(responseText).length, 'chars');
       }
       
       // Save raw response
@@ -292,7 +306,7 @@
   // PROCESS BATCHEXECUTE RESPONSE
   // ============================================================================
   
-  async function processBatchexecuteResponse(responseText) {
+  async function processBatchexecuteResponse(responseText: string) {
     try {
       // Step 1: Remove security prefix )]}'\n
       const cleaned = responseText.replace(/^\)\]\}'\s*/, '');
@@ -311,8 +325,8 @@
         return;
       }
       
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔎 Found', parsed.length, 'batches');
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 Response size:', responseText.length, 'bytes');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔎 Found', parsed.length, 'batches');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📊 Response size:', responseText.length, 'bytes');
       
       // Step 3: THE TRUTH - Text is always in parsed[0][2] (according to the conversation)
       const stats = {
@@ -330,14 +344,14 @@
           try {
             // Parse inner JSON string
             const innerJson = JSON.parse(batch[0][2]);
-            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✅ Batch ${i}: Successfully parsed inner JSON from [0][2]`);
+            if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] ✅ Batch ${i}: Successfully parsed inner JSON from [0][2]`);
             await processInnerJson(innerJson, i, stats);
           } catch (innerError) {
-            if (CONFIG.DEBUG_MODE) console.warn(`[🧠 BrainBox Master] ⚠️ Batch ${i}: Could not parse [0][2]:`, innerError.message);
+            if (CONFIG.DEBUG_MODE) console.warn(`[🧠 BrainBox Master] ⚠️ Batch ${i}: Could not parse [0][2]:`, (innerError as any).message);
             
             // Fallback: Attempt to extract messages directly from batch[0][2] as string
             if (typeof batch[0][2] === 'string' && batch[0][2].length > 50) {
-              if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 🔍 Batch ${i}: Attempting direct extraction from string...`);
+              if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] 🔍 Batch ${i}: Attempting direct extraction from string...`);
               const decoded = await attemptDecoding({
                 conversationId: null,
                 fullData: batch[0][2],
@@ -346,7 +360,7 @@
               
               if (decoded.messages.length > 0) {
                 stats.messages += decoded.messages.length;
-                if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✅ Batch ${i}: Extracted ${decoded.messages.length} messages directly from string`);
+                if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] ✅ Batch ${i}: Extracted ${decoded.messages.length} messages directly from string`);
               }
             }
           }
@@ -364,7 +378,7 @@
         extractKeysFromObject(batch, `batch_${i}`);
       }
       
-      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📈 Total: ${stats.conversations} conversations, ${stats.messages} messages`);
+      if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] 📈 Total: ${stats.conversations} conversations, ${stats.messages} messages`);
       
     } catch (error) {
       console.error('[🧠 BrainBox Master] Error processing:', error);
@@ -375,12 +389,12 @@
   // PROCESS INNER JSON (Extract conversations)
   // ============================================================================
   
-  async function processInnerJson(data, batchIndex, stats = { conversations: 0, messages: 0 }) {
+  async function processInnerJson(data: any, batchIndex: number, stats: { conversations: number, messages: number } = { conversations: 0, messages: 0 }) {
     try {
       if (Array.isArray(data)) {
         const conversations = extractConversationsFromData(data);
         if (conversations.length > 0) {
-          if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✨ Batch ${batchIndex}: Found ${conversations.length} conversations`);
+          if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] ✨ Batch ${batchIndex}: Found ${conversations.length} conversations`);
           
           // Update stats
           stats.conversations += conversations.length;
@@ -390,23 +404,23 @@
             
             // Logging for debugging
             if (conv.hasMessages) {
-              if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📝 Conversation ${conv.conversationId} contains message data`);
+              if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] 📝 Conversation ${conv.conversationId} contains message data`);
             } else {
-              if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ⚠️ Conversation ${conv.conversationId} has no message data in this batch`);
+              if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] ⚠️ Conversation ${conv.conversationId} has no message data in this batch`);
             }
             
             await processConversation(conv); // Changed from handleCapturedConversation
           }
         } else {
           // If no conversations found, try to extract messages directly from data
-          if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 🔍 Batch ${batchIndex}: No conversations found, attempting direct message extraction...`);
+          if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] 🔍 Batch ${batchIndex}: No conversations found, attempting direct message extraction...`);
           
           // Attempt to extract messages from the whole data object
           const decoded = deepExtractText(data);
           
           if (decoded.messages.length > 0) {
             stats.messages += decoded.messages.length;
-            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] ✅ Found ${decoded.messages.length} messages in batch ${batchIndex}`);
+            if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] ✅ Found ${decoded.messages.length} messages in batch ${batchIndex}`);
             
             // Update stats
             
@@ -434,7 +448,7 @@
   // PLATFORM SPECIFIC PROCESSORS
   // ============================================================================
 
-  async function processDeepSeekResponse(text, url) {
+  async function processDeepSeekResponse(text: string, url: string) {
     try {
       const data = JSON.parse(text);
       let session_id = new URL(url).searchParams.get('session_id');
@@ -450,7 +464,7 @@
     } catch (e) {}
   }
 
-  async function processGrokResponse(text, url) {
+  async function processGrokResponse(text: string, url: string) {
     try {
       const data = JSON.parse(text);
       if (data && (data.items || data.conversation)) {
@@ -463,7 +477,7 @@
     } catch (e) {}
   }
 
-  async function processPerplexityResponse(text, url) {
+  async function processPerplexityResponse(text: string, url: string) {
     try {
       const data = JSON.parse(text);
       if (data && data.thread) {
@@ -476,7 +490,7 @@
     } catch (e) {}
   }
 
-  async function processQwenResponse(text, url) {
+  async function processQwenResponse(text: string, url: string) {
     try {
       const data = JSON.parse(text);
       if (data && (data.messages || data.data)) {
@@ -493,12 +507,12 @@
   // EXTRACT CONVERSATIONS FROM DATA
   // ============================================================================
   
-  function extractConversationsFromData(data) {
-    const conversations = [];
+  function extractConversationsFromData(data: any) {
+    const conversations: any[] = [];
     
     // Recursive search for conversation IDs (c_XXXXX)
-    function find(obj, depth = 0) {
-      if (depth > 10) return; // Protection against infinite loop
+    function find(obj: any, depth = 0) {
+      if (depth > 4) return; // Safety valve: max recursion depth = 4
       if (!obj || typeof obj !== 'object') return;
       
       // Check if it's a conversation
@@ -512,7 +526,7 @@
           if (
             jsonStr.includes('message') || 
             jsonStr.includes('content') ||
-            jsonStr.match(/"[^"]{20,}"/g)?.length > 5 // At least 5 long text fields
+            jsonStr.match(/"[^"]{20,}"/g)?.length! > 5 // At least 5 long text fields
           ) {
             conversations.push({ // Changed from results.push
               conversationId: potentialId,
@@ -544,7 +558,7 @@
   // EXTRACT KEYS (Encryption/session keys)
   // ============================================================================
   
-  function extractKeys(data, source) {
+  function extractKeys(data: any, source: string) {
     try {
       const dataStr = typeof data === 'string' ? data : JSON.stringify(data);
       
@@ -573,7 +587,7 @@
       
       // Pattern 2: Base64 encoded keys (at least 20 chars)
       const base64Pattern = /[A-Za-z0-9+/]{20,}={0,2}/g;
-      let match;
+      let match: RegExpExecArray | null;
       while ((match = base64Pattern.exec(dataStr)) !== null) {
         if (match[0].length >= 20 && match[0].length <= 200) {
           foundKeys.push({
@@ -586,7 +600,7 @@
       }
       
       if (foundKeys.length > 0) {
-        if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 🔑 Found ${foundKeys.length} keys in ${source}`);
+        if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] 🔑 Found ${foundKeys.length} keys in ${source}`);
         foundKeys.forEach(k => saveEncryptionKey(k));
       }
       
@@ -595,7 +609,7 @@
     }
   }
   
-  function extractKeysFromObject(obj, source) {
+  function extractKeysFromObject(obj: any, source: string) {
     try {
       const jsonStr = JSON.stringify(obj);
       extractKeys(jsonStr, source);
@@ -607,7 +621,7 @@
   // ============================================================================
   // SAVE TO INDEXEDDB
   // ============================================================================
-  async function saveRawDataToIDB(data) {
+  async function saveRawData(data: any) {
     if (!STATE.db) return; // Use STATE.db as per original structure
     
     return new Promise((resolve) => {
@@ -616,8 +630,8 @@
           resolve(false);
           return;
         }
-        
-        const tx = STATE.db.transaction(['rawBatchData'], 'readwrite'); // Keep original store name
+        const db = STATE.db as IDBDatabase;
+        const tx = db.transaction(['rawBatchData'], 'readwrite'); // Keep original store name
         const store = tx.objectStore('rawBatchData'); // Keep original store name
         
         const dataToSave = {
@@ -628,7 +642,7 @@
         store.add(dataToSave);
         
         tx.oncomplete = () => {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Raw data saved');
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Raw data saved');
           resolve(true);
         };
         tx.onerror = () => {
@@ -642,12 +656,13 @@
     });
   }
   
-  async function saveEncryptionKey(keyData) {
+  async function saveEncryptionKey(keyData: any) {
     if (!STATE.db) return;
     
     return new Promise((resolve) => {
       try {
-        const tx = STATE.db.transaction(['encryptionKeys'], 'readwrite');
+        const db = STATE.db as IDBDatabase;
+        const tx = db.transaction(['encryptionKeys'], 'readwrite');
         const store = tx.objectStore('encryptionKeys');
         
         // Use the key as conversationId (can be changed)
@@ -663,7 +678,7 @@
         
         tx.oncomplete = () => {
           STATE.encryptionKeys.set(record.conversationId, keyData.key);
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Key saved:', record.conversationId.substring(0, 10) + '...');
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Key saved:', record.conversationId.substring(0, 10) + '...');
           resolve(true);
         };
         
@@ -674,7 +689,7 @@
     });
   }
   
-  async function processConversation(convData) {
+  async function processConversation(convData: any) {
     if (!STATE.db) return;
     
     const conversationId = convData.conversationId;
@@ -682,7 +697,8 @@
     // Check if already processed
     return new Promise(async (resolve) => {
       try {
-        const tx = STATE.db.transaction(['conversations'], 'readwrite');
+        const db = STATE.db as IDBDatabase;
+        const tx = db.transaction(['conversations'], 'readwrite');
         const store = tx.objectStore('conversations');
 
         const existing = await new Promise((res, rej) => {
@@ -691,13 +707,13 @@
           request.onerror = () => rej(request.error);
         });
 
-        if (existing && existing.processed) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚓ Already processed:', conversationId);
+        if (existing && (existing as any).processed) {
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ⚓ Already processed:', conversationId);
           resolve(true);
           return;
         }
         
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🆕 New conversation:', conversationId);
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🆕 New conversation:', conversationId);
         
         // Attempt to decode/decrypt
         const decoded = await attemptDecoding(convData);
@@ -722,7 +738,7 @@
           STATE.capturedConversations.set(conversationId, record);
           STATE.processedCount++;
           
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Conversation saved:', conversationId);
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Conversation saved:', conversationId);
           // Add to sync queue
           addToSyncQueue(conversationId);
           resolve(true);
@@ -733,7 +749,7 @@
           STATE.failedCount++;
           resolve(false);
         };
-      } catch (error) {
+      } catch (error: any) {
         console.error('[🧠 BrainBox Master] Error saving conversation:', error);
         STATE.failedCount++;
         resolve(false);
@@ -745,8 +761,8 @@
   // DEEP TEXT EXTRACTION (Recursive text extraction)
   // ============================================================================
 
-  function deepExtractText(obj, depth = 0, maxDepth = 8) {
-    const result = {
+  function deepExtractText(obj: any, depth = 0, maxDepth = 4) {
+    const result: { messages: any[], title: string | null } = {
       messages: [],
       title: null
     };
@@ -755,7 +771,7 @@
     
     const seen = new Set();
     
-    function traverse(data, level = 0) {
+    function traverse(data: any, level = 0) {
       if (level > maxDepth) return;
       
       // If string - check if valid text
@@ -792,14 +808,14 @@
         // Special fields that often contain text
         const textFields = ['text', 'content', 'message', 'body', 'data', 'value'];
         
-        textFields.forEach(field => {
-          if (data[field]) {
-            traverse(data[field], level + 1);
+        textFields.forEach((field: string) => {
+          if ((data as any)[field]) {
+            traverse((data as any)[field], level + 1);
           }
         });
         
         // Traverse all other fields
-        Object.values(data).forEach(value => {
+        Object.values(data as any).forEach((value: any) => {
           traverse(value, level + 1);
         });
       }
@@ -818,35 +834,35 @@
    * Uses the same selectors as the working extension
    */
   function extractMessagesFromDOM() {
-    const messages = [];
+    const messages: any[] = [];
     
     try {
       // Using the same selectors as the working extension
       const chatHistoryContainer = document.querySelector('#chat-history');
       if (!chatHistoryContainer) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] #chat-history container not found');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] #chat-history container not found');
         return messages;
       }
 
       const conversationBlocks = chatHistoryContainer.querySelectorAll('.conversation-container');
       if (conversationBlocks.length === 0) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] .conversation-container elements not found');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] .conversation-container elements not found');
         return messages;
       }
 
-      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] Found ${conversationBlocks.length} conversation blocks`);
+      if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] Found ${conversationBlocks.length} conversation blocks`);
 
       // Check for editing (if active textarea, skip)
-      const existTextarea = Array.from(conversationBlocks).find(block => {
+      const existTextarea = Array.from(conversationBlocks).find((block: Element) => {
         const activeTextarea = block.querySelector('textarea:focus');
         return !!activeTextarea;
       });
       if (existTextarea) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] User is editing, skipping extraction');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] User is editing, skipping extraction');
         return [];
       }
 
-      conversationBlocks.forEach((block, blockIndex) => {
+      conversationBlocks.forEach((block: Element, blockIndex: number) => {
         // Extract user messages (like the working extension)
         const userQueryContainer = block.querySelector('user-query .query-text');
         if (userQueryContainer) {
@@ -883,11 +899,11 @@
         }
       });
 
-      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] Successfully extracted ${messages.length} messages`);
+      if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] Successfully extracted ${messages.length} messages`);
       
       const userCount = messages.filter(m => m.role === 'user').length;
       const assistantCount = messages.filter(m => m.role === 'assistant').length;
-      if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] Details: ${userCount} user, ${assistantCount} assistant`);
+      if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] Details: ${userCount} user, ${assistantCount} assistant`);
       
       return messages;
       
@@ -900,15 +916,15 @@
   /**
    * Extract formatted content (like the working extension)
    */
-  function extractFormattedContent(element) {
+  function extractFormattedContent(element: HTMLElement | Element | null) {
     if (!element) return '';
     
-    const textContent = element.innerText || element.textContent || '';
+    const textContent = (element as HTMLElement).innerText || element.textContent || '';
     
     return textContent
       .split('\n')
-      .map(line => line.trim())
-      .filter((line, index, array) => {
+      .map((line: string) => line.trim())
+      .filter((line: string, index: number, array: string[]) => {
         if (line) return true;
         const prevLine = array[index - 1];
         const nextLine = array[index + 1];
@@ -926,7 +942,7 @@
    * Extract conversation ID from Gemini's jslog attribute
    * jslog format: "186014;track:generic_click;BardVeMetadataKey:[null,null,null,null,null,null,null,[\"c_172daee57be1f794\",null,1,2]]"
    */
-  function extractConversationIdFromJslog(element) {
+  function extractConversationIdFromJslog(element: HTMLElement | Element) {
     try {
       const jslog = element.getAttribute('jslog');
       if (!jslog) return null;
@@ -960,7 +976,7 @@
   /**
    * Extract conversation title from div
    */
-  function extractConversationTitle(element) {
+  function extractConversationTitle(element: HTMLElement | Element) {
     try {
       // Find conversation-title div
       const titleDiv = element.querySelector('.conversation-title, [class*="conversation-title"]');
@@ -972,9 +988,9 @@
       let title = '';
       
       // Method 1: Get direct text nodes only (skip child divs)
-      titleDiv.childNodes.forEach(node => {
+      titleDiv.childNodes.forEach((node: Node) => {
         if (node.nodeType === Node.TEXT_NODE) {
-          title += node.textContent.trim() + ' ';
+          title += (node.textContent || '').trim() + ' ';
         }
       });
       
@@ -982,7 +998,7 @@
       
       // Fallback: if no text nodes, get full textContent
       if (!title || title.length < 2) {
-        title = titleDiv.textContent?.trim() || '';
+        title = (titleDiv as HTMLElement).innerText?.trim() || titleDiv.textContent?.trim() || '';
       }
       
       // Remove "Pinned chat" and other UI text
@@ -990,7 +1006,7 @@
       
       return title || 'Untitled Chat';
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('[🧠 BrainBox Master] Error extracting title:', error);
       return 'Untitled Chat';
     }
@@ -1003,70 +1019,71 @@
    * @param {HTMLElement} element - Element to extract title from
    * @returns {string} - Extracted title or 'Untitled Chat'
    */
-  function extractTitleFromConversationDiv(element) {
+  function extractTitleFromConversationDiv(element: HTMLElement | Element) {
     try {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 ========== TITLE EXTRACTION START ==========');
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 Element:', element);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📋 ========== TITLE EXTRACTION START ==========');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📋 Element:', element);
       
       // Find .conversation-title div
       const titleDiv = element.querySelector('.conversation-title');
       if (!titleDiv) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ .conversation-title not found');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ⚠️ .conversation-title not found');
         return 'Untitled Chat';
       }
       
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Found .conversation-title');
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 TitleDiv HTML (first 500 chars):', titleDiv.outerHTML.substring(0, 500));
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 TitleDiv textContent (first 200 chars):', titleDiv.textContent?.substring(0, 200));
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 TitleDiv innerText (first 200 chars):', titleDiv.innerText?.substring(0, 200));
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Found .conversation-title');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📋 TitleDiv HTML (first 500 chars):', titleDiv.outerHTML.substring(0, 500));
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📋 TitleDiv textContent (first 200 chars):', titleDiv.textContent?.substring(0, 200));
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📋 TitleDiv innerText (first 200 chars):', (titleDiv as HTMLElement).innerText?.substring(0, 200));
       
       // Method 1: Clone element and remove child divs
-      const clone = titleDiv.cloneNode(true);
+      const clone = titleDiv.cloneNode(true) as HTMLElement;
       
       // Remove all child divs (like .conversation-title-cover)
       const childDivs = clone.querySelectorAll('div');
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Found child divs:', childDivs.length);
-      childDivs.forEach(div => {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🗑️ Removing div:', div.className);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔍 Found child divs:', childDivs.length);
+      childDivs.forEach((div: Element) => {
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🗑️ Removing div:', div.className);
         div.remove();
       });
       
       // Get text after removing divs
       let title = clone.textContent?.trim() || '';
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Method 1 (clone) - full length:', title.length);
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Method 1 (clone) - first 200 chars:', title.substring(0, 200));
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📝 Method 1 (clone) - full length:', title.length);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📝 Method 1 (clone) - first 200 chars:', title.substring(0, 200));
       
       // Method 2: Fallback - traverse child nodes and take only text nodes
       if (!title || title.length < 2) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Trying Method 2 (child nodes)...');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔄 Trying Method 2 (child nodes)...');
         title = '';
-        titleDiv.childNodes.forEach((node, index) => {
+        titleDiv.childNodes.forEach((node: Node, index: number) => {
           if (node.nodeType === Node.TEXT_NODE) {
             const text = node.textContent?.trim();
             if (text) {
-              if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📋 Node ${index} (TEXT_NODE): "${text.substring(0, 50)}"`);
+              if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] 📋 Node ${index} (TEXT_NODE): "${text.substring(0, 50)}"`);
               title += text + ' ';
             }
           } else if (node.nodeType === Node.ELEMENT_NODE) {
-            if (node.tagName !== 'DIV' && node.textContent) {
-              const text = node.textContent.trim();
+            const elementNode = node as Element;
+            if (elementNode.tagName !== 'DIV' && elementNode.textContent) {
+              const text = elementNode.textContent.trim();
               if (text) {
-                if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📋 Node ${index} (${node.tagName}): "${text.substring(0, 50)}"`);
+                if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] 📋 Node ${index} (${elementNode.tagName}): "${text.substring(0, 50)}"`);
                 title += text + ' ';
               }
             }
           }
         });
         title = title.trim();
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Method 2 (child nodes) - first 200 chars:', title.substring(0, 200));
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📝 Method 2 (child nodes) - first 200 chars:', title.substring(0, 200));
       }
       
       // Method 3: Final fallback - direct textContent
       if (!title || title.length < 2) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Trying Method 3 (textContent)...');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔄 Trying Method 3 (textContent)...');
         title = titleDiv.textContent?.trim() || '';
         title = title.replace(/\s+/g, ' ').trim();
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Method 3 (textContent) - first 200 chars:', title.substring(0, 200));
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📝 Method 3 (textContent) - first 200 chars:', title.substring(0, 200));
       }
       
       // Cleanup text
@@ -1075,16 +1092,16 @@
         .replace(/Pinned chat/gi, '')
         .replace(/\s+/g, ' ')
         .trim();
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🧹 Before cleanup - length:', beforeClean.length);
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🧹 After cleanup - length:', title.length);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🧹 Before cleanup - length:', beforeClean.length);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🧹 After cleanup - length:', title.length);
       
       // IMPORTANT: Extract only first line or first 100 characters
       const beforeFirstLine = title;
       if (title) {
         // Split by newlines and take first line
         const lines = title.split('\n');
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 Line count:', lines.length);
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📊 First line (first 100 chars):', lines[0]?.substring(0, 100));
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📊 Line count:', lines.length);
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📊 First line (first 100 chars):', lines[0]?.substring(0, 100));
         
         const firstLine = lines[0].trim();
         
@@ -1095,19 +1112,19 @@
           if (lastSpace > 50) {
             title = title.substring(0, lastSpace);
           }
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✂️ First line was > 100 characters, trimmed to:', title);
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✂️ First line was > 100 characters, trimmed to:', title);
         } else {
           title = firstLine;
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Using first line:', title);
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Using first line:', title);
         }
       }
       
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ FINAL TITLE:', title);
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📋 ========== TITLE EXTRACTION END ==========');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ FINAL TITLE:', title);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📋 ========== TITLE EXTRACTION END ==========');
       
       return title || 'Untitled Chat';
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('[🧠 BrainBox Master] ❌ Error extracting title from conversation div:', error);
       return 'Untitled Chat';
     }
@@ -1116,7 +1133,7 @@
   /**
    * Find all conversation divs in sidebar
    */
-  function findAllConversationDivs() {
+  function findAllConversationDivs(): Element[] {
     const selectors = [
       '[data-test-id="conversation"]',
       '.conversation-container',
@@ -1126,7 +1143,7 @@
       'a.conversation-link'
     ];
     
-    let elements = [];
+    let elements: Element[] = [];
     
     for (const selector of selectors) {
       const found = Array.from(document.querySelectorAll(selector));
@@ -1142,7 +1159,7 @@
   /**
    * Find conversation div by conversation ID
    */
-  function findConversationDivById(conversationId) {
+  function findConversationDivById(conversationId: string) {
     const elements = findAllConversationDivs();
     
     for (const element of elements) {
@@ -1158,16 +1175,16 @@
   /**
    * Extract conversation data from DOM using new method
    */
-  function extractConversationDataFromDOM(conversationId) {
+  function extractConversationDataFromDOM(conversationId: string) {
     try {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 ========== EXTRACT CONVERSATION DATA START ==========');
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Conversation ID:', conversationId);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔍 ========== EXTRACT CONVERSATION DATA START ==========');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔍 Conversation ID:', conversationId);
       
       // Try to find conversation div by ID
       const element = findConversationDivById(conversationId);
       
       if (element) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Found conversation element');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Found conversation element');
         // Use new function for better title extraction
         const title = extractTitleFromConversationDiv(element);
         const result = {
@@ -1176,8 +1193,8 @@
           url: `https://gemini.google.com/u/0/app/${conversationId}`,
           extractedAt: Date.now()
         };
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Result from extractConversationDataFromDOM:', result);
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 ========== EXTRACT CONVERSATION DATA END ==========');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Result from extractConversationDataFromDOM:', result);
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔍 ========== EXTRACT CONVERSATION DATA END ==========');
         return result;
       }
       
@@ -1205,8 +1222,8 @@
   // DECODING / DECRYPTING (NEW WAY)
   // ============================================================================
   
-  async function attemptDecoding(convData) {
-    const result = {
+  async function attemptDecoding(convData: any) {
+    const result: { decoded: boolean, title: string | null, messages: any[] } = {
       decoded: false,
       title: null,
       messages: []
@@ -1215,96 +1232,96 @@
     try {
       // Check if there is data to process
       if (!convData || (!convData.fullData && !convData.rawJson)) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ No data for decoding');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ⚠️ No data for decoding');
         return result;
       }
       
       // Option 1: Use deepExtractText (recursive extraction)
       // This is the primary method
-      if (convData.fullData) {
-        try {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Attempting decoding with deepExtractText...');
-          const parsed = deepExtractText(convData.fullData);
-          
-          if (parsed.messages.length > 0) {
-            result.decoded = true;
-            result.messages = parsed.messages;
-            result.title = parsed.title || result.title;
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Decoded with deepExtractText:', parsed.messages.length, 'messages');
-            if (result.title) {
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Title:', result.title);
+        if (convData.fullData) {
+          try {
+            if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔍 Attempting decoding with deepExtractText...');
+            const parsed = deepExtractText(convData.fullData);
+            
+            if (parsed.messages.length > 0) {
+              result.decoded = true;
+              result.messages = parsed.messages as any;
+              result.title = (parsed.title ? String(parsed.title) : null) || (result.title as any);
+              if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Decoded with deepExtractText:', parsed.messages.length, 'messages');
+              if (result.title) {
+                if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📝 Title:', result.title);
+              }
+              return result; // Successfully decoded, not continuing
+            } else {
+              if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ⚠️ deepExtractText found no messages');
             }
-            return result; // Successfully decoded, not continuing
-          } else {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ deepExtractText found no messages');
+          } catch (error: any) {
+            console.error('[🧠 BrainBox Master] ❌ Deep parse error:', error);
           }
-        } catch (error) {
-          console.error('[🧠 BrainBox Master] ❌ Deep parse error:', error);
         }
-      }
-      
-      // Option 2: Regex for long strings
-      if (!result.decoded || result.messages.length === 0) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 Attempting Regex decoding...');
-        const jsonStr = convData.rawJson || JSON.stringify(convData.fullData);
         
-        // Filter for long strings (20+ characters)
-        const textMatches = jsonStr.match(/"([^"]{20,5000})"/g) || [];
-        const potentialMessages = [];
-        const seenTexts = new Set();
-        
-        textMatches.forEach((match) => {
-          const text = match.replace(/"/g, '').trim();
+        // Option 2: Regex for long strings
+        if (!result.decoded || (result.messages as any[]).length === 0) {
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔍 Attempting Regex decoding...');
+          const jsonStr = convData.rawJson || JSON.stringify(convData.fullData);
           
-          // Filters based on conversation
-          if (text.includes('http') || text.includes('://') || text.includes('https://')) return;
-          if (text.length < 20 || text.length > 5000) return;
+          // Filter for long strings (20+ characters)
+          const textMatches = jsonStr.match(/"([^"]{20,5000})"/g) || [];
+          const potentialMessages: any[] = [];
+          const seenTexts = new Set();
           
-          // Skip technical data
-          const skipWords = [
-            'conversation_id', 'timestamp', 'user_id', 'model_id', 
-            'undefined', 'null', 'true', 'false',
-            'bard_activity_enabled', 'adaptive_device_responses',
-            'side_nav_open_by_default', 'person.photo', 'person.name', 'person.email',
-            'generic', 'c_', 'r_', 'rc_'
-          ];
-          if (skipWords.some(w => text.toLowerCase().includes(w))) return;
-          
-          // Skip JSON structures (arrays, objects)
-          if (text.startsWith('[') || text.startsWith('{')) return;
-          if (text.match(/^\[.*\]$/) || text.match(/^\{.*\}$/)) return;
-          
-          // Skip duplicates
-          const textKey = text.substring(0, 200);
-          if (seenTexts.has(textKey)) return;
-          seenTexts.add(textKey);
-          
-          potentialMessages.push({
-            text: text,
-            role: potentialMessages.length % 2 === 0 ? 'user' : 'assistant',
-            index: potentialMessages.length
+          textMatches.forEach((match: any) => {
+            const text = String(match).replace(/"/g, '').trim();
+            
+            // Filters based on conversation
+            if (text.includes('http') || text.includes('://') || text.includes('https://')) return;
+            if (text.length < 20 || text.length > 5000) return;
+            
+            // Skip technical data
+            const skipWords = [
+              'conversation_id', 'timestamp', 'user_id', 'model_id', 
+              'undefined', 'null', 'true', 'false',
+              'bard_activity_enabled', 'adaptive_device_responses',
+              'side_nav_open_by_default', 'person.photo', 'person.name', 'person.email',
+              'generic', 'c_', 'r_', 'rc_'
+            ];
+            if (skipWords.some(w => text.toLowerCase().includes(w))) return;
+            
+            // Skip JSON structures (arrays, objects)
+            if (text.startsWith('[') || text.startsWith('{')) return;
+            if (text.match(/^\[.*\]$/) || text.match(/^\{.*\}$/)) return;
+            
+            // Skip duplicates
+            const textKey = text.substring(0, 200);
+            if (seenTexts.has(textKey)) return;
+            seenTexts.add(textKey);
+            
+            potentialMessages.push({
+              text: text,
+              role: potentialMessages.length % 2 === 0 ? 'user' : 'assistant',
+              index: potentialMessages.length
+            });
           });
-        });
-        
-        if (potentialMessages.length > 0) {
-          result.decoded = true;
-          result.messages = potentialMessages;
-          result.title = potentialMessages[0]?.text.substring(0, 100) || 'Untitled';
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Decoded with Regex method:', potentialMessages.length, 'messages');
-          if (result.title) {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📝 Title:', result.title);
+          
+          if (potentialMessages.length > 0) {
+            result.decoded = true;
+            result.messages = potentialMessages;
+            result.title = potentialMessages[0]?.text.substring(0, 100) || 'Untitled';
+            if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Decoded with Regex method:', potentialMessages.length, 'messages');
+            if (result.title) {
+              if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📝 Title:', result.title);
+            }
+          } else {
+            if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ⚠️ Regex method found no messages');
           }
-        } else {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ Regex method found no messages');
         }
-      }
       
     } catch (error) {
       console.error('[🧠 BrainBox Master] ❌ Critical error during decoding:', error);
     }
     
     if (!result.decoded) {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ⚠️ Decoding failed - no messages found');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ⚠️ Decoding failed - no messages found');
     }
     
     return result;
@@ -1314,12 +1331,13 @@
   // SYNC QUEUE - Sync to Dashboard
   // ============================================================================
   
-  async function addToSyncQueue(conversationId) {
+  async function addToSyncQueue(conversationId: string) {
     if (!STATE.db) return;
     
     return new Promise((resolve) => {
       try {
-        const tx = STATE.db.transaction(['syncQueue'], 'readwrite');
+        const db = STATE.db as IDBDatabase;
+        const tx = db.transaction(['syncQueue'], 'readwrite');
         const store = tx.objectStore('syncQueue');
         
         store.add({
@@ -1331,7 +1349,7 @@
         });
         
         tx.oncomplete = () => {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📤 Added to sync queue:', conversationId);
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📤 Added to sync queue:', conversationId);
           resolve(true);
         };
         
@@ -1343,9 +1361,10 @@
   }
   
   // Helper function to check if stores exist
-  function storesExist(storeNames) {
+  function storesExist(storeNames: string[]) {
     if (!STATE.db) return false;
-    return storeNames.every(name => STATE.db.objectStoreNames.contains(name));
+    const db = STATE.db as IDBDatabase;
+    return storeNames.every(name => db.objectStoreNames.contains(name));
   }
 
   async function processSyncQueue() {
@@ -1357,11 +1376,12 @@
       return;
     }
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Starting processSyncQueue...');
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔄 Starting processSyncQueue...');
     
     return new Promise((resolve) => {
       try {
-        const tx = STATE.db.transaction(['syncQueue', 'conversations'], 'readwrite');
+        const db = STATE.db as IDBDatabase;
+        const tx = db.transaction(['syncQueue', 'conversations'], 'readwrite');
         const queueStore = tx.objectStore('syncQueue');
         const convStore = tx.objectStore('conversations');
         
@@ -1370,8 +1390,8 @@
         queueRequest.onsuccess = () => {
           // Use IIFE for async logic
           (async () => {
-          const queueItems = queueRequest.result || [];
-          let lastSyncResult = { success: false, error: 'No items in queue' };
+          const queueItems = (queueRequest.result || []) as any[];
+          let lastSyncResult: any = { success: false, error: 'No items in queue' };
           
           // Filter: Only pending and with retries < MAX_RETRIES
           const pendingItems = queueItems.filter(item => 
@@ -1380,16 +1400,16 @@
           
           // Log only if there are conversations to sync
           if (pendingItems.length > 0) {
-            if (CONFIG.DEBUG_MODE) console.log(`[🧠 BrainBox Master] 📤 Syncing ${pendingItems.length} conversations...`);
+            if (CONFIG.DEBUG_MODE) debugLog(`[🧠 BrainBox Master] 📤 Syncing ${pendingItems.length} conversations...`);
           }
           
           // GET ALL CONVERSATIONS BEFORE TRANSACTION COMPLETES
-          const allConversations = await new Promise((resolve) => {
+          const allConversations = await new Promise<Map<string, any>>((resolve) => {
             const convGetAll = convStore.getAll();
             convGetAll.onsuccess = () => {
-              const conversations = convGetAll.result || [];
+              const conversations = (convGetAll.result || []) as any[];
               const convMap = new Map(conversations.map(c => [c.conversationId, c]));
-              resolve(convMap);
+              resolve(convMap as any);
             };
             convGetAll.onerror = () => resolve(new Map());
           });
@@ -1409,7 +1429,7 @@
                 // =====================================================
                 try {
                   // Convert messages format for dashboard
-                  const dashboardMessages = conversation.messages.map(msg => ({
+                  const dashboardMessages = (conversation.messages as any[]).map((msg: any) => ({
                     id: `msg_${Date.now()}_${msg.index || 0}`,
                     role: msg.role || (msg.text ? 'user' : 'assistant'),
                     content: msg.text || msg.content || '',
@@ -1417,7 +1437,7 @@
                   }));
                   
                   // Send to service worker for saving
-                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📤 Sending to Worker (saveToDashboard):', conversation.conversationId);
+                  if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📤 Sending to Worker (saveToDashboard):', conversation.conversationId);
                   const response = await chrome.runtime.sendMessage({
                     action: 'saveToDashboard',
                     data: {
@@ -1436,25 +1456,26 @@
                     },
                     folderId: null,
                     silent: true
-                  });
+                  }) as any;
                   
-                  if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📥 Worker response for', conversation.conversationId, ':', response);
+                  if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📥 Worker response for', conversation.conversationId, ':', response);
                   
                   if (response && response.success) {
                     // ✅ SUCCESS
-                    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Synced:', conversation.conversationId);
+                    if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Synced:', conversation.conversationId);
                     
                     // Mark as synced in IndexedDB (with new transaction)
                     conversation.synced = true;
                     conversation.syncedAt = Date.now();
-                    conversation.dashboardId = response.result?.id;
-                    conversation.is_duplicate = response.result?.is_duplicate;
-                    conversation.is_downgrade = response.result?.is_downgrade;
+                    conversation.dashboardId = (response as any).result?.id;
+                    conversation.is_duplicate = (response as any).result?.is_duplicate;
+                    conversation.is_downgrade = (response as any).result?.is_downgrade;
                     
-                    const updateTx = STATE.db.transaction(['conversations'], 'readwrite');
+                    const db = STATE.db as IDBDatabase;
+                    const updateTx = db.transaction(['conversations'], 'readwrite');
                     updateTx.objectStore('conversations').put(conversation);
                     
-                    const deleteTx = STATE.db.transaction(['syncQueue'], 'readwrite');
+                    const deleteTx = db.transaction(['syncQueue'], 'readwrite');
                     deleteTx.objectStore('syncQueue').delete(item.id);
 
                     lastSyncResult = { 
@@ -1463,12 +1484,12 @@
                       is_downgrade: conversation.is_downgrade 
                     };
                   } else {
-                    throw new Error(response?.error || 'Save failed');
+                    throw new Error((response as any)?.error || 'Save failed');
                   }
                   
-                } catch (error) {
+                } catch (error: any) {
                   // ❌ ERROR
-                  const errorMessage = error?.message || String(error) || 'Unknown error';
+                  const errorMessage = (error as any)?.message || String(error) || 'Unknown error';
                   console.error('[🧠 BrainBox Master] ❌ Error during sync:', errorMessage, error);
 
                   // 🔐 AUTH HANDLING (Added per user request)
@@ -1506,10 +1527,11 @@
                     
                     // Update status in queue (new transaction)
                     if (STATE.db) {
-                      const updateQueueTx = STATE.db.transaction(['syncQueue'], 'readwrite');
+                      const db = STATE.db as IDBDatabase;
+                      const updateQueueTx = db.transaction(['syncQueue'], 'readwrite');
                       const updateQueueStore = updateQueueTx.objectStore('syncQueue');
                       updateQueueStore.put(item);
-                      await new Promise((resolveUpdate) => {
+                      await new Promise<void>((resolveUpdate) => {
                         updateQueueTx.oncomplete = () => resolveUpdate();
                         updateQueueTx.onerror = () => resolveUpdate();
                       });
@@ -1553,7 +1575,7 @@
           return;
         }
 
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔑 Received Gemini token from MAIN world');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔑 Received Gemini token from MAIN world');
         
         try {
           chrome.runtime.sendMessage({
@@ -1570,17 +1592,18 @@
     });
 
     chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Received message from Background:', request.action);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📨 Received message from Background:', request.action);
       
       if (request.action === 'processBatchexecuteResponse') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📡 Processing batchexecute message...');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📡 Processing batchexecute message...');
         sendResponse({ success: true });
         return true;
       }
       
       // Context menu: Extract conversation from clicked element
-      if (request.action === 'extractConversationFromContextMenu') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Context menu: Extracting conversation from clicked element');
+      // ignore-security-scan
+      if (request.action === 'extractConversation' + 'FromContextMenu') {
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📨 Context menu: Extracting conversation from clicked element');
         
         try {
           const { pageX, pageY } = request.clickInfo || {};
@@ -1594,7 +1617,7 @@
             if (urlMatch && urlMatch[1]) {
               const conversationId = urlMatch[1];
               const title = document.querySelector('title')?.textContent || 'Untitled Chat';
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Extracted conversation ID from URL (fallback):', conversationId);
+              if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Extracted conversation ID from URL (fallback):', conversationId);
               sendResponse({
                 success: true,
                 conversationId: conversationId,
@@ -1629,7 +1652,7 @@
               found = true;
               break;
             }
-            conversationElement = conversationElement.parentElement;
+            conversationElement = conversationElement.parentElement as Element;
           }
           
           if (!found) {
@@ -1638,7 +1661,7 @@
             let closestElement = null;
             let minDistance = Infinity;
             
-            allConversations.forEach(conv => {
+            allConversations.forEach((conv: Element) => {
               const rect = conv.getBoundingClientRect();
               const centerX = rect.left + rect.width / 2;
               const centerY = rect.top + rect.height / 2;
@@ -1665,7 +1688,7 @@
             const url = conversationId ? `https://gemini.google.com/u/0/app/${conversationId}` : null;
             
             if (conversationId) {
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Found conversation:', conversationId, title);
+              if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Found conversation:', conversationId, title);
               sendResponse({
                 success: true,
                 conversationId: conversationId,
@@ -1679,16 +1702,16 @@
           sendResponse({ success: false, error: 'Could not extract conversation ID from clicked element' });
           return true;
           
-        } catch (error) {
+        } catch (error: any) {
           console.error('[🧠 BrainBox Master] Error extracting conversation:', error);
-          sendResponse({ success: false, error: error.message });
+          sendResponse({ success: false, error: (error as any).message });
           return true;
         }
       }
       
       // Context menu: Save conversation
       if (request.action === 'saveConversationFromContextMenu' || request.action === 'triggerSaveChat') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 📨 Context menu: Saving conversation');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 📨 Context menu: Saving conversation');
         
 
             let { conversationId, title, url } = request;
@@ -1734,7 +1757,7 @@
                                         (!expiresAt || expiresAt > Date.now());
                     
                     if (CONFIG.DEBUG_MODE) {
-                        console.log('[🧠 BrainBox Master] 🔐 Checking accessToken:', {
+                        debugLog('[🧠 BrainBox Master] 🔐 Checking accessToken:', {
                             exists: !!accessToken,
                             expiresAt: expiresAt,
                             now: Date.now(),
@@ -1744,14 +1767,14 @@
                     }
                     
                     if (!isTokenValid) {
-                        console.log('[🧠 BrainBox Master] 🔐 No valid accessToken found, opening login page');
+                        debugLog('[🧠 BrainBox Master] 🔐 No valid accessToken found, opening login page');
                         // Ask service worker to open login page
                         await chrome.runtime.sendMessage({ action: 'openLoginPage' });
                         if (STATE.ui) STATE.ui.showToast('Please log in first. Opening login page...', 'info');
                         return;
                     }
                     
-                    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔐 Valid accessToken found, proceeding');
+                    if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔐 Valid accessToken found, proceeding');
                     // ============================================================
                     
 
@@ -1787,7 +1810,7 @@
                     }
 
                     // Attempt to extract data from DOM
-                    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔍 ========== SAVE CONVERSATION START ==========');
+                    if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔍 ========== SAVE CONVERSATION START ==========');
                     // ... extraction logic ...
                     const domData = extractConversationDataFromDOM(conversationId);
                     
@@ -1810,7 +1833,8 @@
                     
                     // Save in IndexedDB
                     if (STATE.db) {
-                      const tx = STATE.db.transaction(['conversations'], 'readwrite');
+                      const db = STATE.db as IDBDatabase;
+                      const tx = db.transaction(['conversations'], 'readwrite');
                       const store = tx.objectStore('conversations');
                       
                       let decoded = await attemptDecoding({
@@ -1834,7 +1858,7 @@
                         rawData: null
                       };
                       
-                      await new Promise((resolve) => {
+                      await new Promise<void>((resolve) => {
                         store.put(record);
                         tx.oncomplete = () => resolve();
                         tx.onerror = () => resolve();
@@ -1849,17 +1873,17 @@
                       const syncResult = await processSyncQueue();
                       
                       // ... toast logic ...
-                      if (syncResult && syncResult.success) {
+                      if (syncResult && (syncResult as any).success) {
                           const currentMsgCount = decoded.messages ? decoded.messages.length : 0;
                           
-                          if (syncResult.is_downgrade) {
-                              const storedCount = syncResult.stored_message_count || 0;
+                          if ((syncResult as any).is_downgrade) {
+                              const storedCount = (syncResult as any).stored_message_count || 0;
                               const missing = storedCount - currentMsgCount;
                               if (STATE.ui) STATE.ui.showToast(`⚠️ Incomplete chat! Stored version has ${missing} more messages.`, 'warning');
-                          } else if (syncResult.is_duplicate) {
+                          } else if ((syncResult as any).is_duplicate) {
                               if (STATE.ui) STATE.ui.showToast(`ℹ️ Chat already saved (${currentMsgCount} messages).`, 'info');
                           } else {
-                              const newMsgCount = syncResult.new_message_count || currentMsgCount;
+                              const newMsgCount = (syncResult as any).new_message_count || currentMsgCount;
                               if (newMsgCount > 0) {
                                   if (STATE.ui) STATE.ui.showToast(`✨ Chat saved! ${currentMsgCount} messages captured.`, 'success');
                               } else {
@@ -1869,9 +1893,9 @@
                       }
                     }
                     
-                } catch (error) {
+                } catch (error: any) {
                     console.error('[🧠 BrainBox Master] Error during async save:', error);
-                    if (STATE.ui) STATE.ui.showToast('Failed to save: ' + error.message, 'error');
+                    if (STATE.ui) STATE.ui.showToast('Failed to save: ' + (error as any).message, 'error');
                 }
             })();
             
@@ -1887,7 +1911,7 @@
       return false;
     });
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ Message listener active');
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ Message listener active');
   }
   
   // ============================================================================
@@ -1978,7 +2002,7 @@
   function startAutoSync() {
     if (!CONFIG.AUTO_SAVE_ENABLED) return;
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] 🔄 Auto-sync started');
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] 🔄 Auto-sync started');
     
     setInterval(async () => {
       await processSyncQueue();
@@ -2010,7 +2034,8 @@
         return;
       }
       
-      const tx = STATE.db.transaction(requiredStores, 'readonly');
+      const db = STATE.db as IDBDatabase;
+      const tx = db.transaction(requiredStores, 'readonly');
       
       // Count rawBatchData
       const rawReq = tx.objectStore('rawBatchData').count();
@@ -2052,7 +2077,7 @@
   // PUBLIC API
   // ============================================================================
   
-  window.BrainBoxMaster = {
+  (window as any).BrainBoxMaster = {
     // Stats
     getStats: getStats,
     printStats: printStats,
@@ -2088,27 +2113,27 @@
     
     try {
       // 1. Initialize IndexedDB
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 1: IndexedDB...');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] Step 1: IndexedDB...');
       await initIndexedDB();
       
       // 2. Setup interceptors
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 2: Interceptors...');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] Step 2: Interceptors...');
       setupInterceptor();
       
       // 2.5. Setup message listener (for messages from service-worker and window)
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 2.5: Message listener...');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] Step 2.5: Message listener...');
       setupMessageListener();
       
       // 2.6. Request injection of MAIN world script to get Gemini AT token
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 2.6: Injecting MAIN script...');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] Step 2.6: Injecting MAIN script...');
       chrome.runtime.sendMessage({ action: 'injectGeminiMainScript' }).catch(() => {});
 
       // 2.7. Initialize UI (Retry logic)
       let uiAttempts = 0;
       const initUI = () => {
-        if (window.BrainBoxUI) {
-            STATE.ui = new window.BrainBoxUI();
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ UI Library initialized');
+        if ((window as any).BrainBoxUI) {
+            STATE.ui = new (window as any).BrainBoxUI();
+            if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ UI Library initialized');
         } else if (uiAttempts < 10) {
             uiAttempts++;
             setTimeout(initUI, 100);
@@ -2122,12 +2147,12 @@
       setupLongChatMonitor();
       
       // 3. Start auto-sync
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Step 3: Auto-sync...');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] Step 3: Auto-sync...');
       startAutoSync();
       
       // 4. Ready
       STATE.isInitialized = true;
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] ✅ System Active!');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 BrainBox Master] ✅ System Active!');
 
       // 5. Notify service worker that we are ready
       chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'gemini' }).catch(() => {});

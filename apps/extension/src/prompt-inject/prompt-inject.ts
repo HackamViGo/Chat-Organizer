@@ -10,26 +10,48 @@
   // CONFIGURATION
   // ============================================================================
       
-  const CONFIG = {
+  interface Config {
+    API_BASE_URL: string | null;
+    API_ENDPOINT: string;
+    DEBUG_MODE: boolean;
+  }
+
+  const CONFIG: Config = {
     API_BASE_URL: null, // Will be loaded from storage
     API_ENDPOINT: '/api/prompts', // API endpoint for prompts
     DEBUG_MODE: false
   };
 
+  const debugLog = (...args: any[]) => {
+    if (CONFIG.DEBUG_MODE) console.info('[Prompt Inject]', ...args);
+  };
+
   // Prevent multiple executions
-  if (window.BRAINBOX_PROMPT_INJECT_LOADED) {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⏹️ Script already loaded, skipping init.');
+  if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ⏹️ Script already loaded, skipping init.');
     return;
   }
-  window.BRAINBOX_PROMPT_INJECT_LOADED = true;
+  (window as any).BRAINBOX_PROMPT_INJECT_LOADED = true;
 
-  if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] Loading (v2.0.2)...');
+  if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] Loading (v2.0.2)...');
 
   // ============================================================================
   // STATE
   // ============================================================================
   
-  const STATE = {
+  interface Prompt {
+    id: string;
+    title: string;
+    content: string;
+    [key: string]: any;
+  }
+
+  interface State {
+    prompts: Prompt[];
+    isLoading: boolean;
+  }
+  
+  const STATE: State = {
     prompts: [],
     isLoading: false
   };
@@ -38,71 +60,60 @@
   // INITIALIZATION
   // ============================================================================
       
-  async function init() {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] Initializing...');
+  async function loadConfig(): Promise<void> {
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] Loading config...');
     
-    // Load Configuration from Storage
     try {
-        if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-            const config = await chrome.storage.local.get(['API_BASE_URL']);
-            if (config.API_BASE_URL) {
-                CONFIG.API_BASE_URL = config.API_BASE_URL;
-                if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Loaded Config:', CONFIG.API_BASE_URL);
-            } else {
-                CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
-            }
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        const config = await chrome.storage.local.get(['API_BASE_URL']);
+        if (config.API_BASE_URL) {
+          CONFIG.API_BASE_URL = config.API_BASE_URL;
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Loaded Config:', CONFIG.API_BASE_URL);
         } else {
-            // Context where storage is not available (e.g. sandboxed iframe or Main world)
-            CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Storage API not available, using default URL');
+          CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
         }
-    } catch (e) {
-        console.warn('[🧠 Prompt Inject] ⚠️ Config load check failed (using default):', e);
+      } else {
         CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
+      }
+    } catch (e) {
+      console.warn('[🧠 Prompt Inject] ⚠️ Config load check failed (using default):', e);
+      CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
     }
-
-    // Setup message listener
-    setupMessageListener();
-        
-    // Notify background that we are ready
-    chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'universal' }).catch(() => {});
-        
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Ready');
   }
 
   // ============================================================================
   // FETCH PROMPTS FROM API
   // ============================================================================
   
-  async function fetchPrompts(forceRefresh = false) {
+    async function fetchPrompts(forceRefresh: boolean = false): Promise<Prompt[]> {
     if (STATE.isLoading && !forceRefresh) return STATE.prompts;
     STATE.isLoading = true;
 
     try {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📥 Fetching via Background (CSP Bypass)...');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📥 Fetching via Background (CSP Bypass)...');
       
-      const response = await chrome.runtime.sendMessage({ action: 'fetchPrompts' });
+      const response = await chrome.runtime.sendMessage({ action: 'fetchPrompts' }) as { success: boolean; data?: any; error?: string };
       
       if (!response || !response.success) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Background fetch failed:', response?.error);
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Background fetch failed:', response?.error);
         if (response?.error === 'Unauthorized') {
-             if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Auth failed (Background)');
+             if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ⚠️ Auth failed (Background)');
         }
         return [];
       }
 
       const data = response.data;
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📦 Received data from background:', typeof data);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📦 Received data from background:', typeof data);
 
       // Handle { prompts: [...] } structure vs [...]
       const promptsList = Array.isArray(data.prompts) ? data.prompts : (Array.isArray(data) ? data : []);
       STATE.prompts = promptsList;
       
-      if (CONFIG.DEBUG_MODE) console.log(`[🧠 Prompt Inject] 📡 OK | Count: ${STATE.prompts.length}`);
+      if (CONFIG.DEBUG_MODE) debugLog(`[🧠 Prompt Inject] 📡 OK | Count: ${STATE.prompts.length}`);
       return STATE.prompts;
 
     } catch (error) {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error in fetchPrompts:', error);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error in fetchPrompts:', error);
       return [];
     } finally {
       STATE.isLoading = false;
@@ -113,185 +124,130 @@
   // SHOW PROMPT SELECTION MENU
   // ============================================================================
   
-  function showPromptMenu(prompts, options = {}) {
-    const isSearchMode = options.mode === 'search';
+  function showPromptMenu(prompts: Prompt[], options: { mode?: string } = {}): void {
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📱 Showing prompt menu...');
     
-    // Remove old menu if exists
-    const existingMenu = document.getElementById('brainbox-prompt-menu');
-    if (existingMenu) {
-      existingMenu.remove();
-    }
-
-    // Create menu container
+    // Remove if already exists
+    const existing = document.getElementById('brainbox-prompt-menu');
+    if (existing) existing.remove();
+    
+    injectStyles();
+    
     const menu = document.createElement('div');
     menu.id = 'brainbox-prompt-menu';
-    if (isSearchMode) menu.classList.add('brainbox-mode-search');
-
+    
+    const isCompact = options.mode === 'compact';
+    
     menu.innerHTML = `
       <div class="brainbox-prompt-menu-overlay"></div>
-      <div class="brainbox-prompt-menu-content ${isSearchMode ? 'brainbox-compact' : ''}">
+      <div class="brainbox-prompt-menu-content ${isCompact ? 'brainbox-compact' : ''}">
         <div class="brainbox-prompt-menu-header">
           <div class="brainbox-prompt-menu-header-main">
-            <h3>${isSearchMode ? 'Search Prompts' : 'Select a prompt'}</h3>
+            <h3>BrainBox Prompts</h3>
             <div class="brainbox-prompt-menu-header-actions">
-              ${!isSearchMode ? '<button class="brainbox-prompt-menu-refresh" aria-label="Refresh" title="Refresh prompt list">🔄</button>' : ''}
-              <button class="brainbox-prompt-menu-close" aria-label="Close">×</button>
+              <button class="brainbox-prompt-menu-refresh" title="Refresh Prompts">🔄</button>
+              <button class="brainbox-prompt-menu-close" title="Close Menu">&times;</button>
             </div>
           </div>
           <div class="brainbox-prompt-menu-search-container">
-            <input type="text" class="brainbox-prompt-menu-search" placeholder="Type to search..." autofocus />
+            <input type="text" class="brainbox-prompt-menu-search" placeholder="Search prompts..." autofocus>
           </div>
         </div>
         <div class="brainbox-prompt-menu-list">
-          ${renderPromptList(prompts)}
+          <!-- Prompts will be injected here -->
         </div>
       </div>
     `;
-
-    function renderPromptList(promptsToRender) {
-      if (promptsToRender.length === 0) {
-        return `
-          <div class="brainbox-prompt-menu-empty">
-            <p>No prompts available</p>
-            <p class="brainbox-prompt-menu-empty-hint">Use the refresh button (🔄) to load prompts from the dashboard</p>
-          </div>
-        `;
-      }
-
-      return promptsToRender.map((prompt, index) => `
-        <div class="brainbox-prompt-menu-item" data-prompt-id="${prompt.id}" data-index="${index}">
-          <div class="brainbox-prompt-menu-item-title">${escapeHtml(prompt.title)}</div>
-          ${prompt.content ? `<div class="brainbox-prompt-menu-item-preview">${escapeHtml(prompt.content.substring(0, 100))}${prompt.content.length > 100 ? '...' : ''}</div>` : ''}
-        </div>
-      `).join('');
-    }
-
-    // Add styles
-    injectStyles();
-
-    // Add event listeners
-    function attachItemListeners() {
+    
+    document.body.appendChild(menu);
+    
+    const listContainer = menu.querySelector('.brainbox-prompt-menu-list') as HTMLElement;
+    const searchInput = menu.querySelector('.brainbox-prompt-menu-search') as HTMLInputElement;
+    const closeBtn = menu.querySelector('.brainbox-prompt-menu-close') as HTMLElement;
+    const overlay = menu.querySelector('.brainbox-prompt-menu-overlay') as HTMLElement;
+    const refreshBtn = menu.querySelector('.brainbox-prompt-menu-refresh') as HTMLElement;
+    
+    function attachItemListeners(promptsToLink: Prompt[]) {
       menu.querySelectorAll('.brainbox-prompt-menu-item').forEach(item => {
         item.addEventListener('click', () => {
-          const promptId = item.dataset.promptId;
-          const prompt = prompts.find(p => p.id === promptId);
+          const promptId = (item as HTMLElement).dataset.promptId;
+          const prompt = promptsToLink.find(p => p.id === promptId);
           if (prompt) {
             injectPrompt(prompt);
             menu.remove();
           }
         });
-      });
-    }
-
-    attachItemListeners();
-
-    // Search logic
-    const searchInput = menu.querySelector('.brainbox-prompt-menu-search');
-    const listContainer = menu.querySelector('.brainbox-prompt-menu-list');
-
-    searchInput.addEventListener('input', (e) => {
-      const query = e.target.value.toLowerCase();
-      const filtered = prompts.filter(p => 
-        p.title.toLowerCase().includes(query) || 
-        (p.content && p.content.toLowerCase().includes(query))
-      );
-      listContainer.innerHTML = renderPromptList(filtered);
-      attachItemListeners();
-    });
-
-    menu.querySelector('.brainbox-prompt-menu-close').addEventListener('click', () => {
-      menu.remove();
-    });
-
-    menu.querySelector('.brainbox-prompt-menu-overlay').addEventListener('click', () => {
-      menu.remove();
-    });
-
-    // Refresh button handler
-    const refreshButton = menu.querySelector('.brainbox-prompt-menu-refresh');
-    if (refreshButton) {
-      let isRefreshing = false;
-      
-      refreshButton.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        e.preventDefault();
         
-        // Prevent multiple simultaneous refreshes
-        if (isRefreshing) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⏳ Refresh already in progress...');
-          return;
-        }
-                        
-        isRefreshing = true;
-        refreshButton.style.animation = 'spin 1s linear infinite';
-        refreshButton.style.pointerEvents = 'none';
-        refreshButton.style.opacity = '0.7';
-                        
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 🔄 Starting refresh...');
-        showNotification('Refreshing list...', 'info');
-        
-        try {
-          // Reload access token before refresh
-          // No auth required
-                              
-          const newPrompts = await fetchPrompts(true); // Force refresh
-                              
-          if (CONFIG.DEBUG_MODE) console.log(`[🧠 Prompt Inject] ✅ Refresh complete: ${newPrompts.length} prompts`);
-          
-          if (newPrompts.length > 0) {
-            // Update menu with new prompts
-            const listContainer = menu.querySelector('.brainbox-prompt-menu-list');
-            if (listContainer) {
-              listContainer.innerHTML = newPrompts.map((prompt, index) => `
-                <div class="brainbox-prompt-menu-item" data-prompt-id="${prompt.id}" data-index="${index}">
-                  <div class="brainbox-prompt-menu-item-title">${escapeHtml(prompt.title)}</div>
-                  ${prompt.content ? `<div class="brainbox-prompt-menu-item-preview">${escapeHtml(prompt.content.substring(0, 100))}${prompt.content.length > 100 ? '...' : ''}</div>` : ''}
-                </div>
-              `).join('');
-              
-              // Re-attach event listeners
-              listContainer.querySelectorAll('.brainbox-prompt-menu-item').forEach(item => {
-                item.addEventListener('click', () => {
-                  const promptId = item.dataset.promptId;
-                  const prompt = newPrompts.find(p => p.id === promptId);
-                  if (prompt) {
-                    injectPrompt(prompt);
-                    menu.remove();
-                  }
-                });
-              });
-              
-              // Only notify if prompts are found
-              // (Redundant success notification removed here to prevent double toast)
-            }
-          } else {
-            // Only show warning if explicitly 0 prompts found
-             if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ No prompts found via refresh');
-             showNotification('No prompts found for the menu.', 'warning');
+        item.addEventListener('keydown', (e: Event) => {
+          const keyEvent = e as KeyboardEvent;
+          if (keyEvent.key === 'Enter' || keyEvent.key === ' ') {
+            keyEvent.preventDefault();
+            (item as HTMLElement).click();
           }
-        } catch (error) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error during refresh:', error);
-          showNotification('Error refreshing. Check console.', 'error');
-        } finally {
-          isRefreshing = false;
-          refreshButton.style.animation = '';
-          refreshButton.style.pointerEvents = 'auto';
-          refreshButton.style.opacity = '1';
-        }
+        });
       });
-                      
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Refresh button initialized');
-    } else {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Refresh button not found in menu');
     }
 
-    // Add menu to DOM
-    document.body.appendChild(menu);
+    function renderAndAttach(promptsToRender: Prompt[]) {
+      if (!listContainer) return;
+      
+      if (promptsToRender.length === 0) {
+        listContainer.innerHTML = `
+          <div class="brainbox-prompt-menu-empty">
+            <p>No prompts found</p>
+            <p class="brainbox-prompt-menu-empty-hint">Try adjusting your search</p>
+          </div>
+        `;
+        return;
+      }
+      
+      listContainer.innerHTML = promptsToRender.map((prompt, index) => `
+        <div class="brainbox-prompt-menu-item" data-prompt-id="${prompt.id}" data-index="${index}" tabindex="0">
+          <div class="brainbox-prompt-menu-item-title">${escapeHtml(prompt.title)}</div>
+          <div class="brainbox-prompt-menu-item-preview">${escapeHtml(prompt.content.substring(0, 100))}${prompt.content.length > 100 ? '...' : ''}</div>
+        </div>
+      `).join('');
+      
+      attachItemListeners(promptsToRender);
+    }
+
+    // Initial render
+    renderAndAttach(prompts);
+    
+    // Search functionality
+    if (searchInput) {
+      searchInput.addEventListener('input', (e: Event) => {
+        const target = e.target as HTMLInputElement;
+        const query = target.value.toLowerCase();
+        const filtered = prompts.filter(p => 
+          p.title.toLowerCase().includes(query) || 
+          p.content.toLowerCase().includes(query)
+        );
+        renderAndAttach(filtered);
+      });
+      
+      searchInput.focus();
+    }
+
+    if (closeBtn) closeBtn.addEventListener('click', () => menu.remove());
+    if (overlay) overlay.addEventListener('click', () => menu.remove());
+    
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', async (e: Event) => {
+        e.stopPropagation();
+        refreshBtn.style.animation = 'spin 1s linear infinite';
+        try {
+          const newPrompts = await fetchPrompts(true);
+          renderAndAttach(newPrompts);
+        } finally {
+          refreshBtn.style.animation = '';
+        }
+      });
+    }
 
     // Focus search input
-    const searchInputActual = menu.querySelector('.brainbox-prompt-menu-search');
-    if (searchInputActual) {
-      setTimeout(() => searchInputActual.focus(), 100);
+    if (searchInput) {
+      setTimeout(() => searchInput.focus(), 100);
     }
   }
 
@@ -299,107 +255,81 @@
   // INJECT PROMPT INTO TEXTAREA
   // ============================================================================
   
-  function injectPrompt(prompt) {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 💉 Injecting prompt:', prompt.title);
-    
-    // Search for textarea (universal for all platforms)
-    const textarea = findTextarea();
-        
+  function injectPrompt(prompt: Prompt): void {
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 💉 Injecting prompt:', prompt.title);
+    const content = prompt.content;
+    const textarea = (document.activeElement as HTMLTextAreaElement | HTMLDivElement) || 
+                   document.querySelector('textarea') || 
+                   document.querySelector('[contenteditable="true"]');
+
     if (!textarea) {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Textarea not found. Checking document.activeElement:', document.activeElement?.tagName);
-      showNotification('No textarea found for injection', 'error');
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ No active textarea found');
+      showNotification('Click on a text area first', 'warning');
       return;
     }
 
-    // Inject content
-    const content = prompt.content || '';
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📝 Content for injection (length):', content.length);
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 💉 Injecting into:', textarea.tagName);
 
-    // Check if it's a textarea or contenteditable div
-    const isContentEditable = textarea.contentEditable === 'true' || 
-                              textarea.getAttribute('contenteditable') === 'true';
-    
+    const isContentEditable = textarea.getAttribute('contenteditable') === 'true' || 
+                             textarea.tagName !== 'TEXTAREA' && textarea.tagName !== 'INPUT';
+
     if (isContentEditable) {
-      // For contenteditable divs
-      // Imitating a delicate sequence of events for Gemini/React
+      const activeEl = textarea as HTMLDivElement;
       try {
-        // 1. Initial focus and selection preparation
-        textarea.focus();
+        activeEl.focus();
         const selection = window.getSelection();
-        const range = document.createRange();
-        range.selectNodeContents(textarea);
-        range.collapse(false); // Move to end
-        selection.removeAllRanges();
-        selection.addRange(range);
+        if (selection) {
+          const range = document.createRange();
+          range.selectNodeContents(activeEl);
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
 
-        // 2. Simulate typing start (important for React/Gemini)
-        textarea.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
-        textarea.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
+        activeEl.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
+        activeEl.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
 
-        // 3. Use execCommand for insertion - this is the most native way for React
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⌨️ Executing execCommand...');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ⌨️ Executing execCommand...');
         const success = document.execCommand('insertText', false, content);
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ execCommand result:', success, 'New text:', textarea.innerText.substring(0, 30) + '...');
         
-        // 4. Send standard events
         const inputEvent = new InputEvent('input', {
           bubbles: true,
           inputType: 'insertText',
           data: content
         });
-        textarea.dispatchEvent(inputEvent);
-                
-        // Standard text input event
-        textarea.dispatchEvent(new Event('textInput', { bubbles: true }));
-    
-        // 5. Finishing typing
-        textarea.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: content }));
-                
-        // Forced sync for Gemini if needed
-        if (textarea.innerText.length === 0 && content.length > 0) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ execCommand did not change text, trying innerText...');
-          textarea.innerText = content;
+        activeEl.dispatchEvent(inputEvent);
+        activeEl.dispatchEvent(new Event('textInput', { bubbles: true }));
+        activeEl.dispatchEvent(new CompositionEvent('compositionend', { bubbles: true, data: content }));
+
+        if (activeEl.innerText.length === 0 && content.length > 0) {
+          activeEl.innerText = content;
         }
-        
-        // 6. Simulate key up
-        const keyUpEvent = new KeyboardEvent('keyup', {
-          key: ' ',
-          code: 'Space',
-          bubbles: true
-        });
-        textarea.dispatchEvent(keyUpEvent);
-        
+
+        activeEl.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', code: 'Space', bubbles: true }));
       } catch (e) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Injection failed, falling back:', e);
-        textarea.innerText = content;
-        textarea.dispatchEvent(new Event('input', { bubbles: true }));
+        activeEl.innerText = content;
+        activeEl.dispatchEvent(new Event('input', { bubbles: true }));
       }
     } else {
-      // For standard textareas (ChatGPT/Claude)
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const value = textarea.value;
+      const activeEl = textarea as HTMLTextAreaElement;
+      const start = activeEl.selectionStart || 0;
+      const end = activeEl.selectionEnd || 0;
+      const value = activeEl.value;
       
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⌨️ Inserting into standard textarea...');
-      textarea.value = value.substring(0, start) + content + value.substring(end);
-      textarea.selectionStart = textarea.selectionEnd = start + content.length;
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Value updated. New length:', textarea.value.length);
-      
-      textarea.dispatchEvent(new Event('input', { bubbles: true }));
+      activeEl.value = value.substring(0, start) + content + value.substring(end);
+      activeEl.selectionStart = activeEl.selectionEnd = start + content.length;
+      activeEl.dispatchEvent(new Event('input', { bubbles: true }));
     }
 
-    // Sync state
     setTimeout(() => {
       textarea.dispatchEvent(new Event('change', { bubbles: true }));
       textarea.blur();
       setTimeout(() => {
-        textarea.focus();
-        textarea.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Injection complete');
+        (textarea as HTMLElement).focus();
+        (textarea as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'center' });
       }, 50);
     }, 100);
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Prompt injected successfully');
     showNotification(`Prompt "${prompt.title}" injected`, 'success');
   }
 
@@ -407,49 +337,40 @@
   // CREATE PROMPT FROM SELECTED TEXT
   // ============================================================================
   
-  function showCreatePromptDialog(selectedText) {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📝 Showing create prompt dialog');
+  function showCreatePromptDialog(selectedText: string): void {
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📝 Showing create prompt dialog');
         
-    // Remove old dialog if exists
     const existingDialog = document.getElementById('brainbox-create-prompt-dialog');
-    if (existingDialog) {
-      existingDialog.remove();
-    }
+    if (existingDialog) existingDialog.remove();
 
-    // Show loading notification while fetching folders
     showNotification('Loading folders...', 'info');
         
-    // Create dialog container
     const dialog = document.createElement('div');
     dialog.id = 'brainbox-create-prompt-dialog';
     
-    // Fetch folders before showing dialog
     (async () => {
-      let folders = [];
+      let folders: any[] = [];
       try {
-        const response = await chrome.runtime.sendMessage({ action: 'getUserFolders' });
+        const response = await chrome.runtime.sendMessage({ action: 'getUserFolders' }) as { success: boolean; folders?: any[] };
         if (response && response.success) {
           folders = response.folders || [];
-          // Filter only prompt folders if type is available, otherwise show all
-          folders = folders.filter(f => !f.type || f.type === 'prompt' || f.type === 'custom' || f.type === 'default');
+          folders = folders.filter((f: any) => !f.type || f.type === 'prompt' || f.type === 'custom' || f.type === 'default');
         }
       } catch (err) {
         console.error('[🧠 Prompt Inject] Error fetching folders:', err);
       }
-
-      const folderOptions = folders.map(f => `<option value="${f.id}">${escapeHtml(f.name)}</option>`).join('');
 
       dialog.innerHTML = `
         <div class="brainbox-prompt-menu-overlay"></div>
         <div class="brainbox-create-prompt-dialog-content">
           <div class="brainbox-create-prompt-dialog-header">
             <h3>Create Prompt</h3>
-            <button class="brainbox-create-prompt-dialog-close" aria-label="Close">×</button>
+            <button class="brainbox-create-prompt-dialog-close" aria-label="Close">&times;</button>
           </div>
           <div class="brainbox-create-prompt-dialog-body">
             <div class="brainbox-create-prompt-field">
               <label for="brainbox-prompt-title">Title <span class="required">*</span></label>
-              <input type="text" id="brainbox-prompt-title" placeholder="Enter prompt title..." maxlength="200" />
+              <input type="text" id="brainbox-prompt-title" placeholder="Enter prompt title..." maxlength="200">
             </div>
             <div class="brainbox-create-prompt-field">
               <label for="brainbox-prompt-content">Content <span class="required">*</span></label>
@@ -462,7 +383,7 @@
                   <span class="folder-icon">📂</span>
                   <span class="folder-name">(No folder - Root)</span>
                 </div>
-                ${folders.map(f => `
+                ${folders.map((f: any) => `
                   <div class="brainbox-folder-option" data-folder-id="${f.id}">
                     <span class="folder-icon">📁</span>
                     <span class="folder-name">${escapeHtml(f.name)}</span>
@@ -472,7 +393,7 @@
             </div>
             <div class="brainbox-create-prompt-field">
               <label for="brainbox-prompt-use-in-context-menu" style="display: flex; align-items: center; cursor: pointer;">
-                <input type="checkbox" id="brainbox-prompt-use-in-context-menu" checked style="margin-right: 8px;" />
+                <input type="checkbox" id="brainbox-prompt-use-in-context-menu" checked style="margin-right: 8px;">
                 Use in context menu (BrainBox Prompts)
               </label>
             </div>
@@ -484,90 +405,79 @@
         </div>
       `;
       
-      // Add styles
       injectStyles();
       
-      // Event listeners
-      const closeButton = dialog.querySelector('.brainbox-create-prompt-dialog-close');
-      const cancelButton = dialog.querySelector('.brainbox-create-prompt-cancel');
-      const saveButton = dialog.querySelector('.brainbox-create-prompt-save');
-      const overlay = dialog.querySelector('.brainbox-prompt-menu-overlay');
-      const titleInput = dialog.querySelector('#brainbox-prompt-title');
-      const contentTextarea = dialog.querySelector('#brainbox-prompt-content');
-      const folderListContainer = dialog.querySelector('#brainbox-prompt-folder-list');
-      let selectedFolderId = "";
+      const closeBtn = dialog.querySelector('.brainbox-create-prompt-dialog-close') as HTMLElement;
+      const cancelBtn = dialog.querySelector('.brainbox-create-prompt-cancel') as HTMLElement;
+      const saveBtn = dialog.querySelector('.brainbox-create-prompt-save') as HTMLButtonElement;
+      const overlay = dialog.querySelector('.brainbox-prompt-menu-overlay') as HTMLElement;
+      const titleInput = dialog.querySelector('#brainbox-prompt-title') as HTMLInputElement;
+      const contentTextarea = dialog.querySelector('#brainbox-prompt-content') as HTMLTextAreaElement;
+      const folderList = dialog.querySelector('#brainbox-prompt-folder-list') as HTMLElement;
+      const contextMenuCheckbox = dialog.querySelector('#brainbox-prompt-use-in-context-menu') as HTMLInputElement;
+      
+      let selectedFolderId: string | null = null;
 
-      // Handle folder selection in custom list
-      folderListContainer.querySelectorAll('.brainbox-folder-option').forEach(opt => {
-        opt.addEventListener('click', () => {
-          folderListContainer.querySelectorAll('.brainbox-folder-option').forEach(el => el.classList.remove('selected'));
-          opt.classList.add('selected');
-          selectedFolderId = opt.dataset.folderId;
-        });
-      });
-      
-      const closeDialog = () => {
-        dialog.remove();
-      };
-      
-      closeButton.addEventListener('click', closeDialog);
-      cancelButton.addEventListener('click', closeDialog);
-      overlay.addEventListener('click', closeDialog);
-      
-      saveButton.addEventListener('click', async () => {
-        const title = titleInput.value.trim();
-        const content = contentTextarea.value.trim();
-            
-        if (!title) {
-          showNotification('Please enter a title', 'warning');
-          titleInput.focus();
-          return;
-        }
-
-        if (!content) {
-          showNotification('Please enter prompt content', 'warning');
-          contentTextarea.focus();
-          return;
-        }
-        
-        const useInContextMenu = dialog.querySelector('#brainbox-prompt-use-in-context-menu').checked;
-        const folderId = selectedFolderId || null;
-        
-        // Disable button during save
-        saveButton.disabled = true;
-        saveButton.textContent = 'Saving...';
-        
-        try {
-          const result = await createPrompt({
-            title: title,
-            content: content,
-            folder_id: folderId,
-            use_in_context_menu: useInContextMenu
+      if (folderList) {
+        folderList.querySelectorAll('.brainbox-folder-option').forEach(opt => {
+          opt.addEventListener('click', () => {
+            folderList.querySelectorAll('.brainbox-folder-option').forEach(el => el.classList.remove('selected'));
+            opt.classList.add('selected');
+            selectedFolderId = (opt as HTMLElement).dataset.folderId || null;
           });
-          
-          if (result.success) {
-            showNotification(`Prompt "${title}" created successfully!`, 'success');
-            closeDialog();
-            // Optional: trigger refresh in background
-            chrome.runtime.sendMessage({ action: 'syncPrompts' }).catch(() => {});
-          } else {
-            throw new Error(result.error || 'Failed to create prompt');
+        });
+      }
+      
+      const close = () => dialog.remove();
+      if (closeBtn) closeBtn.addEventListener('click', close);
+      if (cancelBtn) cancelBtn.addEventListener('click', close);
+      if (overlay) overlay.addEventListener('click', close);
+      
+      if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+          const title = titleInput?.value.trim() || '';
+          const content = contentTextarea?.value.trim() || '';
+              
+          if (!title) {
+            showNotification('Please enter a title', 'warning');
+            titleInput?.focus();
+            return;
           }
-        } catch (error) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error creating prompt:', error);
-          showNotification(`Error: ${error.message}`, 'error');
-          saveButton.disabled = false;
-          saveButton.textContent = 'Save';
-        }
-      });
+
+          if (!content) {
+            showNotification('Please enter prompt content', 'warning');
+            contentTextarea?.focus();
+            return;
+          }
+          
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Saving...';
+          
+          try {
+            const result = await createPrompt({
+              title,
+              content,
+              folder_id: selectedFolderId,
+              use_in_context_menu: contextMenuCheckbox?.checked || false
+            });
+            
+            if (result.success) {
+              showNotification(`Prompt "${title}" created successfully!`, 'success');
+              close();
+              chrome.runtime.sendMessage({ action: 'syncPrompts' }).catch(() => {});
+            } else {
+              throw new Error(result.error || 'Failed to create prompt');
+            }
+          } catch (error: any) {
+            showNotification(`Error: ${error.message}`, 'error');
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save';
+          }
+        });
+      }
       
-      // Add dialog to DOM
       document.body.appendChild(dialog);
-      
-      // Focus on input field
-      setTimeout(() => {
-        titleInput.focus();
-      }, 100);
+      setTimeout(() => titleInput?.focus(), 100);
     })();
   }
   
@@ -575,52 +485,43 @@
   // CREATE PROMPT IN API
   // ============================================================================
   
-  async function createPrompt(promptData) {
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📤 Creating prompt:', promptData.title);
+  async function createPrompt(promptData: { title: string; content: string; folder_id: string | null; use_in_context_menu: boolean }): Promise<{ success: boolean; error?: string }> {
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📤 Creating prompt:', promptData.title);
     
     try {
-      // Get access token from storage
       const storage = await chrome.storage.local.get(['accessToken']);
-      const accessToken = storage.accessToken;
+      const accessToken = storage.accessToken as string | undefined;
       
       if (!accessToken) {
-        const errorMsg = 'Extension not linked. Please visit <a href="' + CONFIG.API_BASE_URL + '/extension-auth" target="_blank" style="color:white;text-decoration:underline;">this page</a> to sync.';
+        const errorMsg = 'Extension not linked. Please sync from the dashboard.';
         showNotification(errorMsg, 'warning');
         throw new Error('Missing access token');
       }
       
       const url = `${CONFIG.API_BASE_URL}${CONFIG.API_ENDPOINT}`;
       
-      const headers = {
-        'Content-Type': 'application/json'
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
       };
       
-      // Add Authorization header if access token is available
-      if (accessToken) {
-        headers['Authorization'] = `Bearer ${accessToken}`;
-      }
-      
-      const options = {
+      const options: RequestInit = {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
           title: promptData.title,
           content: promptData.content,
           folder_id: promptData.folder_id || null,
-          color: '#6366f1', // Default color
+          color: '#6366f1',
           use_in_context_menu: promptData.use_in_context_menu || false
         })
       };
       
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📋 Request details:', {
-        url,
-        title: promptData.title,
-        contentLength: promptData.content.length,
-        use_in_context_menu: promptData.use_in_context_menu,
-        hasAuth: !!accessToken
-      });
-      
       const response = await fetch(url, options);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `HTTP error ${response.status}`);
+      }
       
       if (!response.ok) {
         let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
@@ -636,12 +537,12 @@
       }
       
       const data = await response.json();
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Prompt created successfully:', data.id);
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Prompt created successfully:', data.id);
       
-      return { success: true, data: data };
+      return { success: true };
       
-    } catch (error) {
-      if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error creating prompt:', error);
+    } catch (error: any) {
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error creating prompt:', error);
       return { success: false, error: error.message };
     }
   }
@@ -650,19 +551,18 @@
   // FIND TEXTAREA (Universal for all platforms)
   // ============================================================================
   
-  function findTextarea() {
+  function findTextarea(): HTMLElement | null {
     const hostname = window.location.hostname;
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 🔍 Searching for textarea on:', hostname);
     
     // Platform-specific selectors
-    const platformSelectors = {
+    const platformSelectors: { [key: string]: string[] } = {
       'chat.deepseek.com': [
         'textarea#chat-input',
-        'textarea[placeholder*="message"]'
+        'textarea'
       ],
       'x.com': [
-        'div[role="textbox"][data-testid="grok_input_field"]',
-        'div[role="textbox"]',
+        'div[data-testid="tweetTextarea_0"]',
+        'div[contenteditable="true"]',
         'textarea'
       ],
       'perplexity.ai': [
@@ -695,7 +595,6 @@
       ]
     };
     
-    // Universal selectors (works everywhere)
     const universalSelectors = [
       'textarea[placeholder*="prompt"]',
       'textarea[placeholder*="message"]',
@@ -708,7 +607,7 @@
       'textarea[id*="input"]',
       'textarea[id*="message"]',
       'textarea[id*="prompt"]',
-      'textarea:focus', // Active textarea
+      'textarea:focus',
       'textarea',
       'div[contenteditable="true"][role="textbox"]',
       'div[contenteditable="true"]',
@@ -716,59 +615,44 @@
       'input[type="textarea"]'
     ];
     
-    // First try platform-specific selectors
     if (platformSelectors[hostname]) {
       for (const selector of platformSelectors[hostname]) {
-        const element = document.querySelector(selector);
+        const element = document.querySelector(selector) as HTMLElement;
         if (element && isElementVisible(element)) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Found textarea (platform-specific):', selector);
           return element;
         }
       }
     }
     
-    // Then try universal selectors
     for (const selector of universalSelectors) {
-      const element = document.querySelector(selector);
+      const element = document.querySelector(selector) as HTMLElement;
       if (element && isElementVisible(element)) {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Found textarea (universal):', selector);
         return element;
       }
     }
     
-    // Fallback: Search all textareas and contenteditables and choose the best fit
-    const allTextareas = Array.from(document.querySelectorAll('textarea, div[contenteditable="true"], input[type="text"]'));
+    const allTextareas = Array.from(document.querySelectorAll('textarea, div[contenteditable="true"], input[type="text"]')) as HTMLElement[];
     if (allTextareas.length > 0) {
-      // Filter only visible ones
       const visibleTextareas = allTextareas.filter(ta => isElementVisible(ta));
       
       if (visibleTextareas.length > 0) {
-        // Prioritize:
-        // 1. Active field (focused)
         const focused = visibleTextareas.find(ta => ta === document.activeElement);
-        if (focused) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Found textarea (focused)');
-          return focused;
-        }
+        if (focused) return focused;
         
-        // 2. Bottom-most textarea (usually the input field)
         visibleTextareas.sort((a, b) => {
           const rectA = a.getBoundingClientRect();
           const rectB = b.getBoundingClientRect();
           return rectB.bottom - rectA.bottom;
         });
         
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Found textarea (fallback)');
         return visibleTextareas[0];
       }
     }
     
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ⚠️ Textarea not found');
     return null;
   }
   
-  // Helper function to check if element is visible
-  function isElementVisible(element) {
+  function isElementVisible(element: Element): boolean {
     if (!element) return false;
     
     const rect = element.getBoundingClientRect();
@@ -777,7 +661,7 @@
     return (
       rect.width > 0 &&
       rect.height > 0 &&
-      rect.top >= -100 && // Allow a bit outside viewport
+      rect.top >= -100 &&
       rect.left >= -100 &&
       rect.bottom <= window.innerHeight + 100 &&
       rect.right <= window.innerWidth + 100 &&
@@ -787,39 +671,57 @@
     );
   }
 
+  async function createPromptFromSelection(selectedText: string): Promise<void> {
+    if (!selectedText || selectedText.trim().length === 0) {
+      showNotification('No text selected', 'warning');
+      return;
+    }
+
+    try {
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📝 Creating prompt from selection...');
+      showCreatePromptDialog(selectedText);
+    } catch (error: any) {
+      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error:', error);
+      showNotification(`Error: ${error.message || 'Unknown error'}`, 'error');
+    }
+  }
+
   // ============================================================================
   // MESSAGE LISTENER
   // ============================================================================
   
-  function setupMessageListener() {
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-      if (request.action === 'showPromptMenu') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to show menu');
-        
+  function setupMessageListener(): void {
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 🎧 Setting up message listener...');
+    
+    chrome.runtime.onMessage.addListener((request: any, _sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
+      if (request.action === 'ping') {
+        sendResponse({ success: true, version: '2.0.2' });
+        return true;
+      }
+      
+      if (request.action === 'getPrompts') {
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📨 Received message to get prompts');
         (async () => {
           try {
-            // Check access token
-            // No auth required
-                                
             // Loading prompts
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 🔍 Loading prompts...');
+            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 🔍 Loading prompts...');
             const prompts = await fetchPrompts();
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📊 Loaded prompts:', prompts.length);
+            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📊 Loaded prompts:', prompts.length);
                                 
             // Show menu even if no prompts found to allow refresh button usage
-            showPromptMenu(prompts);
+            showPromptMenu(prompts, { mode: request.mode });
                                 
             if (prompts.length === 0) {
               showNotification('No prompts available. Use the refresh button to load new ones.', 'warning');
             }
-            
+                                
             sendResponse({ success: true, count: prompts.length });
-          } catch (error) {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error:', error);
-            showNotification(`Error: ${error.message}`, 'error');
+          } catch (error: any) {
+            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error:', error);
+            showNotification(`Error: ${error.message || 'Unknown error'}`, 'error');
             // Show menu even on error to allow refresh attempt
             showPromptMenu([]);
-            sendResponse({ success: false, error: error.message });
+            sendResponse({ success: false, error: error.message || 'Unknown error' });
           }
         })();
         
@@ -827,7 +729,7 @@
       }
 
       if (request.action === 'injectPrompt') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to inject prompt');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📨 Received message to inject prompt');
         
         // Clear any existing loading notifications
         const existingNotifications = document.querySelectorAll('.brainbox-prompt-notification');
@@ -844,14 +746,14 @@
       }
 
       if (request.action === 'refreshPrompts') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to refresh prompts');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📨 Received message to refresh prompts');
         
         (async () => {
           try {
             const prompts = await fetchPrompts(true); // Force refresh
             sendResponse({ success: true, count: prompts.length });
-          } catch (error) {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error during refresh:', error);
+          } catch (error: any) {
+            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error during refresh:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
@@ -860,7 +762,7 @@
       }
 
       if (request.action === 'checkIfEditableField') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Checking if click is in editable field');
+        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📨 Checking if click is in editable field');
         
         try {
           const { pageX, pageY } = request.clickInfo || {};
@@ -872,21 +774,22 @@
             
             if (elementAtPoint) {
               // Check if element or its parent is textarea/contenteditable
-              let current = elementAtPoint;
+              let current: Element | null = elementAtPoint;
               let isEditable = false;
               
               for (let i = 0; i < 5 && current; i++) {
-                if (current.tagName === 'TEXTAREA' || 
-                    current.tagName === 'INPUT' ||
-                    current.contentEditable === 'true' ||
-                    current.getAttribute('contenteditable') === 'true') {
+                const el = current as HTMLElement;
+                if (el.tagName === 'TEXTAREA' || 
+                    el.tagName === 'INPUT' ||
+                    el.contentEditable === 'true' ||
+                    el.getAttribute('contenteditable') === 'true') {
                   isEditable = true;
                   break;
                 }
-                current = current.parentElement;
+                current = current.parentElement as HTMLElement | null;
               }
               
-              if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Check complete:', { isEditable });
+              if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Check complete:', { isEditable });
               sendResponse({ success: true, isEditable });
               return true;
             }
@@ -894,15 +797,15 @@
           
           sendResponse({ success: true, isEditable: false });
         } catch (error) {
-          if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error during check:', error);
+          if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error during check:', error);
           sendResponse({ success: false, isEditable: false });
         }
         
         return true;
       }
 
-      if (request.action === 'showCreatePromptDialog') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to create prompt from selection');
+      if (request.action === 'showCreatePromptDialog' || request.action === 'openCreatePromptDialog') {
+        if (CONFIG.DEBUG_MODE) debugLog(`[🧠 Prompt Inject] 📨 Received message action: ${request.action}`);
         
         (async () => {
           try {
@@ -914,68 +817,20 @@
               return;
             }
             
-            // Show create prompt dialog
             showCreatePromptDialog(selectedText);
-            
             sendResponse({ success: true });
-          } catch (error) {
-            if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ❌ Error:', error);
+          } catch (error: any) {
+            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
         
-        return true; // Keep channel open for async response
+        return true; 
       }
-
-
-      
-      if (request.action === 'triggerSaveChat') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to trigger save chat');
-        
-        // This handler acts as a fallback or universal listener.
-        // Platform-specific content scripts (content-chatgpt.js, etc.) should handle the actual saving.
-        // If this logs but nothing happens, it means the platform script is missing or failed.
-      }
-
-
-
-      if (request.action === 'openCreatePromptDialog') {
-        if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] 📨 Received message to create prompt from selection');
-        
-        const { selectedText } = request;
-        
-        if (!selectedText || selectedText.trim().length === 0) {
-          showNotification('No text selected', 'warning');
-          sendResponse({ success: false, error: 'No text selected' });
-          return true;
-        }
-        
-        // Show create prompt dialog
-        showCreatePromptDialog(selectedText);
-        sendResponse({ success: true });
-        
-        return true;
-      }
-
-      if (request.action === 'showPromptMenu') {
-        const { mode } = request;
-        fetchPrompts().then(prompts => {
-          showPromptMenu(prompts, { mode });
-        });
-        sendResponse({ success: true });
-        return true;
-      }
-
-      if (request.action === 'showNotification') {
-        showNotification(request.message, request.type, request.duration);
-        sendResponse({ success: true });
-        return true;
-      }
-
       return false; // No handler for this action
     });
 
-    if (CONFIG.DEBUG_MODE) console.log('[🧠 Prompt Inject] ✅ Message listener active');
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Message listener active');
   }
 
   // ============================================================================
@@ -1612,21 +1467,22 @@
   // NOTIFICATIONS
   // ============================================================================
   
-  function showNotification(message, type = 'info', requestDuration) {
-    // Replace any existing notifications to avoid overlap
+  function showNotification(message: string, type: 'info' | 'success' | 'warning' | 'error' = 'info', requestDuration?: number): void {
     const existing = document.querySelectorAll('.brainbox-prompt-notification');
     existing.forEach(n => n.remove());
 
     const notification = document.createElement('div');
     notification.className = `brainbox-prompt-notification brainbox-prompt-notification-${type}`;
-    // Use innerHTML to support links in messages
     notification.innerHTML = message;
+    
+    const bgColor = type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6';
+    
     notification.style.cssText = `
       position: fixed;
       top: 20px;
       right: 20px;
       padding: 12px 20px;
-      background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
+      background: ${bgColor};
       color: white;
       border-radius: 8px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
@@ -1636,20 +1492,13 @@
       animation: slideIn 0.3s ease-out;
     `;
 
-    // Add animation keyframes if not exists
     if (!document.getElementById('brainbox-prompt-notification-styles')) {
       const style = document.createElement('style');
       style.id = 'brainbox-prompt-notification-styles';
       style.textContent = `
         @keyframes slideIn {
-          from {
-            transform: translateX(100%);
-            opacity: 0;
-          }
-          to {
-            transform: translateX(0);
-            opacity: 1;
-          }
+          from { transform: translateX(100%); opacity: 0; }
+          to { transform: translateX(0); opacity: 1; }
         }
       `;
       document.head.appendChild(style);
@@ -1657,11 +1506,9 @@
 
     document.body.appendChild(notification);
     
-    // Default duration is 3 seconds, unless specified (0 = manual removal)
     const duration = typeof requestDuration === 'number' ? requestDuration : 3000;
 
     if (duration > 0) {
-      // Remove after duration
       setTimeout(() => {
         if (notification.parentElement) {
           notification.style.animation = 'slideIn 0.3s ease-out reverse';
@@ -1675,7 +1522,7 @@
   // HELPERS
   // ============================================================================
   
-  function escapeHtml(text) {
+  function escapeHtml(text: string): string {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
@@ -1685,23 +1532,54 @@
   // PUBLIC API
   // ============================================================================
   
-  window.BrainBoxPromptInject = {
+  (window as any).BrainBoxPromptInject = {
     fetchPrompts,
     showPromptMenu,
     injectPrompt,
     findTextarea,
-    findGeminiTextarea: findTextarea // Backward compatibility
+    findGeminiTextarea: findTextarea
   };
 
-  // ============================================================================
-  // STARTING
-  // ============================================================================
-  
+  async function init(): Promise<void> {
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 🚀 Initializing BrainBox...');
+    await loadConfig();
+    injectStyles();
+    setupMessageListener();
+    
+    // Notify background that we are ready
+    chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'universal' }).catch(() => {});
+    
+    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Ready');
+  }
+
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
+    document.addEventListener('DOMContentLoaded', () => { init(); });
   } else {
     init();
   }
 
 })();
 
+/**
+ * File: apps/extension/src/prompt-inject/prompt-inject.ts
+ * Role: Content script for browser extension to manage and inject prompts into web textareas.
+ */
+
+// CORE FUNCTIONALITIES:
+// - UI Injection: Dynamically creates and styles menus, dialogs, and notifications on the host page.
+// - Prompt Management: Fetches prompts, displays them in a selection menu, and injects content into detected textareas.
+// - Prompt Creation: Provides a modal UI to save new prompts into specific folders.
+// - Notification System: Toast-style alerts for success/error feedback with auto-dismissal.
+// - Background Communication: Uses chrome.runtime to sync state and notify the extension background script.
+
+// ARCHITECTURE:
+// - Encapsulation: Wrapped in an IIFE to prevent global namespace pollution.
+// - Public API: Exports BrainBoxPromptInject to window for external access.
+// - Styling: Injects a comprehensive CSS block supporting dark mode and slide animations.
+// - Initialization: Checks document.readyState to bootstrap styles, config, and message listeners.
+
+// KEY COMPONENTS:
+// - init(): Loads configuration, injects CSS, and establishes message listeners.
+// - showNotification(): Renders floating status messages with dynamic coloring based on type.
+// - findTextarea(): Utility to locate input fields (aliased for Gemini/General).
+// - injectStyles(): Handles the injection of the extensive UI stylesheet.

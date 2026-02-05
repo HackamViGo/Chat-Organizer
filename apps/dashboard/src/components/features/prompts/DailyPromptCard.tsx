@@ -39,7 +39,7 @@ Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.`,
       setIsRevealed(true);
       setIsFlipped(true);
     }
-  }, [userPrompts]);
+  }, [userPrompts, dailyPromptData.title]);
 
   const handleFlip = () => {
     if (!isRevealed) {

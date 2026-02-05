@@ -3,7 +3,7 @@
     const PLATFORM = 'deepseek';
     
     // Listen for save command from context menu
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: any) => {
         if (request.action === 'triggerSaveChat') {
             handleSave();
         }
@@ -22,7 +22,7 @@
         const conversationId = match[1];
 
         // Scrape payload from DOM
-        const payload = {
+        const payload: { title: string, messages: any[] } = {
             title: document.title.replace(' - DeepSeek', ''),
             messages: []
         };
@@ -38,15 +38,15 @@
                 
                 if (messageElements.length > 0) {
                     messageElements.forEach((el, index) => {
-                         payload.messages.push({
+                          payload.messages.push({
                             role: 'unknown',
-                            content: el.innerText,
+                            content: (el as HTMLElement).innerText,
                             timestamp: Date.now() + index
                         });
                     });
                 } else {
                     // Fallback to full text
-                    const fullText = main.innerText;
+                    const fullText = (main as HTMLElement).innerText;
                     if (fullText.trim().length > 0) {
                         payload.messages.push({
                             role: 'assistant',
@@ -67,7 +67,7 @@
             conversationId,
             url,
             payload
-        }, (response) => {
+        }, (response: any) => {
             if (response && response.success) {
                 // Save to dashboard
                 chrome.runtime.sendMessage({
@@ -75,7 +75,7 @@
                     data: response.data,
                     folderId: null,
                     silent: false
-                }, (saveResponse) => {
+                }, (saveResponse: any) => {
                     if (saveResponse && saveResponse.success) {
                         showToast('Chat saved successfully!', 'success');
                     } else {
@@ -88,11 +88,11 @@
         });
     }
 
-    let ui = null;
+    let ui: any = null;
 
-    function showToast(message, type) {
-        if (window.BrainBoxUI) {
-            if (!ui) ui = new window.BrainBoxUI();
+    function showToast(message: string, type: string) {
+        if ((window as any).BrainBoxUI) {
+            if (!ui) ui = new (window as any).BrainBoxUI();
             ui.showToast(message, type);
         } else {
             console.log('[BrainBox]', message);

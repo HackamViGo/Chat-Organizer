@@ -157,6 +157,7 @@ export const AIAnalysisModal: React.FC<AIAnalysisModalProps> = ({
                         {msg.metadata?.images && Array.isArray(msg.metadata.images) && msg.metadata.images.length > 0 && (
                             <div className="mt-4 grid grid-cols-2 gap-3">
                                 {msg.metadata.images.map((img: string, i: number) => (
+                                    /* eslint-disable-next-line @next/next/no-img-element */
                                     <img key={i} src={img} alt="Generated asset" className="rounded-xl w-full h-auto border border-white/10 hover:scale-[1.02] transition-transform cursor-pointer" />
                                 ))}
                             </div>

@@ -3,9 +3,9 @@
     'use strict';
 
 
-    let ui = null;
+    let ui: any = null;
     let hoverButtons = new WeakMap();
-    let observer = null;
+    let observer: MutationObserver | null = null;
 
     // ============================================================================
     // INITIALIZATION
@@ -17,8 +17,8 @@
         // Retry logic for UI Library
         let attempts = 0;
         const checkUI = () => {
-            if (window.BrainBoxUI) {
-                ui = new window.BrainBoxUI();
+            if ((window as any).BrainBoxUI) {
+                ui = new (window as any).BrainBoxUI();
                 console.log('[BrainBox ChatGPT] ✅ UI Library found');
                 start();
             } else if (attempts < 10) {
@@ -158,7 +158,7 @@
             
             conversationLinks.forEach(link => {
                 // Find the <span> element inside the link (the title text)
-                const titleSpan = link.querySelector('span.opacity-60, span.truncate span, div.truncate span');
+                const titleSpan = link.querySelector('span.opacity-60, span.truncate span, div.truncate span') as HTMLElement | null;
                 
                 if (!titleSpan) return;
                 
@@ -167,15 +167,15 @@
                     return;
                 }
                 
-                const conversationId = extractConversationId(link.href);
+                const conversationId = extractConversationId((link as HTMLAnchorElement).href);
                 if (!conversationId) return;
                 
                 // Mark as having listeners
-                titleSpan.dataset.brainboxListeners = 'attached';
+                (titleSpan as HTMLElement).dataset.brainboxListeners = 'attached';
                 
                 // Attach hover listeners to the <span> element
                 titleSpan.addEventListener('mouseenter', () => {
-                    handleSpanHover(titleSpan, link, conversationId);
+                    handleSpanHover(titleSpan, link as HTMLAnchorElement, conversationId);
                 });
             });
         };
@@ -216,12 +216,12 @@
     // HOVER HANDLING (on <span> elements)
     // ============================================================================
 
-    function handleSpanHover(spanElement, linkElement, conversationId) {
+    function handleSpanHover(spanElement: HTMLElement, linkElement: HTMLAnchorElement, conversationId: string) {
         // Hide all other buttons first
         const allContainers = document.querySelectorAll('.brainbox-hover-container');
         allContainers.forEach(container => {
-            if (container.style.display !== 'none') {
-                container.style.display = 'none';
+            if ((container as HTMLElement).style.display !== 'none') {
+                (container as HTMLElement).style.display = 'none';
             }
         });
         
@@ -241,7 +241,7 @@
         // Create buttons container
             const container = document.createElement('div');
             container.className = 'brainbox-hover-container';
-        container.style.display = 'flex';
+            (container as HTMLElement).style.display = 'flex';
 
             // Save button
             const saveBtn = createButton('💾', 'Save to Dashboard');
@@ -249,7 +249,6 @@
             return (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                handleSave(capturedId);
             };
         })(conversationId);
 
@@ -287,7 +286,7 @@
         hoverButtons.set(spanElement, container);
     }
 
-    function createButton(icon, title) {
+    function createButton(icon: string, title: string) {
         const btn = document.createElement('button');
         btn.className = 'brainbox-hover-btn';
         btn.textContent = icon;
@@ -310,7 +309,7 @@
     // UTILITIES
     // ============================================================================
 
-    function extractConversationId(href) {
+    function extractConversationId(href: string) {
         const match = href.match(/\/c\/([a-f0-9-]+)/);
         return match ? match[1] : null;
     }
@@ -319,7 +318,7 @@
     // ACTIONS
     // ============================================================================
 
-    async function handleSave(conversationId, folderId = null) {
+    async function handleSave(conversationId: string, folderId: string | null = null) {
         try {
             showToast('Fetching conversation...', 'info');
 
@@ -342,11 +341,11 @@
             showToast('Saved to Dashboard! ✓', 'success');
         } catch (error) {
             // Add retry button for failed saves
-            showToast('Failed to save: ' + error.message, 'error', () => handleSave(conversationId, folderId));
+            showToast('Failed to save: ' + (error as any).message, 'error', () => handleSave(conversationId, folderId));
         }
     }
 
-    async function handleFolderSelect(conversationId) {
+    async function handleFolderSelect(conversationId: string) {
         try {
             // Get folders from background
             const response = await chrome.runtime.sendMessage({ action: 'getUserFolders' });
@@ -373,7 +372,7 @@
         }
     }
 
-    function showToast(msg, type, retryAction = null) {
+    function showToast(msg: string, type: string, retryAction: (() => void) | null = null) {
         if (ui) ui.showToast(msg, type, retryAction);
         else console.log(`[BrainBox Toast] ${type}: ${msg}`);
     }
@@ -382,7 +381,7 @@
     // MESSAGE HANDLER - For context menu support
     // ============================================================================
 
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: any) => {
         if (request.action === 'getConversationIdFromContext') {
             // Extract conversationId from current page URL
             const currentUrl = window.location.href;

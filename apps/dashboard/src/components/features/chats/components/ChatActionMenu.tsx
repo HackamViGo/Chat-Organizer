@@ -95,7 +95,7 @@ export const ChatActionMenu: React.FC<ChatActionMenuProps> = ({
               </div>
               <h4 className="font-bold text-lg mb-2 text-slate-900 dark:text-white">Delete Chat?</h4>
               <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-                Are you sure you want to delete <span className="font-semibold text-slate-700 dark:text-slate-200">"{chat.title}"</span>? This action cannot be undone.
+                Are you sure you want to delete <span className="font-semibold text-slate-700 dark:text-slate-200">&quot;{chat.title}&quot;</span>? This action cannot be undone.
               </p>
               <div className="flex gap-3 w-full">
                 <button 

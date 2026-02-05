@@ -27,6 +27,7 @@ export class LmsysAdapter extends BasePlatformAdapter {
                     timestamp: Date.now()
                 }) as any
             ],
+            url: `https://chat.lmsys.org/?c=${id}`,
             created_at: Date.now()
         } as any);
     }

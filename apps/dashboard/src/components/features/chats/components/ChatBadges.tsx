@@ -61,6 +61,7 @@ const PROVIDER_CONFIG: Record<string, { color: string; bg: string; border: strin
 export const PlatformIcon: React.FC<{ platform: string; className?: string }> = ({ platform, className }) => {
   return (
     <div className={`w-6 h-6 rounded-sm overflow-hidden flex-shrink-0 ${className}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img 
         src={PROVIDER_ASSETS[platform.toLowerCase() as keyof typeof PROVIDER_ASSETS] || PROVIDER_ASSETS.fallback} 
         alt={platform}
@@ -77,6 +78,7 @@ export const PlatformBadge: React.FC<{ platform: Platform }> = ({ platform }) =>
 
   return (
     <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full border ${config.bg} ${config.border}`}>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src={src} alt="" className="w-3 h-3 object-contain" />
       <span className={`text-[10px] uppercase tracking-wider font-bold ${config.color}`}>
         {platform}

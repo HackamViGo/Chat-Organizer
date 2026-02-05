@@ -37,7 +37,7 @@ export class PromptSyncManager {
         const now = Date.now();
 
         const token = await this.getAuthToken();
-        const { expiresAt } = await chrome.storage.local.get(['expiresAt']);
+        const { expiresAt } = await chrome.storage.local.get(['expiresAt']) as { expiresAt?: number };
         const isTokenValid = token && (!expiresAt || expiresAt > Date.now());
 
         if (!isTokenValid || (now - lastSync > this.SYNC_INTERVAL)) {
@@ -54,19 +54,19 @@ export class PromptSyncManager {
             
             // We need the auth token to fetch prompts
             const token = await this.getAuthToken();
-            const { expiresAt, rememberMe } = await chrome.storage.local.get(['expiresAt', 'rememberMe']);
+            const { expiresAt, rememberMe } = await chrome.storage.local.get(['expiresAt', 'rememberMe']) as { expiresAt?: number, rememberMe?: boolean };
             // dashboardUrl is now a class property
             const dashboardUrl = this.dashboardUrl;
 
             // 1. If NO token at all
-            if (!token || token.trim() === '') {
+            if (!token || (typeof token === 'string' && token.trim() === '')) {
                 if (silent) {
                     console.log('[PromptSyncManager] ℹ️ No token found (silent mode). Skipping sync.');
                     return { success: false, reason: 'no_auth_silent' };
                 }
 
                 // Prevent redirect spam (cooldown 10 min for automatic sync)
-                const { last_auto_redirect } = await chrome.storage.session.get(['last_auto_redirect']);
+                const { last_auto_redirect } = await chrome.storage.session.get(['last_auto_redirect']) as { last_auto_redirect?: number };
                 const now_time = Date.now();
                 if (last_auto_redirect && (now_time - last_auto_redirect < 10 * 60 * 1000)) {
                     console.log('[PromptSyncManager] ℹ️ Skipping auto-redirect (cooldown).');
@@ -192,16 +192,16 @@ export class PromptSyncManager {
     /**
      * Get a specific prompt by ID immediately from cache
      */
-    async getQuickPrompt(id) {
+    async getQuickPrompt(id: string): Promise<any | null> {
         const prompts = await this.getAllPrompts();
-        return prompts.find(p => p.id === id) || null;
+        return prompts.find((p: any) => p.id === id) || null;
     }
 
     /**
      * Get all cached prompts
      */
-    async getAllPrompts() {
-        const result = await chrome.storage.local.get([this.STORAGE_KEY]);
+    async getAllPrompts(): Promise<any[]> {
+        const result = await chrome.storage.local.get([this.STORAGE_KEY]) as { [key: string]: any[] };
         return result[this.STORAGE_KEY] || [];
     }
 
@@ -216,20 +216,20 @@ export class PromptSyncManager {
         return this.dashboardUrl;
     }
 
-    async saveToCache(prompts) {
+    async saveToCache(prompts: any[]): Promise<void> {
         await chrome.storage.local.set({ [this.STORAGE_KEY]: prompts });
     }
 
-    async getLastSyncTime() {
+    async getLastSyncTime(): Promise<number> {
         const result = await chrome.storage.local.get([this.LAST_SYNC_KEY]);
-        return result[this.LAST_SYNC_KEY] || 0;
+        return (result[this.LAST_SYNC_KEY] as number) || 0;
     }
 
-    async setLastSyncTime(time) {
+    async setLastSyncTime(time: number): Promise<void> {
         await chrome.storage.local.set({ [this.LAST_SYNC_KEY]: time });
     }
 
-    async logError(message) {
+    async logError(message: string): Promise<void> {
         await chrome.storage.local.set({ 
             last_prompt_sync_error: {
                 message,

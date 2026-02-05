@@ -41,7 +41,7 @@ export class ChatGPTAdapter extends BasePlatformAdapter {
 
             // Validate (optional, for debugging)
             if (DEBUG_MODE) {
-                const validation = validateConversation(conversation);
+                const validation = validateConversation(conversation) as any;
                 if (!validation.valid) {
                     console.warn('[ChatGPTAdapter] Validation warning:', validation.error);
                 }

@@ -19,7 +19,7 @@ export default function ExtensionAuthPage() {
         } catch (e) {
           // Ignore errors if localStorage is not accessible
           if (process.env.NODE_ENV === 'development') {
-            console.log('[Extension Auth] Could not clean up old localStorage entries:', e);
+            // log removed
           }
         }
       }
@@ -68,13 +68,13 @@ export default function ExtensionAuthPage() {
         // 30 days from now in milliseconds
         expiresAt = Date.now() + (30 * 24 * 60 * 60 * 1000);
         if (process.env.NODE_ENV === 'development') {
-          console.log('[Extension Auth] Remember me enabled - extending token to 30 days');
+          // log removed
         }
       } else if (session.expires_at) {
         // Use session's expires_at (convert from seconds to milliseconds)
         expiresAt = session.expires_at * 1000;
         if (process.env.NODE_ENV === 'development') {
-          console.log('[Extension Auth] Using session expires_at:', new Date(expiresAt).toISOString());
+          // log removed
         }
       }
 

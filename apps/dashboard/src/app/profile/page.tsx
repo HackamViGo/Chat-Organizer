@@ -83,10 +83,10 @@ export default function ProfilePage() {
           // Set avatar URL from DB (if exists)
           const profile = profileData as { avatar_url?: string | null } | null;
           if (profile?.avatar_url) {
-            console.log('Loaded avatar_url from DB:', profile.avatar_url);
+            // log removed
             setAvatarUrl(profile.avatar_url);
           } else {
-            console.log('No avatar_url in DB, setting to null');
+            // log removed
             setAvatarUrl(null);
           }
         }
@@ -102,7 +102,7 @@ export default function ProfilePage() {
 
   // Debug: Log avatarUrl changes
   useEffect(() => {
-    console.log('avatarUrl state changed to:', avatarUrl);
+    // log removed
   }, [avatarUrl]);
 
   // Handle ESC key to close avatar modal
@@ -128,8 +128,7 @@ export default function ProfilePage() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    console.log('📤 Starting avatar upload, file:', file.name, 'size:', file.size, 'type:', file.type);
-    console.log('📤 Current avatarUrl before upload:', avatarUrl);
+    // log removed
     
     setIsUploadingAvatar(true);
     try {
@@ -154,7 +153,7 @@ export default function ProfilePage() {
       }
 
       const responseData = await response.json();
-      console.log('Avatar upload response:', responseData);
+      // log removed
       const avatar_url = responseData.avatar_url;
       
       if (!avatar_url) {
@@ -162,15 +161,14 @@ export default function ProfilePage() {
         throw new Error('No avatar URL returned from server');
       }
       
-      console.log('Avatar uploaded, new URL:', avatar_url);
-      console.log('Setting avatarUrl state to:', avatar_url);
+      // log removed
       
       // Set avatar URL immediately - trust the API response
       setAvatarUrl(avatar_url);
       
       // Force a small delay to ensure state update, then verify
       setTimeout(() => {
-        console.log('Current avatarUrl state after update:', avatarUrl);
+        // log removed
       }, 100);
       
       // Refresh user data (optional, don't wait)
@@ -474,7 +472,7 @@ export default function ProfilePage() {
                         // setAvatarUrl(null);
                       }}
                       onLoad={() => {
-                        console.log('✅ Avatar image loaded successfully! URL:', avatarUrl);
+                        // log removed
                       }}
                       className="w-24 h-24 rounded-full object-cover border-4 border-purple-500 dark:border-purple-400 cursor-pointer hover:opacity-90 transition-opacity"
                       style={{ display: 'block' }} // Force display
@@ -965,7 +963,7 @@ export default function ProfilePage() {
                   console.error('Modal: Image src:', img.src);
                 }}
                 onLoad={() => {
-                  console.log('✅ Modal: Avatar image loaded successfully! URL:', avatarUrl);
+                  // log removed
                 }}
                 className="w-[512px] h-[512px] object-cover rounded-lg shadow-2xl animate-in fade-in zoom-in-95 duration-300"
                 style={{ display: 'block' }} // Force display

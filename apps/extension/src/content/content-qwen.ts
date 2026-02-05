@@ -2,7 +2,7 @@
 (function() {
     const PLATFORM = 'qwen';
     
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    chrome.runtime.onMessage.addListener((request: any, sender: any, sendResponse: any) => {
         if (request.action === 'triggerSaveChat') {
             handleSave();
         }
@@ -21,7 +21,7 @@
         const conversationId = match[1];
 
         // Scrape payload from DOM
-        const payload = {
+        const payload: { title: string, messages: any[] } = {
             title: document.title.replace(' - Qwen', ''),
             messages: []
         };
@@ -31,7 +31,7 @@
             if (main) {
                 // Heuristic: Capture all text if we can't find specific bubbles
                 // Qwen (as of 2026) likely uses specific classes, but fallback to raw text is safer
-                const fullText = main.innerText;
+                const fullText = (main as HTMLElement).innerText;
                 
                 if (fullText.trim().length > 0) {
                      payload.messages.push({
@@ -51,14 +51,14 @@
             conversationId,
             url,
             payload
-        }, (response) => {
+        }, (response: any) => {
             if (response && response.success) {
                 chrome.runtime.sendMessage({
                     action: 'saveToDashboard',
                     data: response.data,
                     folderId: null,
                     silent: false
-                }, (saveResponse) => {
+                }, (saveResponse: any) => {
                     if (saveResponse && saveResponse.success) {
                         showToast('Qwen chat saved successfully!', 'success');
                     } else {
@@ -71,11 +71,11 @@
         });
     }
 
-    let ui = null;
+    let ui: any = null;
 
-    function showToast(message, type) {
-        if (window.BrainBoxUI) {
-            if (!ui) ui = new window.BrainBoxUI();
+    function showToast(message: string, type: string) {
+        if ((window as any).BrainBoxUI) {
+            if (!ui) ui = new (window as any).BrainBoxUI();
             ui.showToast(message, type);
         } else {
             console.log('[BrainBox]', message);

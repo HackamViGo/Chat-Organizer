@@ -21,33 +21,32 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setChatsLoading(true);
 
     try {
-      // Fetch Chats
-      const chatsRes = await fetch('/api/chats', { credentials: 'include', cache: 'no-store' });
-      if (chatsRes.ok) {
-        const data = await chatsRes.json();
-        setChats(data.chats || []);
-      }
-
-      // Fetch Folders
-      const foldersRes = await fetch('/api/folders', { credentials: 'include', cache: 'no-store' });
-      if (foldersRes.ok) {
-        const data = await foldersRes.json();
-        setFolders(data.folders || []);
-      }
-
-      // Fetch Prompts
       const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        const { data, error } = await supabase
-          .from('prompts')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
 
+      const [chatsResult, foldersResult, promptsResult] = await Promise.allSettled([
+        fetch('/api/chats', { credentials: 'include', cache: 'no-store' }).then(res => res.ok ? res.json() : null),
+        fetch('/api/folders', { credentials: 'include', cache: 'no-store' }).then(res => res.ok ? res.json() : null),
+        user ? supabase.from('prompts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }) : Promise.resolve({ data: null, error: null })
+      ]);
+
+      // Handle Chats
+      if (chatsResult.status === 'fulfilled' && chatsResult.value) {
+        setChats(chatsResult.value.chats || []);
+      }
+
+      // Handle Folders
+      if (foldersResult.status === 'fulfilled' && foldersResult.value) {
+        setFolders(foldersResult.value.folders || []);
+      }
+
+      // Handle Prompts
+      if (promptsResult.status === 'fulfilled') {
+        const { data, error } = promptsResult.value;
         if (!error && data) {
           setPrompts(data);
         }
       }
+
     } catch (error) {
       console.error('Error in DataProvider:', error);
     } finally {

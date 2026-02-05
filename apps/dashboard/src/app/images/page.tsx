@@ -4,8 +4,13 @@ import { ImagesPage } from '@/components/features/images/ImagesPage';
 import { Suspense } from 'react';
 
 export default async function ImagesRoute() {
-  // Feature disabled per user request
-  redirect('/');
+  const supabase = createServerSupabaseClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/auth');
+  }
   
-  return null;
+  // Feature was previously disabled, now enabled with optimization
+  return <ImagesPage userId={user.id} />;
 }

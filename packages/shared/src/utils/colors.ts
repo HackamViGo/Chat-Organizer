@@ -4,7 +4,7 @@
  */
 
 // Folder colors (hex -> complete Tailwind classes for icon containers)
-export const FOLDER_COLOR_CLASSES: Record<string, {
+const FOLDER_COLOR_CLASSES: Record<string, {
   bg: string;
   bgLight: string;
   text: string;
@@ -151,7 +151,7 @@ export const FOLDER_COLOR_CLASSES: Record<string, {
 };
 
 // Simple bg-only mapping for backward compatibility
-export const FOLDER_BG_COLORS: Record<string, string> = {
+const FOLDER_BG_COLORS: Record<string, string> = {
   '#ef4444': 'bg-red-500',
   '#f97316': 'bg-orange-500',
   '#eab308': 'bg-yellow-500',
@@ -170,7 +170,7 @@ export const FOLDER_BG_COLORS: Record<string, string> = {
 };
 
 // Category colors (string name -> Tailwind classes)
-export const CATEGORY_COLOR_CLASSES: Record<string, {
+const CATEGORY_COLOR_CLASSES: Record<string, {
   bg: string;
   bgLight: string;
   text: string;
@@ -298,7 +298,7 @@ export function getFolderTextColorClass(hexColor: string | null | undefined): st
 }
 
 // Folder border colors (hex -> border classes with opacity)
-export const FOLDER_BORDER_COLORS: Record<string, { default: string; opacity50: string }> = {
+const FOLDER_BORDER_COLORS: Record<string, { default: string; opacity50: string }> = {
   '#ef4444': { default: 'border-red-500', opacity50: 'border-red-500/50' },
   '#f97316': { default: 'border-orange-500', opacity50: 'border-orange-500/50' },
   '#eab308': { default: 'border-yellow-500', opacity50: 'border-yellow-500/50' },
@@ -325,7 +325,7 @@ export function getFolderBorderColorClass(hexColor: string | null | undefined, o
 }
 
 // Folder text colors with dark mode variants (hex -> text classes)
-export const FOLDER_TEXT_COLOR_CLASSES: Record<string, {
+const FOLDER_TEXT_COLOR_CLASSES: Record<string, {
   base: string;
   dark: string;
   hover: string;

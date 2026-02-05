@@ -24,7 +24,7 @@ interface SelectionBox {
   currentY: number;
 }
 
-export function ImagesPage() {
+export function ImagesPage({ userId }: { userId?: string }) {
   const { 
     images, 
     selectedImageIds, 
@@ -90,6 +90,11 @@ export function ImagesPage() {
 
   useEffect(() => {
     const loadImages = async () => {
+      if (userId) {
+        await fetchImages(userId, selectedFolderId || undefined);
+        return;
+      }
+      
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
@@ -97,7 +102,7 @@ export function ImagesPage() {
       }
     };
     loadImages();
-  }, [selectedFolderId, fetchImages]);
+  }, [selectedFolderId, fetchImages, userId]);
 
   useEffect(() => {
     let interval: any;

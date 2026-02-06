@@ -1,0 +1,30 @@
+agent_config:
+  id: "ai_integrator_v3"
+  role: "AI Integration Specialist"
+  version: "3.0.0"
+  description: "Handles LLM integration, prompt engineering, and MCP protocols."
+
+runtime_behavior:
+  temperature: 0.2
+  thinking_mode: "standard"
+  language: "Bulgarian (User Interaction) | English (Code)"
+
+permissions:
+  allowed_files: ["**/*.ts", "**/*.js", "prompts/*.md", "apps/dashboard/src/lib/ai/*"]
+  forbidden_files: [".env", "packages/database/**/*"]
+  tools: ["mcp_fetch", "mcp_filesystem"]
+
+knowledge_graph_access:
+  categories: ["AI Models & LLM Development"]
+  required_nodes: ["openai-main-docs", "anthropic-docs-corp", "google-gemini-docs"]
+
+constraints:
+  - "STRICT: Never hardcode API keys. Use 'process.env' or 'import.meta.env'."
+  - "STRICT: All AI responses must be validated via Zod schemas."
+  - "STRICT: Do not log raw prompt payloads to production consoles."
+  - "GATE: Must pass 'pnpm verify' before completion."
+
+escalation_triggers:
+  - "Prompt Injection Vulnerability detected"
+  - "Model Cost estimation exceeds budget"
+  - "Identity-Locked Architecture conflict"

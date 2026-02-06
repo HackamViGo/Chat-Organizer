@@ -341,6 +341,46 @@ describe('MessageRouter', () => {
         });
       });
     });
+
+    it('should handle token expiry and trigger re-auth flow', async () => {
+      vi.mocked(dashboardApi.saveToDashboard).mockRejectedValueOnce(new Error('Unauthorized'));
+
+      const request = {
+        action: 'saveToDashboard',
+        data: { id: 'conv-123', platform: 'chatgpt' }
+      };
+
+      (messageRouter as any).handleMessage(request, mockSender, sendResponse);
+
+      await vi.waitFor(() => {
+        expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({ 
+          success: false,
+          error: 'Unauthorized'
+        }));
+      });
+    });
+  });
+
+  describe('Multi-Platform Sync', () => {
+    it('should capture and sync tokens across all platforms', async () => {
+      // Simulate multiple platform header captures
+      const platforms = [
+        { url: 'https://chatgpt.com/api', headers: [{ name: 'Authorization', value: 'Bearer tg-123' }] },
+        { url: 'https://claude.ai/api/organizations/999/', headers: [] },
+        { url: 'https://gemini.google.com/app/AT-123', headers: [] }
+      ];
+
+      for (const p of platforms) {
+        (chrome.webRequest.onBeforeSendHeaders as any)._trigger({
+          url: p.url,
+          requestHeaders: p.headers
+        });
+      }
+
+      await vi.waitFor(async () => {
+        expect(mockAuthManager.syncAll).toHaveBeenCalled();
+      });
+    });
   });
 
   // ========================================================================

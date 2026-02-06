@@ -23,17 +23,19 @@
   };
 
   const debugLog = (...args: any[]) => {
-    if (CONFIG.DEBUG_MODE) console.info('[Prompt Inject]', ...args);
+    // Note: CONFIG.DEBUG_MODE will be removed from here once it's removed from the interface
+    // For now we keep it inside the function to avoid breaking logic if it's still used
+    if ((CONFIG as any).DEBUG_MODE) console.info('[Prompt Inject]', ...args);
   };
 
   // Prevent multiple executions
   if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ⏹️ Script already loaded, skipping init.');
+    debugLog('⏹️ Script already loaded, skipping init.');
     return;
   }
   (window as any).BRAINBOX_PROMPT_INJECT_LOADED = true;
 
-  if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] Loading (v2.0.2)...');
+  debugLog('Loading (v2.0.2)...');
 
   // ============================================================================
   // STATE
@@ -61,23 +63,23 @@
   // ============================================================================
       
   async function loadConfig(): Promise<void> {
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] Loading config...');
+    debugLog('Loading config...');
     
     try {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
         const config = await chrome.storage.local.get(['API_BASE_URL']);
         if (config.API_BASE_URL) {
           CONFIG.API_BASE_URL = config.API_BASE_URL;
-          if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Loaded Config:', CONFIG.API_BASE_URL);
-        } else {
-          CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
+          debugLog('✅ Loaded Config:', CONFIG.API_BASE_URL);
         }
-      } else {
-        CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
       }
     } catch (e) {
-      console.warn('[🧠 Prompt Inject] ⚠️ Config load check failed (using default):', e);
-      CONFIG.API_BASE_URL = 'https://brainbox-alpha.vercel.app';
+      console.warn('[🧠 Prompt Inject] ⚠️ Config load check failed:', e);
+    }
+
+    // Production fallbacks removed. CONFIG must be initialized.
+    if (!CONFIG.API_BASE_URL) {
+        throw new Error('[BrainBox] API_BASE_URL not configured');
     }
   }
 
@@ -90,30 +92,30 @@
     STATE.isLoading = true;
 
     try {
-      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📥 Fetching via Background (CSP Bypass)...');
+      debugLog('📥 Fetching via Background (CSP Bypass)...');
       
       const response = await chrome.runtime.sendMessage({ action: 'fetchPrompts' }) as { success: boolean; data?: any; error?: string };
       
       if (!response || !response.success) {
-        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Background fetch failed:', response?.error);
+        debugLog('❌ Background fetch failed:', response?.error);
         if (response?.error === 'Unauthorized') {
-             if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ⚠️ Auth failed (Background)');
+             debugLog('⚠️ Auth failed (Background)');
         }
         return [];
       }
 
       const data = response.data;
-      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📦 Received data from background:', typeof data);
+      debugLog('📦 Received data from background:', typeof data);
 
       // Handle { prompts: [...] } structure vs [...]
       const promptsList = Array.isArray(data.prompts) ? data.prompts : (Array.isArray(data) ? data : []);
       STATE.prompts = promptsList;
       
-      if (CONFIG.DEBUG_MODE) debugLog(`[🧠 Prompt Inject] 📡 OK | Count: ${STATE.prompts.length}`);
+      debugLog(`📡 OK | Count: ${STATE.prompts.length}`);
       return STATE.prompts;
 
     } catch (error) {
-      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error in fetchPrompts:', error);
+      debugLog('❌ Error in fetchPrompts:', error);
       return [];
     } finally {
       STATE.isLoading = false;
@@ -125,7 +127,7 @@
   // ============================================================================
   
   function showPromptMenu(prompts: Prompt[], options: { mode?: string } = {}): void {
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📱 Showing prompt menu...');
+    debugLog('📱 Showing prompt menu...');
     
     // Remove if already exists
     const existing = document.getElementById('brainbox-prompt-menu');
@@ -191,22 +193,46 @@
     function renderAndAttach(promptsToRender: Prompt[]) {
       if (!listContainer) return;
       
+      listContainer.textContent = ''; // Clear content safely
+
       if (promptsToRender.length === 0) {
-        listContainer.innerHTML = `
-          <div class="brainbox-prompt-menu-empty">
-            <p>No prompts found</p>
-            <p class="brainbox-prompt-menu-empty-hint">Try adjusting your search</p>
-          </div>
-        `;
+        const emptyState = document.createElement('div');
+        emptyState.className = 'brainbox-prompt-menu-empty';
+        
+        const p1 = document.createElement('p');
+        p1.textContent = 'No prompts found';
+        
+        const p2 = document.createElement('p');
+        p2.className = 'brainbox-prompt-menu-empty-hint';
+        p2.textContent = 'Try adjusting your search';
+        
+        emptyState.appendChild(p1);
+        emptyState.appendChild(p2);
+        listContainer.appendChild(emptyState);
         return;
       }
       
-      listContainer.innerHTML = promptsToRender.map((prompt, index) => `
-        <div class="brainbox-prompt-menu-item" data-prompt-id="${prompt.id}" data-index="${index}" tabindex="0">
-          <div class="brainbox-prompt-menu-item-title">${escapeHtml(prompt.title)}</div>
-          <div class="brainbox-prompt-menu-item-preview">${escapeHtml(prompt.content.substring(0, 100))}${prompt.content.length > 100 ? '...' : ''}</div>
-        </div>
-      `).join('');
+      promptsToRender.forEach((prompt, index) => {
+        const item = document.createElement('div');
+        item.className = 'brainbox-prompt-menu-item';
+        item.dataset.promptId = prompt.id;
+        item.dataset.index = index.toString();
+        item.tabIndex = 0;
+
+        const titleDiv = document.createElement('div');
+        titleDiv.className = 'brainbox-prompt-menu-item-title';
+        titleDiv.textContent = prompt.title;
+
+        const previewDiv = document.createElement('div');
+        previewDiv.className = 'brainbox-prompt-menu-item-preview';
+        const rawContent = prompt.content;
+        const previewText = rawContent.substring(0, 100) + (rawContent.length > 100 ? '...' : '');
+        previewDiv.textContent = previewText;
+
+        item.appendChild(titleDiv);
+        item.appendChild(previewDiv);
+        listContainer.appendChild(item);
+      });
       
       attachItemListeners(promptsToRender);
     }
@@ -256,19 +282,19 @@
   // ============================================================================
   
   function injectPrompt(prompt: Prompt): void {
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 💉 Injecting prompt:', prompt.title);
+    debugLog('💉 Injecting prompt:', prompt.title);
     const content = prompt.content;
     const textarea = (document.activeElement as HTMLTextAreaElement | HTMLDivElement) || 
                    document.querySelector('textarea') || 
                    document.querySelector('[contenteditable="true"]');
 
     if (!textarea) {
-      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ No active textarea found');
+      debugLog('❌ No active textarea found');
       showNotification('Click on a text area first', 'warning');
       return;
     }
 
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 💉 Injecting into:', textarea.tagName);
+    debugLog('💉 Injecting into:', textarea.tagName);
 
     const isContentEditable = textarea.getAttribute('contenteditable') === 'true' || 
                              textarea.tagName !== 'TEXTAREA' && textarea.tagName !== 'INPUT';
@@ -288,8 +314,8 @@
 
         activeEl.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
         activeEl.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
-
-        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ⌨️ Executing execCommand...');
+        
+        debugLog('⌨️ Executing execCommand...');
         const success = document.execCommand('insertText', false, content);
         
         const inputEvent = new InputEvent('input', {
@@ -338,7 +364,7 @@
   // ============================================================================
   
   function showCreatePromptDialog(selectedText: string): void {
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📝 Showing create prompt dialog');
+    debugLog('📝 Showing create prompt dialog');
         
     const existingDialog = document.getElementById('brainbox-create-prompt-dialog');
     if (existingDialog) existingDialog.remove();
@@ -360,61 +386,155 @@
         console.error('[🧠 Prompt Inject] Error fetching folders:', err);
       }
 
-      dialog.innerHTML = `
-        <div class="brainbox-prompt-menu-overlay"></div>
-        <div class="brainbox-create-prompt-dialog-content">
-          <div class="brainbox-create-prompt-dialog-header">
-            <h3>Create Prompt</h3>
-            <button class="brainbox-create-prompt-dialog-close" aria-label="Close">&times;</button>
-          </div>
-          <div class="brainbox-create-prompt-dialog-body">
-            <div class="brainbox-create-prompt-field">
-              <label for="brainbox-prompt-title">Title <span class="required">*</span></label>
-              <input type="text" id="brainbox-prompt-title" placeholder="Enter prompt title..." maxlength="200">
-            </div>
-            <div class="brainbox-create-prompt-field">
-              <label for="brainbox-prompt-content">Content <span class="required">*</span></label>
-              <textarea id="brainbox-prompt-content" rows="6" placeholder="Enter prompt content...">${escapeHtml(selectedText)}</textarea>
-            </div>
-            <div class="brainbox-create-prompt-field">
-              <label>Save to Folder</label>
-              <div id="brainbox-prompt-folder-list" class="brainbox-folder-selection-list">
-                <div class="brainbox-folder-option selected" data-folder-id="">
-                  <span class="folder-icon">📂</span>
-                  <span class="folder-name">(No folder - Root)</span>
-                </div>
-                ${folders.map((f: any) => `
-                  <div class="brainbox-folder-option" data-folder-id="${f.id}">
-                    <span class="folder-icon">📁</span>
-                    <span class="folder-name">${escapeHtml(f.name)}</span>
-                  </div>
-                `).join('')}
-              </div>
-            </div>
-            <div class="brainbox-create-prompt-field">
-              <label for="brainbox-prompt-use-in-context-menu" style="display: flex; align-items: center; cursor: pointer;">
-                <input type="checkbox" id="brainbox-prompt-use-in-context-menu" checked style="margin-right: 8px;">
-                Use in context menu (BrainBox Prompts)
-              </label>
-            </div>
-          </div>
-          <div class="brainbox-create-prompt-dialog-footer">
-            <button class="brainbox-create-prompt-cancel">Cancel</button>
-            <button class="brainbox-create-prompt-save">Save</button>
-          </div>
-        </div>
-      `;
+      // dialog.innerHTML = ... REPLACED WITH SAFE DOM CREATION
+      const overlay = document.createElement('div');
+      overlay.className = 'brainbox-prompt-menu-overlay';
+      dialog.appendChild(overlay);
+
+      const content = document.createElement('div');
+      content.className = 'brainbox-create-prompt-dialog-content';
+
+      // HEADER
+      const header = document.createElement('div');
+      header.className = 'brainbox-create-prompt-dialog-header';
+      const h3 = document.createElement('h3');
+      h3.textContent = 'Create Prompt';
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'brainbox-create-prompt-dialog-close';
+      closeBtn.setAttribute('aria-label', 'Close');
+      closeBtn.textContent = '×'; // or &times; text content
+      header.appendChild(h3);
+      header.appendChild(closeBtn);
+      content.appendChild(header);
+
+      // BODY
+      const body = document.createElement('div');
+      body.className = 'brainbox-create-prompt-dialog-body';
+
+      // Field: Title
+      const titleField = document.createElement('div');
+      titleField.className = 'brainbox-create-prompt-field';
+      const titleLabel = document.createElement('label');
+      titleLabel.htmlFor = 'brainbox-prompt-title';
+      titleLabel.innerHTML = 'Title <span class="required">*</span>';
+      const titleInput = document.createElement('input');
+      titleInput.type = 'text';
+      titleInput.id = 'brainbox-prompt-title';
+      titleInput.placeholder = 'Enter prompt title...';
+      titleInput.maxLength = 200;
+      titleField.appendChild(titleLabel);
+      titleField.appendChild(titleInput);
+      body.appendChild(titleField);
+
+      // Field: Content
+      const contentField = document.createElement('div');
+      contentField.className = 'brainbox-create-prompt-field';
+      const contentLabel = document.createElement('label');
+      contentLabel.htmlFor = 'brainbox-prompt-content';
+      contentLabel.innerHTML = 'Content <span class="required">*</span>';
+      const contentTextarea = document.createElement('textarea');
+      contentTextarea.id = 'brainbox-prompt-content';
+      contentTextarea.rows = 6;
+      contentTextarea.placeholder = 'Enter prompt content...';
+      contentTextarea.value = selectedText; // Safe value assignment
+      contentField.appendChild(contentLabel);
+      contentField.appendChild(contentTextarea);
+      body.appendChild(contentField);
+
+      // Field: Folder
+      const folderField = document.createElement('div');
+      folderField.className = 'brainbox-create-prompt-field';
+      const folderLabel = document.createElement('label');
+      folderLabel.textContent = 'Save to Folder';
+      
+      const folderList = document.createElement('div');
+      folderList.id = 'brainbox-prompt-folder-list';
+      folderList.className = 'brainbox-folder-selection-list';
+
+      // Root option
+      const rootOption = document.createElement('div');
+      rootOption.className = 'brainbox-folder-option selected';
+      rootOption.dataset.folderId = '';
+      const rootIcon = document.createElement('span');
+      rootIcon.className = 'folder-icon';
+      rootIcon.textContent = '📂';
+      const rootName = document.createElement('span');
+      rootName.className = 'folder-name';
+      rootName.textContent = '(No folder - Root)';
+      rootOption.appendChild(rootIcon);
+      rootOption.appendChild(rootName);
+      folderList.appendChild(rootOption);
+
+      // Folder options
+      folders.forEach((f: any) => {
+        const opt = document.createElement('div');
+        opt.className = 'brainbox-folder-option';
+        opt.dataset.folderId = f.id;
+        
+        const icon = document.createElement('span');
+        icon.className = 'folder-icon';
+        icon.textContent = '📁';
+        
+        const name = document.createElement('span');
+        name.className = 'folder-name';
+        name.textContent = f.name;
+
+        opt.appendChild(icon);
+        opt.appendChild(name);
+        folderList.appendChild(opt);
+      });
+
+      folderField.appendChild(folderLabel);
+      folderField.appendChild(folderList);
+      body.appendChild(folderField);
+
+      // Field: Context Menu
+      const ctxField = document.createElement('div');
+      ctxField.className = 'brainbox-create-prompt-field';
+      const ctxLabel = document.createElement('label');
+      ctxLabel.htmlFor = 'brainbox-prompt-use-in-context-menu';
+      ctxLabel.style.cssText = 'display: flex; align-items: center; cursor: pointer;';
+      
+      const ctxInput = document.createElement('input');
+      ctxInput.type = 'checkbox';
+      ctxInput.id = 'brainbox-prompt-use-in-context-menu';
+      ctxInput.checked = true;
+      ctxInput.style.marginRight = '8px';
+      
+      ctxLabel.appendChild(ctxInput);
+      ctxLabel.appendChild(document.createTextNode('Use in context menu (BrainBox Prompts)'));
+      ctxField.appendChild(ctxLabel);
+      body.appendChild(ctxField);
+
+      // FOOTER
+      const footer = document.createElement('div');
+      footer.className = 'brainbox-create-prompt-dialog-footer';
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.className = 'brainbox-create-prompt-cancel';
+      cancelBtn.textContent = 'Cancel';
+      
+      const saveBtn = document.createElement('button');
+      saveBtn.className = 'brainbox-create-prompt-save';
+      saveBtn.textContent = 'Save';
+
+      footer.appendChild(cancelBtn);
+      footer.appendChild(saveBtn);
+      content.appendChild(body);
+      content.appendChild(footer);
+      
+      dialog.appendChild(content);
+
+      // Re-assign references for listeners
+      const contextMenuCheckbox = ctxInput;
       
       injectStyles();
       
-      const closeBtn = dialog.querySelector('.brainbox-create-prompt-dialog-close') as HTMLElement;
-      const cancelBtn = dialog.querySelector('.brainbox-create-prompt-cancel') as HTMLElement;
-      const saveBtn = dialog.querySelector('.brainbox-create-prompt-save') as HTMLButtonElement;
-      const overlay = dialog.querySelector('.brainbox-prompt-menu-overlay') as HTMLElement;
-      const titleInput = dialog.querySelector('#brainbox-prompt-title') as HTMLInputElement;
-      const contentTextarea = dialog.querySelector('#brainbox-prompt-content') as HTMLTextAreaElement;
-      const folderList = dialog.querySelector('#brainbox-prompt-folder-list') as HTMLElement;
-      const contextMenuCheckbox = dialog.querySelector('#brainbox-prompt-use-in-context-menu') as HTMLInputElement;
+      
+      // injectStyles(); is at 434, keeping it.
+      // Variables (closeBtn, saveBtn, etc.) are already defined by the createElement block above.
+      // We remove the querySelector re-declarations.
+
       
       let selectedFolderId: string | null = null;
 
@@ -486,7 +606,7 @@
   // ============================================================================
   
   async function createPrompt(promptData: { title: string; content: string; folder_id: string | null; use_in_context_menu: boolean }): Promise<{ success: boolean; error?: string }> {
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📤 Creating prompt:', promptData.title);
+    debugLog('📤 Creating prompt:', promptData.title);
     
     try {
       const storage = await chrome.storage.local.get(['accessToken']);
@@ -537,12 +657,12 @@
       }
       
       const data = await response.json();
-      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Prompt created successfully:', data.id);
+      debugLog('✅ Prompt created successfully:', data.id);
       
       return { success: true };
       
     } catch (error: any) {
-      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error creating prompt:', error);
+      debugLog('❌ Error creating prompt:', error);
       return { success: false, error: error.message };
     }
   }
@@ -678,10 +798,10 @@
     }
 
     try {
-      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📝 Creating prompt from selection...');
+      debugLog('📝 Creating prompt from selection...');
       showCreatePromptDialog(selectedText);
     } catch (error: any) {
-      if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error:', error);
+      debugLog('❌ Error:', error);
       showNotification(`Error: ${error.message || 'Unknown error'}`, 'error');
     }
   }
@@ -691,7 +811,7 @@
   // ============================================================================
   
   function setupMessageListener(): void {
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 🎧 Setting up message listener...');
+    debugLog('🎧 Setting up message listener...');
     
     chrome.runtime.onMessage.addListener((request: any, _sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
       if (request.action === 'ping') {
@@ -700,13 +820,13 @@
       }
       
       if (request.action === 'getPrompts') {
-        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📨 Received message to get prompts');
+        debugLog('📨 Received message to get prompts');
         (async () => {
           try {
             // Loading prompts
-            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 🔍 Loading prompts...');
+            debugLog('🔍 Loading prompts...');
             const prompts = await fetchPrompts();
-            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📊 Loaded prompts:', prompts.length);
+            debugLog('📊 Loaded prompts:', prompts.length);
                                 
             // Show menu even if no prompts found to allow refresh button usage
             showPromptMenu(prompts, { mode: request.mode });
@@ -717,7 +837,7 @@
                                 
             sendResponse({ success: true, count: prompts.length });
           } catch (error: any) {
-            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error:', error);
+            debugLog('❌ Error:', error);
             showNotification(`Error: ${error.message || 'Unknown error'}`, 'error');
             // Show menu even on error to allow refresh attempt
             showPromptMenu([]);
@@ -729,7 +849,7 @@
       }
 
       if (request.action === 'injectPrompt') {
-        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📨 Received message to inject prompt');
+        debugLog('📨 Received message to inject prompt');
         
         // Clear any existing loading notifications
         const existingNotifications = document.querySelectorAll('.brainbox-prompt-notification');
@@ -746,14 +866,14 @@
       }
 
       if (request.action === 'refreshPrompts') {
-        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📨 Received message to refresh prompts');
+        debugLog('📨 Received message to refresh prompts');
         
         (async () => {
           try {
             const prompts = await fetchPrompts(true); // Force refresh
             sendResponse({ success: true, count: prompts.length });
           } catch (error: any) {
-            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error during refresh:', error);
+            debugLog('❌ Error during refresh:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
@@ -762,7 +882,7 @@
       }
 
       if (request.action === 'checkIfEditableField') {
-        if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 📨 Checking if click is in editable field');
+        debugLog('📨 Checking if click is in editable field');
         
         try {
           const { pageX, pageY } = request.clickInfo || {};
@@ -789,7 +909,7 @@
                 current = current.parentElement as HTMLElement | null;
               }
               
-              if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Check complete:', { isEditable });
+              debugLog('✅ Check complete:', { isEditable });
               sendResponse({ success: true, isEditable });
               return true;
             }
@@ -797,7 +917,7 @@
           
           sendResponse({ success: true, isEditable: false });
         } catch (error) {
-          if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error during check:', error);
+          debugLog('❌ Error during check:', error);
           sendResponse({ success: false, isEditable: false });
         }
         
@@ -805,7 +925,7 @@
       }
 
       if (request.action === 'showCreatePromptDialog' || request.action === 'openCreatePromptDialog') {
-        if (CONFIG.DEBUG_MODE) debugLog(`[🧠 Prompt Inject] 📨 Received message action: ${request.action}`);
+        debugLog(`Received message action: ${request.action}`);
         
         (async () => {
           try {
@@ -820,7 +940,7 @@
             showCreatePromptDialog(selectedText);
             sendResponse({ success: true });
           } catch (error: any) {
-            if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ❌ Error:', error);
+            debugLog('❌ Error:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
@@ -829,8 +949,8 @@
       }
       return false; // No handler for this action
     });
-
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Message listener active');
+    
+    debugLog('✅ Message listener active');
   }
 
   // ============================================================================
@@ -1541,7 +1661,7 @@
   };
 
   async function init(): Promise<void> {
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] 🚀 Initializing BrainBox...');
+    debugLog('🚀 Initializing BrainBox...');
     await loadConfig();
     injectStyles();
     setupMessageListener();
@@ -1549,7 +1669,7 @@
     // Notify background that we are ready
     chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'universal' }).catch(() => {});
     
-    if (CONFIG.DEBUG_MODE) debugLog('[🧠 Prompt Inject] ✅ Ready');
+    debugLog('✅ Ready');
   }
 
   if (document.readyState === 'loading') {

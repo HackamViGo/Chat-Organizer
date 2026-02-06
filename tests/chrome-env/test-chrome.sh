@@ -12,6 +12,10 @@ echo "🧪 Chrome Extension Test Environment"
 echo "======================================"
 echo ""
 
+# Proactive cleanup of orphaned test profiles
+echo "🧹 Cleaning up orphaned test profiles..."
+rm -rf /tmp/chrome-extension-test-*
+
 # Check if Chrome is running (would lock Cookies file)
 if pgrep -x "chrome\|chromium" > /dev/null; then
     echo "⚠️  Warning: Chrome/Chromium is running!"
@@ -92,7 +96,7 @@ echo "   - Vercel/Supabase: LOGIN REQUIRED (cookies may need refresh)"
 echo "   - IndexedDB: CLEAN & READY"
 echo ""
 echo "💡 If not logged into Vercel:"
-echo "   1. Go to https://brainbox-alpha.vercel.app/auth/signin"
+echo "   1. Go to ${DASHBOARD_URL:-http://localhost:3000}/auth/signin"
 echo "   2. Login with your credentials"
 echo "   3. Cookies will be saved for next time"
 echo ""

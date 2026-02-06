@@ -1,10 +1,10 @@
 # Sync Protocol Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.1.3
+**Version**: 3.0.0
 **Stack**: Chrome Extension (Manifest V3) ↔ Next.js PWA  
 **Author**: Meta-Architect  
-**Date**: 2026-02-03
+**Date**: 2026-02-06
 
 ---
 
@@ -23,7 +23,7 @@ sequenceDiagram
     User->>Dashboard: Login via OAuth/Email
     Dashboard->>Supabase: Authenticate user
     Supabase-->>Dashboard: Returns session + access_token
-    Dashboard->>Extension: Send tokens via content-dashboard-auth.js
+    Dashboard->>Extension: Send tokens via content-dashboard-auth.ts
     Extension->>Extension: Store tokens in chrome.storage.local
 
     User->>ContentScript: Right-click -> "Save Chat to BrainBox"
@@ -43,14 +43,14 @@ sequenceDiagram
 ### 2.1 Token Flow: Dashboard → Extension
 
 **Problem**: Chrome extensions cannot access HTTPOnly cookies from web pages.
-**Solution**: Explicit token transfer via `content-dashboard-auth.js` on `/extension-auth` page.
+**Solution**: Explicit token transfer via `content-dashboard-auth.ts` on `/extension-auth` page.
 
 #### Implementation
 
 ```mermaid
 flowchart LR
     A[User logs in<br/>at /extension-auth] --> B{Auth successful?}
-    B -->|Yes| C[content-dashboard-auth.js<br/>Extractions access_token]
+    B -->|Yes| C[content-dashboard-auth.ts<br/>Extractions access_token]
     C --> D[chrome.runtime.sendMessage<br/>action: 'setAuthToken']
     D --> E[AuthManager stores<br/>in chrome.storage.local]
     E --> F[Extension authenticated]
@@ -137,4 +137,4 @@ interface CreateChatInput {
 - **Global Error Boundaries**: Content scripts are wrapped in `try/catch` blocks to prevent modification of the DOM or console spam on error.
 
 ---
-**Version**: v.2.1.3
+**Version**: v3.0.0

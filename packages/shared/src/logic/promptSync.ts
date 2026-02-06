@@ -13,7 +13,7 @@ export class PromptSyncManager {
     private LAST_SYNC_KEY: string;
     private SYNC_INTERVAL: number;
 
-    constructor(private dashboardUrl: string = 'https://brainbox-alpha.vercel.app') {
+    constructor(private dashboardUrl: string) {
         this.STORAGE_KEY = 'brainbox_prompts_cache';
         this.LAST_SYNC_KEY = 'brainbox_prompts_last_sync';
         this.SYNC_INTERVAL = 30 * 60 * 1000; // 30 minutes

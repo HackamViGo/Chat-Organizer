@@ -1,0 +1,11 @@
+version: "2.0"
+name: "Knowledge Injection Workflow"
+
+steps:
+  - id: generate_context_package
+    action: python_exec
+    script: "meta_architect/scripts/knowledge_injector.py"
+    function: "generate_package"
+    args:
+      agent_role: "${inputs.agent_role}"
+      requirements: "${inputs.requirements}"

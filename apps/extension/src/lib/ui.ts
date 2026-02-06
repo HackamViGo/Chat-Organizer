@@ -139,7 +139,17 @@
             const renderItem = (id: string | null, name: string) => {
                 const item = document.createElement('div');
                 item.className = 'brainbox-folder-item';
-                item.innerHTML = `<span>📁</span> <span>${name}</span>`;
+                
+                const iconSpan = document.createElement('span');
+                iconSpan.textContent = '📁';
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = name;
+                
+                item.appendChild(iconSpan);
+                // Add space
+                item.appendChild(document.createTextNode(' '));
+                item.appendChild(nameSpan);
+
                 item.onclick = () => {
                     document.querySelectorAll('.brainbox-folder-item').forEach(el => el.classList.remove('selected'));
                     item.classList.add('selected');
@@ -253,7 +263,7 @@
 
         const icon = document.createElement('span');
         icon.style.fontSize = '18px';
-        icon.innerHTML = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
+        icon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
         toast.appendChild(icon);
         
         const msgSpan = document.createElement('span');
@@ -285,7 +295,7 @@
 
         // Close button
         const closeBtn = document.createElement('span');
-        closeBtn.innerHTML = '&times;';
+        closeBtn.textContent = '×';
         closeBtn.style.cssText = 'cursor: pointer; font-size: 20px; opacity: 0.7; padding: 0 4px;';
         closeBtn.onclick = () => toast.remove();
         toast.appendChild(closeBtn);

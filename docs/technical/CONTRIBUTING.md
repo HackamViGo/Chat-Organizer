@@ -1,4 +1,5 @@
 # Contributing to BrainBox
+**Version**: 3.0.0 (2026-02-06)
 
 We follow strict engineering standards to maintain a healthy, type-safe, and performant monorepo.
 

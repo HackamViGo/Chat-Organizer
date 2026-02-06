@@ -1,5 +1,7 @@
 import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@brainbox/database';
+import { CONFIG } from '../config';
+import { logger } from '../logger';
 
 export const createClient = () => {
   let rememberMe = false;
@@ -8,14 +10,14 @@ export const createClient = () => {
       rememberMe = localStorage.getItem('brainbox_remember_me') === 'true';
     } catch (error) {
       // localStorage access denied (e.g., in iframe with different origin)
-      console.warn('Failed to read remember me from localStorage:', error);
+      logger.warn('Auth', 'Failed to read remember me from localStorage:', error);
       rememberMe = false;
     }
   }
   
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    CONFIG.SUPABASE_URL,
+    CONFIG.SUPABASE_ANON_KEY,
     {
       cookies: {
         get(name: string) {

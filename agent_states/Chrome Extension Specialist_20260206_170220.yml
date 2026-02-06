@@ -1,0 +1,14 @@
+agent_id: Chrome Extension Specialist_20260206_170220
+role: Chrome Extension Specialist
+status: IDLE
+assigned_task:
+  id: TASK_20260206_170220
+  description: Test Mission
+  started_at: null
+  completed_at: null
+context_injection:
+  last_update: '2026-02-06T15:02:20.486212Z'
+  package_path: DYNAMIC_INJECTION
+checkpoints: []
+escalations: []
+output_artifacts: []

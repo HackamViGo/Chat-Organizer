@@ -1,9 +1,9 @@
 # Data Schema Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 2.2.0  
+**Version**: 3.0.0  
 **Type System**: TypeScript + Zod + Supabase PostgreSQL  
-**Generated**: 2026-02-03  
+**Generated**: 2026-02-06  
 **Authority**: Meta-Architect (Priority 1 - Identity-Locked)
 
 ---
@@ -44,7 +44,6 @@ erD diagram
         string email UK "Identity-Locked"
         string full_name
         string avatar_url
-        jsonb settings "User preferences (Quick Access, etc.)"
         timestamp created_at
         timestamp updated_at
     }
@@ -160,7 +159,12 @@ export type Chat = {
   summary: string | null;                    // Brief AI summary (markdown)
   detailed_summary: string | null;           // Comprehensive AI summary (markdown)
   tags: string[] | null;                     // AI-generated tags (stored as jsonb)
-  tasks: string[] | null;                    // Actionable items (stored as jsonb)
+  tasks: Array<{                             // Extracted tasks (stored as jsonb)
+    id?: string;
+    text: string;
+    completed: boolean;
+    priority?: 'low' | 'medium' | 'high';
+  }> | null;
   embedding: number[] | null;                // Vector embedding for semantic search (768d - Gemini text-embedding-004)
   
   // Timestamps
@@ -224,6 +228,16 @@ const createChatSchema = z.object({
   folder_id: z.string().uuid().nullable().optional(),
   source_id: z.string().optional(),
   messages: z.array(z.any()).optional(),
+  summary: z.string().optional().nullable(),
+  detailed_summary: z.string().optional().nullable(),
+  tags: z.array(z.string()).optional().nullable(),
+  tasks: z.array(z.object({
+    id: z.string().optional(),
+    text: z.string(),
+    completed: z.boolean().default(false),
+    priority: z.enum(['low', 'medium', 'high']).optional(),
+  })).optional().nullable(),
+  embedding: z.array(z.number()).optional().nullable(),
 });
 ```
 
@@ -365,10 +379,6 @@ export type User = {
   // Profile
   full_name: string | null;
   avatar_url: string | null;                 // Supabase Storage URL
-  settings: {
-    quickAccessFolders?: string[];           // Max 3 folder IDs
-    [key: string]: any;
-  } | null;
   
   // Timestamps
   created_at: string | null;

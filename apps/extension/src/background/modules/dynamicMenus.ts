@@ -254,7 +254,7 @@ export class DynamicMenus {
             const { accessToken } = await chrome.storage.local.get(['accessToken']);
             if (!accessToken) {
                 if (this.DEBUG_MODE) console.warn('[DynamicMenus] ⛔ User not logged in, redirecting...');
-                chrome.tabs.create({ url: `${CONFIG.API_BASE_URL}/auth/signin?redirect=/extension-auth` });
+                chrome.tabs.create({ url: `${CONFIG.DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
                 return;
             }
         }

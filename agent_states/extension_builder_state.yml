@@ -1,0 +1,25 @@
+agent_config:
+  id: "extension_builder_v3"
+  role: "Chrome Extension Specialist"
+  version: "3.0.0"
+
+current_state:
+  status: "IDLE"
+  last_mission: "Manifest Environment Leak Fix"
+  last_update: "2026-02-06T17:19:31Z"
+
+active_tasks: []
+
+history:
+  - mission: "Manifest Environment Leak Fix"
+    status: "SUCCESS"
+    changes:
+      - "Parameterized apps/extension/manifest.json with __DASHBOARD_URL__"
+      - "Updated vite.config.ts to inject environment URLs"
+      - "Updated tests/chrome-env/test-chrome.sh"
+    timestamp: "2026-02-06T17:19:31Z"
+  - mission: "Logger Runtime Hotfix"
+    status: "SUCCESS"
+    changes:
+      - "Refactored apps/extension/src/lib/logger.ts to eliminate 'window' dependency"
+    timestamp: "2026-02-06T16:50:00Z"

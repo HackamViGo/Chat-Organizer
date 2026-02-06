@@ -15,7 +15,7 @@ test.describe('Extension Loading', () => {
         // Verify extension path exists
         const fs = require('fs');
         const path = require('path');
-        const extensionPath = path.join(process.cwd(), 'extension');
+        const extensionPath = path.join(process.cwd(), 'apps/extension/dist');
         const manifestPath = path.join(extensionPath, 'manifest.json');
         const extensionExists = fs.existsSync(manifestPath);
         
@@ -31,7 +31,7 @@ test.describe('Extension Loading', () => {
     test('Service worker initializes', async ({ page, context }) => {
         // Navigate to trigger extension
         await page.goto('https://example.com');
-        await page.waitForTimeout(2000);
+        await page.waitForLoadState('domcontentloaded');
         
         // In Playwright, chrome APIs are not accessible from page context
         // Instead, we verify extension is loaded by checking if manifest exists
@@ -57,7 +57,7 @@ test.describe('ChatGPT Integration', () => {
         });
 
         await page.goto('https://chatgpt.com');
-        await page.waitForTimeout(3000);
+        await page.waitForLoadState('networkidle');
 
         // Check title
         await expect(page).toHaveTitle(/ChatGPT|OpenAI/);
@@ -88,7 +88,11 @@ test.describe('ChatGPT Integration', () => {
         });
 
         await page.goto('https://chatgpt.com', { waitUntil: 'domcontentloaded' });
-        await page.waitForTimeout(5000); // Longer timeout for extension to inject
+        // Wait for BrainBox indicator or timeout
+        await page.waitForFunction(() => 
+            document.querySelector('style')?.textContent?.includes('brainbox') || 
+            (window as any).BrainBoxMaster
+        ).catch(() => console.log('Wait for BrainBox indicator timed out'));
 
         // Also check DOM for BrainBox indicators
         const hasBrainBoxIndicator = await page.evaluate(() => {
@@ -113,7 +117,7 @@ test.describe('ChatGPT Integration', () => {
 
     test('UI components styles are injected (Modal/Toast)', async ({ page }) => {
         await page.goto('https://chatgpt.com', { waitUntil: 'domcontentloaded' });
-        await page.waitForTimeout(5000);
+        await expect(page.locator('style')).toContainText(/brainbox|BrainBox/, { timeout: 10000 });
 
         // Check if BrainBox styles exist
         const styleInfo = await page.evaluate(() => {
@@ -151,7 +155,7 @@ test.describe('Claude Integration', () => {
         });
 
         await page.goto('https://claude.ai');
-        await page.waitForTimeout(3000);
+        await page.waitForLoadState('networkidle');
 
         // Check title (may be login page)
         const title = await page.title();
@@ -182,7 +186,9 @@ test.describe('Claude Integration', () => {
         });
 
         await page.goto('https://claude.ai', { waitUntil: 'domcontentloaded' });
-        await page.waitForTimeout(5000); // Longer timeout for extension to inject
+        await page.waitForFunction(() => 
+            document.querySelector('style')?.textContent?.includes('brainbox')
+        ).catch(() => {});
 
         // Check DOM for BrainBox indicators
         const hasBrainBoxIndicator = await page.evaluate(() => {
@@ -231,7 +237,7 @@ test.describe('Extension Configuration', () => {
         const fs = require('fs');
         const path = require('path');
         
-        const manifestPath = path.join(process.cwd(), 'extension', 'manifest.json');
+        const manifestPath = path.join(process.cwd(), 'apps/extension/dist/manifest.json');
         const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
         // Verify critical fields
@@ -253,15 +259,9 @@ test.describe('Extension Configuration', () => {
         const path = require('path');
         
         const requiredFiles = [
-            'extension/manifest.json',
-            'extension/background/service-worker.js',
-            'extension/content/content-chatgpt.js',
-            'extension/content/content-claude.js',
-            'extension/content/inject-gemini-main.js',
-            'extension/lib/normalizers.js',
-            'extension/lib/schemas.js',
-            'extension/lib/rate-limiter.js',
-            'extension/lib/ui.js',
+            'apps/extension/dist/manifest.json',
+            'apps/extension/dist/service-worker-loader.js',
+            'apps/extension/dist/assets/brainbox_master.ts-UvGBOAms.js', // Note: Hash may change, better to check for prefix or existance in assets
         ];
 
         for (const file of requiredFiles) {
@@ -289,7 +289,7 @@ test.describe('Token Interception', () => {
         });
 
         await page.goto('https://chatgpt.com');
-        await page.waitForTimeout(3000);
+        await page.waitForLoadState('networkidle');
 
         // We won't see API requests without login, but extension should be listening
         console.log('✅ Extension monitoring ChatGPT API endpoints');
@@ -323,7 +323,7 @@ test.describe('Performance', () => {
 
     test('Memory usage is reasonable', async ({ page }) => {
         await page.goto('https://chatgpt.com');
-    await page.waitForTimeout(2000);
+    await page.waitForLoadState('domcontentloaded');
 
         // Get memory metrics if available (Chrome-specific API)
         const metrics = await page.evaluate(() => {
@@ -363,10 +363,10 @@ test.describe('Error Handling', () => {
 
         // Navigate between platforms
         await page.goto('https://chatgpt.com');
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('domcontentloaded');
         
         await page.goto('https://claude.ai');
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('domcontentloaded');
         
         // ⚠️ DISABLED: Gemini navigation test to prevent account bans
         // await page.goto('https://gemini.google.com');
@@ -391,7 +391,7 @@ test.describe('Error Handling', () => {
 
         // Try a page that's not in host_permissions
         await page.goto('https://example.com');
-        await page.waitForTimeout(1000);
+        await page.waitForLoadState('domcontentloaded');
 
         // Extension should not inject content scripts here
         console.log('✅ Extension handles non-target pages gracefully');

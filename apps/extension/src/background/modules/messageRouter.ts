@@ -3,6 +3,7 @@
  * 
  * Central message routing hub with dependency injection
  */
+import { logger } from '@/lib/logger';
 import { AuthManager } from './authManager';
 import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import * as platformAdapters from './platformAdapters';
@@ -37,7 +38,7 @@ export class MessageRouter {
      */
     listen() {
         chrome.runtime.onMessage.addListener(this.handleMessage);
-        console.log('[MessageRouter] 📡 Listening for messages...');
+        logger.info('MessageRouter', '📡 Listening for messages...');
     }
 
     /**
@@ -48,8 +49,14 @@ export class MessageRouter {
         sender: chrome.runtime.MessageSender,
         sendResponse: (response?: any) => void
     ): boolean {
+        // SECURITY: Verify internal origin
+        if (sender.id !== chrome.runtime.id) {
+            logger.warn('MessageRouter', '🛑 Blocked external message', { senderId: sender.id });
+            return false;
+        }
+
         if (this.DEBUG_MODE) {
-            console.log(`[MessageRouter] 📨 ${request.action}`, {
+            logger.debug('MessageRouter', `📨 ${request.action}`, {
                 platform: request.platform,
                 hasData: !!request.data
             });
@@ -176,7 +183,7 @@ export class MessageRouter {
         if (request.token) {
             chrome.storage.local.set({ gemini_at_token: request.token }).then(() => {
                 if (this.DEBUG_MODE) {
-                    console.log('[MessageRouter] ✅ Gemini AT token stored');
+                    logger.debug('MessageRouter', '✅ Gemini AT token stored');
                 }
                 sendResponse({ success: true });
             });
@@ -220,7 +227,7 @@ export class MessageRouter {
     // ========================================================================
 
     private handleOpenLoginPage(sendResponse: Function): boolean {
-        chrome.tabs.create({ url: `${CONFIG.API_BASE_URL}/auth/signin?redirect=/extension-auth` });
+        chrome.tabs.create({ url: `${CONFIG.DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
         sendResponse({ success: true });
         return true;
     }
@@ -238,7 +245,7 @@ export class MessageRouter {
                 files: ['src/content/inject-gemini-main.js']
             });
         } catch (e) {
-            console.error('[MessageRouter] Gemini script injection failed:', e);
+            logger.error('MessageRouter', 'Gemini script injection failed:', e);
         }
     }
 }

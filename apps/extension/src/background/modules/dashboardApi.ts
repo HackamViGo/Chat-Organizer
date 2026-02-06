@@ -110,6 +110,7 @@ export function getOptimizedTags(messages: Message[]): string[] {
 // --- End Tag Generation Logic ---
 
 const API_BASE_URL = CONFIG.API_BASE_URL;
+const DASHBOARD_URL = CONFIG.DASHBOARD_URL;
 console.log(`[DashboardAPI] Using API_BASE_URL: ${API_BASE_URL}`);
 
 /**
@@ -123,7 +124,7 @@ export async function getUserFolders(silent: boolean = false) {
     const fetchFromServer = async () => {
         const { accessToken } = await chrome.storage.local.get(['accessToken']);
         if (!accessToken) {
-            if (!silent) chrome.tabs.create({ url: `${API_BASE_URL}/auth/signin?redirect=/extension-auth` });
+            if (!silent) chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
             throw new Error('No access token');
         }
 
@@ -193,7 +194,7 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
 
     if (!isTokenValid) {
         console.warn('[DashboardAPI] ⚠️ Invalid or expired token:', { hasToken: !!accessToken, expiresAt });
-        if (!silent) chrome.tabs.create({ url: `${API_BASE_URL}/auth/signin?redirect=/extension-auth` });
+        if (!silent) chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
         throw new Error('Please authenticate first');
     }
 
@@ -239,7 +240,7 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
 
             if (response.status === 401) {
                 await chrome.storage.local.remove(['accessToken']);
-                if (!silent) chrome.tabs.create({ url: `${API_BASE_URL}/auth/signin?redirect=/extension-auth` });
+                if (!silent) chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
                 throw new Error('Session expired');
             }
 

@@ -1,5 +1,4 @@
-// BrainBox - Dashboard Auth Content Script
-// Listens for authentication tokens from extension-auth page
+import { CONFIG } from '../lib/config';
 
 (function() {
     'use strict';
@@ -8,6 +7,12 @@
 
     // Listen for custom event from page
     window.addEventListener('brainbox-auth-ready', async (event: Event) => {
+        // Strict Origin Validation
+        if (window.location.origin !== CONFIG.DASHBOARD_URL) {
+            console.error('[BrainBox] ❌ Auth attempt from unauthorized origin:', window.location.origin);
+            return;
+        }
+
         const customEvent = event as CustomEvent;
         console.log('[BrainBox] Auth event received:', customEvent.detail);
 

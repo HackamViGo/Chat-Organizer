@@ -1,9 +1,9 @@
 # Context Map Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: v2.2.0  
+**Version**: v3.0.0  
 **Architecture**: Chrome Extension (Manifest V3) + Next.js PWA (App Router)  
-**Generated**: 2026-02-03  
+**Generated**: 2026-02-06  
 **Authority**: Meta-Architect (Priority 1 - Boundary Definition)
 
 ---
@@ -30,17 +30,18 @@ graph TB
         SW[service-worker.ts<br/>Entry Point]
         MASTER[brainbox_master.ts<br/>Traffic Coordinator]
         subgraph SW_Modules["📦 SW Modules"]
-            MO[NetworkObserver.ts]
-            MR[MessageRouter.ts]
+            MO[networkObserver.ts]
+            MR[messageRouter.ts]
             DA[dashboardApi.ts]
             AM[authManager.ts]
             SM[syncManager.ts]
             CM[cacheManager.ts]
             IM[installationManager.ts]
+            DM[dynamicMenus.ts]
         end
         CS_PLAT[Content Scripts<br/>(10+ Scripts / 8 Platforms)]
-        CS_AUTH[content-dashboard-auth.js<br/>Token Bridge]
-        NORM[platformAdapters/<br/>Platform Parsers (v2.1.2)]
+        CS_AUTH[content-dashboard-auth.ts<br/>Token Bridge]
+        NORM[platformAdapters/<br/>Platform Parsers (v3.0.0)]
         
         MASTER -->|Regex Guard| CS_PLAT
         EXT_SHARED["@brainbox/shared<br/>(Imported via Workspace)"]
@@ -95,7 +96,7 @@ graph TB
 | Functionality | Owner | File Path/Package | Access Rule | Identity-Locked |
 |---------------|-------|-------------------|-------------|-----------------|
 | **Auth: Supabase Session** | Dashboard | `apps/dashboard/src/lib/supabase/client.ts` | Single Source of Truth | ⚠️ YES |
-| **Auth: Token Bridge** | Extension | `apps/extension/src/content/content-dashboard-auth.js` | Read-only from Dashboard session | ⚠️ YES |
+| **Auth: Token Bridge** | Extension | `apps/extension/src/content/content-dashboard-auth.ts` | Read-only from Dashboard session | ⚠️ YES |
 | **Auth: Token Manager** | Extension | `apps/extension/src/background/modules/authManager.ts` | Handles storage & refresh | ⚠️ YES |
 | **Database Types** | Shared | `packages/shared/src/types/database.ts` | Auto-generated from Supabase | ⚠️ YES |
 | **Validation Schemas** | Validation | `packages/validation/src/index.ts` | Zod Schemas for API/UI | ⚠️ YES |
@@ -105,7 +106,7 @@ graph TB
 | **Normalization** | Extension | `apps/extension/src/background/modules/platformAdapters/` | Must output canonical schema | ⚠️ YES |
 | **Bridge: Ext→API** | Extension | `apps/extension/src/background/modules/dashboardApi.ts` | Token interceptors | ⚠️ YES |
 | **Sync Logic** | Extension | `apps/extension/src/background/modules/syncManager.ts` | Retail & Retry logic | YES |
-| **Config Source** | Extension | `apps/extension/src/lib/config.js` | Configuration Master | ⚠️ YES |
+| **Config Source** | Extension | `apps/extension/src/lib/config.ts` | Configuration Master | ⚠️ YES |
 | **Shared Assets** | Shared Assets | `packages/assets/src/index.ts` | Unified AI Provider Branding | NO |
 
 
@@ -146,13 +147,13 @@ The Dashboard **NEVER** imports code directly from `apps/extension`.
 
 ### 3.2 Token Flow (The Handshake)
 1.  User logs in on Dashboard (`/extension-auth`).
-2.  `content-dashboard-auth.js` detects session.
-3.  Sends token to `service-worker.js`.
+2.  `content-dashboard-auth.ts` detects session.
+3.  Sends token to `service-worker.ts`.
 4.  `AuthManager` (service-worker) saves to `chrome.storage.local`.
 5.  All subsequent API requests use `Authorization: Bearer <token>`.
 
 ### 3.3 Configuration Flow (No Hardcoded URLs)
-1.  **Source**: `apps/extension/src/lib/config.js` defines `API_BASE_URL` and `DASHBOARD_URL`.
+1.  **Source**: `apps/extension/src/lib/config.ts` defines `API_BASE_URL` and `DASHBOARD_URL`.
 2.  **Init**: `service-worker.ts` imports config and saves it to `chrome.storage.local` on startup.
 3.  **Consumption**: Content scripts (e.g., `prompt-inject.js`) read config from `chrome.storage.local` asynchronously.
 4.  **Rule**: NEVER hardcode URLs in content scripts; always read from storage.
@@ -178,4 +179,4 @@ Refer to previous documentation for detailed file lists.
 3.  Verity `turbo build` passes after changes.
 
 ---
-**Version**: v2.2.0
+**Version**: v3.0.0

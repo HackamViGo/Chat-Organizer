@@ -1,8 +1,10 @@
+import { logger } from '@/lib/logger';
+
 /**
  * AuthManager
  * 
  * Responsible for:
- * 1. Listening to network requests to capture tokens (ChatGPT, Claude, Gemini).
+ * 1. Listening to network requests to capture tokens (ChatGPT, Gemini).
  * 2. Managing auth state in chrome.storage.local.
  * 3. Validating Dashboard sessions.
  */
@@ -25,7 +27,6 @@ export class AuthManager {
         lmarena_session: string | null;
         lmarena_fn_index: string | null;
     };
-    private DEBUG_MODE: boolean;
 
     constructor() {
         this.tokens = {
@@ -45,7 +46,6 @@ export class AuthManager {
             lmarena_session: null,
             lmarena_fn_index: null
         };
-        this.DEBUG_MODE = false; // Disabled for production
         
         // Bind methods to ensure 'this' context
         this.handleChatGPTHeaders = this.handleChatGPTHeaders.bind(this);
@@ -65,7 +65,7 @@ export class AuthManager {
     initialize() {
         this.registerListeners();
         this.loadTokensFromStorage();
-        console.log('[AuthManager] 🛡️ Initialized and listening.');
+        logger.info('AuthManager', '🛡️ Initialized and listening.');
     }
 
     registerListeners() {
@@ -165,7 +165,7 @@ export class AuthManager {
             if (this.tokens.chatgpt !== token) {
                 this.tokens.chatgpt = token;
                 chrome.storage.local.set({ chatgpt_token: token });
-                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ ChatGPT token updated');
+                logger.debug('AuthManager', '✅ ChatGPT token updated');
             }
         }
     }
@@ -183,11 +183,11 @@ export class AuthManager {
                             claude_org_id: orgId,
                             org_id_discovered_at: Date.now()
                         });
-                        if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Claude Org ID updated:', orgId);
+                        logger.debug('AuthManager', '✅ Claude Org ID updated', orgId);
                     }
                 }
             } catch (error) {
-                console.error('[AuthManager] ❌ Claude extraction error:', error);
+                logger.error('AuthManager', '❌ Claude extraction error', error);
             }
         }
     }
@@ -205,7 +205,7 @@ export class AuthManager {
                     if (this.tokens.gemini_at !== atToken) {
                         this.tokens.gemini_at = atToken;
                         chrome.storage.local.set({ gemini_at_token: atToken });
-                        if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Gemini AT Token updated:', atToken);
+                        logger.debug('AuthManager', '✅ Gemini AT Token updated');
                     }
                 }
             } catch (e) {
@@ -233,12 +233,12 @@ export class AuthManager {
                             gemini_dynamic_key: key,
                             key_discovered_at: Date.now()
                         });
-                        if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Gemini Dynamic Key updated:', key);
+                        logger.debug('AuthManager', '✅ Gemini Dynamic Key updated');
                     }
                 }
             }
         } catch (error) {
-            console.error('[AuthManager] ❌ Gemini extraction error:', error);
+            logger.error('AuthManager', '❌ Gemini extraction error', error);
         }
     }
     /**
@@ -267,7 +267,7 @@ export class AuthManager {
             if (this.tokens.deepseek !== token) {
                 this.tokens.deepseek = token;
                 chrome.storage.local.set({ deepseek_token: token });
-                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ DeepSeek token updated');
+                logger.debug('AuthManager', '✅ DeepSeek token updated');
             }
         }
 
@@ -276,7 +276,7 @@ export class AuthManager {
             if (this.tokens.deepseek_version !== dsVersionHeader.value) {
                 this.tokens.deepseek_version = dsVersionHeader.value;
                 chrome.storage.local.set({ deepseek_version: dsVersionHeader.value });
-                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ DeepSeek version header updated');
+                logger.debug('AuthManager', '✅ DeepSeek version header updated');
             }
         }
     }
@@ -291,7 +291,7 @@ export class AuthManager {
             if (this.tokens.perplexity_session !== token) {
                 this.tokens.perplexity_session = token;
                 chrome.storage.local.set({ perplexity_session: token });
-                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Perplexity token updated');
+                logger.debug('AuthManager', '✅ Perplexity token updated');
             }
         }
 
@@ -301,7 +301,7 @@ export class AuthManager {
             if (this.tokens.perplexity_session !== cookieHeader.value) {
                 this.tokens.perplexity_session = cookieHeader.value;
                 chrome.storage.local.set({ perplexity_session: cookieHeader.value });
-                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Perplexity session cookie captured');
+                logger.debug('AuthManager', '✅ Perplexity session cookie captured');
             }
         }
     }
@@ -328,8 +328,8 @@ export class AuthManager {
             updated = true;
         }
 
-        if (updated && this.DEBUG_MODE) {
-            console.log('[AuthManager] ✅ Grok tokens updated');
+        if (updated) {
+            logger.debug('AuthManager', '✅ Grok tokens updated');
         }
     }
 
@@ -355,8 +355,8 @@ export class AuthManager {
             updated = true;
         }
 
-        if (updated && this.DEBUG_MODE) {
-            console.log('[AuthManager] ✅ Qwen tokens updated');
+        if (updated) {
+            logger.debug('AuthManager', '✅ Qwen tokens updated');
         }
     }
 
@@ -371,7 +371,7 @@ export class AuthManager {
             expiresAt: session.expiresAt,
             rememberMe: session.rememberMe
         });
-        if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Dashboard session updated');
+        logger.debug('AuthManager', '✅ Dashboard session updated');
     }
 
     async isSessionValid() {
@@ -384,7 +384,7 @@ export class AuthManager {
      * Actively sync and verify all tokens
      */
     async syncAll() {
-        if (this.DEBUG_MODE) console.log('[AuthManager] 🔄 Starting full token sync...');
+        logger.debug('AuthManager', '🔄 Starting full token sync...');
         
         // 1. Refresh internal state from storage
         await this.loadTokensFromStorage();
@@ -411,7 +411,7 @@ export class AuthManager {
                 tokens: this.tokens 
             };
         } catch (e) {
-            console.error('[AuthManager] Sync ping failed:', e);
+            logger.error('AuthManager', 'Sync ping failed', e);
             // If offline, trust storage if not expired
             const valid = await this.isSessionValid();
             return { isValid: valid, tokens: this.tokens };
@@ -424,3 +424,4 @@ export class AuthManager {
         // TODO: Implement cleaner interface for API calls
     }
 }
+

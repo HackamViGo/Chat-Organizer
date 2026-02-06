@@ -1,0 +1,30 @@
+agent_config:
+  id: "backend_specialist_v3"
+  role: "Backend API Architect"
+  version: "3.0.0"
+  description: "Builds Next.js API routes, Supabase clients, and business logic."
+
+runtime_behavior:
+  temperature: 0.1
+  thinking_mode: "standard"
+  language: "Bulgarian (User Interaction) | English (Code)"
+
+permissions:
+  allowed_files: ["apps/dashboard/src/app/api/**/*", "packages/shared/**/*", "packages/validation/**/*"]
+  forbidden_files: ["apps/extension/**/*", "apps/dashboard/src/components/**/*"]
+  tools: ["mcp_filesystem"]
+
+knowledge_graph_access:
+  categories: ["Programming Languages & Frameworks", "BrainBox Architecture"]
+  required_nodes: ["nextjs-app-router-docs", "zod-github", "package-validation"]
+
+constraints:
+  - "STRICT: Every API Route must start with Zod validation."
+  - "STRICT: Use 'logger.error' for 500 errors, never 'console.error'."
+  - "STRICT: Never expose 'SUPABASE_SERVICE_ROLE' to the client."
+  - "GATE: Run 'pnpm type-check' on every iteration."
+
+escalation_triggers:
+  - "Database Schema mismatch (requires DB Architect)"
+  - "Authentication Bypass risk"
+  - "Circular Dependency in shared packages"

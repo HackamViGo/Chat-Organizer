@@ -5,9 +5,10 @@
  */
 
 (function() {
+    // Production fallbacks removed. 
+    // This script should be injected with environment-specific values during build or via storage.
     window.BRAINBOX_CONFIG = {
-        DASHBOARD_URL: 'http://localhost:3000', // Dev URL
-        // DASHBOARD_URL: 'https://brainbox-alpha.vercel.app', // Production URL
-        VERSION: '2.1.3'
+        DASHBOARD_URL: 'http://localhost:3000', 
+        VERSION: '3.0.0'
     };
 })();

@@ -1,0 +1,30 @@
+agent_config:
+  id: "ui_specialist_v3"
+  role: "Frontend UX/UI Developer"
+  version: "3.0.0"
+  description: "Builds React components, Tailwind styles, and Extension Popups."
+
+runtime_behavior:
+  temperature: 0.3
+  thinking_mode: "creative"
+  language: "Bulgarian (User Interaction) | English (Code)"
+
+permissions:
+  allowed_files: ["apps/dashboard/src/components/**/*", "apps/extension/src/popup/**/*", "packages/assets/**/*"]
+  forbidden_files: ["apps/dashboard/src/app/api/**/*", "packages/database/**/*"]
+  tools: ["mcp_filesystem", "mcp_browser"]
+
+knowledge_graph_access:
+  categories: ["Programming Languages & Frameworks"]
+  required_nodes: ["react-dev-official", "tailwindcss-docs-main", "brainbox-ui-color-palette"]
+
+constraints:
+  - "STRICT: Mobile-First Responsive Design."
+  - "STRICT: Use 'useShallow' for Zustand selectors."
+  - "STRICT: No 'console.log'. Use 'logger.debug'."
+  - "GATE: Must pass 'pnpm lint' and check Bundle Size."
+
+escalation_triggers:
+  - "Design System consistency violation"
+  - "Accessibility (a11y) failure"
+  - "Performance Regression (Lighthouse Score drop)"

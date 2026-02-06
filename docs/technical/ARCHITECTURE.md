@@ -1,4 +1,5 @@
 # BrainBox Architecture
+**Version**: 3.0.0 (2026-02-06)
 
 ## 🔭 High-Level Overview
 
@@ -28,6 +29,8 @@ graph TD
     subgraph "Shared (@brainbox/*)"
         Utils[@brainbox/shared]
         Validation[@brainbox/validation]
+        Database[@brainbox/database]
+        Assets[@brainbox/assets]
     end
     
     User -->|Interact| CS
@@ -69,8 +72,8 @@ The extension injects a "brain" into AI web interfaces.
 - **Global Error Boundary**: Wraps injection points to prevent Extension errors from crashing the host page.
 
 ### Content Scripts
-- **Platform-Specific**: Dedicated scripts for ChatGPT, Claude, Gemini, etc. (e.g., `content-chatgpt.js`).
-- **`prompt-inject.js`**: Universal script for injecting the context menu into valid text areas.
+- **Platform-Specific**: Dedicated scripts for ChatGPT, Claude, Gemini, etc. (e.g., `content-chatgpt.ts`).
+- **`prompt-inject.ts`**: Universal script for injecting the context menu into valid text areas.
 
 ---
 

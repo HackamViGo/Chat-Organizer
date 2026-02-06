@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
 
-const extensionPath = path.join(process.cwd(), 'extension');
+const extensionPath = path.join(process.cwd(), 'apps/extension/dist');
 
 export default defineConfig({
     testDir: './tests/e2e',

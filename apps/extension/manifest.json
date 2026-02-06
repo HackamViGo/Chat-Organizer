@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BrainBox - AI Chat Organizer",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "description": "Organize AI conversations from ChatGPT, Gemini, Claude, Grok, Perplexity, DeepSeek, and Qwen into your personal dashboard",
   "permissions": [
     "storage",
@@ -16,7 +16,7 @@
   "host_permissions": [
     "http://localhost/*",
     "http://127.0.0.1/*",
-    "https://brainbox-alpha.vercel.app/*",
+    "__DASHBOARD_URL__/*",
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
     "https://claude.ai/*",
@@ -143,7 +143,7 @@
     },
     {
       "matches": [
-        "https://brainbox-alpha.vercel.app/extension-auth",
+        "__DASHBOARD_URL__/extension-auth",
         "http://localhost:3000/extension-auth",
         "http://127.0.0.1:3000/extension-auth"
       ],
@@ -180,6 +180,6 @@
     }
   ],
   "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' ws://localhost:5173 http://localhost:5173 http://127.0.0.1:3000 http://localhost:3000 https://brainbox-alpha.vercel.app https://chatgpt.com https://chat.openai.com https://claude.ai https://gemini.google.com https://grok.com https://api.x.ai https://x.com https://api.x.com https://twitter.com https://api.twitter.com https://*.perplexity.ai https://api.perplexity.ai https://chat.deepseek.com https://api.deepseek.com https://dashscope.aliyuncs.com https://api.together.xyz https://lmarena.ai https://arena.ai https://chat.qwen.ai"
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' ws://localhost:5173 http://localhost:5173 http://127.0.0.1:3000 http://localhost:3000 __DASHBOARD_URL__ https://chatgpt.com https://chat.openai.com https://claude.ai https://gemini.google.com https://grok.com https://api.x.ai https://x.com https://api.x.com https://twitter.com https://api.twitter.com https://*.perplexity.ai https://api.perplexity.ai https://chat.deepseek.com https://api.deepseek.com https://dashscope.aliyuncs.com https://api.together.xyz https://lmarena.ai https://arena.ai https://chat.qwen.ai"
   }
 }

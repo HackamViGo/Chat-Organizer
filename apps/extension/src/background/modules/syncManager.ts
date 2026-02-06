@@ -117,5 +117,52 @@ export class SyncManager {
                 return false;
             }
         }).catch(err => console.error('[SyncManager] Startup sync failed:', err));
+
+        // Schedule periodic sync
+        this.scheduleSync();
+    }
+
+    /**
+     * Schedule periodic background sync using Alarms API
+     */
+    static scheduleSync() {
+        const ALARM_NAME = 'brainbox_bg_sync';
+        
+        chrome.alarms.get(ALARM_NAME, (alarm) => {
+            if (!alarm) {
+                chrome.alarms.create(ALARM_NAME, {
+                    periodInMinutes: 5,
+                    delayInMinutes: 1
+                });
+                console.log(`[SyncManager] ⏰ Alarm '${ALARM_NAME}' created (5m interval)`);
+            }
+        });
+
+        // Listen for alarms
+        chrome.alarms.onAlarm.addListener((alarm) => {
+            if (alarm.name === ALARM_NAME) {
+                console.log(`[SyncManager] ⏰ Alarm triggered. Processing queue...`);
+                chrome.storage.local.get(['accessToken'], ({ accessToken }) => {
+                    if (accessToken) {
+                        this.processQueue(async (item) => {
+                            const { CONFIG } = await import('@/lib/config');
+                            try {
+                                const response = await fetch(`${CONFIG.API_BASE_URL}/api/chats`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${accessToken}`
+                                    },
+                                    body: JSON.stringify(item.data)
+                                });
+                                return response.ok;
+                            } catch {
+                                return false;
+                            }
+                        }).catch(err => console.error('[SyncManager] Alarm sync failed:', err));
+                    }
+                });
+            }
+        });
     }
 }

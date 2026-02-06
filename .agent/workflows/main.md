@@ -1,0 +1,43 @@
+---
+description: Main orchestration
+---
+
+version: "3.1"
+name: "Meta-Architect Main Orchestration"
+
+global:
+  min_health_score: 80
+  auto_rollback: true
+  knowledge_graph: "meta_architect/resources/knowledge_graph.json"
+  agent_states_dir: "agent_states"
+  mcp_servers: ["@mcp:context7"]
+
+pipeline:
+  - stage: initial_sync
+    actions:
+      - action: run_initial_audit
+        command: "python meta_architect/scripts/project_planner.py"
+      - "@mcp:context7/scan_workspace"
+
+  - stage: planning
+    actions:
+      - action: inject_knowledge
+        command: "python meta_architect/scripts/knowledge_injector.py"
+      - user_approval_gate
+    await_approval: true
+
+  - stage: execution
+    loop_condition: "tasks_remaining"
+    actions:
+      - action: persist_state
+        command: "python meta_architect/scripts/state_manager.py --action update"
+      - action: atomic_verification
+        command: "python meta_architect/scripts/project_health_check.py"
+    agent_template: "meta_architect/resources/sub_agent_template.md"
+    on_step_failure: execute_rollback
+
+  - stage: final_verification
+    actions:
+      - action: security_scan
+        command: "python meta_architect/scripts/project_health_check.py --mode security"
+    condition: "final_score >= global.min_health_score"

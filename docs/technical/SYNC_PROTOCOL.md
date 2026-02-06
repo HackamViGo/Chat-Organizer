@@ -81,6 +81,11 @@ graph TD
 
 ### 3.2 Message Types
 
+**Traffic Coordinator**: `brainbox_master.ts` acts as the "Safety Valve". It uses `RELEVANT_API_REGEX` to filter requests before they reach the Service Worker, preventing unnecessary message passing.
+
+| Action | Sender | Handler | Purpose |
+|--------|--------|---------|---------|
+
 | Action | Sender | Handler | Purpose |
 |--------|--------|---------|---------|
 | `setAuthToken` | Auth Content Script | Service Worker | Store Supabase session |
@@ -128,6 +133,8 @@ interface CreateChatInput {
 
 ### 5.2 Content Security Policy (CSP)
 - **Manifest V3**: No inline scripts. logic isolated in Service Worker.
+- **Fail-Fast URL Filtering**: `brainbox_master.ts` immediately blocks execution on non-relevant pages using regex.
+- **Global Error Boundaries**: Content scripts are wrapped in `try/catch` blocks to prevent modification of the DOM or console spam on error.
 
 ---
 **Version**: v.2.1.3

@@ -28,6 +28,7 @@
 graph TB
     subgraph Extension["🧩 apps/extension (Vite)"]
         SW[service-worker.ts<br/>Entry Point]
+        MASTER[brainbox_master.ts<br/>Traffic Coordinator]
         subgraph SW_Modules["📦 SW Modules"]
             MO[NetworkObserver.ts]
             MR[MessageRouter.ts]
@@ -41,12 +42,13 @@ graph TB
         CS_AUTH[content-dashboard-auth.js<br/>Token Bridge]
         NORM[platformAdapters/<br/>Platform Parsers (v2.1.2)]
         
+        MASTER -->|Regex Guard| CS_PLAT
         EXT_SHARED["@brainbox/shared<br/>(Imported via Workspace)"]
     end
     
     subgraph Dashboard["🌐 apps/dashboard (Next.js)"]
         API[src/app/api/<br/>API Routes]
-        STORE[src/store/<br/>Zustand State]
+        STORE[src/store/<br/>Zustand + useShallow]
         LIB_AUTH[src/lib/supabase/<br/>Supabase Client]
         MIDDLEWARE[src/middleware.ts<br/>Auth Guard]
         

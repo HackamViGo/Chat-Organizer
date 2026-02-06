@@ -1,3 +1,700 @@
+# Meta-Architect Context Snapshot
+**Generated:** 2026-02-06 03:14:48
+**Status:** Phase 2 Ready
+
+## File: `package.json`
+
+```json
+{
+  "name": "brainbox",
+  "private": true,
+  "version": "2.2.0",
+  "packageManager": "pnpm@10.28.2",
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:dashboard": "turbo dev --filter=@brainbox/dashboard",
+    "dev:extension": "turbo dev --filter=@brainbox/extension",
+    "build": "turbo build",
+    "build:dashboard": "turbo build --filter=@brainbox/dashboard",
+    "build:extension": "turbo build --filter=@brainbox/extension",
+    "lint": "turbo lint",
+    "type-check": "turbo type-check",
+    "test": "playwright test",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
+    "test:api": "node tests/scripts/test-api.js",
+    "chrome:debug": "./tests/chrome-env/start-chrome-debug.sh",
+    "chrome:monitor": "node tests/chrome-env/cursor-chrome-composer.js",
+    "test:chrome": "bash tests/chrome-env/test-chrome.sh",
+    "cleanup:chrome": "rm -rf /tmp/chrome-extension-test-* && echo '✅ Cleaned test profiles'",
+    "dev:setup": "chmod +x tests/chrome-env/*.sh && echo '✅ Dev tools ready'",
+    "test:sync": "node tests/scripts/validate_extension_sync.js",
+    "test:rls": "node tests/database/check-rls.js",
+    "test:unit": "node tests/unit/schema-validation.test.js",
+    "test:integration": "node tests/integration/api-health.test.js",
+    "verify": "python3 meta_architect/scripts/project_health_check.py --min-score 70",
+    "audit": "python3 meta_architect/scripts/project_planner.py",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build",
+    "legacy:dev": "next dev",
+    "legacy:build": "next build"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10",
+    "@upstash/redis": "^1.34.3",
+    "clsx": "^2.1.1",
+    "dompurify": "^3.0.9",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.561.0",
+    "marked": "^12.0.0",
+    "next": "^14.2.18",
+    "next-pwa": "^5.6.0",
+    "next-themes": "^0.4.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.69.0",
+    "react-hot-toast": "^2.4.1",
+    "tailwind-merge": "^2.5.5",
+    "zod": "^3.25.76",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "@types/dompurify": "^3.2.0",
+    "@types/node": "^22.14.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.18",
+    "postcss": "^8.5.1",
+    "sharp": "^0.34.5",
+    "tailwindcss": "^3.4.17",
+    "turbo": "^2.3.0",
+    "typescript": "~5.8.2",
+    "webpack-cli": "^6.0.1",
+    "ws": "^8.18.3"
+  },
+  "overrides": {
+    "pify": "^5.0.0"
+  }
+}
+
+```
+
+## File: `pnpm-workspace.yaml`
+
+```yaml
+packages:
+  - 'apps/*'
+  - 'packages/*'
+
+```
+
+## File: `turbo.json`
+
+```json
+{
+  "$schema": "https://turborepo.dev/schema.json",
+  "globalDependencies": [
+    "**/.env",
+    "tsconfig.json"
+  ],
+  "globalEnv": [
+    "NEXT_PUBLIC_SUPABASE_URL",
+    "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "NODE_ENV"
+  ],
+  "globalPassThroughEnv": [
+    "VERCEL_URL",
+    "VERCEL_ENV"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "type-check": {
+      "dependsOn": ["^type-check"]
+    },
+    "test": {
+      "dependsOn": []
+    }
+  }
+}
+
+```
+
+## File: `tsconfig.json`
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "strict": true,
+
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "esModuleInterop": true,
+    "allowJs": true,
+    "forceConsistentCasingInFileNames": true,
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ],
+      "@/components/*": [
+        "./src/components/*"
+      ],
+      "@/lib/*": [
+        "./src/lib/*"
+      ],
+      "@/store/*": [
+        "./src/store/*"
+      ],
+      "@/types/*": [
+        "./src/types/*"
+      ],
+      "@/hooks/*": [
+        "./src/hooks/*"
+      ],
+      "@brainbox/database": [
+        "./packages/database"
+      ],
+      "@brainbox/validation": [
+        "./packages/validation"
+      ],
+      "@brainbox/shared": [
+        "./packages/shared"
+      ]
+    },
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "strictNullChecks": true
+  },
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    ".next/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
+}
+
+```
+
+## File: `apps/dashboard/package.json`
+
+```json
+{
+  "name": "@brainbox/dashboard",
+  "version": "2.0.6",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@brainbox/assets": "workspace:*",
+    "@brainbox/database": "workspace:*",
+    "@brainbox/validation": "workspace:*",
+    "@google/generative-ai": "^0.21.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@supabase/ssr": "^0.5.2",
+    "@supabase/supabase-js": "^2.47.10",
+
+    "@upstash/redis": "^1.34.3",
+    
+    "clsx": "^2.1.1",
+    "dompurify": "^3.0.9",
+    "framer-motion": "^12.31.0",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.561.0",
+    "marked": "^12.0.0",
+    "next": "^14.2.18",
+    "next-pwa": "^5.6.0",
+    "next-themes": "^0.4.6",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.69.0",
+    "react-hot-toast": "^2.4.1",
+
+    "tailwind-merge": "^2.5.5",
+    "zod": "^3.25.76",
+    "zustand": "^5.0.2"
+  },
+  "devDependencies": {
+    "@types/dompurify": "^3.2.0",
+    "@types/node": "^22.14.0",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.18",
+    "postcss": "^8.5.1",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~5.8.2"
+  }
+}
+
+```
+
+## File: `apps/dashboard/next.config.js`
+
+```typescript
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+});
+
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  images: {
+    formats: ['image/avif', 'image/webp'],
+
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**.supabase.co',
+      },
+    ],
+  },
+  transpilePackages: ['@brainbox/assets', '@brainbox/database', '@brainbox/validation', '@brainbox/shared'],
+  experimental: {
+    optimizePackageImports: ['lucide-react'],
+  },
+};
+
+module.exports = withPWA(nextConfig);
+
+```
+
+## File: `apps/extension/package.json`
+
+```json
+{
+  "name": "@brainbox/extension",
+  "version": "2.1.2",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "test:watch": "vitest --watch",
+    "test:auth": "vitest --run src/background/modules/__tests__/authManager.test.ts",
+    "test:router": "vitest --run src/background/modules/__tests__/messageRouter.test.ts",
+    "test:platforms": "vitest --run src/background/modules/platformAdapters/__tests__",
+    "test:prompts": "vitest --run src/background/modules/__tests__/promptInjection.test.ts",
+    "test:integration": "vitest --run src/background/modules/__tests__/integration.test.ts",
+    "test:new-platforms": "vitest --run src/background/modules/platformAdapters/__tests__/{deepseek,perplexity,grok,qwen,lmarena}.test.ts",
+    "test:new-integration": "vitest --run src/background/modules/__tests__/newPlatforms.integration.test.ts",
+    "test:all": "vitest --run"
+  },
+  "dependencies": {
+    "@brainbox/shared": "workspace:*",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@crxjs/vite-plugin": "^2.0.0-beta.32",
+    "@types/chrome": "^0.0.268",
+    "@types/node": "^22.14.0",
+    "@types/react": "^18.3.27",
+    "@types/react-dom": "^18.3.7",
+    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/ui": "^2.0.0",
+    "autoprefixer": "^10.4.24",
+    "happy-dom": "^14.0.0",
+    "jsdom": "^27.4.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.19",
+    "typescript": "~5.8.2",
+    "vite": "^5.4.0",
+    "vite-tsconfig-paths": "^6.0.5",
+    "vitest": "^2.0.0"
+  }
+}
+
+```
+
+## File: `apps/extension/vite.config.ts`
+
+```typescript
+import { defineConfig } from 'vite';
+import { crx } from '@crxjs/vite-plugin';
+import { resolve } from 'path';
+import tsconfigPaths from 'vite-tsconfig-paths';
+import fs from 'fs';
+
+// Read manifest using fs to avoid Import Attributes syntax issues
+const manifestCallback = () => {
+  const manifest = JSON.parse(fs.readFileSync(resolve(__dirname, 'manifest.json'), 'utf-8'));
+  return manifest;
+};
+
+// Custom plugin to strip Dev CSP in production
+const stripDevCSP = () => {
+  return {
+    name: 'stripDevCSP',
+    writeBundle() {
+      const outDir = resolve(__dirname, 'dist');
+      const manifestPath = resolve(outDir, 'manifest.json');
+      
+      if (fs.existsSync(manifestPath)) {
+        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+        
+        if (manifest.content_security_policy?.extension_pages) {
+          // Remove localhost dev server origins
+          manifest.content_security_policy.extension_pages = manifest.content_security_policy.extension_pages
+            .replace(/\s*ws:\/\/localhost:5173/g, '')
+            .replace(/\s*http:\/\/localhost:5173/g, '')
+            .trim();
+            
+          fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+          console.log('✓ Security: Stripped localhost dev servers from CSP');
+        }
+      }
+    }
+  };
+};
+
+export default defineConfig({
+  plugins: [
+    tsconfigPaths({
+      root: __dirname,
+    }),
+    crx({ manifest: manifestCallback() }),
+    stripDevCSP(),
+  ],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, './src'),
+    },
+  },
+  build: {
+    outDir: 'dist',
+    emptyOutDir: true,
+    sourcemap: process.env.NODE_ENV === 'development',
+    rollupOptions: {
+      input: {
+        popup: resolve(__dirname, 'src/popup/index.html'),
+      },
+    },
+  },
+  // Dev server config for extension HMR
+  server: {
+    port: 5173,
+    strictPort: true,
+    hmr: {
+      port: 5173,
+    },
+  },
+});
+
+```
+
+## File: `apps/extension/manifest.json`
+
+```json
+{
+  "manifest_version": 3,
+  "name": "BrainBox - AI Chat Organizer",
+  "version": "2.2.0",
+  "description": "Organize AI conversations from ChatGPT, Gemini, Claude, Grok, Perplexity, DeepSeek, and Qwen into your personal dashboard",
+  "permissions": [
+    "storage",
+    "webRequest",
+    "cookies",
+    "contextMenus",
+    "notifications",
+    "tabs",
+    "scripting",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "http://localhost/*",
+    "http://127.0.0.1/*",
+    "https://brainbox-alpha.vercel.app/*",
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://claude.ai/*",
+    "https://gemini.google.com/*",
+    "https://chat.deepseek.com/*",
+    "https://api.deepseek.com/*",
+    "https://www.perplexity.ai/*",
+    "https://chat.qwenlm.ai/*",
+    "https://chat.lmsys.org/*",
+    "https://grok.com/*",
+    "https://*.x.ai/*",
+    "https://*.x.com/*",
+    "https://*.twitter.com/*",
+    "https://*.perplexity.ai/*",
+    "https://dashscope.aliyuncs.com/*",
+    "https://api.together.xyz/*",
+    "https://lmarena.ai/*",
+    "https://arena.ai/*",
+    "https://chat.qwen.ai/*"
+
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*"
+      ],
+      "js": [
+        "src/lib/ui.ts",
+        "src/content/content-chatgpt.ts",
+        "src/prompt-inject/prompt-inject.ts"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://claude.ai/*"
+      ],
+      "js": [
+        "src/lib/ui.ts",
+        "src/content/content-claude.ts",
+        "src/prompt-inject/prompt-inject.ts"
+      ],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://gemini.google.com/*"
+      ],
+      "js": [
+        "src/lib/ui.ts",
+        "src/content/brainbox_master.ts",
+        "src/prompt-inject/prompt-inject.ts"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "src/prompt-inject/prompt-inject.ts"
+      ],
+      "run_at": "document_idle",
+      "exclude_matches": [
+        "https://gemini.google.com/*"
+      ]
+    },
+    {
+      "matches": [
+        "https://chat.deepseek.com/*"
+      ],
+      "js": [
+        "src/lib/ui.ts",
+        "src/content/content-deepseek.ts"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://www.perplexity.ai/*"
+      ],
+      "js": [
+        "src/lib/ui.ts",
+        "src/content/content-perplexity.ts"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://x.com/i/grok*",
+        "https://grok.com/*"
+      ],
+      "js": [
+        "src/lib/ui.ts",
+        "src/content/content-grok.ts"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://chat.qwen.ai/*"
+      ],
+      "js": [
+        "src/lib/ui.ts",
+        "src/content/content-qwen.ts"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://chat.lmsys.org/*",
+        "https://arena.ai/*"
+      ],
+      "js": [
+        "src/lib/ui.ts",
+        "src/content/content-lmarena.ts"
+      ],
+      "run_at": "document_end"
+    },
+    {
+      "matches": [
+        "https://brainbox-alpha.vercel.app/extension-auth",
+        "http://localhost:3000/extension-auth",
+        "http://127.0.0.1:3000/extension-auth"
+      ],
+      "js": [
+        "src/content/content-dashboard-auth.ts"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "src/icons/icon16.png",
+      "32": "src/icons/icon32.png",
+      "48": "src/icons/icon48.png",
+      "128": "src/icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "src/icons/icon16.png",
+    "32": "src/icons/icon32.png",
+    "48": "src/icons/icon48.png",
+    "128": "src/icons/icon128.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/icons/*",
+        "src/content/inject-gemini-main.js"
+      ],
+      "matches": [
+        "https://gemini.google.com/*"
+      ]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' ws://localhost:5173 http://localhost:5173 http://127.0.0.1:3000 http://localhost:3000 https://brainbox-alpha.vercel.app https://chatgpt.com https://chat.openai.com https://claude.ai https://gemini.google.com https://grok.com https://api.x.ai https://x.com https://api.x.com https://twitter.com https://api.twitter.com https://*.perplexity.ai https://api.perplexity.ai https://chat.deepseek.com https://api.deepseek.com https://dashscope.aliyuncs.com https://api.together.xyz https://lmarena.ai https://arena.ai https://chat.qwen.ai"
+  }
+}
+```
+
+## File: `meta_architect/audit_config.yml`
+
+```yaml
+weights:
+  hardcoded_token: 20       # Immediate fail if > 4 tokens found (High Risk)
+  missing_gitignore_env: 50 # Immediate fail (Critical Risk)
+  broken_import: 10         # High Risk
+  console_log: 0.5          # 20 logs = -10 points. 200 logs = Fail.
+
+thresholds:
+  critical: 85              # Raised from 70
+  warning: 95
+
+exclusions:
+  directories: 
+    - "node_modules"
+    - ".git"
+    - "dist"
+    - ".next"
+    - "coverage"
+    - ".agent"
+    - "agent_states"
+  files: 
+    - "pnpm-lock.yaml"
+    - "package-lock.json"
+
+allowed_patterns:
+  - "example"
+  - "placeholder"
+  - "00000000000000000000000000000000"
+
+```
+
+## File: `.workflows/verification_gate.yml`
+
+```yaml
+version: "2.0"
+name: "Verification Gate"
+
+enforcement_policy:
+  mode: STRICT
+  on_gate_failure: ROLLBACK_TASK
+
+gates:
+  - id: security_threshold
+    check: "python3 meta_architect/scripts/project_health_check.py --min-score 90"
+    severity: CRITICAL
+    
+  - id: code_quality
+    check: "pnpm verify"
+    severity: HIGH
+
+  - id: infrastructure_check
+    check: "python3 meta_architect/scripts/infra_validator.py"
+    severity: CRITICAL
+
+  - id: identity_lock_compliance
+    check: "python3 meta_architect/scripts/graph_query.py --action verify_locks"
+    severity: CRITICAL
+
+steps:
+  - id: run_verification_suite
+    action: parallel_exec
+    gates: ["security_threshold", "code_quality", "infrastructure_check", "identity_lock_compliance"]
+
+```
+
+## File: `.github/workflows/publish.yml`
+
+*File not found*
+
+## File: `meta_architect/resources/knowledge_graph.json`
+
+```json
 {
   "nodes": [
     {
@@ -2460,3 +3157,5 @@
     }
   ]
 }
+```
+

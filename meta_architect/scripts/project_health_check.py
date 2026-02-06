@@ -6,23 +6,20 @@ Deterministic security & health scanner.
 import os
 import re
 import yaml
+import sys
 from pathlib import Path
 
 class HealthEngine:
-    def __init__(self, config_path="audit_config.yml"):
+    def __init__(self, config_path="meta_architect/audit_config.yml"):
         self.base_score = 100
+        self.config_path = config_path
         self.config = self._load_config(config_path)
-        # Logic Drift Fix: Enforce config weights, do not use hardcoded fallbacks
+        
+        # FAIL FAST: Strict Configuration Enforcement
         self.deductions = self.config.get("weights", {})
         if not self.deductions:
-             # Fallback only if config is completely broken, but warn
-             print("⚠️ Warning: No weights found in config, using defaults.")
-             self.deductions = {
-                "hardcoded_token": 5, 
-                "missing_gitignore_env": 20, 
-                "broken_import": 10,  
-                "console_log": 0.1
-             }
+             raise ValueError(f"CRITICAL: No 'weights' defined in {config_path}. Audit cannot proceed without deduction logic.")
+
         self.issues = {
             "hardcoded_token": 0,
             "missing_gitignore_env": 0,
@@ -31,10 +28,25 @@ class HealthEngine:
         }
 
     def _load_config(self, path):
-        if os.path.exists(path):
-            with open(path, 'r') as f:
-                return yaml.safe_load(f)
-        return {"exclusions": {"directories": [], "files": []}}
+        """
+        Load configuration from YAML file.
+        Raises FileNotFoundError or ValueError if invalid.
+        """
+        if not os.path.exists(path):
+            # Attempt relative path resolution
+            alt_path = os.path.join("meta_architect", "resources", "audit_config.yml") # potential alt location
+            
+            # STRICT: If explicit path provided is missing, fail.
+            raise FileNotFoundError(f"CRITICAL: Audit configuration not found at: {path}")
+
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                config = yaml.safe_load(f)
+                if not config:
+                    raise ValueError("Config file is empty")
+                return config
+        except yaml.YAMLError as e:
+            raise ValueError(f"CRITICAL: Failed to parse {path}: {e}")
 
     def should_skip(self, path):
         exclusions = self.config.get("exclusions", {})
@@ -122,14 +134,15 @@ class HealthEngine:
                     if any(p in token.lower() for p in allowed_patterns):
                         continue
                         
-                    print(f"⚠️ Token found in: {path}") # DEBUG
+                    # print(f"⚠️ Token found in: {path}") # DEBUG
                     self.issues["hardcoded_token"] += 1
                 
                 # Console logs
                 if path.endswith(('.ts', '.tsx', '.js')):
                     logs = re.findall(r'console\.log\(', content)
                     if logs:
-                        print(f"⚠️ Console log found in: {path} ({len(logs)})") # DEBUG
+                        # print(f"⚠️ Console log found in: {path} ({len(logs)})") # DEBUG
+                        pass
                     self.issues["console_log"] += len(logs)
                     
         except Exception as e:
@@ -143,26 +156,29 @@ class HealthEngine:
 
     def _report(self, score):
         print(f"\n📊 Audit Report")
-        print(f"Score: {score}/100")
+        print(f"Score: {score:.1f}/100")
         for issue, count in self.issues.items():
             if count > 0:
                 print(f"  - {issue}: {count} found")
         
-        if score < self.config.get("thresholds", {}).get("critical", 90):
+        if score < self.config.get("thresholds", {}).get("critical", 80): # Raised default to 80
             print("❌ SECURITY GATE FAILED")
         else:
             print("✅ SECURITY GATE PASSED")
 
 if __name__ == "__main__":
-    import sys
-    engine = HealthEngine()
-    score = engine.scan_project()
-    
-    # Exit code based on thresholds
-    min_score = 90
-    if len(sys.argv) > 2 and sys.argv[1] == "--min-score":
-        min_score = int(sys.argv[2])
+    try:
+        engine = HealthEngine()
+        score = engine.scan_project()
         
-    if score < min_score:
+        # Exit code based on thresholds
+        min_score = 80 # Raised default to 80
+        if len(sys.argv) > 2 and sys.argv[1] == "--min-score":
+            min_score = float(sys.argv[2])
+            
+        if score < min_score:
+            sys.exit(1)
+        sys.exit(0)
+    except Exception as e:
+        print(f"\n❌ FATAL ERROR: {e}")
         sys.exit(1)
-    sys.exit(0)

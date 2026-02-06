@@ -1,56 +1,94 @@
-# 🧠 BrainBox: Вашият AI Хаос, Превърнат в Професионална Библиотека 🚀 (v2.1.3+)
+# 🧠 BrainBox: AI Workflow Reimagined (v2.1+)
 
-**BrainBox** е еволюцията на AI работния процес. Проектиран като мощна **Turborepo + Vite** монорепо екосистема, той обединява светкавично бързо Chrome разширение със стилно Next.js табло, за да ви даде абсолютен контрол над вашия интелект в ChatGPT, Claude и Gemini.
-
----
-
-## ✨ Защо BrainBox е впечатляващ?
-
-### 🧩 1. Нова Монорепо Архитектура (Turbo + Vite)
-Проектът е преобразен за максимална скорост и модулност:
-- **Lightning Fast Builds**: Благодарение на **Vite** и **CRXJS**, разширението се компилира мигновено. ⚡
-- **Shared packages**: Пълна синергия между Dashboard и Extension чрез споделени пакети за логика (`@brainbox/shared`) и валидация (`@brainbox/validation`). 🤝
-- **Type-Safe Ecosystem**: Цялата система е изградена на **TypeScript**, гарантирайки стабилност и лесна поддръжка. 🛡️
-
-### 🖱️ 2. Умно Динамично Меню (Next-Gen Context Menus)
-Забравете старите статични списъци. Нашето ново контекстно меню е живо:
-- **Smart Inject**: Разпознава AI платформите и ви предлага интелигентно вложената ви библиотека директно в текстовото поле. 💉
-- **Quick Access Folders**: Изберете любимите си папки и ги вижте като динамични подменюта за супер бърз достъп. 📂
-- **Recents (⚡ Quick)**: Вашите последно използвани и обновени промптове са винаги на един клик разстояние.
-- **Universal Search**: Търсете в цялата си библиотека с промптове директно през десния бутон! 🔍
-
-### 🎯 3. Контекстуално "Smart" Записване
-- **Seamless Capture**: Автоматично извлича заглавието, модела и цялата нишка на разговора от ChatGPT, Claude и Gemini. 📥
-- **Deep Linking**: Всеки записан чат носи със себе си линк към оригинала, за да се върнете към работата си по всяко време. �
-- **Cross-Platform Normalization**: Данните от всички AI модели се нормализират в единен формат за перфектно визуализиране в таблото ви.
-
-### 🗂️ 4. Йерархична Организация без Граници
-- **Deep Nesting**: До 4 нива на папки за пълна свобода при структуриране на вашия "дигитален мозък". �
-- **Visual Identity**: Динамични градиенти и 15 категории икони (Lucide), които правят интерфейса да изглежда като софтуер от "Apple" ниво. 🎨
-- **Glassmorphism UI**: Модерен дизайн с ефект на замъглено стъкло, който кара таблото ви да "диша". ✨
+**BrainBox** is the evolution of your AI workflow. Architected as a high-performance **Turborepo + Vite** monorepo ecosystem, it unifies a lightning-fast Chrome Extension with a sophisticated Next.js Dashboard to give you absolute control over your intelligence across ChatGPT, Claude, and Gemini.
 
 ---
 
-## 🔥 Killer Features (The "Wow" Factor)
-- 🪄 **AI Enhance Selection**: Маркирайте текст на произволен сайт и го подобрете/редактирайте с AI през десния бутон.
-- ⚡ **Turbo-Charged Performance**: Светкавична реакция благодарение на оптимизирания **Service Worker** и локален кеш.
-- 📝 **Create from Selection**: Намерете вдъхновение в мрежата? Превърнете го в промпт за секунди!
-- 🌙 **Dark Mode Excellence**: Перфектно оптимизиран за нощните птици на AI света.
+## ✨ Features
+
+### 🧩 1. Modern Monorepo Architecture (Turbo + Vite)
+Re-engineered for speed and modularity:
+- **Lightning Fast Builds**: Powered by **Vite** and **CRXJS**, the extension compiles instantly. ⚡
+- **Shared Packages**: Complete synergy between Dashboard and Extension via shared logic (`@brainbox/shared`) and validation (`@brainbox/validation`). 🤝
+- **Type-Safe Ecosystem**: Built entirely on **TypeScript**, ensuring stability and maintainability. 🛡️
+
+### 🖱️ 2. Dynamic Context Menus
+Forget static lists. Our new context menu is alive:
+- **Smart Inject**: Detects AI platforms and intelligently offers your nested prompt library directly in the input field. 💉
+- **Quick Access Folders**: Pin your favorite folders for sub-menu access. 📂
+- **Recents (⚡ Quick)**: Your most recently used or updated prompts are always one click away.
+- **Universal Search**: Search your entire prompt library directly via right-click! 🔍
+
+### 🎯 3. Contextual "Smart" Capture
+- **Seamless Capture**: Automatically extracts title, model, and the entire conversation thread from ChatGPT, Claude, and Gemini. 📥
+- **Deep Linking**: Every saved chat retains a direct link to the source. 🔗
+- **Cross-Platform Normalization**: Data from all AI models is normalized into a unified format for perfect dashboard visualization.
+
+### 🗂️ 4. Hierarchical Organization
+- **Deep Nesting**: Up to 4 levels of folders for complete freedom in structuring your "digital brain". 🧠
+- **Visual Identity**: Dynamic gradients and 15+ icon categories (Lucide) for a premium look and feel. 🎨
+- **Glassmorphism UI**: Modern design with blurred glass effects. ✨
 
 ---
 
-## 🏗️ State-of-the-Art Технология
-- **Turborepo**: За управление на мащабна монорепо структура.
-- **Vite + CRXJS**: За модерно 개발 (development) преживяване на разширения.
-- **Next.js 14 & Supabase**: Надеждност, сигурност и авторизация от ново поколение.
-- **Zod & TypeScript**: Интегритет на данните от базата до браузъра.
+## 🚀 Quick Start
+
+### Prerequisites
+- **Node.js**: v18+ (Verified in `package.json` engines)
+- **pnpm**: v9+ (Strictly enforced)
+
+### Installation
+
+```bash
+# Install dependencies
+pnpm install
+```
+
+### Development
+
+```bash
+# Start the full development environment (Dashboard + Extension)
+pnpm dev
+
+# Start only the Dashboard (http://localhost:3000)
+pnpm dev:dashboard
+
+# Start only the Extension (Watch mode)
+pnpm dev:extension
+```
+
+### Build
+
+```bash
+# Build all apps and packages
+pnpm build
+```
 
 ---
 
-### 🚀 Готови ли сте за AI бъдещето?
-Не оставяйте идеите си да избледнеят. Подредете ги с BrainBox.
+## 🏗️ Tech Stack
 
-👉 **Техническата документация** (инсталация, структура, API) ви очаква в [Technical Docs](docs/technical/CONTEXT_MAP.md).
+- **Monorepo**: [Turborepo](https://turbo.build/)
+- **Extension**: [Vite](https://vitejs.dev/) + [CRXJS](https://crxjs.dev/)
+- **Dashboard**: [Next.js 14](https://nextjs.org/) (App Router)
+- **Database**: [Supabase](https://supabase.com/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Validation**: [Zod](https://zod.dev/)
 
 ---
+
+## 🛡️ Quality Assurance
+
+We enforce strict quality standards:
+- **Linting**: `pnpm lint`
+- **Type Checking**: `pnpm type-check`
+- **Health Check**: `pnpm verify` (Requires Heath Score > 70 to push)
+
+### Documentation
+- [Contributing Guide](docs/technical/CONTRIBUTING.md)
+- [Architecture Overview](docs/technical/ARCHITECTURE.md)
+- [Technical Context](docs/technical/CONTEXT_MAP.md)
+
+---
+
 **BrainBox** - *AI Workflow. Reimagined.* 🧠💎

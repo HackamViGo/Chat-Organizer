@@ -2,14 +2,16 @@
 import json
 import os
 import sys
+import re
 
 def verify_gate():
-    print("🚀 Running Meta-Architect Verification Gate...")
+    print("🚀 Running Meta-Architect Verification Gate (Strict Mode)...")
     
-    # Check Graph integrity
+    # 1. Check Graph integrity
     graph_path = "meta_architect/resources/knowledge_graph.json"
     if not os.path.exists(graph_path):
-        graph_path = "knowledge_graph.json" # Fallback
+        # Fallback for flat structure
+        graph_path = "knowledge_graph.json"
         
     if os.path.exists(graph_path):
         try:
@@ -22,19 +24,40 @@ def verify_gate():
     else:
         print("⚠️ Knowledge Graph missing, skipping check.")
 
-    # Check Health Score from audit report or latest walkthrough
-    report_found = False
-    for report in ["audit_report.md", "meta_architect/resources/audit_report.md", "walkthrough.md"]:
+    # 2. Check Health Score (Parsing Logic)
+    report_files = ["audit_report.md", "meta_architect/resources/audit_report.md", "walkthrough.md"]
+    found_score = False
+    
+    for report in report_files:
         if os.path.exists(report):
-            print(f"✅ Report found ({report}): PASS")
-            report_found = True
-            break
-            
-    if not report_found:
-        print("❌ No audit or walkthrough report found: FAIL")
+            try:
+                with open(report, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                
+                # Regex to find "Score: 89.4/100" or "Score: 90/100"
+                match = re.search(r"Score:\s*([\d\.]+)/100", content)
+                
+                if match:
+                    score = float(match.group(1))
+                    print(f"📄 Analyzed {report}: Score is {score}")
+                    
+                    if score >= 85:
+                        print(f"✅ Security Gate: PASS (Threshold: 85)")
+                        found_score = True
+                        break
+                    else:
+                        print(f"❌ Security Gate: FAIL (Score {score} < 85)")
+                        return False
+                else:
+                    print(f"⚠️ Found {report} but could not parse score.")
+            except Exception as e:
+                print(f"⚠️ Error reading {report}: {e}")
+
+    if not found_score:
+        print("❌ No valid audit report with a score found. Run 'pnpm audit' first.")
         return False
 
-    print("🎉 Verification Gate: PASSED")
+    print("🎉 All Systems Go.")
     return True
 
 if __name__ == "__main__":

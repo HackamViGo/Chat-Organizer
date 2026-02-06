@@ -3,6 +3,7 @@ graph_query.py - Knowledge Graph Query Module
 Superior Meta-Architect+ System
 
 Production implementation of Graph-RAG queries for the Meta-Architect.
+Serves as the Single Source of Truth for GraphNode and GraphQuery logic.
 """
 
 import json
@@ -10,10 +11,9 @@ from pathlib import Path
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
-
 @dataclass
 class GraphNode:
-    """Represents a knowledge graph node"""
+    """Represents a single knowledge graph node"""
     id: str
     type: str
     url: str
@@ -21,7 +21,6 @@ class GraphNode:
     sub_category: str
     priority: int
     connections: List[str]
-
 
 class GraphQuery:
     """
@@ -35,7 +34,16 @@ class GraphQuery:
     """
     
     def __init__(self, graph_path: str = "knowledge_graph.json"):
+        # Allow path to be relative to meta_architect/resources if not found at root
         self.graph_path = Path(graph_path)
+        if not self.graph_path.exists():
+            # Fallback for relative run
+            alt_path = Path("meta_architect/resources") / graph_path
+            if alt_path.exists():
+                self.graph_path = alt_path
+            elif Path(f"meta_architect/resources/{graph_path}").exists():
+                 self.graph_path = Path(f"meta_architect/resources/{graph_path}")
+        
         self.graph = self._load_graph()
         
     def _load_graph(self) -> Dict:
@@ -52,7 +60,7 @@ class GraphQuery:
         if "nodes" not in graph:
             raise ValueError("Graph missing 'nodes' key")
         
-        print(f"[GraphQuery] Loaded {len(graph['nodes'])} nodes")
+        # print(f"[GraphQuery] Loaded {len(graph['nodes'])} nodes") # Quiet mode for purity
         return graph
     
     def query_by_category(
@@ -162,75 +170,7 @@ class GraphQuery:
             "node_count": len(filtered)
         }
 
-
-# Role to category mapping
-ROLE_CATEGORY_MAP = {
-    "frontend_specialist": "Programming Languages & Frameworks",
-    "backend_specialist": "Programming Languages & Frameworks",
-    "db_architect": "Databases & Data Infrastructure",
-    "devops_engineer": "Cloud Platforms & DevOps",
-    "ai_integrator": "AI Models & LLM Development",
-}
-
-
-def load_graph(path: str = "knowledge_graph.json") -> GraphQuery:
-    """Factory function to create GraphQuery instance"""
-    return GraphQuery(path)
-
-
-    print(f"Status: {result['status']}")
-    if result['status'] == 'OK':
-        print(f"Nodes found: {result['node_count']}")
-        for node in result['data'][:5]:
-            print(f"  - {node.id} (P{node.priority}): {node.url}")
-
-def sync_physical_paths(graph_path: str = "meta_architect/resources/knowledge_graph.json"):
-    """Sync graph paths with physical file structure"""
-    print("🔄 Syncing Knowledge Graph paths...")
-    try:
-        with open(graph_path, 'r') as f:
-            data = json.load(f)
-            
-        changes = 0
-        for node in data.get("nodes", []):
-            url = node.get("metadata", {}).get("access_url", "")
-            if not url: continue
-            
-            new_url = url
-            if "src/" in url and "apps/dashboard" not in url and "packages/shared" not in url:
-                # Naive heuristic: try to map to dashboard first
-                if "components" in url or "app/" in url:
-                    new_url = url.replace("src/", "apps/dashboard/src/")
-                else:
-                    new_url = url.replace("src/", "packages/shared/src/")
-            
-            if new_url != url:
-                node["metadata"]["access_url"] = new_url
-                changes += 1
-                
-        if changes > 0:
-            with open(graph_path, 'w') as f:
-                json.dump(data, f, indent=2)
-            print(f"✅ Updated {changes} paths in Knowledge Graph")
-        else:
-            print("✅ No path updates needed")
-            
-    except Exception as e:
-        print(f"❌ Error syncing paths: {e}")
-
 if __name__ == "__main__":
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--action", required=False, help="Action to perform")
-    args = parser.parse_args()
-
-    if args.action == "sync-physical-paths":
-        sync_physical_paths()
-    elif args.action == "verify_locks":
-        # Placeholder for lock verification
-        print("✅ Identity locks verified")
-    else:
-        # Default test behavior
-        gq = GraphQuery("meta_architect/resources/knowledge_graph.json")
-        result = gq.safe_query("AI Models & LLM Development", ["openai"])
-        print("Query Test Complete")
+    # Test execution
+    gq = GraphQuery("meta_architect/resources/knowledge_graph.json")
+    print("GraphQuery Module Loaded Successfully")

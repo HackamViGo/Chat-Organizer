@@ -11,6 +11,8 @@ brainbox/
 │   │   │   ├── components/         # React components
 │   │   │   │   ├── layout/         # HybridSidebar, LayoutWrapper
 │   │   │   │   ├── features/       # Feature modules
+│   │   │   │   │   └── chats/
+│   │   │   │   │       └── components/ # ChatCard, AIAnalysisModal, ChatActions
 │   │   │   │   └── providers/      # Context providers
 │   │   │   ├── lib/                # Utilities & services
 │   │   │   ├── store/              # Zustand stores

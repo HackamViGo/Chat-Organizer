@@ -10,6 +10,7 @@
 import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import { enhancePrompt } from './dashboardApi';
 import { CONFIG } from '@/lib/config';
+import { logger } from '@/lib/logger';
 
 // We need a way to message the tab, currently utilizing the service worker's helper or rewriting it here.
 // For now, we'll assume we can emit a message or use chrome.tabs.
@@ -33,12 +34,12 @@ export class DynamicMenus {
         // Listen for storage changes to trigger rebuild
         chrome.storage.onChanged.addListener((changes, areaName) => {
             if (areaName === 'local' && (changes['brainbox_prompts_cache'] || changes['brainbox_user_settings_cache'] || changes['brainbox_folders_cache'])) {
-                if (this.DEBUG_MODE) console.log('[DynamicMenus] 🔄 Data updated, rebuilding menus...');
+                if (this.DEBUG_MODE) logger.debug('DynamicMenus', '🔄 Data updated, rebuilding menus...');
                 this.rebuildMenus();
             }
         });
         
-        console.log('[DynamicMenus] 🖱️ Context menus initialized.');
+        logger.info('DynamicMenus', '🖱️ Context menus initialized.');
     }
 
     private isRebuilding = false;
@@ -60,7 +61,7 @@ export class DynamicMenus {
                 chrome.contextMenus.removeAll(() => {
                     const error = chrome.runtime.lastError;
                     if (error && this.DEBUG_MODE) {
-                        console.warn('[DynamicMenus] Context menu removal warning:', error.message);
+                        logger.warn('DynamicMenus', 'Context menu removal warning:', error.message);
                     }
                     resolve();
                 });
@@ -228,10 +229,10 @@ export class DynamicMenus {
             }
 
 
-            if (this.DEBUG_MODE) console.log('[DynamicMenus] ✅ All context menus created');
+            if (this.DEBUG_MODE) logger.info('DynamicMenus', '✅ All context menus created');
 
         } catch (error) {
-            console.error('[DynamicMenus] ❌ Failed to rebuild menus:', error);
+            logger.error('DynamicMenus', '❌ Failed to rebuild menus:', error);
         } finally {
             this.isRebuilding = false;
             // If another request came in while we were busy, rebuild again
@@ -253,7 +254,7 @@ export class DynamicMenus {
         if (isProtected) {
             const { accessToken } = await chrome.storage.local.get(['accessToken']);
             if (!accessToken) {
-                if (this.DEBUG_MODE) console.warn('[DynamicMenus] ⛔ User not logged in, redirecting...');
+                if (this.DEBUG_MODE) logger.warn('DynamicMenus', '⛔ User not logged in, redirecting...');
                 chrome.tabs.create({ url: `${CONFIG.DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
                 return;
             }
@@ -264,7 +265,7 @@ export class DynamicMenus {
         // ========================================================================
         if (info.menuItemId === 'brainbox_save_chat') {
             chrome.tabs.sendMessage(tab.id, { action: 'triggerSaveChat' }).catch(err => {
-                console.error('[DynamicMenus] ❌ Save chat failed:', err);
+                logger.error('DynamicMenus', '❌ Save chat failed:', err);
             });
             return;
         }
@@ -277,7 +278,7 @@ export class DynamicMenus {
                 action: 'openCreatePromptDialog',
                 selectedText: info.selectionText 
             }).catch(err => {
-                console.error('[DynamicMenus] ❌ Create prompt failed:', err);
+                logger.error('DynamicMenus', '❌ Create prompt failed:', err);
             });
             return;
         }
@@ -309,7 +310,7 @@ export class DynamicMenus {
                 // Standard notifications handle the "Success" part if needed, 
                 // but we definitely want to clear the loading one
             } catch (err) {
-                console.error('[DynamicMenus] ❌ Enhance failed:', err);
+                logger.error('DynamicMenus', '❌ Enhance failed:', err);
                 chrome.tabs.sendMessage(tab.id, { 
                     action: 'showNotification', 
                     message: '❌ Failed to enhance selection.', 
@@ -330,7 +331,7 @@ export class DynamicMenus {
                 action: 'showPromptMenu',
                 mode: 'search' 
             }).catch(err => {
-                console.error('[DynamicMenus] ❌ Search failed:', err);
+                logger.error('DynamicMenus', '❌ Search failed:', err);
             });
             return;
         }
@@ -361,7 +362,7 @@ export class DynamicMenus {
             action: 'injectPrompt',
             prompt: prompt
         }).catch(err => {
-            console.error('[DynamicMenus] ❌ Injection failed:', err);
+            logger.error('DynamicMenus', '❌ Injection failed:', err);
             // Fallback?
         });
     }

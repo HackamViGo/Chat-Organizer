@@ -3,8 +3,9 @@
  */
 
 import { BasePlatformAdapter, type Conversation } from './base';
-import { normalizeGemini } from '../../../lib/normalizers.js';
-import { limiters } from '../../../lib/rate-limiter.js';
+import { normalizeGemini } from '../../../lib/normalizers';
+import { limiters } from '../../../lib/rate-limiter';
+import { logger } from '../../../lib/logger';
 
 export class GeminiAdapter extends BasePlatformAdapter {
     readonly platform = 'gemini';
@@ -50,7 +51,7 @@ export class GeminiAdapter extends BasePlatformAdapter {
             // Handle key expiration
             if (response.status === 400 || response.status === 403) {
                 const txt = await response.text();
-                console.error('[GeminiAdapter] 400/403:', txt.substring(0, 200));
+                logger.error('GeminiAdapter', '400/403:', txt.substring(0, 200));
                 await this.removeStorageKeys(['gemini_dynamic_key']);
                 throw new Error('Gemini key expired/invalid. Re-sync required.');
             }
@@ -69,7 +70,7 @@ export class GeminiAdapter extends BasePlatformAdapter {
 
                 return normalizeGemini(secondLevel, id);
             } catch (error) {
-                console.error('[GeminiAdapter] Parse error:', error);
+                logger.error('GeminiAdapter', 'Parse error:', error);
                 throw new Error('Failed to parse Gemini response.');
             }
         });

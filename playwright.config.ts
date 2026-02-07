@@ -4,7 +4,8 @@ import path from 'path';
 const extensionPath = path.join(process.cwd(), 'apps/extension/dist');
 
 export default defineConfig({
-    testDir: './tests/e2e',
+    testDir: './tests',
+    testMatch: ['**/*.spec.ts'],
     timeout: 30000,
     expect: {
         timeout: 5000

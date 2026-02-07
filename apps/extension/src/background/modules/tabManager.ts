@@ -1,8 +1,5 @@
-/**
- * TabManager
- * 
- * Manages tab lifecycle and platform detection
- */
+import { logger } from '@/lib/logger';
+
 export class TabManager {
     private DEBUG_MODE: boolean;
 
@@ -19,7 +16,7 @@ export class TabManager {
         chrome.tabs.onActivated.addListener(this.handleTabActivated);
         chrome.tabs.onRemoved.addListener(this.handleTabRemoved);
         
-        console.log('[TabManager] 📑 Tab listeners registered');
+        logger.info('TabManager', '📑 Tab listeners registered');
     }
 
     private handleTabUpdated(
@@ -34,7 +31,7 @@ export class TabManager {
         // Example: Inject scripts on specific platforms
         if (tab.url.includes('gemini.google.com')) {
             if (this.DEBUG_MODE) {
-                console.log('[TabManager] Gemini detected:', tabId);
+                logger.debug('TabManager', 'Gemini detected:', tabId);
             }
             // Auto-inject logic here (optional)
         }
@@ -43,14 +40,14 @@ export class TabManager {
     private handleTabActivated(activeInfo: chrome.tabs.TabActiveInfo) {
         // Example: Update badge when switching tabs
         if (this.DEBUG_MODE) {
-            console.log('[TabManager] Tab activated:', activeInfo.tabId);
+            logger.debug('TabManager', 'Tab activated:', activeInfo.tabId);
         }
     }
 
     private handleTabRemoved(tabId: number, removeInfo: chrome.tabs.TabRemoveInfo) {
         // Cleanup logic
         if (this.DEBUG_MODE) {
-            console.log('[TabManager] Tab closed:', tabId);
+            logger.debug('TabManager', 'Tab closed:', tabId);
         }
     }
 }

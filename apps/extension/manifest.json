@@ -11,7 +11,8 @@
     "notifications",
     "tabs",
     "scripting",
-    "activeTab"
+    "activeTab",
+    "alarms"
   ],
   "host_permissions": [
     "http://localhost/*",
@@ -79,15 +80,20 @@
     },
     {
       "matches": [
-        "<all_urls>"
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*",
+        "https://www.perplexity.ai/*",
+        "https://grok.com/*",
+        "https://chat.qwen.ai/*",
+        "https://lmarena.ai/*"
       ],
       "js": [
         "src/prompt-inject/prompt-inject.ts"
       ],
-      "run_at": "document_idle",
-      "exclude_matches": [
-        "https://gemini.google.com/*"
-      ]
+      "run_at": "document_idle"
     },
     {
       "matches": [

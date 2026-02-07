@@ -1,7 +1,7 @@
 // BrainBox - Shared UI Components
 // Contains the Folder Selector and Toast logic to be reused across content scripts
 
-(window as any).BrainBoxUI = class BrainBoxUI {
+export class BrainBoxUI {
     private styleInjected: boolean;
 
     constructor() {
@@ -11,6 +11,7 @@
     injectStyles() {
         if (this.styleInjected) return;
         const style = document.createElement('style');
+        style.id = 'brainbox-shared-ui-styles';
         style.textContent = `
       .brainbox-modal-overlay {
         position: fixed;
@@ -95,10 +96,6 @@
         color: white;
       }
       
-      .brainbox-btn-primary:text {
-         color: white;
-      }
-      
       .brainbox-new-folder {
         margin-top: 8px;
         display: flex;
@@ -135,7 +132,6 @@
 
             let selectedId: string | null = null;
 
-            // Default "Uncategorized" option
             const renderItem = (id: string | null, name: string) => {
                 const item = document.createElement('div');
                 item.className = 'brainbox-folder-item';
@@ -146,12 +142,11 @@
                 nameSpan.textContent = name;
                 
                 item.appendChild(iconSpan);
-                // Add space
                 item.appendChild(document.createTextNode(' '));
                 item.appendChild(nameSpan);
 
                 item.onclick = () => {
-                    document.querySelectorAll('.brainbox-folder-item').forEach(el => el.classList.remove('selected'));
+                    modal.querySelectorAll('.brainbox-folder-item').forEach(el => el.classList.remove('selected'));
                     item.classList.add('selected');
                     selectedId = id;
                 };
@@ -184,7 +179,6 @@
                 resolve(selectedId);
             };
 
-            // Add buttons to actions div
             actions.appendChild(cancelBtn);
             actions.appendChild(saveBtn);
 
@@ -194,17 +188,15 @@
             overlay.appendChild(modal);
             document.body.appendChild(overlay);
 
-            // ESC key to close
             const escHandler = (e: KeyboardEvent) => {
                 if (e.key === 'Escape') {
                     overlay.remove();
                     document.removeEventListener('keydown', escHandler);
-                    resolve(undefined); // undefined = cancelled
+                    resolve(undefined);
                 }
             };
             document.addEventListener('keydown', escHandler);
 
-            // Click outside to close
             overlay.onclick = (e: MouseEvent) => {
                 if (e.target === overlay) {
                     overlay.remove();
@@ -242,13 +234,10 @@
             font-size: 14px !important;
             font-weight: 500 !important;
             min-width: 250px !important;
-            max-width: 450px !important;
             word-wrap: break-word !important;
             animation: brainbox-fade-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
-            cursor: default !important;
         `;
         
-        // Add animation keyframes if not exists
         if (!document.getElementById('brainbox-toast-anim')) {
             const anim = document.createElement('style');
             anim.id = 'brainbox-toast-anim';
@@ -262,13 +251,12 @@
         }
 
         const icon = document.createElement('span');
-        icon.style.fontSize = '18px';
         icon.textContent = type === 'success' ? '✅' : type === 'error' ? '❌' : 'ℹ️';
         toast.appendChild(icon);
         
         const msgSpan = document.createElement('span');
         msgSpan.textContent = msg;
-        msgSpan.style.cssText = `color: ${textColor} !important; flex: 1;`;
+        msgSpan.style.flex = '1';
         toast.appendChild(msgSpan);
 
         if (type === 'error' && retryAction) {
@@ -276,14 +264,12 @@
             retryBtn.textContent = 'Retry';
             retryBtn.style.cssText = `
                 background: rgba(255,255,255,0.2) !important;
-                color: ${textColor} !important;
+                color: white !important;
                 border: 1px solid rgba(255,255,255,0.3) !important;
                 padding: 4px 10px !important;
                 border-radius: 6px !important;
                 cursor: pointer !important;
                 font-size: 12px !important;
-                font-weight: 600 !important;
-                transition: all 0.2s !important;
             `;
             retryBtn.onclick = (e) => {
                 e.stopPropagation();
@@ -293,16 +279,15 @@
             toast.appendChild(retryBtn);
         }
 
-        // Close button
         const closeBtn = document.createElement('span');
         closeBtn.textContent = '×';
-        closeBtn.style.cssText = 'cursor: pointer; font-size: 20px; opacity: 0.7; padding: 0 4px;';
+        closeBtn.style.cssText = 'cursor: pointer; font-size: 20px; opacity: 0.7;';
         closeBtn.onclick = () => toast.remove();
         toast.appendChild(closeBtn);
 
         document.body.appendChild(toast);
         
-        const duration = type === 'error' ? 10000 : type === 'info' ? 7000 : 5000;
+        const duration = type === 'error' ? 10000 : 5000;
         setTimeout(() => {
             if (toast.parentElement) {
                 toast.style.opacity = '0';
@@ -312,56 +297,9 @@
             }
         }, duration);
     }
+}
 
-    async showConfirmation(title: string, message: string, confirmText = 'Confirm', cancelText = 'Cancel'): Promise<boolean> {
-        this.injectStyles();
-
-        return new Promise((resolve) => {
-            const overlay = document.createElement('div');
-            overlay.className = 'brainbox-modal-overlay';
-            overlay.style.zIndex = '10000000';
-
-            const modal = document.createElement('div');
-            modal.className = 'brainbox-modal';
-            modal.style.width = '380px';
-            modal.style.padding = '24px';
-
-            const titleEl = document.createElement('h3');
-            titleEl.textContent = title;
-            titleEl.style.marginBottom = '12px';
-
-            const content = document.createElement('p');
-            content.textContent = message;
-            content.style.cssText = 'font-size: 14px; color: #4b5563; line-height: 1.5; margin-bottom: 24px;';
-
-            const actions = document.createElement('div');
-            actions.className = 'brainbox-actions';
-            actions.style.marginTop = '0';
-
-            const cancelBtn = document.createElement('button');
-            cancelBtn.className = 'brainbox-btn brainbox-btn-cancel';
-            cancelBtn.textContent = cancelText;
-            cancelBtn.onclick = () => {
-                overlay.remove();
-                resolve(false);
-            };
-
-            const confirmBtn = document.createElement('button');
-            confirmBtn.className = 'brainbox-btn brainbox-btn-primary';
-            confirmBtn.textContent = confirmText;
-            confirmBtn.style.background = '#ef4444'; // Red for caution
-            confirmBtn.onclick = () => {
-                overlay.remove();
-                resolve(true);
-            };
-
-            modal.appendChild(titleEl);
-            modal.appendChild(content);
-            modal.appendChild(actions);
-            actions.appendChild(cancelBtn);
-            actions.appendChild(confirmBtn);
-            overlay.appendChild(modal);
-            document.body.appendChild(overlay);
-        });
-    }
+// Support legacy global access for scripts not yet refactored
+if (typeof window !== 'undefined') {
+    (window as any).BrainBoxUI = BrainBoxUI;
 }

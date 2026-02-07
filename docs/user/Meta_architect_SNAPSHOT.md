@@ -1,6 +1,20 @@
-# 🏆 Meta-Architect v3.0.0 GOLD MASTER SNAPSHOT
-**Date:** 2026-02-06
-**Status:** STABLE / PRODUCTION-READY
+# 🏆 Meta-Architect v3.1.0 GOLD MASTER SNAPSHOT
+**Date:** 2026-02-07
+**Status:** STABLE / HARDENED / VERBOSE_LOGGING_ACTIVE
+
+---
+
+### 🛡️ Recent System Refinement (Post-v3.0)
+1.  **Security Hardening Mission:**
+    *   **CSP:** Removed `unsafe-eval` from extension context.
+    *   **Manifest:** Restricted `content_scripts` from `<all_urls>` to specific AI domains.
+    *   **Data Leak Prevention:** Patching `postMessage` origin in `inject-gemini-main.js` from `*` to `window.location.origin`.
+2.  **Resilience (RCA) Fixes:**
+    *   **ChatGPT Support:** Updated `RELEVANT_API_REGEX` to capture new `/backend-api/conversation` endpoints.
+    *   **Sync Stability:** Added production fallbacks for `API_BASE_URL` in `prompt-inject.ts` to prevent crash on stale cache.
+    *   **Auth Bridge:** Relaxed origin validation to include `localhost` for developer parity.
+3.  **Observability:**
+    *   **Verbose Logging:** Forced `isDebugMode()` to `true` in `logger.ts` for real-time extension monitoring.
 
 ---
 

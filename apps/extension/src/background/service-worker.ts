@@ -2,6 +2,7 @@
 // Manifest V3 Background Script
 
 import { CONFIG } from '@/lib/config';
+import { logger } from '@/lib/logger';
 import { AuthManager } from './modules/authManager';
 import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import { DynamicMenus } from './modules/dynamicMenus';
@@ -9,13 +10,11 @@ import { MessageRouter } from './modules/messageRouter';
 import { NetworkObserver } from './modules/networkObserver';
 import { InstallationManager } from './modules/installationManager';
 import { SyncManager } from './modules/syncManager';
-// import { TabManager } from './modules/tabManager'; // Optional for future use
 
-const DEBUG_MODE = false;
-console.log('[BrainBox Worker] 🚀 Service Worker Starting...');
+logger.info('Worker', '🚀 Service Worker Starting...');
 
 self.onerror = function(message, source, lineno, colno, error) {
-    console.error('[BrainBox Worker] ❌ Global Error:', message, error);
+    logger.error('Worker', '❌ Global Error: ' + message, error);
 };
 
 // ============================================================================
@@ -28,15 +27,14 @@ const promptSyncManager = new PromptSyncManager(CONFIG.DASHBOARD_URL);
 
 // 2. Feature Modules
 const dynamicMenus = new DynamicMenus(promptSyncManager);
-const networkObserver = new NetworkObserver(DEBUG_MODE);
-const installationManager = new InstallationManager(DEBUG_MODE);
-// const tabManager = new TabManager(DEBUG_MODE); // Optional
+const networkObserver = new NetworkObserver(false);
+const installationManager = new InstallationManager(false);
 
 // 3. Communication Router
 const messageRouter = new MessageRouter(
     authManager,
     promptSyncManager,
-    DEBUG_MODE
+    false
 );
 
 // ============================================================================
@@ -54,7 +52,6 @@ chrome.storage.local.get(['accessToken'], ({ accessToken }) => {
 dynamicMenus.initialize();
 networkObserver.initialize();
 installationManager.initialize();
-// tabManager.initialize(); // Optional
 
 messageRouter.listen();
 
@@ -68,4 +65,5 @@ chrome.storage.local.set({
     EXTENSION_VERSION: CONFIG.VERSION
 });
 
-console.log('[BrainBox Worker] ✅ All modules initialized');
+logger.info('Worker', '✅ All modules initialized');
+

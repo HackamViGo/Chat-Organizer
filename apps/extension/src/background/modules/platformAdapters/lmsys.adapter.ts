@@ -3,13 +3,14 @@
  */
 
 import { BasePlatformAdapter, type Conversation } from './base';
-import { createConversation, createMessage, ROLES, PLATFORMS } from '../../../lib/schemas.js';
+import { createConversation, createMessage, ROLES, PLATFORMS } from '../../../lib/schemas';
+import { logger } from '../../../lib/logger';
 
 export class LmsysAdapter extends BasePlatformAdapter {
     readonly platform = 'lmsys';
 
     async fetchConversation(id: string): Promise<Conversation> {
-        console.log(`[LmsysAdapter] 📥 Fetching conversation for platform: ${this.platform}`);
+        logger.info('LmsysAdapter', `📥 Fetching conversation for platform: ${this.platform}`);
         
         // LMSYS uses Gradio and stores configuration in window.gradio_config
         // However, since we are in the background worker, we can't access window directly.

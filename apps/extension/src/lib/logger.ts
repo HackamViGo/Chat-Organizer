@@ -13,7 +13,7 @@ const IS_DEV = import.meta.env.DEV;
 
 // Check debug flag safely
 const isDebugMode = () => {
-  return IS_DEV || (GLOBAL as any).BRAINBOX_DEBUG_MODE === true;
+  return true; // Force enabled by user request
 };
 
 export const logger = {

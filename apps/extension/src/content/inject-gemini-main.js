@@ -30,7 +30,7 @@
 
             if (token) {
                 console.log('[BrainBox] Token extracted, sending to content script...');
-                window.postMessage({ type: 'BRAINBOX_GEMINI_TOKEN', token: token }, '*');
+                window.postMessage({ type: 'BRAINBOX_GEMINI_TOKEN', token: token }, window.location.origin);
             } else {
                 console.log('[BrainBox] Token not found in standard locations');
             }

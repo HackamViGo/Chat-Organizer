@@ -1,13 +1,13 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import { crx } from '@crxjs/vite-plugin';
 import { resolve } from 'path';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import fs from 'fs';
 
 // Read manifest and inject environment variables
-const manifestCallback = () => {
+const manifestCallback = (env: Record<string, string>) => {
   const manifestRaw = fs.readFileSync(resolve(__dirname, 'manifest.json'), 'utf-8');
-  const dashboardUrl = process.env.VITE_DASHBOARD_URL || 'http://localhost:3000';
+  const dashboardUrl = env.VITE_DASHBOARD_URL || 'http://localhost:3000';
   const manifestStr = manifestRaw.replace(/__DASHBOARD_URL__/g, dashboardUrl);
   return JSON.parse(manifestStr);
 };
@@ -41,13 +41,14 @@ const stripDevCSP = () => {
 
 export default defineConfig(({ mode }) => {
   const isProd = mode === 'production';
+  const env = loadEnv(mode, process.cwd(), '');
 
   return {
     plugins: [
       tsconfigPaths({
         root: __dirname,
       }),
-      crx({ manifest: manifestCallback() }),
+      crx({ manifest: manifestCallback(env) }),
       isProd && stripDevCSP(),
     ].filter((p): p is any => Boolean(p)),
     resolve: {

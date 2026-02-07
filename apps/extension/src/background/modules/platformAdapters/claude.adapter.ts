@@ -3,8 +3,9 @@
  */
 
 import { BasePlatformAdapter, type Conversation } from './base';
-import { normalizeClaude } from '../../../lib/normalizers.js';
-import { limiters } from '../../../lib/rate-limiter.js';
+import { normalizeClaude } from '../../../lib/normalizers';
+import { limiters } from '../../../lib/rate-limiter';
+import { logger } from '../../../lib/logger';
 
 export class ClaudeAdapter extends BasePlatformAdapter {
     readonly platform = 'claude';

@@ -1,8 +1,5 @@
-/**
- * NetworkObserver
- * 
- * Captures Claude organization ID from network requests
- */
+import { logger } from '@/lib/logger';
+
 export class NetworkObserver {
     private DEBUG_MODE: boolean;
 
@@ -14,7 +11,7 @@ export class NetworkObserver {
     initialize() {
         try {
             if (!chrome.webRequest?.onBeforeRequest) {
-                console.warn('[NetworkObserver] ⚠️ chrome.webRequest API not available');
+                logger.warn('NetworkObserver', '⚠️ chrome.webRequest API not available');
                 return;
             }
 
@@ -23,9 +20,9 @@ export class NetworkObserver {
                 { urls: ["https://claude.ai/api/organizations/*"] }
             );
 
-            console.log('[NetworkObserver] 🕵️ Listening for Claude org_id...');
+            logger.info('NetworkObserver', '🕵️ Listening for Claude org_id...');
         } catch (e) {
-            console.error('[NetworkObserver] ❌ Setup failed:', e);
+            logger.error('NetworkObserver', '❌ Setup failed:', e);
         }
     }
 
@@ -40,7 +37,7 @@ export class NetworkObserver {
             chrome.storage.local.get(['claude_org_id'], (result) => {
                 if (result.claude_org_id !== orgId) {
                     if (this.DEBUG_MODE) {
-                        console.log('[NetworkObserver] 🎯 Captured Claude Org ID:', orgId);
+                        logger.debug('NetworkObserver', '🎯 Captured Claude Org ID:', orgId);
                     }
                     chrome.storage.local.set({ claude_org_id: orgId });
                 }

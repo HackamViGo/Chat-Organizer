@@ -1,32 +1,30 @@
 // BrainBox - Claude Content Script
-(function () {
-    'use strict';
+import { logger } from '../lib/logger';
+import { BrainBoxUI } from '../lib/ui';
 
-    console.log('[BrainBox] Claude content script loaded');
+let hoverButtons = new WeakMap();
+let hoverButtonsRegistry = new Map();
+let observer: MutationObserver | null = null;
+let ui: BrainBoxUI | null = null;
 
-    let hoverButtons = new WeakMap();
-    let hoverButtonsRegistry = new Map();
-    let observer: MutationObserver | null = null;
-    let ui: any = null;
+// ============================================================================
+// INITIALIZATION
+// ============================================================================
 
-    // ============================================================================
-    // INITIALIZATION
-    // ============================================================================
-
-    function init() {
-        console.log('[BrainBox] Claude init() called');
-        if ((window as any).BrainBoxUI) {
-            ui = new (window as any).BrainBoxUI();
-            console.log('[BrainBox] UI library loaded');
-        } else {
-            console.log('[BrainBox] UI library not found');
-        }
-        
-        // Start proactive Organization ID detection
-        startOrgIdDetection();
-        
-        console.log('[BrainBox] Claude content script initialized');
+function init() {
+    logger.info('Claude', '🎬 init() called');
+    if ((window as any).BrainBoxUI) {
+        ui = new (window as any).BrainBoxUI();
+        logger.info('Claude', '✅ UI library loaded');
+    } else {
+        logger.warn('Claude', '⚠️ UI library not found');
     }
+    
+    // Start proactive Organization ID detection
+    startOrgIdDetection();
+    
+    logger.info('Claude', '✅ Content script initialized');
+}
 
     // ============================================================================
     // STYLES
@@ -118,11 +116,11 @@
             if (document.hidden) {
                 if (observer) {
                     observer.disconnect();
-                    console.log('[BrainBox] Observer disconnected (tab inactive)');
+                    logger.debug('Claude', 'Observer disconnected (tab inactive)');
                 }
             } else {
                 setupConversationListObserver();
-                console.log('[BrainBox] Observer reconnected (tab active)');
+                logger.debug('Claude', 'Observer reconnected (tab active)');
             }
         });
     }
@@ -152,7 +150,7 @@
                 return (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                    console.log('[BrainBox] Save clicked for ID:', capturedId);
+                    logger.debug('Claude', `Save clicked for ID: ${capturedId}`);
                     handleSave(capturedId, capturedConv);
             };
             })(conversationId, conv);
@@ -164,7 +162,7 @@
                 return (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                    console.log('[BrainBox] Folder clicked for ID:', capturedId);
+                    logger.debug('Claude', `Folder clicked for ID: ${capturedId}`);
                     handleFolderSelect(capturedId, capturedConv);
             };
             })(conversationId, conv);
@@ -211,7 +209,7 @@
 
     async function handleSave(conversationId: string, titleElement: Element, folderId: string | null = null) {
         try {
-            console.log('[BrainBox] Claude handleSave called', { conversationId, folderId });
+            logger.info('Claude', 'handleSave called', { conversationId, folderId });
             
             // Check if extension context is still valid
             try {
@@ -241,23 +239,20 @@
             });
             
             if (!isTokenValid) {
-                console.log('[BrainBox] Claude: No valid accessToken found, opening login page');
+                logger.warn('Claude', 'No valid accessToken found, opening login page');
                 // Ask service worker to open login page (chrome.tabs is not available in content scripts)
                 await chrome.runtime.sendMessage({ action: 'openLoginPage' });
                 showToast('Please log in first. Opening login page...', 'info');
                 return;
             }
             
-            console.log('[BrainBox] Claude: Valid accessToken found, proceeding');
+            logger.info('Claude', 'Valid accessToken found, proceeding');
             
             showToast('Fetching Claude chat...', 'info');
 
             const title = (titleElement as HTMLElement).innerText || "Claude Conversation";
-            console.log('[BrainBox] Claude title:', title);
-
-            // Get current page URL for org_id extraction
             const currentUrl = window.location.href;
-            console.log('[BrainBox] Claude current URL:', currentUrl);
+            logger.debug('Claude', 'Fetching conversation', { title, currentUrl });
 
             const response = await chrome.runtime.sendMessage({
                 action: 'getConversation',
@@ -271,7 +266,7 @@
                 throw error;
             });
 
-            console.log('[BrainBox] Claude getConversation response:', response);
+            logger.info('Claude', 'getConversation response received');
 
             if (!response.success) throw new Error(response.error);
 
@@ -301,22 +296,20 @@
                 throw error;
             });
 
-            console.log('[BrainBox] Claude saveToDashboard response:', saveResponse);
+            logger.info('Claude', 'saveToDashboard response received');
 
             if (!saveResponse.success) throw new Error(saveResponse.error);
 
             showToast('Saved to Dashboard! ✓', 'success');
         } catch (error) {
-            console.error('[BrainBox] Claude Save error:', error);
+            logger.error('Claude', 'Save error:', error);
             
             // Safely get error message
             const errorMessage = (error as any)?.message || String(error) || 'Unknown error';
             
-            // Handle extension context invalidated
             if (errorMessage.includes('Extension context invalidated') || 
                 errorMessage.includes('Extension was reloaded')) {
-                // showToast('Extension was reloaded. Please refresh the page and try again.', 'error');
-                console.warn('Extension context invalidated');
+                logger.warn('Claude', 'Extension context invalidated');
                 return;
             }
             
@@ -329,15 +322,14 @@
                 errorMessage.includes('Failed to fetch') || 
                 errorMessage.includes('NetworkError')) {
                 
-                console.warn('[BrainBox] 🔐 Auth/Network Error detected. Triggering login flow...');
+                logger.warn('Claude', '🔐 Auth/Network Error detected. Triggering login flow...');
 
                 // Ask service worker to open login page
                 try {
                     await chrome.runtime.sendMessage({ action: 'openLoginPage' });
                     // showToast('Connection issue. Please log in again.', 'warning');
                 } catch (e) {
-                    // showToast('Please log in first. Extension may need to be reloaded.', 'error');
-                    console.error('Login/Reload needed', e);
+                    logger.error('Claude', 'Login/Reload needed', e);
                 }
                 return;
             }
@@ -360,8 +352,7 @@
                 handleSave(conversationId, titleElement);
             }
         } catch (error) {
-            console.error(error);
-            // showToast('Error loading folders', 'error');
+            logger.error('Claude', 'Folder selection error:', error);
         }
     }
 
@@ -371,7 +362,7 @@
 
     function showToast(msg: string, type: string, retryAction: (() => void) | null = null) {
         if (ui) ui.showToast(msg, type, retryAction);
-        else console.log(`[BrainBox Toast] ${type}: ${msg}`);
+        else logger.info('Claude', `[Toast] ${type}: ${msg}`);
     }
 
     function debounce(func: Function, wait: number) {
@@ -395,7 +386,7 @@
     // ============================================================================
 
     function startOrgIdDetection() {
-        console.log('[BrainBox] Starting Organization ID detection...');
+        logger.info('Claude', 'Starting Organization ID detection...');
         
         // Try immediately
         detectAndSaveOrgId();
@@ -461,13 +452,13 @@
             }
 
             if (orgId) {
-                console.log('[BrainBox] ✅ Found Claude Org ID:', orgId);
+                logger.info('Claude', `✅ Found Claude Org ID: ${orgId}`);
                 chrome.storage.local.set({ claude_org_id: orgId });
                 return orgId;
             }
 
         } catch (e) {
-            console.warn('[BrainBox] Error extracting Org ID:', e);
+            logger.warn('Claude', 'Error extracting Org ID', e);
         }
         return null;
     }
@@ -494,7 +485,7 @@
         
         // Handle context menu "Save Chat" action
         if (request.action === 'triggerSaveChat') {
-            console.log('[BrainBox Claude] triggerSaveChat received');
+            logger.info('Claude', 'triggerSaveChat received');
             const currentUrl = window.location.href;
             const conversationId = extractConversationId(currentUrl);
             
@@ -502,7 +493,7 @@
             detectAndSaveOrgId();
             
             if (conversationId) {
-                console.log('[BrainBox Claude] Saving directly to My Chats:', conversationId);
+                logger.info('Claude', `Saving directly to My Chats: ${conversationId}`);
                 // Create a mock title element 
                 const titleElement = { innerText: document.title || 'Claude Conversation' };
                 
@@ -518,10 +509,8 @@
         }
     });
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
-    }
-
-})();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

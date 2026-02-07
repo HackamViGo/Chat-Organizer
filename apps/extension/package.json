@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@brainbox/shared": "workspace:*",
+    "@brainbox/validation": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

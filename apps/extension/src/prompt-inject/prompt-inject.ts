@@ -1,41 +1,17 @@
-// ============================================================================
-// BrainBox Prompt Inject
-// Injecting prompts from dashboard into Gemini textarea
-// ============================================================================
-    
-(function () {
-  'use strict';
+import { logger } from '../lib/logger';
 
-  // ============================================================================
-  // CONFIGURATION
-  // ============================================================================
-      
-  interface Config {
-    API_BASE_URL: string | null;
-    API_ENDPOINT: string;
-    DEBUG_MODE: boolean;
-  }
-
-  const CONFIG: Config = {
-    API_BASE_URL: null, // Will be loaded from storage
-    API_ENDPOINT: '/api/prompts', // API endpoint for prompts
-    DEBUG_MODE: false
-  };
-
-  const debugLog = (...args: any[]) => {
-    // Note: CONFIG.DEBUG_MODE will be removed from here once it's removed from the interface
-    // For now we keep it inside the function to avoid breaking logic if it's still used
-    if ((CONFIG as any).DEBUG_MODE) console.info('[Prompt Inject]', ...args);
-  };
-
-  // Prevent multiple executions
-  if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
-    debugLog('⏹️ Script already loaded, skipping init.');
-    return;
-  }
+// Prevent multiple executions
+if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
+  logger.debug('Prompt Inject', '⏹️ Script already loaded, skipping init.');
+} else {
   (window as any).BRAINBOX_PROMPT_INJECT_LOADED = true;
 
-  debugLog('Loading (v2.0.2)...');
+  const CONFIG = {
+    API_BASE_URL: null as string | null,
+    API_ENDPOINT: '/api/prompts'
+  };
+
+  logger.info('Prompt Inject', 'Loading (v2.0.2)...');
 
   // ============================================================================
   // STATE
@@ -63,23 +39,24 @@
   // ============================================================================
       
   async function loadConfig(): Promise<void> {
-    debugLog('Loading config...');
+    logger.debug('Prompt Inject', 'Loading config...');
     
     try {
       if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
         const config = await chrome.storage.local.get(['API_BASE_URL']);
         if (config.API_BASE_URL) {
           CONFIG.API_BASE_URL = config.API_BASE_URL;
-          debugLog('✅ Loaded Config:', CONFIG.API_BASE_URL);
+          logger.debug('Prompt Inject', '✅ Loaded Config:', CONFIG.API_BASE_URL);
         }
       }
     } catch (e) {
-      console.warn('[🧠 Prompt Inject] ⚠️ Config load check failed:', e);
+      logger.warn('Prompt Inject', '⚠️ Config load check failed:', e);
     }
 
-    // Production fallbacks removed. CONFIG must be initialized.
+    // Production fallbacks. If not in storage, use default.
     if (!CONFIG.API_BASE_URL) {
-        throw new Error('[BrainBox] API_BASE_URL not configured');
+        CONFIG.API_BASE_URL = 'https://brainbox.ai-studio.bg'; // Canonical production URL
+        logger.debug('Prompt Inject', '⚠️ API_BASE_URL not found in storage, using fallback:', CONFIG.API_BASE_URL);
     }
   }
 
@@ -92,30 +69,30 @@
     STATE.isLoading = true;
 
     try {
-      debugLog('📥 Fetching via Background (CSP Bypass)...');
+      logger.debug('Prompt Inject', '📥 Fetching via Background (CSP Bypass)...');
       
       const response = await chrome.runtime.sendMessage({ action: 'fetchPrompts' }) as { success: boolean; data?: any; error?: string };
       
       if (!response || !response.success) {
-        debugLog('❌ Background fetch failed:', response?.error);
+        logger.debug('Prompt Inject', '❌ Background fetch failed:', response?.error);
         if (response?.error === 'Unauthorized') {
-             debugLog('⚠️ Auth failed (Background)');
+             logger.debug('Prompt Inject', '⚠️ Auth failed (Background)');
         }
         return [];
       }
 
       const data = response.data;
-      debugLog('📦 Received data from background:', typeof data);
+      logger.debug('Prompt Inject', '📦 Received data from background:', typeof data);
 
       // Handle { prompts: [...] } structure vs [...]
       const promptsList = Array.isArray(data.prompts) ? data.prompts : (Array.isArray(data) ? data : []);
       STATE.prompts = promptsList;
       
-      debugLog(`📡 OK | Count: ${STATE.prompts.length}`);
+      logger.debug('Prompt Inject', `📡 OK | Count: ${STATE.prompts.length}`);
       return STATE.prompts;
 
     } catch (error) {
-      debugLog('❌ Error in fetchPrompts:', error);
+      logger.debug('Prompt Inject', '❌ Error in fetchPrompts:', error);
       return [];
     } finally {
       STATE.isLoading = false;
@@ -127,7 +104,7 @@
   // ============================================================================
   
   function showPromptMenu(prompts: Prompt[], options: { mode?: string } = {}): void {
-    debugLog('📱 Showing prompt menu...');
+    logger.debug('Prompt Inject', '📱 Showing prompt menu...');
     
     // Remove if already exists
     const existing = document.getElementById('brainbox-prompt-menu');
@@ -282,19 +259,19 @@
   // ============================================================================
   
   function injectPrompt(prompt: Prompt): void {
-    debugLog('💉 Injecting prompt:', prompt.title);
+    logger.debug('Prompt Inject', '💉 Injecting prompt:', prompt.title);
     const content = prompt.content;
     const textarea = (document.activeElement as HTMLTextAreaElement | HTMLDivElement) || 
                    document.querySelector('textarea') || 
                    document.querySelector('[contenteditable="true"]');
 
     if (!textarea) {
-      debugLog('❌ No active textarea found');
+      logger.debug('Prompt Inject', '❌ No active textarea found');
       showNotification('Click on a text area first', 'warning');
       return;
     }
 
-    debugLog('💉 Injecting into:', textarea.tagName);
+    logger.debug('Prompt Inject', '💉 Injecting into:', textarea.tagName);
 
     const isContentEditable = textarea.getAttribute('contenteditable') === 'true' || 
                              textarea.tagName !== 'TEXTAREA' && textarea.tagName !== 'INPUT';
@@ -315,7 +292,7 @@
         activeEl.dispatchEvent(new FocusEvent('focus', { bubbles: true }));
         activeEl.dispatchEvent(new CompositionEvent('compositionstart', { bubbles: true }));
         
-        debugLog('⌨️ Executing execCommand...');
+        logger.debug('Prompt Inject', '⌨️ Executing execCommand...');
         const success = document.execCommand('insertText', false, content);
         
         const inputEvent = new InputEvent('input', {
@@ -364,7 +341,7 @@
   // ============================================================================
   
   function showCreatePromptDialog(selectedText: string): void {
-    debugLog('📝 Showing create prompt dialog');
+    logger.debug('Prompt Inject', '📝 Showing create prompt dialog');
         
     const existingDialog = document.getElementById('brainbox-create-prompt-dialog');
     if (existingDialog) existingDialog.remove();
@@ -383,7 +360,7 @@
           folders = folders.filter((f: any) => !f.type || f.type === 'prompt' || f.type === 'custom' || f.type === 'default');
         }
       } catch (err) {
-        console.error('[🧠 Prompt Inject] Error fetching folders:', err);
+        logger.error('Prompt Inject', 'Error fetching folders:', err);
       }
 
       // dialog.innerHTML = ... REPLACED WITH SAFE DOM CREATION
@@ -606,7 +583,7 @@
   // ============================================================================
   
   async function createPrompt(promptData: { title: string; content: string; folder_id: string | null; use_in_context_menu: boolean }): Promise<{ success: boolean; error?: string }> {
-    debugLog('📤 Creating prompt:', promptData.title);
+    logger.debug('Prompt Inject', '📤 Creating prompt:', promptData.title);
     
     try {
       const storage = await chrome.storage.local.get(['accessToken']);
@@ -657,12 +634,12 @@
       }
       
       const data = await response.json();
-      debugLog('✅ Prompt created successfully:', data.id);
+      logger.debug('Prompt Inject', '✅ Prompt created successfully:', data.id);
       
       return { success: true };
       
     } catch (error: any) {
-      debugLog('❌ Error creating prompt:', error);
+      logger.debug('Prompt Inject', '❌ Error creating prompt:', error);
       return { success: false, error: error.message };
     }
   }
@@ -798,10 +775,10 @@
     }
 
     try {
-      debugLog('📝 Creating prompt from selection...');
+      logger.debug('Prompt Inject', '📝 Creating prompt from selection...');
       showCreatePromptDialog(selectedText);
     } catch (error: any) {
-      debugLog('❌ Error:', error);
+      logger.debug('Prompt Inject', '❌ Error:', error);
       showNotification(`Error: ${error.message || 'Unknown error'}`, 'error');
     }
   }
@@ -811,7 +788,7 @@
   // ============================================================================
   
   function setupMessageListener(): void {
-    debugLog('🎧 Setting up message listener...');
+    logger.debug('Prompt Inject', '🎧 Setting up message listener...');
     
     chrome.runtime.onMessage.addListener((request: any, _sender: chrome.runtime.MessageSender, sendResponse: (response?: any) => void) => {
       if (request.action === 'ping') {
@@ -820,13 +797,13 @@
       }
       
       if (request.action === 'getPrompts') {
-        debugLog('📨 Received message to get prompts');
+        logger.debug('Prompt Inject', '📨 Received message to get prompts');
         (async () => {
           try {
             // Loading prompts
-            debugLog('🔍 Loading prompts...');
+            logger.debug('Prompt Inject', '🔍 Loading prompts...');
             const prompts = await fetchPrompts();
-            debugLog('📊 Loaded prompts:', prompts.length);
+            logger.debug('Prompt Inject', '📊 Loaded prompts:', prompts.length);
                                 
             // Show menu even if no prompts found to allow refresh button usage
             showPromptMenu(prompts, { mode: request.mode });
@@ -837,7 +814,7 @@
                                 
             sendResponse({ success: true, count: prompts.length });
           } catch (error: any) {
-            debugLog('❌ Error:', error);
+            logger.debug('Prompt Inject', '❌ Error:', error);
             showNotification(`Error: ${error.message || 'Unknown error'}`, 'error');
             // Show menu even on error to allow refresh attempt
             showPromptMenu([]);
@@ -849,7 +826,7 @@
       }
 
       if (request.action === 'injectPrompt') {
-        debugLog('📨 Received message to inject prompt');
+        logger.debug('Prompt Inject', '📨 Received message to inject prompt');
         
         // Clear any existing loading notifications
         const existingNotifications = document.querySelectorAll('.brainbox-prompt-notification');
@@ -866,14 +843,14 @@
       }
 
       if (request.action === 'refreshPrompts') {
-        debugLog('📨 Received message to refresh prompts');
+        logger.debug('Prompt Inject', '📨 Received message to refresh prompts');
         
         (async () => {
           try {
             const prompts = await fetchPrompts(true); // Force refresh
             sendResponse({ success: true, count: prompts.length });
           } catch (error: any) {
-            debugLog('❌ Error during refresh:', error);
+            logger.debug('Prompt Inject', '❌ Error during refresh:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
@@ -882,7 +859,7 @@
       }
 
       if (request.action === 'checkIfEditableField') {
-        debugLog('📨 Checking if click is in editable field');
+        logger.debug('Prompt Inject', '📨 Checking if click is in editable field');
         
         try {
           const { pageX, pageY } = request.clickInfo || {};
@@ -909,7 +886,7 @@
                 current = current.parentElement as HTMLElement | null;
               }
               
-              debugLog('✅ Check complete:', { isEditable });
+              logger.debug('Prompt Inject', '✅ Check complete:', { isEditable });
               sendResponse({ success: true, isEditable });
               return true;
             }
@@ -917,7 +894,7 @@
           
           sendResponse({ success: true, isEditable: false });
         } catch (error) {
-          debugLog('❌ Error during check:', error);
+          logger.debug('Prompt Inject', '❌ Error during check:', error);
           sendResponse({ success: false, isEditable: false });
         }
         
@@ -925,7 +902,7 @@
       }
 
       if (request.action === 'showCreatePromptDialog' || request.action === 'openCreatePromptDialog') {
-        debugLog(`Received message action: ${request.action}`);
+        logger.debug('Prompt Inject', `Received message action: ${request.action}`);
         
         (async () => {
           try {
@@ -940,7 +917,7 @@
             showCreatePromptDialog(selectedText);
             sendResponse({ success: true });
           } catch (error: any) {
-            debugLog('❌ Error:', error);
+            logger.debug('Prompt Inject', '❌ Error:', error);
             sendResponse({ success: false, error: error.message });
           }
         })();
@@ -950,7 +927,7 @@
       return false; // No handler for this action
     });
     
-    debugLog('✅ Message listener active');
+    logger.debug('Prompt Inject', '✅ Message listener active');
   }
 
   // ============================================================================
@@ -1661,24 +1638,22 @@
   };
 
   async function init(): Promise<void> {
-    debugLog('🚀 Initializing BrainBox...');
+    logger.debug('Prompt Inject', '🚀 Initializing BrainBox...');
     await loadConfig();
     injectStyles();
     setupMessageListener();
     
     // Notify background that we are ready
     chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'universal' }).catch(() => {});
-    
-    debugLog('✅ Ready');
   }
-
+  
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => { init(); });
   } else {
     init();
   }
+} // End of else block from the top of the file
 
-})();
 
 /**
  * File: apps/extension/src/prompt-inject/prompt-inject.ts

@@ -1,8 +1,5 @@
-/**
- * InstallationManager
- * 
- * Handles extension lifecycle events (install, update)
- */
+import { logger } from '@/lib/logger';
+
 export class InstallationManager {
     private DEBUG_MODE: boolean;
 
@@ -13,12 +10,12 @@ export class InstallationManager {
 
     initialize() {
         chrome.runtime.onInstalled.addListener(this.handleInstalled);
-        console.log('[InstallationManager] 🎬 Listening for lifecycle events...');
+        logger.info('InstallationManager', '🎬 Listening for lifecycle events...');
     }
 
     private handleInstalled(details: chrome.runtime.InstalledDetails) {
         if (this.DEBUG_MODE) {
-            console.log('[InstallationManager] Event:', details.reason);
+            logger.debug('InstallationManager', 'Event:', details.reason);
         }
 
         switch (details.reason) {
@@ -38,7 +35,7 @@ export class InstallationManager {
     }
 
     private onFirstInstall() {
-        console.log('[InstallationManager] 🎉 First install detected');
+        logger.info('InstallationManager', '🎉 First install detected');
         
         // Open welcome page
         chrome.tabs.create({ 
@@ -47,7 +44,7 @@ export class InstallationManager {
     }
 
     private onUpdate(previousVersion?: string) {
-        console.log('[InstallationManager] 🔄 Updated from:', previousVersion);
+        logger.info('InstallationManager', `🔄 Updated from: ${previousVersion}`);
         
         // Migration logic here
         // Example: Clean up old storage keys

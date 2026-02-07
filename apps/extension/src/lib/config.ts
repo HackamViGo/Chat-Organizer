@@ -11,7 +11,7 @@ const getEnvVar = (key: string): string => {
   return value;
 };
 
-export const API_BASE_URL = getEnvVar('VITE_API_BASE_URL');
+export const API_BASE_URL = getEnvVar('VITE_API_BASE_URL').replace(/\/api$/, '');
 export const DASHBOARD_URL = getEnvVar('VITE_DASHBOARD_URL');
 export const VERSION = '3.0.0';
 

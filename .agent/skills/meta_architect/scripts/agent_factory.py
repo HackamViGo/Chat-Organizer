@@ -22,11 +22,14 @@ except ImportError:
     from meta_architect.scripts.state_manager import StateManager, TaskStatus
 
 # CONFIGURATION
-BASE_DIR = Path(__file__).parent.parent
+SCRIPT_DIR = Path(__file__).resolve().parent
+PROJECT_ROOT = SCRIPT_DIR.parents[4]  # .agent/skills/meta_architect/scripts -> ROOT
+BASE_DIR = SCRIPT_DIR.parent          # meta_architect skill root
+
 PROFILES_DIR = BASE_DIR / "profiles"
 TEMPLATE_PATH = BASE_DIR / "resources" / "sub_agent_template.md"
 GRAPH_PATH = BASE_DIR / "resources" / "knowledge_graph.json"
-STATE_DIR = Path("agent_states")
+STATE_DIR = PROJECT_ROOT / "agent_states"
 
 def load_profile(role_alias: str) -> dict:
     """Load agent profile YAML by alias or filename"""

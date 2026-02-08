@@ -18,6 +18,7 @@
     "http://localhost/*",
     "http://127.0.0.1/*",
     "__DASHBOARD_URL__/*",
+    "https://your-factory-domain.com/*",
     "https://chatgpt.com/*",
     "https://chat.openai.com/*",
     "https://claude.ai/*",

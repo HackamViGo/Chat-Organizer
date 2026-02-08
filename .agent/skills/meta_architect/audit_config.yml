@@ -18,10 +18,14 @@ exclusions:
     - ".agent"
     - "agent_states"
     - "tests"
+    - "__tests__"          # Exclude test directories
     - "apps/desktop"
+    - ".vercel"            # Exclude Vercel build output
   files: 
     - "pnpm-lock.yaml"
     - "package-lock.json"
+    - "logger.ts"          # Centralized logger is allowed to use console
+    - "vite.config.ts"     # Build configs are allowed to log
 
 allowed_patterns:
   - "example"

@@ -46,8 +46,8 @@
     "test:rls": "node tests/database/check-rls.js",
     "test:unit": "node tests/unit/schema-validation.test.js",
     "test:integration": "node tests/integration/api-health.test.js",
-    "verify": "python3 meta_architect/scripts/project_health_check.py --min-score 70",
-    "audit": "python3 meta_architect/scripts/project_planner.py",
+    "verify": "python3 .agent/skills/meta_architect/scripts/project_health_check.py --min-score 70",
+    "audit": "python3 .agent/skills/meta_architect/scripts/project_planner.py",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down",
     "docker:build": "docker-compose build",
@@ -106,7 +106,7 @@ project_name: "BrainBox - AI Chat Organizer"
 architecture_version: "2.2.0"
 protocol_version: "3.1.0"
 last_updated: "2026-02-06"
-operational_kernel: "meta_architect/skills.md"
+operational_kernel: ".agent/skills/meta_architect/skills.md"
 
 # ═══════════════════════════════════════════════════════════════
 # 1. SYSTEM IDENTITY & HIERARCHY
@@ -129,7 +129,7 @@ communication_standards:
 # ═══════════════════════════════════════════════════════════════
 
 core_directives:
-  1_profile_binding: "NO ANONYMOUS TASKS. You must adopt a specific Profile from 'meta_architect/profiles/*.yml' before acting."
+  1_profile_binding: "NO ANONYMOUS TASKS. You must adopt a specific Profile from '.agent/skills/meta_architect/profiles/*.yml' before acting."
   2_graph_driven: "Every architectural decision MUST reference a valid 'node_id' from 'knowledge_graph.json'."
   3_health_gate: "A task is NOT done until 'pnpm verify' returns a Health Score > 80."
   4_state_aware: "You MUST update 'agent_states/{role}_state.yml' upon completion of missions."
@@ -224,7 +224,7 @@ exit_sequence:
 # ═══════════════════════════════════════════════════════════════
 --- END OF FILE .cursorrules.md ---
 
-### --- START OF FILE meta_architect/skills.md ---
+### --- START OF FILE .agent/skills/meta_architect/skills.md ---
 ## meta_architect (v3.0 - Monorepo Standard)
 
 **Central intelligence for architectural reasoning and agent orchestration within a graph-driven ecosystem.**
@@ -241,10 +241,10 @@ In accordance with `main_orchestration.yml`, the skill operates using the follow
 
 *   **Orchestration:** `main_orchestration.yml`
 *   **Scripts:**
-    *   `meta_architect/scripts/project_planner.py`
-    *   `meta_architect/scripts/project_health_check.py`
-*   **Resources:** `meta_architect/resources/knowledge_graph.json`
-*   **Templates:** `meta_architect/resources/sub_agent_template.md`
+    *   `.agent/skills/meta_architect/scripts/project_planner.py`
+    *   `.agent/skills/meta_architect/scripts/project_health_check.py`
+*   **Resources:** `.agent/skills/meta_architect/resources/knowledge_graph.json`
+*   **Templates:** `.agent/skills/meta_architect/resources/sub_agent_template.md`
 *   **Monorepo Applications:**
     *   `apps/dashboard` (Next.js)
     *   `apps/extension` (Vite)
@@ -255,7 +255,7 @@ In accordance with `main_orchestration.yml`, the skill operates using the follow
 
 Used to establish a **Health Score** and detect system anomalies.
 
-*   **Command:** `pnpm verify` (proxies to `python3 meta_architect/scripts/project_health_check.py`)
+*   **Command:** `pnpm verify` (proxies to `python3 .agent/skills/meta_architect/scripts/project_health_check.py`)
 *   **Package Manager:** **pnpm** (Strict Enforced)
 *   **Output:** Generates `audit_report.md` and `remediation_plan.yml`.
 
@@ -263,7 +263,7 @@ Used to establish a **Health Score** and detect system anomalies.
 
 The process of filtering the **Knowledge Graph** and passing context to sub-agents.
 
-*   **Interface:** `meta_architect/scripts/knowledge_injector.py`
+*   **Interface:** `.agent/skills/meta_architect/scripts/knowledge_injector.py`
 *   **Constraint:** Only nodes with `priority <= 2` are utilized for automated tasks.
 
 ### C. State Verification
@@ -271,12 +271,12 @@ The process of filtering the **Knowledge Graph** and passing context to sub-agen
 Atomic progress verification for every **Builder Agent**.
 
 *   **Path:** `agent_states/` (Directory for YAML states)
-*   **Control:** `meta_architect/scripts/state_manager.py`
+*   **Control:** `.agent/skills/meta_architect/scripts/state_manager.py`
 
 ## 4. Standard Compliance
 
 1.  **Zero-Hallucination:** Every decision must reference a valid `node_id` from `knowledge_graph.json`.
-2.  **Path Integrity:** Usage of paths outside of `meta_architect/` for system scripts is strictly prohibited.
+2.  **Path Integrity:** Usage of paths outside of `.agent/skills/meta_architect/` for system scripts is strictly prohibited.
 3.  **Health Gate:** Automatic process termination if `Health Score < 80`.
 
 ## 5. Usage Instructions
@@ -289,9 +289,9 @@ Follow this sequence when starting a new cycle:
 4.  **Quality Monitoring:** Monitor `verification_gate.yml` for security and quality assurance.
 
 ---
---- END OF FILE meta_architect/skills.md ---
+--- END OF FILE .agent/skills/meta_architect/skills.md ---
 
-### --- START OF FILE meta_architect/profiles/meta_architect.yml ---
+### --- START OF FILE .agent/skills/meta_architect/profiles/meta_architect.yml ---
 agent_config:
   id: "meta_architect_v3"
   role: "System Orchestrator & Knowledge Guardian"
@@ -304,7 +304,7 @@ runtime_behavior:
   language: "Bulgarian (User Interaction) | English (Code)"
 
 permissions:
-  allowed_files: ["meta_architect/**/*", ".cursorrules.md", "agent_states/**/*", "package.json"]
+  allowed_files: [".agent/skills/meta_architect/**/*", ".cursorrules.md", "agent_states/**/*", "package.json"]
   forbidden_files: ["src/**/*"]
   tools: ["mcp_filesystem", "mcp_memory", "git_history_reader"]
 
@@ -322,9 +322,9 @@ escalation_triggers:
   - "Health Score persists below 70 after remediation"
   - "Knowledge Graph desynchronization detected"
   - "Multi-agent deadlocks or conflicting missions"
---- END OF FILE meta_architect/profiles/meta_architect.yml ---
+--- END OF FILE .agent/skills/meta_architect/profiles/meta_architect.yml ---
 
-### --- START OF FILE meta_architect/profiles/qa_examiner.yml ---
+### --- START OF FILE .agent/skills/meta_architect/profiles/qa_examiner.yml ---
 agent_config:
   id: "qa_examiner_v3"
   role: "Blind Audit Specialist"
@@ -355,7 +355,7 @@ constraints:
   - "STRICT: If a test fails, you assume the CODE is wrong, not the test."
   - "STRICT: You cannot use 'write_file' on any path in 'read_only_files'."
   - "GATE: Output 'audit_report_pass.md' only when all tests pass."
---- END OF FILE meta_architect/profiles/qa_examiner.yml ---
+--- END OF FILE .agent/skills/meta_architect/profiles/qa_examiner.yml ---
 
 ### --- START OF FILE apps/extension/src/lib/config.ts ---
 /**
@@ -812,7 +812,7 @@ export class SyncManager {
 }
 --- END OF FILE apps/extension/src/background/modules/syncManager.ts ---
 
-### --- START OF FILE meta_architect/reports/audit_report_latest.md ---
+### --- START OF FILE .agent/skills/meta_architect/reports/audit_report_latest.md ---
 # TRIAD AUDIT REPORT
 **Auditor:** QA Examiner v3.1
 **Target:** Extension Builder Work
@@ -830,4 +830,4 @@ export class SyncManager {
 - **Target C:** The `PromptSyncManager` now requires an explicit `dashboardUrl`, preventing fallback to production URLs in dev environments.
 - **Target E:** Background sync is robustly implemented via `chrome.alarms` with a 5-minute period and an initial 1-minute delay, following Manifest V3 best practices.
 - **Cleanup:** No legacy `setInterval` loops remain in the synchronization logic.
---- END OF FILE meta_architect/reports/audit_report_latest.md ---
+--- END OF FILE .agent/skills/meta_architect/reports/audit_report_latest.md ---

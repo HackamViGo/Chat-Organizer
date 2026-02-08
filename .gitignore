@@ -57,3 +57,4 @@ scripts/pre-migration/
 # Project state and internal docs
 walkthrough.md
 *.tsbuildinfo
+.env*.local

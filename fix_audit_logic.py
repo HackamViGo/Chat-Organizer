@@ -63,8 +63,8 @@ def patch_health_check():
     content = content.replace('"console_log": 0.1', '"console_log": 0.5')
     
     # Fix 2: Point to the correct config path
-    # We change the default arg from "audit_config.yml" to "meta_architect/audit_config.yml"
-    content = content.replace('config_path="audit_config.yml"', 'config_path="meta_architect/audit_config.yml"')
+    # We change the default arg from "audit_config.yml" to ".agent/skills/meta_architect/audit_config.yml"
+    content = content.replace('config_path="audit_config.yml"', 'config_path=".agent/skills/meta_architect/audit_config.yml"')
 
     with open(HEALTH_CHECK_FILE, "w", encoding="utf-8") as f:
         f.write(content)
@@ -84,7 +84,7 @@ def verify_gate():
     print("🚀 Running Meta-Architect Verification Gate (Strict Mode)...")
     
     # 1. Check Graph integrity
-    graph_path = "meta_architect/resources/knowledge_graph.json"
+    graph_path = ".agent/skills/meta_architect/resources/knowledge_graph.json"
     if not os.path.exists(graph_path):
         # Fallback for flat structure
         graph_path = "knowledge_graph.json"
@@ -101,7 +101,7 @@ def verify_gate():
         print("⚠️ Knowledge Graph missing, skipping check.")
 
     # 2. Check Health Score (Parsing Logic)
-    report_files = ["audit_report.md", "meta_architect/resources/audit_report.md", "walkthrough.md"]
+    report_files = ["audit_report.md", ".agent/skills/meta_architect/resources/audit_report.md", "walkthrough.md"]
     found_score = False
     
     for report in report_files:

@@ -1,3 +1,4 @@
+import modelsConfig from '../config/ai_models_config.json';
 import { PromptLibraryFetcher, type PromptEntry } from './prompt-library-fetcher';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
@@ -65,7 +66,7 @@ Response:`;
         // Initialize client with proper API key configuration
         // Follows Google Cloud best practices
         const genAI = new GoogleGenerativeAI(apiKeyToUse);
-        const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+        const model = genAI.getGenerativeModel({ model: modelsConfig.models.analysis.model_name });
 
         const result = await model.generateContent({
           contents: [{ role: 'user', parts: [{ text: searchPrompt }] }],

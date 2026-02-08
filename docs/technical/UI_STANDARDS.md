@@ -361,13 +361,27 @@ body {
 - **Minimum Tap Target**: `h-11` (44px) fixed height for all interactive buttons.
 - **Bulk Action Mode**: Transforms background to `bg-cyan-900/10` and border to `border-cyan-500/20`.
 
-#### 3.2.3 Global Hybrid Sidebar (v3.0)
+#### 3.2.3 Global Hybrid Sidebar (v3.1)
 
-**Certified Component**: ✅ Nested Navigation v3.0 (Master Prompt Compliant)
+**Certified Component**: ✅ Nested Navigation v3.1 (Master Prompt Compliant)
+
+**New Capabilities (v3.1)**:
+- **4 Levels of Nesting**: Supports deep hierarchy visualization.
+- **Smart 5 Priority Logic**: Displays top 5 relevant items, with intelligent "show more" handling.
+- **Micro-interactions**: 
+  - Back button fade-in/slide-down.
+  - Folder icon open/close state on hover.
+  - Stable scrollbar gutter to prevent layout shift.
 
 **Visual Spec**:
 - **Mechanism**: Hybrid Overlay (w-20 fixed / w-64 hover overlay).
-- **Core Container**: `fixed left-0 top-0 h-screen z-[60] bg-card/95 backdrop-blur-md border-r border-border flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-300`.
+- **Core Container**: `fixed left-0 top-0 h-screen z-[60] bg-slate-900 backdrop-blur-md border-r border-white/10 flex flex-col justify-between overflow-hidden shadow-2xl transition-all duration-300`.
+- **Mobile Behavior**:
+  - **Backdrop**: `fixed inset-0 bg-black/50 backdrop-blur-sm z-[55]` (Visible when open).
+  - **Sidebar**: Translations controlled via `isMobileOpen` state.
+- **Search Logic UI**: 
+  - Collapsed: centered Search icon button.
+  - Expanded: `w-full` input with `ring-2 ring-primary/50` on focus.
 - **Global Vertical Axis**: 40px from left edge.
   - **Symmetry Rule**: All parent icons must be mathematically centered on this 40px axis.
   - **Hierarchy Line**: Vertical guide line (1px, bg-border/40) positioned exactly at `left-[39px]` (visually 40px center).

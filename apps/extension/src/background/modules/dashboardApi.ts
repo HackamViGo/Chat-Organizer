@@ -207,7 +207,7 @@ export async function getUserSettings() {
     };
 
     if (cached) {
-        fetchFromServer().catch(err => console.warn('[DashboardAPI] Background settings refresh failed:', err));
+        fetchFromServer().catch(err => logger.warn('DashboardAPI', 'Background settings refresh failed:', err));
         return cached;
     }
 
@@ -223,7 +223,7 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
     const isTokenValid = accessToken && (!expiresAt || expiresAt > Date.now());
 
     if (!isTokenValid) {
-        console.warn('[DashboardAPI] ⚠️ Invalid or expired token:', { hasToken: !!accessToken, expiresAt });
+        logger.warn('DashboardAPI', '⚠️ Invalid or expired token:', { hasToken: !!accessToken, expiresAt });
         if (!silent) chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
         throw new Error('Please authenticate first');
     }
@@ -279,7 +279,7 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
                 const errorText = await response.text();
                 // Queue on generic server errors (5xx)
                 if (response.status >= 500) {
-                    console.warn('[DashboardAPI] ⚠️ Server error. Queuing for retry.');
+                    logger.warn('DashboardAPI', '⚠️ Server error. Queuing for retry.');
                     await SyncManager.addToQueue('chat', { ...requestBody, folderId });
                 }
                 throw new Error(errorText);
@@ -304,13 +304,13 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
                 } catch {
                     return false;
                 }
-            }).catch(err => console.error('[DashboardAPI] Queue processing failed:', err));
+            }).catch(err => logger.error('DashboardAPI', 'Queue processing failed:', err));
 
             return result;
         } catch (error: any) {
             // Queue on network errors (fetch failed)
             if (error instanceof TypeError && error.message.includes('fetch')) {
-                console.warn('[DashboardAPI] 📶 Network error. Queuing chat.');
+                logger.warn('DashboardAPI', '📶 Network error. Queuing chat.');
                 await SyncManager.addToQueue('chat', { ...requestBody, folderId });
                 throw new Error('Network error: Saved to sync queue');
             }

@@ -1,3 +1,4 @@
+import modelsConfig from '../config/ai_models_config.json';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
 /**
@@ -35,7 +36,7 @@ export const analyzeChatContent = async (
 ): Promise<AIAnalysisResult> => {
   try {
     const ai = getClient(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = ai.getGenerativeModel({ model: modelsConfig.models.analysis.model_name });
 
     const prompt = `
       Analyze the following chat transcript or text. 
@@ -82,7 +83,7 @@ export const generatePromptImprovement = async (
 ): Promise<string> => {
   try {
     const ai = getClient(apiKey);
-    const model = ai.getGenerativeModel({ model: 'gemini-2.0-flash-exp' });
+    const model = ai.getGenerativeModel({ model: modelsConfig.models.prompt_improvement.model_name });
 
     const result = await model.generateContent(
       `Improve the following AI prompt to be more effective, structured, and clear using best engineering practices. Return ONLY the improved prompt text.\n\nOriginal: ${originalPrompt}`

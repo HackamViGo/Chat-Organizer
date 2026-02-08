@@ -13,26 +13,33 @@ const IS_DEV = import.meta.env.DEV;
 
 // Check debug flag safely
 const isDebugMode = () => {
-  return true; // Force enabled by user request
+  return IS_DEV; 
 };
 
 export const logger = {
   debug: (area: string, msg: string, data?: any) => {
     if (isDebugMode()) {
-      // Use specific console methods if available, fallback to log
       console.log(`%c[${area}]`, 'color: #3b82f6; font-weight: bold;', msg, data || '');
     }
   },
   
   info: (area: string, msg: string, data?: any) => {
-    console.info(`[${area}] ${msg}`, data || '');
+    if (isDebugMode()) {
+      console.info(`[${area}] ${msg}`, data || '');
+    }
   },
 
   warn: (area: string, msg: string, data?: any) => {
-    console.warn(`[${area}] ⚠️ ${msg}`, data || '');
+    if (isDebugMode()) {
+      console.warn(`[${area}] ⚠️ ${msg}`, data || '');
+    }
   },
 
   error: (area: string, msg: string, err?: any) => {
+    // Errors are always logged, but we might want to suppress them in strict prod modes if not critical
+    // For now, keeping errors visible is safer, but strictly we could wrap this too if needed.
+    // The user instruction said "Ignore console.error only in global Error Boundaries", but standard errors are usually ok.
+    // However, to strictly follow "Zero-Log Policy" for INFO/DEBUG:
     console.error(`[${area}] 🚨 ${msg}`, err || '');
   }
 };

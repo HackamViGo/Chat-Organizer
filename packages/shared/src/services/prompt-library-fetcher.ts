@@ -63,11 +63,11 @@ export class PromptLibraryFetcher {
       }
       
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Fetched CSV, length: ${csvText.length} characters`);
+        // console.log(`Fetched CSV, length: ${csvText.length} characters`);
       }
       const prompts = this.parseCSV(csvText);
       if (process.env.NODE_ENV === 'development') {
-        console.log(`Parsed ${prompts.length} prompts from CSV`);
+        // console.log(`Parsed ${prompts.length} prompts from CSV`);
       }
       
       if (prompts.length === 0) {

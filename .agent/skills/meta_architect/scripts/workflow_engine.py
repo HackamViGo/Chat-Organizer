@@ -8,7 +8,7 @@ from pathlib import Path
 
 # CONFIG
 WORKFLOW_DIR = Path(".workflows") # Root level directory
-SCRIPTS_DIR = Path("meta_architect/scripts")
+SCRIPTS_DIR = Path(".agent/skills/meta_architect/scripts")
 
 sys.path.append(str(SCRIPTS_DIR.resolve()))
 

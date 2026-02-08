@@ -113,8 +113,8 @@ export async function POST(request: NextRequest) {
 
     const avatarUrl = urlData.publicUrl;
     
-    console.log('Avatar uploaded successfully. URL:', avatarUrl);
-    console.log('File path:', filePath);
+    // console.log('Avatar uploaded successfully. URL:', avatarUrl);
+    // console.log('File path:', filePath);
 
     // Update user record in database
     // @ts-ignore TODO: Fix Supabase type mismatch

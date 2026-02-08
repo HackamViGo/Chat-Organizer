@@ -1548,6 +1548,64 @@ logger.info('BrainBox Master', '🧠 Loading coordinator...');
   }
 
   // ============================================================================
+  // FACTORY INTEGRATION (API BRIDGE)
+  // ============================================================================
+
+  async function sendToFactory(payload: any): Promise<boolean> {
+      try {
+          if (!payload) return false;
+
+          // 1. Sanitize Payload (Security Sentinel)
+          const sanitizedPayload = {
+              ...payload,
+              messages: payload.messages.map((msg: any) => ({
+                  role: msg.role,
+                  content: sanitizeHtml(msg.content), // Remove HTML tags
+                  model: msg.model || 'unknown',
+                  timestamp: msg.timestamp || Date.now()
+              })),
+              // Ensure no PII in metadata (basic check)
+              metadata: {
+                  ...payload.metadata,
+                  user_email: undefined, // Strip explicit email if present
+                  user_id: undefined     // Strip explicit ID if present
+              }
+          };
+
+          logger.debug('BrainBox Master', '🚀 Sending payload to Factory:', sanitizedPayload.conversationId);
+
+          // 2. Delegate to Background Service Worker (CORS handling)
+          const response = await chrome.runtime.sendMessage({
+              action: 'proxyToFactory',
+              payload: sanitizedPayload
+          });
+
+          if (!response || !response.success) {
+              throw new Error(response?.error || 'Unknown factory error');
+          }
+
+          logger.info('BrainBox Master', '✅ Factory sync successful for:', payload.conversationId);
+          return true;
+
+      } catch (error: any) {
+          logger.error('BrainBox Master', '❌ Factory sync failed:', error);
+          // Exponential backoff logic is handled by the Queue Manager in Service Worker
+          // Here we just report failure so it stays in the IDB queue
+          return false;
+      }
+  }
+
+  function sanitizeHtml(text: string): string {
+      if (!text) return '';
+      // allow basic markdown but strip potential scripts/html
+      return text
+          .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
+          .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
+          .replace(/on\w+="[^"]*"/g, "") // Remove event handlers
+          .replace(/javascript:/gi, ""); // Remove js pseudo-protocol
+  }
+
+  // ============================================================================
   // MESSAGE LISTENER (for messages from service-worker and window)
   // ============================================================================
   

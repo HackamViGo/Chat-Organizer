@@ -8,7 +8,7 @@ project_name: "BrainBox - AI Chat Organizer"
 architecture_version: "2.2.0"
 protocol_version: "3.1.0"
 last_updated: "2026-02-06"
-operational_kernel: "meta_architect/skills.md"
+operational_kernel: ".agent/skills/meta_architect/SKILL.md"
 
 # ═══════════════════════════════════════════════════════════════
 # 1. SYSTEM IDENTITY & HIERARCHY

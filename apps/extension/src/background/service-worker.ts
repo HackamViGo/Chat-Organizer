@@ -55,6 +55,54 @@ installationManager.initialize();
 
 messageRouter.listen();
 
+// 4. API Proxy Listener (CORS Bridge)
+chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+    if (request.action === 'proxyToFactory') {
+        (async () => {
+             try {
+                const { payload } = request;
+                
+                // Get Auth Token
+                const { accessToken } = await chrome.storage.local.get('accessToken');
+                if (!accessToken) {
+                    throw new Error('No access token available');
+                }
+
+                logger.debug('Worker', '📡 Proxying to Factory:', CONFIG.API_BASE_URL + '/api/captures/save');
+
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/captures/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (response.status === 401) {
+                    logger.error('Worker', '❌ 401 Unauthorized - Token expired or invalid');
+                    // Potentially trigger re-login flow here
+                    sendResponse({ success: false, error: 'Unauthorized' });
+                    return;
+                }
+
+                if (!response.ok) {
+                     const errorText = await response.text();
+                     throw new Error(`Server error ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                sendResponse({ success: true, data });
+
+             } catch (error: any) {
+                 logger.error('Worker', '❌ Proxy Error:', error);
+                 sendResponse({ success: false, error: error.message });
+             }
+        })();
+        return true; // Keep channel open
+    }
+});
+
 // ============================================================================
 // CONFIGURATION SYNC
 // ============================================================================

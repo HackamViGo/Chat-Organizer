@@ -4,7 +4,7 @@
 (function () {
     'use strict';
 
-    console.log('[BrainBox] MAIN world script loaded');
+    // console.log('[BrainBox] MAIN world script loaded');
 
     function extractToken() {
         try {
@@ -29,10 +29,10 @@
             }
 
             if (token) {
-                console.log('[BrainBox] Token extracted, sending to content script...');
-                window.postMessage({ type: 'BRAINBOX_GEMINI_TOKEN', token: token }, window.location.origin);
+                // console.log('[BrainBox] Token extracted, sending to content script...');
+                window.postMessage({ type: 'BRAINBOX_GEMINI_TOKEN', token: token }, '*');
             } else {
-                console.log('[BrainBox] Token not found in standard locations');
+                // console.log('[BrainBox] Token not found in standard locations');
             }
         } catch (e) {
             console.error('[BrainBox] Token extraction error:', e);
@@ -53,7 +53,7 @@
     setInterval(() => {
         if (location.href !== lastUrl) {
             lastUrl = location.href;
-            console.log('[BrainBox] Navigation detected, re-extracting token...');
+            // console.log('[BrainBox] Navigation detected, re-extracting token...');
             setTimeout(extractToken, 500);
         }
     }, 1000);

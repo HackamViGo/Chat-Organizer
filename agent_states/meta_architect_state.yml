@@ -19,4 +19,4 @@ completed_missions:
 artifacts_generated:
   - "docs/user/Meta_architect_SNAPSHOT.md"
   - "docs/ChangeLogs/CHANGELOG_v3.0.md"
-  - "meta_architect/reports/audit_report_latest.md"
+  - ".agent/skills/meta_architect/reports/audit_report_latest.md"

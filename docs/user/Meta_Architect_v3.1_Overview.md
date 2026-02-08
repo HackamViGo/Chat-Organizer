@@ -7,10 +7,10 @@
 
 ## 1. The Binding Protocol: From Raw Prompt to Specialized Agent
 
-**"Binding"** is the process where a generic LLM is constrained into a specific role. This is handled by **`meta_architect/scripts/agent_factory.py`**.
+**"Binding"** is the process where a generic LLM is constrained into a specific role. This is handled by **`.agent/skills/meta_architect/scripts/agent_factory.py`**.
 
 1.  **Input:** The user selects a role (e.g., `extension_builder`) and defines a **Mission**.
-2.  **Profile Loading:** The factory loads the corresponding YAML profile from `meta_architect/profiles/` (defining permissions, tools, and behavior).
+2.  **Profile Loading:** The factory loads the corresponding YAML profile from `.agent/skills/meta_architect/profiles/` (defining permissions, tools, and behavior).
 3.  **State Initialization:** A persistent state file is created in `agent_states/` using `state_manager.py`. This prevents "ghosting" by recording the mission start immediately.
 4.  **Graph Injection:** The factory consults `knowledge_graph.json` to pull **Real-Time Context** (e.g., node IDs, URLs, dependencies) relevant to that specific role.
 5.  **fusion:** The Profile, Mission, State ID, and Graph Context are fused into the `sub_agent_template.md` to generate the final **System Prompt**.
@@ -50,7 +50,7 @@ Defined in `agent_factory.py` and the Profile YAMLs. An Agent **physically canno
 
 ### 🚧 The Health Gate
 *   **Rule:** "A task is NOT done until `pnpm verify` returns a Health Score > 80."
-*   **Mechanism:** `meta_architect/scripts/project_health_check.py`.
+*   **Mechanism:** `.agent/skills/meta_architect/scripts/project_health_check.py`.
 *   **Effect:** Automatic process termination if the score drops critically.
 
 ### 🚪 Exit Protocol (Anti-Ghosting)
@@ -77,4 +77,4 @@ The system fights "Knowledge Decay" (stale documentation) through two mechanisms
 *   **Rule:** **Zero-Hallucination**. Every architectural decision must reference a valid `node_id`.
 
 ---
-*For more technical details, consult `meta_architect/skills.md`.*
+*For more technical details, consult `.agent/skills/meta_architect/skills.md`.*

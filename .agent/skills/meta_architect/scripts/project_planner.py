@@ -691,7 +691,7 @@ def main():
     # Step 2: Load Knowledge Graph
     print("\n📚 Step 2: Loading Knowledge Graph...")
     try:
-        librarian = GraphLibrarian("meta_architect/resources/knowledge_graph.json")
+        librarian = GraphLibrarian(".agent/skills/meta_architect/resources/knowledge_graph.json")
         print("✅ Knowledge Graph loaded successfully")
     except Exception as e:
         print(f"⚠️ Warning: {e}")

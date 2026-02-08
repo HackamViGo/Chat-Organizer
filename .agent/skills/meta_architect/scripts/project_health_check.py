@@ -10,7 +10,7 @@ import sys
 from pathlib import Path
 
 class HealthEngine:
-    def __init__(self, config_path="meta_architect/audit_config.yml"):
+    def __init__(self, config_path=".agent/skills/meta_architect/audit_config.yml"):
         self.base_score = 100
         self.config_path = config_path
         self.config = self._load_config(config_path)
@@ -34,7 +34,7 @@ class HealthEngine:
         """
         if not os.path.exists(path):
             # Attempt relative path resolution
-            alt_path = os.path.join("meta_architect", "resources", "audit_config.yml") # potential alt location
+            alt_path = os.path.join(".agent/skills/meta_architect", "resources", "audit_config.yml") # potential alt location
             
             # STRICT: If explicit path provided is missing, fail.
             raise FileNotFoundError(f"CRITICAL: Audit configuration not found at: {path}")
@@ -134,16 +134,21 @@ class HealthEngine:
                     if any(p in token.lower() for p in allowed_patterns):
                         continue
                         
-                    # print(f"⚠️ Token found in: {path}") # DEBUG
+                    print(f"⚠️ Token found in: {path} (Match: {token[:10]}...)")
                     self.issues["hardcoded_token"] += 1
                 
                 # Console logs
                 if path.endswith(('.ts', '.tsx', '.js')):
-                    logs = re.findall(r'console\.log\(', content)
-                    if logs:
-                        # print(f"⚠️ Console log found in: {path} ({len(logs)})") # DEBUG
-                        pass
-                    self.issues["console_log"] += len(logs)
+                    lines = content.split('\n')
+                    count = 0
+                    for line in lines:
+                        if 'console.log(' in line:
+                            stripped = line.strip()
+                            # Ignore single line comments and block comment starts/continuations
+                            if not stripped.startswith('//') and not stripped.startswith('*') and not stripped.startswith('/*'):
+                                count += 1
+                                print(f"⚠️ Console log found in: {path}: {line.strip()}")
+                    self.issues["console_log"] += count
                     
         except Exception as e:
             print(f"⚠️ Could not audit file {path}: {e}")

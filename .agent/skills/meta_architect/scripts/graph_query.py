@@ -34,15 +34,15 @@ class GraphQuery:
     """
     
     def __init__(self, graph_path: str = "knowledge_graph.json"):
-        # Allow path to be relative to meta_architect/resources if not found at root
+        # Allow path to be relative to .agent/skills/meta_architect/resources if not found at root
         self.graph_path = Path(graph_path)
         if not self.graph_path.exists():
             # Fallback for relative run
-            alt_path = Path("meta_architect/resources") / graph_path
+            alt_path = Path(".agent/skills/meta_architect/resources") / graph_path
             if alt_path.exists():
                 self.graph_path = alt_path
-            elif Path(f"meta_architect/resources/{graph_path}").exists():
-                 self.graph_path = Path(f"meta_architect/resources/{graph_path}")
+            elif Path(f".agent/skills/meta_architect/resources/{graph_path}").exists():
+                 self.graph_path = Path(f".agent/skills/meta_architect/resources/{graph_path}")
         
         self.graph = self._load_graph()
         
@@ -170,7 +170,16 @@ class GraphQuery:
             "node_count": len(filtered)
         }
 
+ROLE_CATEGORY_MAP = {
+    "frontend_specialist": "Programming Languages & Frameworks",
+    "backend_specialist": "Programming Languages & Frameworks",
+    "devops_engineer": "Code Quality Standards",
+    "meta_architect": "System Architecture",
+    "security_specialist": "Security Standards",
+    "ai_architect": "AI Models & LLM Development"
+}
+
 if __name__ == "__main__":
     # Test execution
-    gq = GraphQuery("meta_architect/resources/knowledge_graph.json")
+    gq = GraphQuery(".agent/skills/meta_architect/resources/knowledge_graph.json")
     print("GraphQuery Module Loaded Successfully")

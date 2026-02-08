@@ -44,6 +44,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
 
   return {
+    esbuild: {
+      drop: isProd ? ['console', 'debugger'] : [],
+    },
     plugins: [
       tsconfigPaths({
         root: __dirname,

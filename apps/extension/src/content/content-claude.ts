@@ -230,13 +230,13 @@ function init() {
                                 accessToken !== '' &&
                                 (!expiresAt || expiresAt > Date.now());
             
-            console.log('[BrainBox] Claude: Checking accessToken:', {
+            /* console.log('[BrainBox] Claude: Checking accessToken:', {
                 exists: !!accessToken,
                 expiresAt: expiresAt,
                 now: Date.now(),
                 isExpired: expiresAt ? expiresAt <= Date.now() : false,
                 isValid: isTokenValid
-            });
+            }); */
             
             if (!isTokenValid) {
                 logger.warn('Claude', 'No valid accessToken found, opening login page');
@@ -275,12 +275,12 @@ function init() {
                 throw new Error('No conversation data received');
             }
 
-            console.log('[BrainBox] Claude response.data before save:', {
+            /* console.log('[BrainBox] Claude response.data before save:', {
                 url: response.data.url,
                 id: response.data.id,
                 platform: response.data.platform,
                 title: response.data.title
-            });
+            }); */
 
             const saveResponse = await chrome.runtime.sendMessage({
                 action: 'saveToDashboard',

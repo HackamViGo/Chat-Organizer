@@ -21,7 +21,7 @@ from datetime import datetime
 from enum import Enum
 
 # DRY Implementation: Import Single Source of Truth
-# We assume graph_query.py is in the same directory (meta_architect/scripts/)
+# We assume graph_query.py is in the same directory (.agent/skills/meta_architect/scripts/)
 try:
     from graph_query import GraphNode, GraphQuery
 except ImportError:

@@ -7,6 +7,7 @@ import {
   ChevronDown, 
   MessageCircle, 
   Folder as FolderIcon,
+  FolderOpen,
   LayoutGrid, Archive, FileEdit, Settings,
   Plus, User, Search, Trash2, ListTodo, 
   MessageSquarePlus, Brain
@@ -57,6 +58,9 @@ export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
   const isFolderExpanded = expandedFolders.has(folder.id);
   const folderChats = allChats.filter(c => c.folder_id === folder.id && !c.is_archived);
   const hasContent = (folder.children && folder.children.length > 0) || folderChats.length > 0;
+  
+  // Icon Logic
+  const isDefaultFolder = !folder.icon || folder.icon === 'Folder';
   const Icon = folder.icon && FOLDER_ICONS[folder.icon] ? FOLDER_ICONS[folder.icon] : FolderIcon;
   const isItemActive = isActive(folder.id);
 
@@ -87,8 +91,15 @@ export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
            />
         )}
 
-        <div className="shrink-0 w-5 h-5 flex items-center justify-center relative z-10">
-          <Icon size={20} />
+        <div className="shrink-0 w-5 h-5 flex items-center justify-center relative z-10 transition-transform duration-200">
+          {isDefaultFolder ? (
+            <>
+              <FolderIcon size={20} className="group-hover:hidden" />
+              <FolderOpen size={20} className="hidden group-hover:block" />
+            </>
+          ) : (
+            <Icon size={20} />
+          )}
         </div>
 
         {isExpanded && (

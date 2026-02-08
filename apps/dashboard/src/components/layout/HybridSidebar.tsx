@@ -53,7 +53,7 @@ const NavItem: React.FC<NavItemProps> = ({
 }) => {
   return (
     <motion.div 
-      layout={layout}
+      layout={layout || "position"}
       className="flex flex-col w-full group/nav relative"
     >
       <Link 
@@ -95,10 +95,10 @@ const NavItem: React.FC<NavItemProps> = ({
         </AnimatePresence>
       </Link>
 
-      <AnimatePresence>
+      <AnimatePresence initial={false}>
         {isHovered && children && (
           <motion.div
-            layout // Enable layout animation for the accordion content
+            layout="position"
             style={{ overflow: 'hidden' }}
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
@@ -259,7 +259,7 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
         transition={{ ease: [0.4, 0, 0.2, 1], duration: 0.45 }}
         className={`
           fixed left-0 top-0 h-screen z-[60] bg-slate-900 border-r border-white/10
-          flex flex-col justify-between shadow-2xl 
+          flex flex-col shadow-2xl 
           md:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
           will-change-[width,transform]
           transition-colors
@@ -274,7 +274,7 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
         </button>
 
         {/* 1. Header Section */}
-        <motion.div layout="position" className="flex flex-col flex-1 overflow-hidden">
+        <motion.div layout="position" className="flex flex-col shrink-0">
           <div className="h-16 flex items-center shrink-0 border-b border-white/10 bg-slate-900 overflow-hidden">
              {/* Fixed Rail Anchor: Logo */}
              <div className="w-20 shrink-0 flex items-center justify-center">
@@ -300,7 +300,6 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
 
           {/* Search Section */}
           <div className="py-4 flex items-center relative h-14 w-full">
-             {/* Fixed Rail Anchor: Search Icon (Loupe) */}
              <div className="w-20 shrink-0 flex items-center justify-center z-10 pointer-events-none">
                  <Search size={20} className="text-slate-400" />
              </div>
@@ -319,28 +318,30 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
                       placeholder="Search..." 
                       className="w-full bg-black/20 text-sm text-white placeholder:text-slate-500 rounded-lg py-2 pl-[52px] pr-3 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-inner"
                       style={{ paddingLeft: '56px' }} 
-                      autoFocus
                     />
                  </motion.div>
                )}
              </AnimatePresence>
           </div>
+        </motion.div>
 
-          {/* 2. Main Nav Section with Smart Scroll */}
-          <LayoutGroup>
-          <div className={`
-             flex-1 flex flex-col min-h-0 overflow-hidden relative
-             ${isHovered ? 'px-0 overflow-y-auto custom-scrollbar [scrollbar-gutter:stable]' : 'items-center overflow-hidden'}
-             [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-700
-          `}>
-            {/* Standard Nav Items */}
+        {/* 2. Main Nav Section (Vertical Isolation) */}
+        <LayoutGroup>
+          <motion.div 
+            layout="position"
+            className={`
+              flex-1 flex flex-col min-h-0 overflow-hidden relative
+              ${isHovered ? 'px-0 overflow-y-auto custom-scrollbar [scrollbar-gutter:stable]' : 'items-center overflow-hidden'}
+              [&::-webkit-scrollbar]:w-1 [&::-webkit-scrollbar-thumb]:bg-slate-700
+            `}
+          >
             <NavItem 
               to="/" 
               icon={LayoutGrid} 
               label="Dashboard" 
               isActive={pathname === '/'} 
               isHovered={isHovered} 
-              layout
+              layout="position"
             />
             
             <NavItem 
@@ -349,12 +350,12 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
               label="Chats" 
               isActive={isChatRoute} 
               isHovered={isHovered}
-              layout
+              layout="position"
             >
               {isChatRoute && isHovered && (
                 <motion.div 
                   className="flex flex-col pb-2"
-                  layout // animate layout changes
+                  layout="position"
                   style={{ overflow: 'hidden' }}
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -411,12 +412,12 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
               label="Prompts" 
               isActive={isPromptRoute} 
               isHovered={isHovered}
-              layout
+              layout="position"
             >
                {isPromptRoute && isHovered && (
                 <motion.div 
                    className="flex flex-col pb-2"
-                   layout // animate layout changes
+                   layout="position"
                    style={{ overflow: 'hidden' }}
                    initial={{ opacity: 0, height: 0 }}
                    animate={{ opacity: 1, height: "auto" }}
@@ -474,7 +475,7 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
               isActive={isStudioRoute} 
               isHovered={isHovered} 
               specialStyle={pathname === '/ai-studio' ? "bg-primary/20 text-primary" : undefined}
-              layout
+              layout="position"
             />
 
             <NavItem 
@@ -483,13 +484,12 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
               label="Lists" 
               isActive={pathname === '/lists'} 
               isHovered={isHovered} 
-              layout
+              layout="position"
             />
-          </div>
-          </LayoutGroup>
-        </motion.div>
+          </motion.div>
+        </LayoutGroup>
 
-        {/* 3. Footer Section (Settings + Theme) */}
+        {/* 3. Footer Section (Stabilized) */}
         <motion.div 
           layout="position"
           className={`
@@ -505,18 +505,15 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
                   label="Settings" 
                   isActive={pathname === '/settings'} 
                   isHovered={isHovered} 
-                  layout
+                  layout="position"
                 />
               </div>
               
-              {/* Theme Toggle - Fixed Rail Anchor */}
               <div className="flex items-center w-full h-14 relative group">
-                  {/* Fixed Rail Anchor */}
                   <div className="w-20 h-full flex items-center justify-center shrink-0">
                     <ThemeToggle />
                   </div>
                   
-                  {/* Label Area */}
                   <AnimatePresence>
                     {isHovered && (
                       <motion.div 

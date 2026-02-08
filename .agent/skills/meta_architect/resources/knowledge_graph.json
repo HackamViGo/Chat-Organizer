@@ -2138,6 +2138,39 @@
         "access_url": "packages/assets",
         "version": "3.0.0"
       }
+    },
+    {
+      "id": "meta-architect-workflows",
+      "type": "Infrastructure",
+      "metadata": {
+        "category": "Agent Infrastructure",
+        "sub_category": "Orchestration",
+        "priority": 1,
+        "identity_locked": true,
+        "path": ".agent/skills/meta_architect/config/workflows/"
+      }
+    },
+    {
+      "id": "meta-architect-scripts",
+      "type": "Infrastructure",
+      "metadata": {
+        "category": "Agent Infrastructure",
+        "sub_category": "Logic",
+        "priority": 1,
+        "identity_locked": true,
+        "path": ".agent/skills/meta_architect/scripts/"
+      }
+    },
+    {
+      "id": "agent-state-engine",
+      "type": "Infrastructure",
+      "metadata": {
+        "category": "Agent Infrastructure",
+        "sub_category": "State Management",
+        "priority": 1,
+        "identity_locked": true,
+        "path": "agent_states/"
+      }
     }
   ],
   "edges": [

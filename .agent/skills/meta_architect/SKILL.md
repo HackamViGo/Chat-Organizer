@@ -11,7 +11,7 @@ The Meta-Architect serves as the orchestration layer that transforms unstructure
 
 In accordance with `main_orchestration.yml`, the skill operates using the following resources:
 
-*   **Orchestration:** `.agent/workflows/main_orchestration.yml`
+*   **Orchestration:** `.agent/skills/meta_architect/config/workflows/main_orchestration.yml`
 *   **Scripts:**
     *   `.agent/skills/meta_architect/scripts/project_planner.py`
     *   `.agent/skills/meta_architect/scripts/project_health_check.py`

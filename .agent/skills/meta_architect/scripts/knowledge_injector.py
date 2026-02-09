@@ -167,7 +167,7 @@ if __name__ == "__main__":
     
     print("\n=== Testing Knowledge Injector ===")
     
-    gq = GraphQuery("knowledge_graph.json")
+    gq = GraphQuery()
     ki = KnowledgeInjector(gq)
     
     package = ki.generate_package(

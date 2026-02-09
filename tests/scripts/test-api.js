@@ -25,7 +25,7 @@ if (fs.existsSync(envPath)) {
 
 const BASE_URL = process.env.API_BASE_URL || 'http://localhost:3000';
 const TEST_EMAIL = process.env.TEST_EMAIL || 'test@example.com';
-const TEST_PASSWORD = process.env.TEST_PASSWORD || 'testpassword123';
+const TEST_PASSWORD = process.env.TEST_PASSWORD || '';
 
 // ANSI colors for terminal output
 const colors = {

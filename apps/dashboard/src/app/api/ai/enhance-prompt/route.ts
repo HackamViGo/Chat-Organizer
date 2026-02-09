@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { prompt, apiKey } = requestSchema.parse(body);
 
-    const enhancedPrompt = await generatePromptImprovement(prompt, apiKey);
+    const enhancedPrompt = await generatePromptImprovement(prompt, apiKey || '');
 
     return NextResponse.json({ enhancedPrompt });
   } catch (error: any) {

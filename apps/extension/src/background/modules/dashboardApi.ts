@@ -223,19 +223,13 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
     const isTokenValid = accessToken && (!expiresAt || expiresAt > Date.now());
 
     if (!isTokenValid) {
-        logger.warn('DashboardAPI', '⚠️ Invalid or expired token:', { hasToken: !!accessToken, expiresAt });
+        logger.warn('DashboardAPI', '⚠️ Invalid or expired token');
         if (!silent) chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
         throw new Error('Please authenticate first');
     }
 
     const API_URL = `${API_BASE_URL}/api/chats`;
-    logger.info('DashboardAPI', `📤 Saving chat to ${API_URL}...`);
-    debugLog('🔑 Token check:', {
-        hasToken: !!accessToken,
-        tokenStart: accessToken ? accessToken.substring(0, 10) + '...' : 'N/A',
-        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : 'Never',
-        now: new Date().toISOString()
-    });
+    logger.info('DashboardAPI', `📤 Saving chat...`);
 
     return await limiters.dashboard.schedule(async () => {
         const formattedContent = formatMessagesAsText(conversationData);
@@ -287,7 +281,6 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
             
             const result = await response.json();
             logger.info('DashboardAPI', '✅ Save successful');
-            debugLog('Result details:', result);
 
             // 🚀 Trigger background sync of any previously queued items
             SyncManager.processQueue(async (item) => {
@@ -330,25 +323,26 @@ function formatMessagesAsText(conversationData: Conversation): string {
 }
 
 /**
- * Enhance prompt using Gemini API
+ * Enhance prompt using Centralized AI Gateway
+ * Uses the 'internal-enhancer' alias defined in models.json
  */
 export async function enhancePrompt(promptText: string) {
     const { accessToken } = await chrome.storage.local.get(['accessToken']);
     
-    // We don't strictly require login for enhancement if GEMINI_API_KEY is configured on server
-    // but we use the token to identify the user if possible.
-    
-    const response = await fetchWithGuard(`${API_BASE_URL}/api/ai/enhance-prompt`, {
+    const response = await fetchWithGuard(`${API_BASE_URL}/api/ai/enhance`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': accessToken ? `Bearer ${accessToken}` : ''
         },
-        body: JSON.stringify({ prompt: promptText })
+        body: JSON.stringify({ 
+            prompt: promptText,
+            model_alias: 'internal-enhancer' 
+        })
     });
 
     if (!response.ok) {
-        throw new Error('Failed to enhance prompt');
+        throw new Error('Failed to enhance prompt via gateway');
     }
 
     const data = await response.json();

@@ -10,13 +10,11 @@ from pathlib import Path
 WORKFLOW_DIR = Path(".workflows") # Root level directory
 SCRIPTS_DIR = Path(".agent/skills/meta_architect/scripts")
 
-sys.path.append(str(SCRIPTS_DIR.resolve()))
+# Ensure script directory is in path for imports
+if str(SCRIPTS_DIR.resolve()) not in sys.path:
+    sys.path.insert(0, str(SCRIPTS_DIR.resolve()))
 
-try:
-    # Attempt to import existing tools to execute the steps
-    from project_health_check import HealthEngine
-except ImportError:
-    print("⚠️  Warning: Could not import HealthEngine. Running in Dry Mode.")
+from project_health_check import HealthEngine
 
 class WorkflowEngine:
     def __init__(self, workflow_name):

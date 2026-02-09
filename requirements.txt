@@ -1,0 +1,4 @@
+PyYAML>=6.0
+pathlib>=1.0.1
+dataclasses; python_version < "3.7"
+# Add other dependencies if identified during further script analysis

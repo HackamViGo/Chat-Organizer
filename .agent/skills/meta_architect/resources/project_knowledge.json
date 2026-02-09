@@ -1,0 +1,751 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "source": "project",
+    "description": "BrainBox project-specific architecture and patterns",
+    "project_name": "BrainBox - AI Chat Organizer",
+    "node_count": 56
+  },
+  "nodes": [
+    {
+      "id": "turborepo-orchestrator",
+      "type": "Build System",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Tooling",
+        "priority": 1,
+        "access_url": "https://turborepo.dev/docs",
+        "github_repo": "https://github.com/vercel/turborepo",
+        "nextjs_guide": "https://turborepo.dev/docs/guides/frameworks/nextjs",
+        "purpose": "Caching and task orchestration for monorepo",
+        "related_config": "turbo.json",
+        "migration_plan": "docs/technical/official_resources_turborepo_vite_migration.md"
+      }
+    },
+    {
+      "id": "vite-extension-engine",
+      "type": "Build System",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Bundler",
+        "priority": 1,
+        "access_url": "https://vite.dev/",
+        "crxjs_plugin": "https://crxjs.dev/vite-plugin",
+        "github_repo": "https://github.com/vitejs/vite",
+        "crxjs_github": "https://github.com/crxjs/chrome-extension-tools",
+        "purpose": "Fast Chrome Extension development with HMR",
+        "replaces": "webpack (implicit in current setup)",
+        "mv3_compliance": "CRXJS plugin handles Manifest V3 CSP",
+        "migration_plan": "docs/technical/official_resources_turborepo_vite_migration.md",
+        "plugins": [
+          "stripDevCSP"
+        ]
+      }
+    },
+    {
+      "id": "brainbox-chat-object",
+      "type": "Data Model",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Canonical Models",
+        "priority": 1,
+        "identity_locked": true,
+        "identity_locked_fields": [
+          "id",
+          "user_id",
+          "source_id"
+        ],
+        "source": "docs/technical/DATA_SCHEMA.md:2.1",
+        "supabase_table": "chats",
+        "typescript_type": "packages/shared/src/types/index.ts:Chat",
+        "zod_schema": "apps/dashboard/src/app/api/chats/route.ts:createChatSchema"
+      }
+    },
+    {
+      "id": "brainbox-prompt-object",
+      "type": "Data Model",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Canonical Models",
+        "priority": 1,
+        "identity_locked": true,
+        "identity_locked_fields": [
+          "id",
+          "user_id"
+        ],
+        "source": "docs/technical/DATA_SCHEMA.md:2.2",
+        "supabase_table": "prompts"
+      }
+    },
+    {
+      "id": "brainbox-folder-hierarchy",
+      "type": "Data Model",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Canonical Models",
+        "priority": 1,
+        "identity_locked": true,
+        "identity_locked_fields": [
+          "id",
+          "user_id"
+        ],
+        "max_nesting_depth": 4,
+        "source": "docs/technical/DATA_SCHEMA.md:2.3"
+      }
+    },
+    {
+      "id": "brainbox-platform-normalizers",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 1,
+        "file_path": "apps/extension/src/normalizers.js",
+        "platforms": [
+          "ChatGPT",
+          "Claude",
+          "Gemini",
+          "Grok",
+          "Perplexity",
+          "LMArena",
+          "DeepSeek",
+          "Qwen"
+        ],
+        "no_go_zone": true,
+        "source": "docs/technical/CONTEXT_MAP.md:4.1"
+      }
+    },
+    {
+      "id": "brainbox-service-worker",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 1,
+        "file_path": "apps/extension/src/background/service-worker.ts",
+        "responsibilities": [
+          "Token management",
+          "Rate limiting",
+          "API bridge",
+          "Passive Network Sniffing (Claude Org ID)",
+          "Sync/Cache Initialization",
+          "Regex URL Filtering",
+          "Global Error Boundaries"
+        ],
+        "no_go_zone": true,
+        "source": "docs/technical/CONTEXT_MAP.md:4.1",
+        "version": "2.1.3"
+      }
+    },
+    {
+      "id": "brainbox-dynamic-menus",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 1,
+        "description": "Centralized dynamic context menu management. Handles Save Chat, Create Prompt, and Inject Prompt menus uniformly to prevent race conditions.",
+        "file_path": "apps/extension/src/background/modules/dynamicMenus.ts",
+        "version": "2.1.3"
+      }
+    },
+    {
+      "id": "brainbox-prompt-sync",
+      "type": "Logic Layer",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Data Synchronization",
+        "priority": 1,
+        "identity_locked": true,
+        "description": "Robust prompt synchronization manager. handles fetch/cache logic, auto-login redirects for 401s, and network error handling.",
+        "file_path": "packages/shared/src/logic/promptSync.ts",
+        "version": "2.1.2"
+      }
+    },
+    {
+      "id": "brainbox-ui-color-palette",
+      "type": "Design System",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Visual Identity",
+        "priority": 1,
+        "primary_light": "#3B82F6",
+        "primary_dark": "#60A5FA",
+        "file_path": "apps/dashboard/src/app/globals.css",
+        "no_modification_allowed": [
+          "--primary",
+          "--destructive",
+          "--background",
+          "--foreground"
+        ],
+        "source": "docs/technical/UI_STANDARDS.md:1"
+      }
+    },
+    {
+      "id": "brainbox-supabase-schema",
+      "type": "Database Schema",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Data Layer",
+        "priority": 1,
+        "identity_locked": true,
+        "auto_generated_file": "packages/shared/src/types/database.types.ts",
+        "manual_edit_forbidden": true,
+        "modification_process": [
+          "Create migration",
+          "Run supabase db pull",
+          "Update DATA_SCHEMA.md"
+        ],
+        "source": "docs/technical/CONTEXT_MAP.md:4.1"
+      }
+    },
+    {
+      "id": "brainbox-sync-manager",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Sync Logic",
+        "priority": 1,
+        "description": "Handles persistent synchronization queue for offline chat saves.",
+        "file_path": "apps/extension/src/background/modules/syncManager.ts",
+        "version": "2.1.3"
+      },
+      "connections": [
+        "chrome-alarms-api"
+      ],
+      "external_refs": [
+        "chrome-alarms-api"
+      ]
+    },
+    {
+      "id": "brainbox-cache-manager",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Cache Logic",
+        "priority": 1,
+        "description": "Manages local storage-based caching for dashboard data (folders, settings).",
+        "file_path": "apps/extension/src/background/modules/cacheManager.ts",
+        "version": "2.1.3"
+      }
+    },
+    {
+      "id": "brainbox-dashboard-api-link",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "API Bridge",
+        "priority": 1,
+        "description": "Bridge between extension and Dashboard API with SWR (Stale-While-Revalidate) support.",
+        "file_path": "apps/extension/src/background/modules/dashboardApi.ts",
+        "version": "2.1.3"
+      }
+    },
+    {
+      "id": "brainbox-network-observer",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 2,
+        "description": "Observes network requests to capture context-specific IDs (e.g., Claude Org ID).",
+        "file_path": "apps/extension/src/background/modules/networkObserver.ts"
+      }
+    },
+    {
+      "id": "package-validation",
+      "type": "Package",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Shared Packages",
+        "priority": 1,
+        "path": "packages/validation",
+        "description": "Centralized Zod schemas for project-wide data validation."
+      }
+    },
+    {
+      "id": "package-database",
+      "type": "Package",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Shared Packages",
+        "priority": 1,
+        "path": "packages/database",
+        "description": "Shared database types and utility functions."
+      }
+    },
+    {
+      "id": "brainbox-popup-ui-react",
+      "type": "UI Component",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Frontend",
+        "priority": 1,
+        "description": "React 18 popup UI with glassmorphism design. v2.1.2 features auto-login flow and streamlined UX.",
+        "file_path": "/apps/extension/src/popup/",
+        "framework": "React 18 + TypeScript + Tailwind CSS",
+        "platforms_supported": [
+          "chatgpt",
+          "gemini",
+          "claude",
+          "grok",
+          "perplexity",
+          "lmarena",
+          "deepseek",
+          "qwen"
+        ],
+        "bundle_size": "151KB (48KB gzipped)",
+        "components": 7,
+        "hooks": 3,
+        "csp_compliant": true,
+        "version": "2.1.2",
+        "status": "Production Ready",
+        "features": {
+          "header": "Settings button opens dashboard, Theme toggle with persistence",
+          "statusbar": "Real-time auth sync with error handling",
+          "quickaccess": "8-platform grid with hover glow effects",
+          "debugging": "Console logging for auth and theme operations"
+        }
+      }
+    },
+    {
+      "id": "turborepo-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Tooling",
+        "priority": 1,
+        "access_url": "https://turbo.build/repo/docs"
+      }
+    },
+    {
+      "id": "turborepo-firebase-blog",
+      "type": "Article",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Tooling",
+        "priority": 3,
+        "access_url": "https://firebase.blog/posts/2026/01/apphosting-turborepo"
+      }
+    },
+    {
+      "id": "turborepo-monorepo-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Tooling",
+        "priority": 2,
+        "access_url": "https://blog.nashtechglobal.com/understanding-monorepos-what-they-are-why-they-matter-and-how-to-build-one-with-turborepo/"
+      }
+    },
+    {
+      "id": "pnpm-workspace-yaml-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Package Management",
+        "priority": 1,
+        "access_url": "https://pnpm.io/pnpm-workspace_yaml"
+      }
+    },
+    {
+      "id": "pnpm-workspaces-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Package Management",
+        "priority": 1,
+        "access_url": "https://pnpm.io/workspaces"
+      }
+    },
+    {
+      "id": "pnpm-workspace-example",
+      "type": "Repository",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Package Management",
+        "priority": 2,
+        "access_url": "https://github.com/pnpm/pnpm/blob/main/pnpm-workspace.yaml"
+      }
+    },
+    {
+      "id": "supabase-typescript-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Database",
+        "priority": 1,
+        "access_url": "https://supabase.com/docs/reference/javascript/typescript-support"
+      }
+    },
+    {
+      "id": "supabase-cli-types",
+      "type": "Guide",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Database",
+        "priority": 1,
+        "access_url": "https://supabase.com/docs/guides/api/rest/generating-types"
+      }
+    },
+    {
+      "id": "supabase-types-stackoverflow",
+      "type": "Q&A",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Database",
+        "priority": 2,
+        "access_url": "https://stackoverflow.com/questions/77520175/how-to-use-types-provided-by-supabase-in-my-typescript-project"
+      }
+    },
+    {
+      "id": "token-vs-session-supertokens",
+      "type": "Article",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Security",
+        "priority": 2,
+        "access_url": "https://supertokens.com/blog/token-based-authentication-vs-session-based-authentication"
+      }
+    },
+    {
+      "id": "token-vs-session-algomaster",
+      "type": "Article",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Security",
+        "priority": 2,
+        "access_url": "https://algomaster.io/learn/system-design/session-vs-token-auth"
+      }
+    },
+    {
+      "id": "cors-token-security",
+      "type": "Guide",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Security",
+        "priority": 2,
+        "access_url": "https://www.serverion.com/uncategorized/cors-token-security-key-practices/"
+      }
+    },
+    {
+      "id": "supabase-realtime-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Realtime",
+        "priority": 1,
+        "access_url": "https://supabase.com/docs/guides/realtime/subscribing-to-database-changes"
+      }
+    },
+    {
+      "id": "supabase-postgres-changes",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Realtime",
+        "priority": 1,
+        "access_url": "https://supabase.com/docs/guides/realtime/postgres-changes"
+      }
+    },
+    {
+      "id": "chat2db-realtime-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Realtime",
+        "priority": 2,
+        "access_url": "https://chat2db.ai/resources/blog/supabase-realtime-guide"
+      }
+    },
+    {
+      "id": "leapcell-turborepo",
+      "type": "Article",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Tooling",
+        "priority": 2,
+        "access_url": "https://leapcell.io/blog/optimizing-ci-cd-for-full-stack-projects-leveraging-turborepo-s-remote-caching-and-on-demand-builds"
+      }
+    },
+    {
+      "id": "apps/extension",
+      "type": "Application",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Workspace",
+        "priority": 1,
+        "identity_locked": true,
+        "path": "apps/extension"
+      }
+    },
+    {
+      "id": "apps/dashboard",
+      "type": "Application",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Workspace",
+        "priority": 1,
+        "identity_locked": true,
+        "path": "apps/dashboard"
+      }
+    },
+    {
+      "id": "brainbox-theme-provider",
+      "type": "Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "UI Components",
+        "priority": 2,
+        "path": "apps/dashboard/src/components/providers/ThemeProvider.tsx"
+      }
+    },
+    {
+      "id": "brainbox-theme-toggle",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "UI Components",
+        "priority": 2,
+        "path": "apps/dashboard/src/components/layout/Sidebar.tsx"
+      }
+    },
+    {
+      "id": "brainbox-sidebar-component",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "UI Components",
+        "priority": 2,
+        "path": "apps/dashboard/src/components/layout/Sidebar.tsx"
+      }
+    },
+    {
+      "id": "brainbox-auth-manager",
+      "type": "Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Core Logic",
+        "priority": 1,
+        "path": "apps/extension/src/background/modules/authManager.ts"
+      }
+    },
+    {
+      "id": "brainbox-quick-menu",
+      "type": "Feature",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "UX",
+        "priority": 2,
+        "description": "Submenu for last 7 prompts"
+      }
+    },
+    {
+      "id": "brainbox-save-handler-gemini",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Content Script",
+        "priority": 2,
+        "path": "apps/extension/src/content/brainbox_master.js",
+        "description": "Handles Gemini DOM interaction, auth check, and saving"
+      }
+    },
+    {
+      "id": "brainbox-save-handler-chatgpt",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Content Script",
+        "priority": 2,
+        "path": "apps/extension/src/content/content-script.js",
+        "description": "Handles ChatGPT DOM interaction and saving"
+      }
+    },
+    {
+      "id": "brainbox-save-handler-claude",
+      "type": "Component",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Content Script",
+        "priority": 2,
+        "path": "apps/extension/src/content/content-claude.js",
+        "description": "Handles Claude DOM interaction and saving"
+      }
+    },
+    {
+      "id": "brainbox-dom-scraper",
+      "type": "Mechanism",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Core Logic",
+        "priority": 3,
+        "description": "Logic to traverse DOM and extract messages"
+      }
+    },
+    {
+      "id": "brainbox-auth-check",
+      "type": "Mechanism",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Security",
+        "priority": 2,
+        "description": "Validates access token before attempting save"
+      }
+    },
+    {
+      "id": "brainbox-inject-gemini-main",
+      "type": "Content Script",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Helper Script",
+        "priority": 3,
+        "path": "apps/extension/src/content/inject-gemini-main.js",
+        "description": "Injected into MAIN world to access window variables"
+      }
+    },
+    {
+      "id": "package-shared",
+      "type": "Package",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Monorepo Workspace",
+        "priority": 1,
+        "identity_locked": true,
+        "path": "packages/shared",
+        "description": "Shared logic and types for Dashboard and Extension"
+      }
+    },
+    {
+      "id": "shared-types-db",
+      "type": "TypeDefinition",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Shared Types",
+        "priority": 1,
+        "path": "packages/shared/src/types/database.ts",
+        "description": "Centralized Supabase database types"
+      }
+    },
+    {
+      "id": "brainbox-message-router",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 1,
+        "description": "Central message router for handling cross-component communication (background, content, popup).",
+        "file_path": "apps/extension/src/background/modules/messageRouter.ts"
+      }
+    },
+    {
+      "id": "brainbox-tab-manager",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 2,
+        "description": "Manages browser tab states and injections.",
+        "file_path": "apps/extension/src/background/modules/tabManager.ts"
+      }
+    },
+    {
+      "id": "brainbox-installation-manager",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Extension Logic",
+        "priority": 2,
+        "description": "Handles extension lifecycle events (install, update).",
+        "file_path": "apps/extension/src/background/modules/installationManager.ts"
+      }
+    },
+    {
+      "id": "dashboard-stores-zustand",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Dashboard Logic",
+        "priority": 1,
+        "description": "Zustand stores for global dashboard state.",
+        "path": "apps/dashboard/src/store/",
+        "modules": [
+          "useChatStore",
+          "useFolderStore",
+          "usePromptStore",
+          "useListStore",
+          "useImageStore"
+        ]
+      }
+    },
+    {
+      "id": "dashboard-services-logic",
+      "type": "Code Module",
+      "metadata": {
+        "category": "BrainBox Architecture",
+        "sub_category": "Dashboard Logic",
+        "priority": 2,
+        "description": "Service layers for AI interactions and prompt library fetching.",
+        "path": "apps/dashboard/src/lib/services/",
+        "modules": [
+          "ai.ts",
+          "prompt-library-fetcher.ts",
+          "smart-prompt-search.ts"
+        ]
+      }
+    },
+    {
+      "id": "project-brainbox-dashboard",
+      "type": "Application",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Applications",
+        "priority": 1,
+        "access_url": "apps/dashboard",
+        "version": "3.0.0"
+      },
+      "connections": [
+        "project-brainbox-database",
+        "project-brainbox-assets",
+        "project-brainbox-validation",
+        "google-gemini-docs",
+        "nextjs-docs-main",
+        "react-dev-official",
+        "tailwindcss-docs-main",
+        "context7-bridge"
+      ],
+      "external_refs": [
+        "google-gemini-docs",
+        "react-dev-official",
+        "nextjs-docs-main",
+        "tailwindcss-docs-main",
+        "context7-bridge",
+        "project-brainbox-database",
+        "project-brainbox-validation",
+        "project-brainbox-assets"
+      ]
+    },
+    {
+      "id": "project-brainbox-extension",
+      "type": "Application",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Applications",
+        "priority": 1,
+        "access_url": "apps/extension",
+        "version": "3.0.0"
+      },
+      "connections": [
+        "project-brainbox-shared",
+        "react-dev-official",
+        "vite-docs-main",
+        "context7-bridge"
+      ],
+      "external_refs": [
+        "react-dev-official",
+        "context7-bridge",
+        "project-brainbox-shared"
+      ]
+    }
+  ]
+}

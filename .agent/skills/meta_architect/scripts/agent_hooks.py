@@ -14,19 +14,19 @@ Based on:
 
 import json
 import yaml
+import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from datetime import datetime
 from enum import Enum
 
-# DRY Implementation: Import Single Source of Truth
-# We assume graph_query.py is in the same directory (.agent/skills/meta_architect/scripts/)
-try:
-    from graph_query import GraphNode, GraphQuery
-except ImportError:
-    # Attempt absolute import for when running from root
-    from meta_architect.scripts.graph_query import GraphNode, GraphQuery
+# Ensure script directory is in path for imports
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from graph_query import GraphNode, GraphQuery
 
 
 # ============================================================================

@@ -1,0 +1,1644 @@
+{
+  "metadata": {
+    "version": "1.0",
+    "source": "context7",
+    "description": "External library/framework documentation cache",
+    "last_global_refresh": "2026-02-09",
+    "node_count": 140
+  },
+  "nodes": [
+    {
+      "id": "openai-main-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 1,
+        "access_url": "https://platform.openai.com/docs/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-prompt-engineering",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Prompt Engineering",
+        "priority": 1,
+        "access_url": "https://platform.openai.com/docs/guides/prompt-engineering/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-api-reference",
+      "type": "API Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 1,
+        "access_url": "https://platform.openai.com/docs/api-reference/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-models-comparison",
+      "type": "Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 2,
+        "access_url": "https://platform.openai.com/docs/models/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-vision-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Computer Vision",
+        "priority": 2,
+        "access_url": "https://platform.openai.com/docs/guides/vision/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-function-calling",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agents & Tools",
+        "priority": 2,
+        "access_url": "https://platform.openai.com/docs/guides/function-calling/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-changelog",
+      "type": "Release Notes",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Updates",
+        "priority": 3,
+        "access_url": "https://platform.openai.com/docs/changelog"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-cookbook",
+      "type": "Repository",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Implementation",
+        "priority": 2,
+        "access_url": "https://cookbook.openai.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-help-articles",
+      "type": "Support",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Support",
+        "priority": 4,
+        "access_url": "https://help.openai.com/en/articles/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-academy",
+      "type": "Learning",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Training",
+        "priority": 3,
+        "access_url": "https://academy.openai.com/public/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-model-spec",
+      "type": "Specification",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Standards",
+        "priority": 3,
+        "access_url": "https://model-spec.openai.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openai-apps-sdk",
+      "type": "SDK",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Developer Tools",
+        "priority": 2,
+        "access_url": "https://developers.openai.com/apps-sdk/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "claude-docs-main",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 1,
+        "access_url": "https://docs.claude.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "claude-prompt-eng",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Prompt Engineering",
+        "priority": 1,
+        "access_url": "https://docs.claude.com/en/docs/build-with-claude/prompt-engineering/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "anthropic-docs-corp",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 1,
+        "access_url": "https://docs.anthropic.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "anthropic-models-overview",
+      "type": "Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 2,
+        "access_url": "https://docs.anthropic.com/en/docs/about/models/models-overview"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "anthropic-agents-patterns",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agents",
+        "priority": 2,
+        "access_url": "https://docs.anthropic.com/en/docs/agents/about"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "anthropic-news-research",
+      "type": "News",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Research",
+        "priority": 4,
+        "access_url": "https://www.anthropic.com/news/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "anthropic-engineering-blog",
+      "type": "Technical Blog",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Engineering",
+        "priority": 3,
+        "access_url": "https://www.anthropic.com/engineering/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "anthropic-api-ref",
+      "type": "API Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "API",
+        "priority": 1,
+        "access_url": "https://www.anthropic.com/api"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "anthropic-skilljar",
+      "type": "Learning",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Training",
+        "priority": 3,
+        "access_url": "https://anthropic.skilljar.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 1,
+        "access_url": "https://ai.google.dev/gemini-api/docs/"
+      },
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "project-brainbox-dashboard"
+      ]
+    },
+    {
+      "id": "google-gemini-api-ref",
+      "type": "API Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "API",
+        "priority": 1,
+        "access_url": "https://ai.google.dev/gemini-api/docs/api-reference/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-prompt-eng",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Prompt Engineering",
+        "priority": 1,
+        "access_url": "https://ai.google.dev/gemini-api/docs/prompting-strategies/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-3-spec",
+      "type": "Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 2,
+        "access_url": "https://ai.google.dev/gemini-api/docs/gemini-3/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-libraries",
+      "type": "SDK",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Developer Tools",
+        "priority": 2,
+        "access_url": "https://ai.google.dev/gemini-api/docs/libraries"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-changelog",
+      "type": "Release Notes",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Updates",
+        "priority": 3,
+        "access_url": "https://ai.google.dev/gemini-api/docs/changelog"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-model-list",
+      "type": "Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 1,
+        "access_url": "https://ai.google.dev/api/models"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-models-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Commercial Models",
+        "priority": 1,
+        "access_url": "https://ai.google.dev/gemini-api/docs/models"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-api-key-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Authentication",
+        "priority": 1,
+        "access_url": "https://ai.google.dev/gemini-api/docs/api-key"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-getting-started-web",
+      "type": "Learning",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Training",
+        "priority": 1,
+        "access_url": "https://developers.google.com/learn/pathways/solution-ai-gemini-getting-started-web"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-android-key",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Authentication",
+        "priority": 2,
+        "access_url": "https://developer.android.com/studio/gemini/add-api-key"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-cli-auth",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Authentication",
+        "priority": 2,
+        "access_url": "https://google-gemini.github.io/gemini-cli/docs/get-started/authentication.html"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "google-gemini-cookbook",
+      "type": "Repository",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Implementation",
+        "priority": 2,
+        "access_url": "https://github.com/google-gemini/cookbook"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "vertex-ai-gen-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Enterprise AI",
+        "priority": 1,
+        "access_url": "https://cloud.google.com/vertex-ai/generative-ai/docs/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "vertex-ai-models-list",
+      "type": "Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Enterprise AI",
+        "priority": 2,
+        "access_url": "https://cloud.google.com/vertex-ai/generative-ai/docs/models/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "vertex-ai-api-ref",
+      "type": "API Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Enterprise AI",
+        "priority": 1,
+        "access_url": "https://docs.cloud.google.com/vertex-ai/generative-ai/docs/api-reference"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "firebase-ai-logic",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "AI Integration",
+        "priority": 3,
+        "access_url": "https://firebase.google.com/docs/ai-logic/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "azure-ai-foundry-main",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Enterprise AI",
+        "priority": 1,
+        "access_url": "https://learn.microsoft.com/en-us/azure/ai-foundry/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "azure-ai-foundry-quick",
+      "type": "Guide",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Enterprise AI",
+        "priority": 2,
+        "access_url": "https://learn.microsoft.com/en-us/azure/ai-foundry/quickstarts/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "azure-ai-foundry-product",
+      "type": "Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Enterprise AI",
+        "priority": 3,
+        "access_url": "https://azure.microsoft.com/en-us/products/ai-foundry/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "azure-ai-foundry-models",
+      "type": "Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Enterprise AI",
+        "priority": 2,
+        "access_url": "https://azure.microsoft.com/en-us/products/ai-foundry/models/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "hugging-face-models",
+      "type": "Hub",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Open-Source Models",
+        "priority": 1,
+        "access_url": "https://huggingface.co/models"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "llama-meta-repo",
+      "type": "Repository",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Open-Source Models",
+        "priority": 1,
+        "access_url": "https://github.com/facebookresearch/llama"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "mistral-ai-src",
+      "type": "Repository",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Open-Source Models",
+        "priority": 1,
+        "access_url": "https://github.com/mistralai/mistral-common"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "openrouter-ai-models",
+      "type": "Aggregator",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "API Integration",
+        "priority": 2,
+        "access_url": "https://openrouter.ai/models"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "langchain-main",
+      "type": "Framework",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 1,
+        "access_url": "https://langchain.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "langchain-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 1,
+        "access_url": "https://docs.langchain.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "langchain-python-ref",
+      "type": "API Reference",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 2,
+        "access_url": "https://reference.langchain.com/python/langchain/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "crewai-main",
+      "type": "Framework",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 1,
+        "access_url": "https://crewai.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "crewai-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 1,
+        "access_url": "https://docs.crewai.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "crewai-github",
+      "type": "Repository",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 2,
+        "access_url": "https://github.com/crewAIInc/crewAI/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "crewai-learning",
+      "type": "Learning",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 3,
+        "access_url": "https://learn.crewai.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "microsoft-autogen-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 1,
+        "access_url": "https://microsoft.github.io/autogen/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "microsoft-autogen-stable",
+      "type": "Documentation",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 1,
+        "access_url": "https://microsoft.github.io/autogen/stable/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "microsoft-autogen-github",
+      "type": "Repository",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Agent Frameworks",
+        "priority": 2,
+        "access_url": "https://github.com/microsoft/autogen/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "mcp-specification",
+      "type": "Protocol",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Standards",
+        "priority": 1,
+        "access_url": "https://modelcontextprotocol.io/specification/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "mcp-github",
+      "type": "Repository",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Standards",
+        "priority": 2,
+        "access_url": "https://github.com/modelcontextprotocol/modelcontextprotocol/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "mcp-blog-dev",
+      "type": "News",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Standards",
+        "priority": 3,
+        "access_url": "https://blog.modelcontextprotocol.io/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "prompting-guide-ai",
+      "type": "Learning",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Learning",
+        "priority": 1,
+        "access_url": "https://www.promptingguide.ai/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "learn-prompting-interactive",
+      "type": "Learning",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Learning",
+        "priority": 2,
+        "access_url": "https://learnprompting.org/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "anthropic-research-pubs",
+      "type": "Research",
+      "metadata": {
+        "category": "AI Models & LLM Development",
+        "sub_category": "Research",
+        "priority": 3,
+        "access_url": "https://www.anthropic.com/research"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "react-dev-official",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 1,
+        "access_url": "https://react.dev/"
+      },
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "project-brainbox-dashboard",
+        "project-brainbox-extension"
+      ]
+    },
+    {
+      "id": "react-dev-learn",
+      "type": "Learning",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 1,
+        "access_url": "https://react.dev/learn/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "react-dev-api-ref",
+      "type": "Reference",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 1,
+        "access_url": "https://react.dev/reference/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nextjs-docs-main",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 1,
+        "access_url": "https://nextjs.org/docs/"
+      },
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "project-brainbox-dashboard"
+      ]
+    },
+    {
+      "id": "nextjs-learn-resources",
+      "type": "Learning",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 1,
+        "access_url": "https://nextjs.org/learn/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nextjs-updates-blog",
+      "type": "News",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 3,
+        "access_url": "https://nextjs.org/blog/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nextjs-github-src",
+      "type": "Repository",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 2,
+        "access_url": "https://github.com/vercel/next.js/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "vuejs-org-main",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 1,
+        "access_url": "https://vuejs.org/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "vuejs-guide-full",
+      "type": "Guide",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 1,
+        "access_url": "https://vuejs.org/guide/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "svelte-dev-main",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 2,
+        "access_url": "https://svelte.dev/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "sveltekit-docs-main",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 2,
+        "access_url": "https://kit.svelte.dev/docs/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "angular-io-docs",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 2,
+        "access_url": "https://angular.io/docs"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "angular-io-tutorial",
+      "type": "Learning",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 2,
+        "access_url": "https://angular.io/tutorial"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "typescript-docs-handbook",
+      "type": "Language Documentation",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Languages",
+        "priority": 1,
+        "access_url": "https://www.typescriptlang.org/docs/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "typescript-playground",
+      "type": "Interactive Tool",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Languages",
+        "priority": 3,
+        "access_url": "https://www.typescriptlang.org/play/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "tailwindcss-docs-main",
+      "type": "CSS Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Styling",
+        "priority": 1,
+        "access_url": "https://tailwindcss.com/docs/"
+      },
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "project-brainbox-dashboard"
+      ]
+    },
+    {
+      "id": "tailwindcss-plugins",
+      "type": "Reference",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Styling",
+        "priority": 3,
+        "access_url": "https://tailwindcss.com/plugins/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nodejs-docs-main",
+      "type": "Documentation",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Backend - Node.js",
+        "priority": 1,
+        "access_url": "https://nodejs.org/docs/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nodejs-learn-resources",
+      "type": "Learning",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Backend - Node.js",
+        "priority": 1,
+        "access_url": "https://nodejs.org/en/learn/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nodejs-api-ref",
+      "type": "Reference",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Backend - Node.js",
+        "priority": 1,
+        "access_url": "https://nodejs.org/api/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "express-js-main",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Backend - Node.js",
+        "priority": 1,
+        "access_url": "https://expressjs.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nestjs-main-docs",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Backend - Node.js",
+        "priority": 1,
+        "access_url": "https://nestjs.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "fastapi-tiangolo-docs",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Backend - Python",
+        "priority": 1,
+        "access_url": "https://fastapi.tiangolo.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "python-3-docs-main",
+      "type": "Documentation",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Backend - Python",
+        "priority": 1,
+        "access_url": "https://docs.python.org/3/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "django-project-main",
+      "type": "Framework",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Backend - Python",
+        "priority": 1,
+        "access_url": "https://www.djangoproject.com/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "platform-adapters-engine",
+      "type": "Logic Layer",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Backend",
+        "priority": 1,
+        "description": "Centralized platform adapter engine. v2.1.3 adds support for 8 platforms with improved participant detection for LMArena.",
+        "file_path": "apps/extension/src/background/modules/platformAdapters/",
+        "pattern": "Factory Pattern + OOP Adapters",
+        "platforms": [
+          "chatgpt",
+          "claude",
+          "gemini",
+          "grok",
+          "perplexity",
+          "lmarena",
+          "deepseek",
+          "qwen"
+        ],
+        "test_coverage": "18 unit tests covering all adapters"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "vite-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend Tooling",
+        "priority": 1,
+        "access_url": "https://vitejs.dev/guide/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "vite-extension-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Development",
+        "priority": 2,
+        "access_url": "https://www.artmann.co/articles/building-a-chrome-extension-with-vite-react-and-tailwind-css-in-2025"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "crxjs-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Development",
+        "priority": 1,
+        "access_url": "https://crxjs.dev/vite-plugin"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "crxjs-npm",
+      "type": "Package",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Development",
+        "priority": 2,
+        "access_url": "https://www.npmjs.com/package/@crxjs/vite-plugin"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "crxjs-github",
+      "type": "Repository",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Development",
+        "priority": 2,
+        "access_url": "https://github.com/crxjs/chrome-extension-tools"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "mv3-migration-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Migration",
+        "priority": 1,
+        "access_url": "https://developer.chrome.com/docs/extensions/develop/migrate/to-service-workers"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "chrome-storage-api-docs",
+      "type": "API Reference",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Chrome API",
+        "priority": 1,
+        "access_url": "https://developer.chrome.com/docs/extensions/reference/api/storage"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "mv3-article-codestudy",
+      "type": "Article",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Migration",
+        "priority": 2,
+        "access_url": "https://www.codestudy.net/blog/chrome-extensions-use-the-background-service-worker-key-instead-manifest-version-3/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "mv3-unveiled-paper",
+      "type": "Research Paper",
+      "metadata": {
+        "category": "BrainBox Research",
+        "sub_category": "Extension Security",
+        "priority": 2,
+        "access_url": "https://arxiv.org/pdf/2404.08310.pdf"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "mv3-dev-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Development",
+        "priority": 2,
+        "access_url": "https://dev.to/javediqbal8381/understanding-chrome-extensions-a-developers-guide-to-manifest-v3-233l"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "zod-github",
+      "type": "Repository",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Validation",
+        "priority": 1,
+        "access_url": "https://github.com/colinhacks/zod"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "zod-guide-valley",
+      "type": "Guide",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Validation",
+        "priority": 2,
+        "access_url": "https://thevalleyofcode.com/zod/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "zod-logrocket",
+      "type": "Article",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Validation",
+        "priority": 2,
+        "access_url": "https://blog.logrocket.com/schema-validation-typescript-zod/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "zod-telerik",
+      "type": "Article",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Validation",
+        "priority": 2,
+        "access_url": "https://www.telerik.com/blogs/zod-typescript-schema-validation-made-easy"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nextjs-app-router-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 1,
+        "access_url": "https://nextjs.org/docs/app/getting-started/server-and-client-components"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nextjs-amplify-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 2,
+        "access_url": "https://docs.amplify.aws/javascript/build-a-backend/server-side-rendering/nextjs-app-router-server-components/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "zustand-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "State Management",
+        "priority": 1,
+        "access_url": "https://zustand.docs.pmnd.rs/hooks/use-store"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "zustand-refine-blog",
+      "type": "Article",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "State Management",
+        "priority": 2,
+        "access_url": "https://refine.dev/blog/zustand-react-state/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "zustand-course",
+      "type": "Learning",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "State Management",
+        "priority": 3,
+        "access_url": "https://courses.bigbinaryacademy.com/learn-react/state-management/zustand/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "tailwind-theme-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Styling",
+        "priority": 1,
+        "access_url": "https://tailwindcss.com/docs/theme"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "tailwind-oklch-article",
+      "type": "Article",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Styling",
+        "priority": 2,
+        "access_url": "https://evilmartians.com/chronicles/better-dynamic-themes-in-tailwind-with-oklch-color-magic"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "chrome-storage-vs-indexeddb",
+      "type": "Q&A",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Storage",
+        "priority": 2,
+        "access_url": "https://stackoverflow.com/questions/69846971/chrome-extension-development-chrome-storage-local-vs-indexeddb"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "plasmo-chrome-storage",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Development",
+        "priority": 2,
+        "access_url": "https://docs.plasmo.com/quickstarts/with-chrome-storage"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "ts-strict-docs",
+      "type": "Documentation",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "TypeScript",
+        "priority": 1,
+        "access_url": "https://www.typescriptlang.org/tsconfig/strict.html"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "ts-strict-betterstack",
+      "type": "Article",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "TypeScript",
+        "priority": 2,
+        "access_url": "https://betterstack.com/community/guides/scaling-nodejs/typescript-strict-option/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "nextjs-ts-config",
+      "type": "Documentation",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Next.js",
+        "priority": 1,
+        "access_url": "https://nextjs.org/docs/pages/api-reference/config/typescript"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "extension-messaging-article",
+      "type": "Article",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Message Passing",
+        "priority": 2,
+        "access_url": "https://victoronsoftware.com/posts/message-passing-in-chrome-extension/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "chrome-messaging-api",
+      "type": "API Reference",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Chrome API",
+        "priority": 1,
+        "access_url": "https://developer.chrome.com/docs/extensions/mv3/messaging/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "arxiv-ci-scale",
+      "type": "Research Paper",
+      "metadata": {
+        "category": "BrainBox Research",
+        "sub_category": "DevOps",
+        "priority": 2,
+        "access_url": "https://arxiv.org/pdf/2501.03440.pdf"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "arxiv-litewebagent",
+      "type": "Research Paper",
+      "metadata": {
+        "category": "BrainBox Research",
+        "sub_category": "Agents",
+        "priority": 2,
+        "access_url": "https://arxiv.org/pdf/2503.02950.pdf"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "arxiv-devtools-security",
+      "type": "Research Paper",
+      "metadata": {
+        "category": "BrainBox Research",
+        "sub_category": "Security",
+        "priority": 2,
+        "access_url": "https://arxiv.org/pdf/2305.11506.pdf"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "arxiv-privacy-profit",
+      "type": "Research Paper",
+      "metadata": {
+        "category": "BrainBox Research",
+        "sub_category": "Extension Ecosystem",
+        "priority": 2,
+        "access_url": "https://arxiv.org/pdf/2503.01000.pdf"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "zod-devto-guide",
+      "type": "Guide",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Validation",
+        "priority": 2,
+        "access_url": "https://dev.to/emiroberti/zod-for-typescript-schema-validation-a-comprehensive-guide-4n9k"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "mv3-module-import-so",
+      "type": "Q&A",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Development",
+        "priority": 2,
+        "access_url": "https://stackoverflow.com/questions/78214531/not-able-to-import-scripts-inside-service-worker-js-in-chrome-extension-manifest"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "youtube-vite-extension",
+      "type": "Video",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Extension Development",
+        "priority": 2,
+        "access_url": "https://www.youtube.com/watch?v=GGi7Brsf7js"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "next-themes",
+      "type": "Library",
+      "metadata": {
+        "category": "Programming Languages & Frameworks",
+        "sub_category": "Frontend",
+        "priority": 2,
+        "access_url": "https://github.com/pacocoursey/next-themes"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "doc-sync-protocol",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Protocol",
+        "priority": 1,
+        "path": "docs/technical/SYNC_PROTOCOL.md",
+        "description": "Detailed specification of the synchronization logic between extension and dashboard."
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "doc-folder-structure",
+      "type": "Documentation",
+      "metadata": {
+        "category": "BrainBox Technical",
+        "sub_category": "Architecture",
+        "priority": 1,
+        "path": "docs/technical/FOLDER_STRUCTURE.md",
+        "description": "Comprehensive map of the project's folder hierarchy and monorepo layout."
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "infra-agent-factory",
+      "type": "Infrastructure",
+      "metadata": {
+        "category": "System Architecture",
+        "sub_category": "Orchestration",
+        "priority": 1,
+        "role": "Orchestrator",
+        "access_url": "meta_architect/scripts/agent_factory.py"
+      },
+      "connections": [
+        "meta-architect-core"
+      ],
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "infra-profiles",
+      "type": "Infrastructure",
+      "metadata": {
+        "category": "System Architecture",
+        "sub_category": "Persona Definitions",
+        "priority": 2,
+        "role": "Persona Definitions",
+        "access_url": "meta_architect/profiles/*.yml"
+      },
+      "connections": [
+        "meta-architect-core"
+      ],
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "infra-agent-states",
+      "type": "Infrastructure",
+      "metadata": {
+        "category": "System Architecture",
+        "sub_category": "Persistence",
+        "priority": 1,
+        "role": "Persistence & Memory",
+        "access_url": "agent_states/"
+      },
+      "connections": [
+        "meta-architect-core"
+      ],
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "chrome-alarms-api",
+      "type": "Technology",
+      "metadata": {
+        "category": "Browser Extension APIs",
+        "sub_category": "Background Services",
+        "priority": 1,
+        "role": "Sync Engine v3",
+        "access_url": "https://developer.chrome.com/docs/extensions/reference/api/alarms"
+      },
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "brainbox-sync-manager"
+      ]
+    },
+    {
+      "id": "protocol-csp-strict-mode",
+      "type": "Protocol",
+      "metadata": {
+        "category": "Security Standards",
+        "sub_category": "Hardening",
+        "priority": 1,
+        "description": "Strict Content Security Policy enforcement"
+      },
+      "connections": [
+        "project-brainbox-extension"
+      ],
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "pattern-zustand-shallow",
+      "type": "Pattern",
+      "metadata": {
+        "category": "Code Quality Standards",
+        "sub_category": "State Management",
+        "priority": 2,
+        "description": "Mandatory usage of shallow selector for performance"
+      },
+      "connections": [
+        "project-brainbox-dashboard"
+      ],
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "context7-bridge",
+      "type": "Integration",
+      "metadata": {
+        "category": "External Integrations",
+        "sub_category": "Context Analysis",
+        "priority": 2,
+        "description": "Bridge for Context7 semantic understanding"
+      },
+      "connections": [
+        "project-brainbox-shared"
+      ],
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "project-brainbox-dashboard",
+        "project-brainbox-extension"
+      ]
+    },
+    {
+      "id": "project-brainbox-database",
+      "type": "Library",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Packages",
+        "priority": 2,
+        "access_url": "packages/database",
+        "version": "3.0.0"
+      },
+      "connections": [
+        "supabase-docs-main"
+      ],
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "project-brainbox-dashboard"
+      ]
+    },
+    {
+      "id": "project-brainbox-validation",
+      "type": "Library",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Packages",
+        "priority": 2,
+        "access_url": "packages/validation",
+        "version": "3.0.0"
+      },
+      "connections": [
+        "zod-docs-main"
+      ],
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "project-brainbox-dashboard"
+      ]
+    },
+    {
+      "id": "project-brainbox-shared",
+      "type": "Library",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Packages",
+        "priority": 2,
+        "access_url": "packages/shared",
+        "version": "3.0.0"
+      },
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "project-brainbox-extension"
+      ]
+    },
+    {
+      "id": "project-brainbox-assets",
+      "type": "Library",
+      "metadata": {
+        "category": "Project Components",
+        "sub_category": "Packages",
+        "priority": 2,
+        "access_url": "packages/assets",
+        "version": "3.0.0"
+      },
+      "last_updated": "2026-02-09",
+      "referenced_by": [
+        "project-brainbox-dashboard"
+      ]
+    },
+    {
+      "id": "meta-architect-workflows",
+      "type": "Infrastructure",
+      "metadata": {
+        "category": "Agent Infrastructure",
+        "sub_category": "Orchestration",
+        "priority": 1,
+        "identity_locked": true,
+        "path": ".agent/skills/meta_architect/config/workflows/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "meta-architect-scripts",
+      "type": "Infrastructure",
+      "metadata": {
+        "category": "Agent Infrastructure",
+        "sub_category": "Logic",
+        "priority": 1,
+        "identity_locked": true,
+        "path": ".agent/skills/meta_architect/scripts/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "agent-state-engine",
+      "type": "Infrastructure",
+      "metadata": {
+        "category": "Agent Infrastructure",
+        "sub_category": "State Management",
+        "priority": 1,
+        "identity_locked": true,
+        "path": "agent_states/"
+      },
+      "last_updated": "2026-02-09"
+    },
+    {
+      "id": "chrome-alarms-api",
+      "type": "API Reference",
+      "metadata": {
+        "category": "Chrome APIs",
+        "sub_category": "chrome.alarms",
+        "priority": 1,
+        "library_id": "chrome.alarms"
+      },
+      "last_updated": "2026-02-09"
+    }
+  ]
+}

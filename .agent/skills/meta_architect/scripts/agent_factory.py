@@ -10,26 +10,16 @@ import datetime
 import sys
 from pathlib import Path
 
-# Add local scripts path to sys for imports
-sys.path.append(os.path.dirname(os.path.abspath(__file__)))
-
-try:
-    from graph_query import GraphQuery
-    from state_manager import StateManager, TaskStatus
-except ImportError:
-    # Fallback if running from root
-    from meta_architect.scripts.graph_query import GraphQuery
-    from meta_architect.scripts.state_manager import StateManager, TaskStatus
-
-# CONFIGURATION
+# Ensure script directory is in path for imports
 SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parents[4]  # .agent/skills/meta_architect/scripts -> ROOT
-BASE_DIR = SCRIPT_DIR.parent          # meta_architect skill root
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
 
-PROFILES_DIR = BASE_DIR / "profiles"
-TEMPLATE_PATH = BASE_DIR / "resources" / "sub_agent_template.md"
-GRAPH_PATH = BASE_DIR / "resources" / "knowledge_graph.json"
-STATE_DIR = PROJECT_ROOT / "agent_states"
+from config import PROJECT_ROOT, PROFILES_DIR, TEMPLATE_PATH, GRAPH_PATH, STATE_DIR
+from graph_query import GraphQuery
+from state_manager import StateManager, TaskStatus
+
+
 
 def load_profile(role_alias: str) -> dict:
     """Load agent profile YAML by alias or filename"""

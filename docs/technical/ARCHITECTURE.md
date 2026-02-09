@@ -1,4 +1,8 @@
 # BrainBox Architecture
+
+> [!IMPORTANT]
+> # ⚖️ АРХИТЕКТУРЕН ЗАКОН (Meta-Architect v3.1)
+> Тази архитектура е **ЖИВА** и се управлява единствено чрез [SKILL.md](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/.agent/skills/meta_architect/SKILL.md). Всеки опит за промяна без `Audit -> Knowledge -> State` цикъл ще бъде автоматично ревертиран.
 **Version**: 3.0.0 (2026-02-06)
 
 ## 🔭 High-Level Overview

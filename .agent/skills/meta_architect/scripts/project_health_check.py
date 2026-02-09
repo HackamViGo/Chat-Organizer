@@ -19,6 +19,10 @@ class HealthEngine:
         self.deductions = self.config.get("weights", {})
         if not self.deductions:
              raise ValueError(f"CRITICAL: No 'weights' defined in {config_path}. Audit cannot proceed without deduction logic.")
+        
+        # Load threshold from config
+        self.thresholds = self.config.get("thresholds", {})
+        self.default_min_score = self.thresholds.get("critical", 80)
 
         self.issues = {
             "hardcoded_token": 0,
@@ -177,7 +181,7 @@ if __name__ == "__main__":
         score = engine.scan_project()
         
         # Exit code based on thresholds
-        min_score = 80 # Raised default to 80
+        min_score = engine.default_min_score  # Use config value
         if len(sys.argv) > 2 and sys.argv[1] == "--min-score":
             min_score = float(sys.argv[2])
             

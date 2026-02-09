@@ -6,10 +6,19 @@ Project Auditor Toolkit
 import os
 import json
 import yaml
+import sys
 from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
 from typing import List, Dict, Optional, Set
+
+# Ensure script directory is in path for imports
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from config import ROLE_CATEGORY_MAP
+from state_manager import StateManager, AgentState, TaskStatus
 
 
 # ============================================================================
@@ -102,6 +111,8 @@ class ProjectAuditor:
             self.findings["technologies"].add('Docker Compose')
         elif name == 'Cargo.toml':
             self.findings["technologies"].add('Rust')
+        elif name == 'manifest.json':
+            self.findings["technologies"].add('Chrome Extension')
     
     def detect_frameworks(self):
         """Detect frameworks from package.json and requirements.txt"""
@@ -436,15 +447,7 @@ class GraphLibrarian:
         requirements: List[str]
     ) -> str:
         """Generate context injection for an agent"""
-        role_category_map = {
-            "frontend_specialist": "Programming Languages & Frameworks",
-            "backend_specialist": "Programming Languages & Frameworks",
-            "db_architect": "Databases & Data Infrastructure",
-            "devops_engineer": "Cloud Platforms & DevOps",
-            "ai_integrator": "AI Models & LLM Development"
-        }
-        
-        category = role_category_map.get(agent_role)
+        category = ROLE_CATEGORY_MAP.get(agent_role)
         if not category:
             return f"ERROR: Unknown agent role '{agent_role}'"
         
@@ -486,70 +489,7 @@ class GraphLibrarian:
         return injection
 
 
-# ============================================================================
-# 3. AGENT STATE MANAGER - Create and manage agent state files
-# ============================================================================
 
-class AgentStateManager:
-    """Manage agent state files in YAML format"""
-    
-    def __init__(self, states_dir: str = "./agent_states"):
-        self.states_dir = Path(states_dir)
-        self.states_dir.mkdir(exist_ok=True)
-    
-    def create_agent_state(
-        self,
-        agent_id: str,
-        role: str,
-        capabilities: List[str],
-        knowledge_context: str
-    ) -> Path:
-        """Create a new agent state file"""
-        state = {
-            "agent_id": agent_id,
-            "role": role,
-            "status": "READY",
-            "current_task": None,
-            "assigned_at": None,
-            "knowledge_context": knowledge_context,
-            "capabilities": capabilities,
-            "restrictions": [
-                "Cannot modify priority=1 Graph nodes without Meta-Architect approval",
-                "Must reference Graph nodes for all architectural decisions",
-                "Cannot directly access other agents' state files"
-            ],
-            "work_log": [],
-            "escalations": [],
-            "modified_files": []
-        }
-        
-        filepath = self.states_dir / f"{role}.yml"
-        with open(filepath, 'w', encoding='utf-8') as f:
-            yaml.dump(state, f, default_flow_style=False, allow_unicode=True)
-        
-        return filepath
-    
-    def load_agent_state(self, role: str) -> Optional[Dict]:
-        """Load an agent's state file"""
-        filepath = self.states_dir / f"{role}.yml"
-        if not filepath.exists():
-            return None
-        
-        with open(filepath, 'r', encoding='utf-8') as f:
-            return yaml.safe_load(f)
-    
-    def update_agent_status(self, role: str, status: str, task: Optional[str] = None):
-        """Update agent's status"""
-        state = self.load_agent_state(role)
-        if state:
-            state["status"] = status
-            if task:
-                state["current_task"] = task
-                state["assigned_at"] = datetime.now().isoformat()
-            
-            filepath = self.states_dir / f"{role}.yml"
-            with open(filepath, 'w', encoding='utf-8') as f:
-                yaml.dump(state, f, default_flow_style=False, allow_unicode=True)
 
 
 # ============================================================================
@@ -715,6 +655,9 @@ def main():
         
         if 'Docker' in techs or 'Docker Compose' in techs:
             required_agents.append(("devops_engineer", ["docker", "kubernetes"]))
+        
+        if 'Chrome Extension' in techs:
+            required_agents.append(("extension_builder", ["chrome extension", "manifest v3", "vite"]))
     
     print(f"📋 Required agents: {len(required_agents)}")
     for agent, _ in required_agents:
@@ -722,7 +665,7 @@ def main():
     
     # Step 4: Create agent states
     print("\n🔧 Step 4: Creating agent state files...")
-    agent_manager = AgentStateManager()
+    agent_manager = StateManager()
     
     for agent_role, requirements in required_agents:
         # Generate context injection
@@ -753,6 +696,12 @@ def main():
                 "CI/CD setup",
                 "Monitoring & logging",
                 "Infrastructure as Code"
+            ],
+            "extension_builder": [
+                "Manifest V3 compliance",
+                "Background service worker logic",
+                "Content script isolation",
+                "Extension API integration"
             ]
         }
         

@@ -1,0 +1,24 @@
+{
+  "internal": {
+    "analysis": {
+      "provider": "google",
+      "model": "gemini-2.5-flash",
+      "alias": "internal-analyzer"
+    },
+    "summary": {
+      "provider": "google",
+      "model": "gemini-2.5-flash",
+      "alias": "internal-summarizer"
+    },
+    "enhance": {
+      "provider": "google",
+      "model": "gemini-2.5-flash",
+      "alias": "internal-enhancer"
+    },
+    "embedding": {
+      "provider": "google",
+      "model": "text-embedding-004",
+      "alias": "internal-embedder"
+    }
+  }
+}

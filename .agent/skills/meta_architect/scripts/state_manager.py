@@ -54,7 +54,9 @@ class StateManager:
     
     def __init__(self, state_dir: str = "./agent_states"):
         self.state_dir = Path(state_dir)
+        # Create directory and all parent directories if they don't exist
         self.state_dir.mkdir(parents=True, exist_ok=True)
+        print(f"✅ StateManager initialized: {self.state_dir}")
     
     def create_state(
         self,
@@ -118,18 +120,26 @@ class StateManager:
         
         return AgentState(**data)
     
-    def update_status(self, agent_id: str, new_status: str) -> None:
-        """Update agent status"""
-        state = self.load_state(agent_id)
-        state.status = new_status
+    def update_status(self, agent_id: str, new_status: TaskStatus) -> None:
+        """
+        Update agent's task status.
         
-        if new_status == TaskStatus.ACTIVE.value:
+        Args:
+            agent_id: Agent identifier
+            new_status: New TaskStatus enum value
+        """
+        state = self.load_state(agent_id)
+        
+        # Convert enum to string value for YAML serialization
+        state.status = new_status.value
+        
+        if new_status == TaskStatus.ACTIVE:
             state.assigned_task["started_at"] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
-        elif new_status == TaskStatus.COMPLETED.value:
+        elif new_status == TaskStatus.COMPLETED:
             state.assigned_task["completed_at"] = datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z')
         
         self.save_state(state)
-        print(f"[StateManager] {agent_id} -> {new_status}")
+        print(f"[StateManager] {agent_id} -> {new_status.value}")
     
     def add_checkpoint(
         self,

@@ -3,6 +3,12 @@ name: meta_architect
 description: Central intelligence for architectural reasoning and agent orchestration within a graph-driven ecosystem.
 ---
 
+# ⚖️ КОНСТИТУЦИЯТА НА BRAINBOX (v3.1)
+
+> [!CAUTION]
+> # 🚨 ТОВА НЕ Е ПРОСТО ДОКУМЕНТ - ТОВА Е ЗАКОН.
+> **НИЩО** в този проект не се променя, изтрива или добавя без стриктно следване на този оперативен цикъл. Ако си агент и четеш това, ти **ВЕЧЕ СИ ДЛЪЖЕН** да изпълниш стъпките по-долу. Спестяването на стъпки води до архитектурно отклонение и незабавно отхвърляне на работата.
+
 ## 1. Role Definition
 
 The Meta-Architect serves as the orchestration layer that transforms unstructured requirements into a deterministic execution plan via **Graph-RAG** and **State Management**.
@@ -59,3 +65,17 @@ Follow this sequence when starting a new cycle:
 2.  **Task Definition:** Execute `project_planner.py` to define task parameters.
 3.  **Context Generation:** Generate context packages via `knowledge_injector.py`.
 4.  **Quality Monitoring:** Monitor `verification_gate.yml` for security and quality assurance.
+## 6. Agent Interaction Model
+
+### Mandatory Execution Loop
+Every agent MUST follow this sequence for every task to maintain system integrity:
+
+1.  **Pre-Action Audit:** Run `pnpm verify`. If `Health Score < 80`, stop and reference `remediation_plan.yml`.
+2.  **Knowledge Retrieval:** Invoke `python3 .agent/skills/meta_architect/scripts/knowledge_injector.py` to fetch required `node_id` context.
+3.  **Atomic State Update:** Record intent and progress in `agent_states/` via `state_manager.py` before modifying files.
+4.  **Compliance Check:** Validate proposed changes against **Section 4 (Standard Compliance)**.
+5.  **Post-Action Audit:** Re-run `pnpm verify`. Any score degradation requires immediate rollback or fix.
+
+### Communication Protocol
+*   **Grounding:** No code generation without a verified `node_id` from `knowledge_graph.json`.
+*   **Persistence:** Task resumption is only permitted if the state in `agent_states/` matches the current filesystem reality.

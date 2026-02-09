@@ -1,0 +1,14 @@
+agent_id: frontend_specialist_20260209_161500
+role: frontend_specialist
+status: IDLE
+assigned_task:
+  id: TASK_20260209_161500
+  description: Test task
+  started_at: null
+  completed_at: null
+context_injection:
+  last_update: '2026-02-09T14:15:00.407545Z'
+  package_path: ./context_packages/test.md
+checkpoints: []
+escalations: []
+output_artifacts: []

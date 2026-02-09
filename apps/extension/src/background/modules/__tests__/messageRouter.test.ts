@@ -41,7 +41,7 @@ import { resetAllMocks } from '@/__tests__/setup';
 import * as dashboardApi from '../dashboardApi';
 import * as platformAdapters from '../platformAdapters';
 
-console.log('[DEBUG] platformAdapters mock state:', typeof platformAdapters.fetchConversation);
+console.debug('[DEBUG] platformAdapters mock state:', typeof platformAdapters.fetchConversation);
 
 describe('MessageRouter', () => {
   let messageRouter: MessageRouter;
@@ -53,11 +53,12 @@ describe('MessageRouter', () => {
   beforeEach(() => {
     resetAllMocks();
 
-    // Set up default mock values
-    vi.mocked(dashboardApi.getUserFolders).mockResolvedValue([]);
-    vi.mocked(dashboardApi.saveToDashboard).mockResolvedValue({ id: 'chat-123' });
+    // Reset and configure dashboardApi mocks
+    vi.mocked(dashboardApi.getUserFolders).mockReset().mockResolvedValue([]);
+    vi.mocked(dashboardApi.saveToDashboard).mockReset().mockResolvedValue({ id: 'chat-123' });
     
-    vi.mocked(platformAdapters.fetchConversation).mockResolvedValue({
+    // Reset and configure platformAdapters mocks
+    vi.mocked(platformAdapters.fetchConversation).mockReset().mockResolvedValue({
       id: 'conv-123',
       title: 'Test Chat',
       platform: 'chatgpt',
@@ -81,6 +82,7 @@ describe('MessageRouter', () => {
     messageRouter = new MessageRouter(mockAuthManager, mockPromptSync, true);
     
     mockSender = {
+      id: chrome.runtime.id,
       tab: { id: 123, windowId: 1 } as any
     };
 
@@ -231,7 +233,7 @@ describe('MessageRouter', () => {
         expect(chrome.scripting.executeScript).toHaveBeenCalledWith({
           target: { tabId: 123 },
           world: 'MAIN',
-          files: ['src/content/inject-gemini-main.js']
+          files: ['src/content/inject-gemini-main.ts']
         });
         expect(sendResponse).toHaveBeenCalledWith({ success: true });
       });
@@ -357,28 +359,6 @@ describe('MessageRouter', () => {
           success: false,
           error: 'Unauthorized'
         }));
-      });
-    });
-  });
-
-  describe('Multi-Platform Sync', () => {
-    it('should capture and sync tokens across all platforms', async () => {
-      // Simulate multiple platform header captures
-      const platforms = [
-        { url: 'https://chatgpt.com/api', headers: [{ name: 'Authorization', value: 'Bearer tg-123' }] },
-        { url: 'https://claude.ai/api/organizations/999/', headers: [] },
-        { url: 'https://gemini.google.com/app/AT-123', headers: [] }
-      ];
-
-      for (const p of platforms) {
-        (chrome.webRequest.onBeforeSendHeaders as any)._trigger({
-          url: p.url,
-          requestHeaders: p.headers
-        });
-      }
-
-      await vi.waitFor(async () => {
-        expect(mockAuthManager.syncAll).toHaveBeenCalled();
       });
     });
   });

@@ -65,3 +65,5 @@ export interface UploadItem {
   error?: string;
   file?: File;
 }
+
+export type { PrivacyConfig } from '@brainbox/validation';

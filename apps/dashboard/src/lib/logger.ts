@@ -10,10 +10,10 @@ export const logger = {
       const timestamp = new Date().toISOString();
       if (typeof window !== 'undefined') {
         // Browser: Beautiful colored output
-        console.log(`%c[${area}] %c${msg}`, 'color: #3b82f6; font-weight: bold;', 'color: inherit;', data !== undefined ? data : '');
+        console.debug(`%c[${area}] %c${msg}`, 'color: #3b82f6; font-weight: bold;', 'color: inherit;', data !== undefined ? data : '');
       } else {
         // Server: Standard terminal output
-        console.log(`[${timestamp}] [${area}] ${msg}`, data !== undefined ? data : '');
+        console.debug(`[${timestamp}] [${area}] ${msg}`, data !== undefined ? data : '');
       }
     }
   },

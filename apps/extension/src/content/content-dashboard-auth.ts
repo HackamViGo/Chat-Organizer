@@ -1,10 +1,17 @@
 import { CONFIG } from '../lib/config';
 import { logger } from '../lib/logger';
 
-logger.debug('Dashboard Auth', 'Dashboard auth content script loaded');
+// Visual marker for testing
+const marker = document.createElement('div');
+marker.id = 'brainbox-auth-script-loaded';
+marker.style.display = 'none';
+document.body.appendChild(marker);
 
-// Listen for custom event from page
-window.addEventListener('brainbox-auth-ready', handleAuthEvent);
+logger.debug('Dashboard Auth', 'Dashboard auth content script loaded');
+logger.debug("Dashboard Auth", '🐞 DEBUG: Content Script Loaded', window.location.href);
+
+// Listen for messages from the page (window.postMessage)
+window.addEventListener('message', handleAuthMessage);
 
 // Also attempt to extract from localStorage on load (Backup method)
 if (document.readyState === 'loading') {
@@ -13,15 +20,28 @@ if (document.readyState === 'loading') {
     extractFromStorage();
 }
 
-async function handleAuthEvent(event: Event) {
-    if (!validateOrigin()) return;
-    const customEvent = event as CustomEvent;
-    logger.debug('Dashboard Auth', 'Auth event received', customEvent.detail);
-    await processAuthData(customEvent.detail);
+async function handleAuthMessage(event: MessageEvent) {
+    logger.debug("Dashboard Auth", '🐞 DEBUG: Received message from origin:', event.origin);
+    // 1. Validate Origin
+    if (!validateOrigin(event.origin)) {
+        console.warn('🐞 DEBUG: Origin validation failed for:', event.origin);
+        return;
+    }
+
+    // 2. Validate Data Structure
+    const data = event.data;
+    if (!data || data.type !== 'BRAINBOX_AUTH_SYNC' || !data.payload) {
+        return;
+    }
+
+    logger.debug('Dashboard Auth', 'Auth message received via postMessage', data.payload);
+    logger.debug("Dashboard Auth", '🐞 DEBUG: Auth Message Received', data.payload);
+    await processAuthData(data.payload);
 }
 
 function extractFromStorage() {
-    if (!validateOrigin()) return;
+    const currentOrigin = window.location.origin;
+    if (!validateOrigin(currentOrigin)) return;
     
     // Try localStorage first (Standard for most SPAs)
     try {
@@ -56,21 +76,23 @@ function extractFromStorage() {
     }
 }
 
-function validateOrigin() {
-    const allowedOrigins = [CONFIG.DASHBOARD_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'];
-    const currentOrigin = window.location.origin;
+function validateOrigin(origin: string) {
+    // 1. Remove trailing slash for consistency
+    const cleanOrigin = origin.replace(/\/$/, "");
+
+    const allowedOrigins = [
+        CONFIG.DASHBOARD_URL.replace(/\/$/, ""),
+        'https://brainbox-alpha.vercel.app',
+        'http://localhost:3000',
+        'http://127.0.0.1:3000'
+    ];
     
-    // Check strict match or wildcard for dashboard
-    const isAllowed = allowedOrigins.some(origin => {
-        if (origin.includes('*')) {
-             const regex = new RegExp(origin.replace('*', '.*'));
-             return regex.test(currentOrigin);
-        }
-        return origin === currentOrigin;
-    });
+    // Check strict match
+    const isAllowed = allowedOrigins.includes(cleanOrigin);
 
     if (!isAllowed) {
-        logger.error('Dashboard Auth', '❌ Auth attempt from unauthorized origin: ' + currentOrigin);
+        // Only log error if it looks like an intentional auth attempt
+        // logger.debug('Dashboard Auth', 'Ignored message from origin: ' + origin);
         return false;
     }
     return true;
@@ -83,9 +105,9 @@ function getCookie(name: string): string | null {
   return null;
 }
 
-async function processAuthData(data: any) {
+async function processAuthData(payload: any) {
     try {
-        const { accessToken, refreshToken, expiresAt, rememberMe } = data;
+        const { accessToken, refreshToken, expiresAt, rememberMe } = payload;
 
         if (!accessToken) {
              logger.warn('Dashboard Auth', '❌ No access token found in data');
@@ -104,13 +126,18 @@ async function processAuthData(data: any) {
         if (response && response.success) {
             logger.info('Dashboard Auth', '✅ Token synced to Extension');
             showSuccessNotification();
+        } else {
+             logger.error('Dashboard Auth', 'Failed to sync token', response?.error);
+             console.error('🐞 DEBUG: SendMessage Response Error', response);
         }
     } catch (error: any) {
-        logger.error('Dashboard Auth', 'Failed to store auth token', error);
+        logger.error('Dashboard Auth', 'Failed to process auth data', error);
+        console.error('🐞 DEBUG: SendMessage Exception', error);
     }
 }
 
 function showSuccessNotification() {
+    // Check if valid notification UI exists in shared lib, otherwise use custom
     const successDiv = document.createElement('div');
     successDiv.style.cssText = `
         position: fixed;
@@ -121,20 +148,30 @@ function showSuccessNotification() {
         padding: 16px 24px;
         border-radius: 12px;
         box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        z-index: 10000;
+        z-index: 2147483647; /* Max z-index */
         font-family: sans-serif;
         font-weight: 600;
         animation: slideIn 0.3s ease-out;
+        pointer-events: none;
     `;
     successDiv.textContent = '✅ Extension Connected!';
     document.body.appendChild(successDiv);
+
+    // Add keyframes if not exists
+    if (!document.getElementById('brainbox-keyframes')) {
+        const style = document.createElement('style');
+        style.id = 'brainbox-keyframes';
+        style.textContent = `
+            @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+            @keyframes slideOut { from { transform: translateX(0); opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+        `;
+        document.head.appendChild(style);
+    }
 
     setTimeout(() => {
         successDiv.style.animation = 'slideOut 0.3s ease-in';
         setTimeout(() => successDiv.remove(), 300);
     }, 2500);
 }
-
-// Note: localStorage is NOT used - all auth tokens are stored in chrome.storage.local only
 
 

@@ -106,14 +106,14 @@ async function test(name, testFn, options = {}) {
   const { skip = false, requireAuth = false } = options;
   
   if (skip) {
-    console.log(`${colors.yellow}⏭  SKIP${colors.reset} ${name}`);
+    console.debug(`${colors.yellow}⏭  SKIP${colors.reset} ${name}`);
     results.skipped++;
     results.tests.push({ name, status: 'skipped' });
     return;
   }
 
   if (requireAuth && !authCookies && !authToken) {
-    console.log(`${colors.yellow}⏭  SKIP${colors.reset} ${name} (no auth)`);
+    console.debug(`${colors.yellow}⏭  SKIP${colors.reset} ${name} (no auth)`);
     results.skipped++;
     results.tests.push({ name, status: 'skipped', reason: 'no auth' });
     return;
@@ -122,23 +122,23 @@ async function test(name, testFn, options = {}) {
   try {
     const result = await testFn();
     if (result.ok) {
-      console.log(`${colors.green}✓ PASS${colors.reset} ${name} (${result.status})`);
+      console.debug(`${colors.green}✓ PASS${colors.reset} ${name} (${result.status})`);
       results.passed++;
       results.tests.push({ name, status: 'passed', statusCode: result.status });
     } else {
-      console.log(`${colors.red}✗ FAIL${colors.reset} ${name} (${result.status || 'ERROR'})`);
+      console.debug(`${colors.red}✗ FAIL${colors.reset} ${name} (${result.status || 'ERROR'})`);
       if (result.error) {
-        console.log(`  ${colors.red}Error:${colors.reset} ${result.error}`);
+        console.debug(`  ${colors.red}Error:${colors.reset} ${result.error}`);
       }
       if (result.data && typeof result.data === 'object') {
-        console.log(`  ${colors.red}Response:${colors.reset}`, JSON.stringify(result.data, null, 2).substring(0, 200));
+        console.debug(`  ${colors.red}Response:${colors.reset}`, JSON.stringify(result.data, null, 2).substring(0, 200));
       }
       results.failed++;
       results.tests.push({ name, status: 'failed', statusCode: result.status, error: result.error });
     }
   } catch (error) {
-    console.log(`${colors.red}✗ FAIL${colors.reset} ${name} (EXCEPTION)`);
-    console.log(`  ${colors.red}Error:${colors.reset} ${error.message}`);
+    console.debug(`${colors.red}✗ FAIL${colors.reset} ${name} (EXCEPTION)`);
+    console.debug(`  ${colors.red}Error:${colors.reset} ${error.message}`);
     results.failed++;
     results.tests.push({ name, status: 'failed', error: error.message });
   }
@@ -148,7 +148,7 @@ async function test(name, testFn, options = {}) {
  * Authenticate user
  */
 async function authenticate() {
-  console.log(`\n${colors.cyan}${colors.bright}🔐 Authenticating...${colors.reset}\n`);
+  console.debug(`\n${colors.cyan}${colors.bright}🔐 Authenticating...${colors.reset}\n`);
 
   // Try to sign in
   const signInResult = await request('POST', '/api/auth/signin', {
@@ -160,7 +160,7 @@ async function authenticate() {
 
   if (signInResult.ok && signInResult.headers['set-cookie']) {
     authCookies = signInResult.headers['set-cookie'].join('; ');
-    console.log(`${colors.green}✓ Authenticated via cookies${colors.reset}\n`);
+    console.debug(`${colors.green}✓ Authenticated via cookies${colors.reset}\n`);
     return true;
   }
 
@@ -168,11 +168,11 @@ async function authenticate() {
   const tokenResult = await request('GET', '/extension-auth');
   if (tokenResult.ok && tokenResult.data?.token) {
     authToken = tokenResult.data.token;
-    console.log(`${colors.green}✓ Authenticated via token${colors.reset}\n`);
+    console.debug(`${colors.green}✓ Authenticated via token${colors.reset}\n`);
     return true;
   }
 
-  console.log(`${colors.yellow}⚠ No authentication available - some tests will be skipped${colors.reset}\n`);
+  console.debug(`${colors.yellow}⚠ No authentication available - some tests will be skipped${colors.reset}\n`);
   return false;
 }
 
@@ -180,21 +180,21 @@ async function authenticate() {
  * Run all API tests
  */
 async function runTests() {
-  console.log(`${colors.bright}${colors.cyan}╔═══════════════════════════════════════════════════════════╗${colors.reset}`);
-  console.log(`${colors.bright}${colors.cyan}║${colors.reset}  ${colors.bright}BrainBox API Test Suite${colors.reset}                    ${colors.cyan}║${colors.reset}`);
-  console.log(`${colors.bright}${colors.cyan}╚═══════════════════════════════════════════════════════════╝${colors.reset}\n`);
-  console.log(`Base URL: ${colors.cyan}${BASE_URL}${colors.reset}\n`);
+  console.debug(`${colors.bright}${colors.cyan}╔═══════════════════════════════════════════════════════════╗${colors.reset}`);
+  console.debug(`${colors.bright}${colors.cyan}║${colors.reset}  ${colors.bright}BrainBox API Test Suite${colors.reset}                    ${colors.cyan}║${colors.reset}`);
+  console.debug(`${colors.bright}${colors.cyan}╚═══════════════════════════════════════════════════════════╝${colors.reset}\n`);
+  console.debug(`Base URL: ${colors.cyan}${BASE_URL}${colors.reset}\n`);
 
   // Authenticate first
   await authenticate();
 
-  console.log(`${colors.bright}${colors.blue}📋 Running API Tests...${colors.reset}\n`);
+  console.debug(`${colors.bright}${colors.blue}📋 Running API Tests...${colors.reset}\n`);
 
   // ============================================
   // AUTHENTICATION ENDPOINTS
   // ============================================
-  console.log(`${colors.bright}${colors.cyan}Authentication${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`${colors.bright}${colors.cyan}Authentication${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('OPTIONS /api/auth/refresh', () => request('OPTIONS', '/api/auth/refresh'));
   await test('POST /api/auth/refresh (no token)', () => request('POST', '/api/auth/refresh'), { requireAuth: false });
@@ -202,8 +202,8 @@ async function runTests() {
   // ============================================
   // FOLDERS ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}Folders${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}Folders${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('OPTIONS /api/folders', () => request('OPTIONS', '/api/folders'));
   await test('GET /api/folders', () => request('GET', '/api/folders'), { requireAuth: true });
@@ -237,8 +237,8 @@ async function runTests() {
   // ============================================
   // CHATS ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}Chats${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}Chats${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('GET /api/chats', () => request('GET', '/api/chats'), { requireAuth: true });
   await test('POST /api/chats', () => request('POST', '/api/chats', {
@@ -253,8 +253,8 @@ async function runTests() {
   // ============================================
   // PROMPTS ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}Prompts${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}Prompts${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('GET /api/prompts', () => request('GET', '/api/prompts'), { requireAuth: false });
   await test('GET /api/prompts?use_in_context_menu=true', () => request('GET', '/api/prompts?use_in_context_menu=true'), { requireAuth: false });
@@ -298,8 +298,8 @@ async function runTests() {
   // ============================================
   // IMAGES ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}Images${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}Images${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('OPTIONS /api/images', () => request('OPTIONS', '/api/images'));
   await test('GET /api/images', () => request('GET', '/api/images'), { requireAuth: true });
@@ -313,8 +313,8 @@ async function runTests() {
   // ============================================
   // STATS ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}Stats${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}Stats${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('OPTIONS /api/stats', () => request('OPTIONS', '/api/stats'));
   await test('GET /api/stats', () => request('GET', '/api/stats'), { requireAuth: true });
@@ -322,8 +322,8 @@ async function runTests() {
   // ============================================
   // EXPORT/IMPORT ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}Export/Import${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}Export/Import${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('GET /api/export', () => request('GET', '/api/export'), { requireAuth: true });
   await test('POST /api/import', () => request('POST', '/api/import', {
@@ -336,8 +336,8 @@ async function runTests() {
   // ============================================
   // ACCOUNT ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}Account${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}Account${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('DELETE /api/account/delete', () => request('DELETE', '/api/account/delete'), { 
     requireAuth: true,
@@ -347,8 +347,8 @@ async function runTests() {
   // ============================================
   // AI ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}AI${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}AI${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('POST /api/ai/generate', () => request('POST', '/api/ai/generate', {
     body: {
@@ -365,8 +365,8 @@ async function runTests() {
   // ============================================
   // PROXY ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}Proxy${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}Proxy${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('GET /api/proxy-image?url=https://example.com/image.png', () => 
     request('GET', '/api/proxy-image?url=https://example.com/image.png'), 
@@ -376,8 +376,8 @@ async function runTests() {
   // ============================================
   // UPLOAD ENDPOINTS
   // ============================================
-  console.log(`\n${colors.bright}${colors.cyan}Upload${colors.reset}`);
-  console.log(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.cyan}Upload${colors.reset}`);
+  console.debug(`${colors.cyan}─────────────────────────────────────────${colors.reset}`);
 
   await test('POST /api/upload', () => request('POST', '/api/upload', {
     body: {
@@ -386,25 +386,25 @@ async function runTests() {
   }), { requireAuth: true });
 
   // Print summary
-  console.log(`\n${colors.bright}${colors.cyan}╔═══════════════════════════════════════════════════════════╗${colors.reset}`);
-  console.log(`${colors.bright}${colors.cyan}║${colors.reset}  ${colors.bright}Test Summary${colors.reset}                                    ${colors.cyan}║${colors.reset}`);
-  console.log(`${colors.bright}${colors.cyan}╚═══════════════════════════════════════════════════════════╝${colors.reset}\n`);
+  console.debug(`\n${colors.bright}${colors.cyan}╔═══════════════════════════════════════════════════════════╗${colors.reset}`);
+  console.debug(`${colors.bright}${colors.cyan}║${colors.reset}  ${colors.bright}Test Summary${colors.reset}                                    ${colors.cyan}║${colors.reset}`);
+  console.debug(`${colors.bright}${colors.cyan}╚═══════════════════════════════════════════════════════════╝${colors.reset}\n`);
 
   const total = results.passed + results.failed + results.skipped;
-  console.log(`${colors.green}✓ Passed:${colors.reset} ${results.passed}`);
-  console.log(`${colors.red}✗ Failed:${colors.reset} ${results.failed}`);
-  console.log(`${colors.yellow}⏭  Skipped:${colors.reset} ${results.skipped}`);
-  console.log(`${colors.cyan}Total:${colors.reset} ${total}\n`);
+  console.debug(`${colors.green}✓ Passed:${colors.reset} ${results.passed}`);
+  console.debug(`${colors.red}✗ Failed:${colors.reset} ${results.failed}`);
+  console.debug(`${colors.yellow}⏭  Skipped:${colors.reset} ${results.skipped}`);
+  console.debug(`${colors.cyan}Total:${colors.reset} ${total}\n`);
 
   if (results.failed > 0) {
-    console.log(`${colors.red}${colors.bright}Failed Tests:${colors.reset}\n`);
+    console.debug(`${colors.red}${colors.bright}Failed Tests:${colors.reset}\n`);
     results.tests
       .filter(t => t.status === 'failed')
       .forEach(t => {
-        console.log(`  ${colors.red}✗${colors.reset} ${t.name}`);
-        if (t.error) console.log(`    ${colors.red}Error:${colors.reset} ${t.error}`);
+        console.debug(`  ${colors.red}✗${colors.reset} ${t.name}`);
+        if (t.error) console.debug(`    ${colors.red}Error:${colors.reset} ${t.error}`);
       });
-    console.log();
+    console.debug();
   }
 
   // Exit with error code if tests failed

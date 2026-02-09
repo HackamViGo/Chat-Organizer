@@ -35,7 +35,7 @@ test.describe('BrainBox Extension Integrity Audit', () => {
       const request = route.request();
       if (request.method() === 'POST' && request.url().includes('/chats')) {
         const url = request.url();
-        console.log(`[Network Intercept] 📥 Captured POST to: ${url}`);
+        console.debug(`[Network Intercept] 📥 Captured POST to: ${url}`);
         auditLogs.push(`[Network Intercept] POST ${url}`);
         
         // 🚨 Validation A: Path segment check
@@ -50,7 +50,7 @@ test.describe('BrainBox Extension Integrity Audit', () => {
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
           console.warn(`[Network] ⚠️ Missing or invalid Bearer token in request to ${url}`);
         } else {
-          console.log('[Network] ✅ Authorization header found');
+          console.debug('[Network] ✅ Authorization header found');
         }
 
         // 🚨 Zod Schema Alignment
@@ -59,7 +59,7 @@ test.describe('BrainBox Extension Integrity Audit', () => {
         if (!validationResult.success) {
           console.error('❌ ZOD VALIDATION ERROR:', JSON.stringify(validationResult.error.format(), null, 2));
         } else {
-          console.log('✅ Payload matches Zod schema');
+          console.debug('✅ Payload matches Zod schema');
           auditLogs.push('✅ Payload matches Zod schema');
         }
 
@@ -71,7 +71,7 @@ test.describe('BrainBox Extension Integrity Audit', () => {
             console.error(`❌ CRITICAL ROUTING ERROR: JSON API returned HTML! (${url})`);
             throw new Error('Critical Routing Error: HTML returned instead of JSON');
           }
-          console.log(`[Network] ✅ Response ${response.status()} received with Content-Type: ${contentType}`);
+          console.debug(`[Network] ✅ Response ${response.status()} received with Content-Type: ${contentType}`);
           await route.fulfill({ response });
           interceptedRequests.push({ url, payload: postData });
         } catch (e) {
@@ -83,17 +83,17 @@ test.describe('BrainBox Extension Integrity Audit', () => {
       }
     });
 
-    console.log('\n================================================================');
-    console.log('🚀 BRAINBOX INTEGRITY AUDIT STARTED (HEADED MODE)');
-    console.log('1. Please log in to ChatGPT or Claude in the opened window.');
-    console.log('2. Navigate to any chat.');
-    console.log('3. Use the BrainBox "Save" button or context menu.');
-    console.log('================================================================\n');
+    console.debug('\n================================================================');
+    console.debug('🚀 BRAINBOX INTEGRITY AUDIT STARTED (HEADED MODE)');
+    console.debug('1. Please log in to ChatGPT or Claude in the opened window.');
+    console.debug('2. Navigate to any chat.');
+    console.debug('3. Use the BrainBox "Save" button or context menu.');
+    console.debug('================================================================\n');
 
     // Start with ChatGPT as it's often more stable for extension injection
     await page.goto('https://chatgpt.com', { waitUntil: 'domcontentloaded' });
     
-    console.log('[Audit] Waiting for user interaction or save button...');
+    console.debug('[Audit] Waiting for user interaction or save button...');
     
     // Use a broad selector for injected buttons across platforms
     const buttons = page.locator('.brainbox-hover-btn, .brainbox-capture-btn');
@@ -101,18 +101,18 @@ test.describe('BrainBox Extension Integrity Audit', () => {
     try {
       // 60 seconds for manual login/setup
       await expect(buttons.first()).toBeVisible({ timeout: 60000 });
-      console.log('✅ BrainBox Button detected in DOM!');
+      console.debug('✅ BrainBox Button detected in DOM!');
       
       const firstBtn = await buttons.first();
       await firstBtn.click({ force: true });
-      console.log('🖱️ Clicked "Save" button. Waiting for network capture...');
+      console.debug('🖱️ Clicked "Save" button. Waiting for network capture...');
       
       // Allow time for network request to fly
       await page.waitForTimeout(5000);
 
       if (interceptedRequests.length > 0) {
         const payload = interceptedRequests[0].payload;
-        console.log('\n📊 AUDIT RESULTS:');
+        console.debug('\n📊 AUDIT RESULTS:');
         
         // Check for undefined or [object Object]
         const payloadStr = JSON.stringify(payload);
@@ -125,9 +125,9 @@ test.describe('BrainBox Extension Integrity Audit', () => {
           throw new Error('Data Corruption: [object Object] in payload');
         }
         
-        console.log('✅ EXTRACTION AUDIT: Data integrity OK (no undefined/[object Object])');
-        console.log('✅ NETWORK AUDIT: No redundant path segments');
-        console.log('✅ SCHEMA AUDIT: Payload aligned with packages/validation');
+        console.debug('✅ EXTRACTION AUDIT: Data integrity OK (no undefined/[object Object])');
+        console.debug('✅ NETWORK AUDIT: No redundant path segments');
+        console.debug('✅ SCHEMA AUDIT: Payload aligned with packages/validation');
       } else {
         console.warn('⚠️ No relevant POST requests captured. Did you trigger the save action?');
       }
@@ -137,7 +137,7 @@ test.describe('BrainBox Extension Integrity Audit', () => {
       await page.screenshot({ path: 'audit-failure.png' });
     }
 
-    console.log('\n--- NETWORK LOGS ---');
-    auditLogs.forEach(l => console.log(l));
+    console.debug('\n--- NETWORK LOGS ---');
+    auditLogs.forEach(l => console.debug(l));
   });
 });

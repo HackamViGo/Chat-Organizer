@@ -19,7 +19,7 @@ const isDebugMode = () => {
 export const logger = {
   debug: (area: string, msg: string, data?: any) => {
     if (isDebugMode()) {
-      console.log(`%c[${area}]`, 'color: #3b82f6; font-weight: bold;', msg, data || '');
+      console.debug(`%c[${area}]`, 'color: #3b82f6; font-weight: bold;', msg, data || '');
     }
   },
   

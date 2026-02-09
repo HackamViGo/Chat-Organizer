@@ -22,18 +22,18 @@ async function verify() {
 
   ws.on('open', async () => {
     try {
-      console.log('--- CONNECTED TO SW ---');
+      console.debug('--- CONNECTED TO SW ---');
       await send(1, 'Runtime.enable');
       
       const resB = await send(2, 'Runtime.evaluate', { 
-        expression: 'self.BRAINBOX_DEBUG_MODE = true; console.log("MCP Verification Probe");' 
+        expression: 'self.BRAINBOX_DEBUG_MODE = true; console.debug("MCP Verification Probe");' 
       });
-      console.log('RESULT_B:', JSON.stringify(resB, null, 2));
+      console.debug('RESULT_B:', JSON.stringify(resB, null, 2));
 
       const resC = await send(3, 'Runtime.evaluate', { 
         expression: 'typeof window' 
       });
-      console.log('RESULT_C:', JSON.stringify(resC, null, 2));
+      console.debug('RESULT_C:', JSON.stringify(resC, null, 2));
 
       ws.close();
       process.exit(0);

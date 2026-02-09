@@ -19,9 +19,9 @@ test.describe('Extension Loading', () => {
         const manifestPath = path.join(extensionPath, 'manifest.json');
         const extensionExists = fs.existsSync(manifestPath);
         
-        console.log('✅ Browser launched');
-        console.log('✅ Extension path exists:', extensionExists);
-        console.log('   Extension path:', extensionPath);
+        console.debug('✅ Browser launched');
+        console.debug('✅ Extension path exists:', extensionExists);
+        console.debug('   Extension path:', extensionPath);
         
         if (!extensionExists) {
             throw new Error('Extension manifest not found at: ' + manifestPath);
@@ -36,9 +36,9 @@ test.describe('Extension Loading', () => {
         // In Playwright, chrome APIs are not accessible from page context
         // Instead, we verify extension is loaded by checking if manifest exists
         // The extension should be loaded via launchOptions in playwright.config.ts
-        console.log('✅ Extension should be loaded via Playwright config');
-        console.log('   (chrome APIs not accessible from page context in Playwright)');
-        console.log('   Note: Content scripts may take a few seconds to inject on target pages');
+        console.debug('✅ Extension should be loaded via Playwright config');
+        console.debug('   (chrome APIs not accessible from page context in Playwright)');
+        console.debug('   Note: Content scripts may take a few seconds to inject on target pages');
     });
 });
 
@@ -70,7 +70,7 @@ test.describe('ChatGPT Integration', () => {
         if (criticalErrors.length > 0) {
             console.warn('⚠️ Extension errors detected:', criticalErrors);
         } else {
-            console.log('✅ ChatGPT loaded without extension errors');
+            console.debug('✅ ChatGPT loaded without extension errors');
         }
 });
 
@@ -92,7 +92,7 @@ test.describe('ChatGPT Integration', () => {
         await page.waitForFunction(() => 
             document.querySelector('style')?.textContent?.includes('brainbox') || 
             (window as any).BrainBoxMaster
-        ).catch(() => console.log('Wait for BrainBox indicator timed out'));
+        ).catch(() => console.debug('Wait for BrainBox indicator timed out'));
 
         // Also check DOM for BrainBox indicators
         const hasBrainBoxIndicator = await page.evaluate(() => {
@@ -106,8 +106,8 @@ test.describe('ChatGPT Integration', () => {
             return hasStyles;
         });
 
-        console.log('✅ Content script loaded:', contentScriptLoaded);
-        console.log('✅ BrainBox indicators in DOM:', hasBrainBoxIndicator);
+        console.debug('✅ Content script loaded:', contentScriptLoaded);
+        console.debug('✅ BrainBox indicators in DOM:', hasBrainBoxIndicator);
         
         if (!contentScriptLoaded && !hasBrainBoxIndicator) {
             console.warn('⚠️ Content script may not have loaded. Console messages:', 
@@ -134,9 +134,9 @@ test.describe('ChatGPT Integration', () => {
             };
         });
 
-        console.log('✅ BrainBox UI styles injected:', styleInfo.hasStyles);
+        console.debug('✅ BrainBox UI styles injected:', styleInfo.hasStyles);
         if (styleInfo.hasStyles) {
-            console.log('   Found', styleInfo.styleCount, 'BrainBox style block(s)');
+            console.debug('   Found', styleInfo.styleCount, 'BrainBox style block(s)');
         }
     });
 });
@@ -159,7 +159,7 @@ test.describe('Claude Integration', () => {
 
         // Check title (may be login page)
         const title = await page.title();
-        console.log('Claude page title:', title);
+        console.debug('Claude page title:', title);
         expect(title.length).toBeGreaterThan(0);
 
         const criticalErrors = errors.filter(e => 
@@ -169,7 +169,7 @@ test.describe('Claude Integration', () => {
         if (criticalErrors.length > 0) {
             console.warn('⚠️ Extension errors detected:', criticalErrors);
         } else {
-            console.log('✅ Claude loaded without extension errors');
+            console.debug('✅ Claude loaded without extension errors');
         }
     });
 
@@ -199,8 +199,8 @@ test.describe('Claude Integration', () => {
             );
         });
 
-        console.log('✅ Content script loaded:', contentScriptLoaded);
-        console.log('✅ BrainBox indicators in DOM:', hasBrainBoxIndicator);
+        console.debug('✅ Content script loaded:', contentScriptLoaded);
+        console.debug('✅ BrainBox indicators in DOM:', hasBrainBoxIndicator);
         
         if (!contentScriptLoaded && !hasBrainBoxIndicator) {
             console.warn('⚠️ Content script may not have loaded. Console messages:', 
@@ -249,9 +249,9 @@ test.describe('Extension Configuration', () => {
         expect(manifest.host_permissions).toContain('https://claude.ai/*');
         expect(manifest.host_permissions).toContain('https://gemini.google.com/*');
 
-        console.log('✅ Manifest V3 configuration valid');
-        console.log('   Version:', manifest.version);
-        console.log('   Permissions:', manifest.permissions);
+        console.debug('✅ Manifest V3 configuration valid');
+        console.debug('   Version:', manifest.version);
+        console.debug('   Permissions:', manifest.permissions);
     });
 
     test('Required files exist', async () => {
@@ -268,7 +268,7 @@ test.describe('Extension Configuration', () => {
             const filePath = path.join(process.cwd(), file);
             const exists = fs.existsSync(filePath);
             expect(exists).toBe(true);
-            console.log(`✅ ${file} exists`);
+            console.debug(`✅ ${file} exists`);
         }
     });
 });
@@ -284,7 +284,7 @@ test.describe('Token Interception', () => {
         page.on('request', request => {
             if (request.url().includes('chatgpt.com/backend-api')) {
                 apiRequestDetected = true;
-                console.log('📡 ChatGPT API request detected:', request.url());
+                console.debug('📡 ChatGPT API request detected:', request.url());
             }
         });
 
@@ -292,7 +292,7 @@ test.describe('Token Interception', () => {
         await page.waitForLoadState('networkidle');
 
         // We won't see API requests without login, but extension should be listening
-        console.log('✅ Extension monitoring ChatGPT API endpoints');
+        console.debug('✅ Extension monitoring ChatGPT API endpoints');
     });
 
     // ⚠️ DISABLED: Gemini endpoint monitoring test
@@ -315,7 +315,7 @@ test.describe('Performance', () => {
         
         const loadTime = Date.now() - startTime;
         
-        console.log('⏱️ Page load time:', loadTime, 'ms');
+        console.debug('⏱️ Page load time:', loadTime, 'ms');
         
         // Should load in reasonable time (< 10s)
         expect(loadTime).toBeLessThan(10000);
@@ -340,12 +340,12 @@ test.describe('Performance', () => {
 
         if (metrics) {
             const usedMB = Math.round(metrics.usedJSHeapSize / 1024 / 1024);
-            console.log('💾 Memory usage:', usedMB, 'MB');
+            console.debug('💾 Memory usage:', usedMB, 'MB');
             
             // Should be under 100MB
             expect(usedMB).toBeLessThan(100);
         } else {
-            console.log('⚠️ Memory metrics not available');
+            console.debug('⚠️ Memory metrics not available');
         }
     });
 });
@@ -379,7 +379,7 @@ test.describe('Error Handling', () => {
         if (criticalErrors.length > 0) {
             console.warn('⚠️ Navigation errors:', criticalErrors);
         } else {
-            console.log('✅ Extension handles navigation without errors');
+            console.debug('✅ Extension handles navigation without errors');
         }
     });
 
@@ -394,7 +394,7 @@ test.describe('Error Handling', () => {
         await page.waitForLoadState('domcontentloaded');
 
         // Extension should not inject content scripts here
-        console.log('✅ Extension handles non-target pages gracefully');
+        console.debug('✅ Extension handles non-target pages gracefully');
     });
 });
 
@@ -404,9 +404,9 @@ test.describe('Error Handling', () => {
 
 test.describe('Overall Health Check', () => {
     test('Extension passes all critical checks', async ({ page }) => {
-        console.log('\n========================================');
-        console.log('🎯 BRAINBOX EXTENSION TEST SUMMARY');
-        console.log('========================================\n');
+        console.debug('\n========================================');
+        console.debug('🎯 BRAINBOX EXTENSION TEST SUMMARY');
+        console.debug('========================================\n');
 
         const checks = {
             'Manifest V3': true,
@@ -422,11 +422,11 @@ test.describe('Overall Health Check', () => {
         };
 
         for (const [check, status] of Object.entries(checks)) {
-            console.log(`${status ? '✅' : '❌'} ${check}`);
+            console.debug(`${status ? '✅' : '❌'} ${check}`);
         }
 
-        console.log('\n========================================');
-        console.log('🎉 All critical components verified!');
-        console.log('========================================\n');
+        console.debug('\n========================================');
+        console.debug('🎉 All critical components verified!');
+        console.debug('========================================\n');
     });
 });

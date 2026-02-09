@@ -150,8 +150,8 @@ async function executeSQL(query, description) {
       });
 
       if (!mgmtResponse.ok) {
-        console.log(`⚠️  ${description}: Не мога да изпълня директно SQL`);
-        console.log(`   Използвайте Supabase MCP или SQL Editor\n`);
+        console.debug(`⚠️  ${description}: Не мога да изпълня директно SQL`);
+        console.debug(`   Използвайте Supabase MCP или SQL Editor\n`);
         return null;
       }
 
@@ -162,66 +162,66 @@ async function executeSQL(query, description) {
     const result = await response.json();
     return result.data || result;
   } catch (err) {
-    console.log(`⚠️  ${description}: ${err.message}`);
-    console.log(`   Използвайте Supabase MCP или SQL Editor за изпълнение\n`);
+    console.debug(`⚠️  ${description}: ${err.message}`);
+    console.debug(`   Използвайте Supabase MCP или SQL Editor за изпълнение\n`);
     return null;
   }
 }
 
 async function checkRLS() {
-  console.log('🔍 Проверка на RLS политиките...\n');
-  console.log('═'.repeat(60));
+  console.debug('🔍 Проверка на RLS политиките...\n');
+  console.debug('═'.repeat(60));
 
   // 1. Проверка на RLS статус
-  console.log('\n1️⃣ Проверка на RLS статус за всички таблици:\n');
+  console.debug('\n1️⃣ Проверка на RLS статус за всички таблици:\n');
   const rlsStatus = await executeSQL(RLS_CHECK_QUERIES.checkRLSStatus, 'RLS Status Check');
   
   if (rlsStatus) {
     console.table(rlsStatus);
   } else {
-    console.log('💡 Използвайте Supabase MCP или SQL Editor за изпълнение на заявката\n');
-    console.log(RLS_CHECK_QUERIES.checkRLSStatus);
+    console.debug('💡 Използвайте Supabase MCP или SQL Editor за изпълнение на заявката\n');
+    console.debug(RLS_CHECK_QUERIES.checkRLSStatus);
   }
 
   // 2. Детайлен списък на политиките
-  console.log('\n2️⃣ Детайлен списък на RLS политики:\n');
+  console.debug('\n2️⃣ Детайлен списък на RLS политики:\n');
   const policies = await executeSQL(RLS_CHECK_QUERIES.listPolicies, 'Policies List');
   
   if (policies) {
     console.table(policies);
   } else {
-    console.log('💡 Използвайте Supabase MCP или SQL Editor за изпълнение на заявката\n');
+    console.debug('💡 Използвайте Supabase MCP или SQL Editor за изпълнение на заявката\n');
   }
 
   // 3. Брой политики по таблица
-  console.log('\n3️⃣ Брой политики по таблица и команда:\n');
+  console.debug('\n3️⃣ Брой политики по таблица и команда:\n');
   const policyCount = await executeSQL(RLS_CHECK_QUERIES.countPolicies, 'Policy Count');
   
   if (policyCount) {
     console.table(policyCount);
   } else {
-    console.log('💡 Използвайте Supabase MCP или SQL Editor за изпълнение на заявката\n');
+    console.debug('💡 Използвайте Supabase MCP или SQL Editor за изпълнение на заявката\n');
   }
 
   // 4. Таблици с проблеми
-  console.log('\n4️⃣ Таблици с проблеми:\n');
+  console.debug('\n4️⃣ Таблици с проблеми:\n');
   const problems = await executeSQL(RLS_CHECK_QUERIES.checkProblems, 'Problems Check');
   
   if (problems) {
     const issues = problems.filter(p => !p.status.includes('✅'));
     if (issues.length > 0) {
       console.table(issues);
-      console.log('\n⚠️  Намерени проблеми! Поправете ги преди да продължите.\n');
+      console.debug('\n⚠️  Намерени проблеми! Поправете ги преди да продължите.\n');
     } else {
-      console.log('✅ Всички таблици са конфигурирани правилно!\n');
+      console.debug('✅ Всички таблици са конфигурирани правилно!\n');
     }
   } else {
-    console.log('💡 Използвайте Supabase MCP или SQL Editor за изпълнение на заявката\n');
+    console.debug('💡 Използвайте Supabase MCP или SQL Editor за изпълнение на заявката\n');
   }
 
-  console.log('═'.repeat(60));
-  console.log('\n✅ Проверката е завършена!');
-  console.log('\n💡 За пълна проверка използвайте Supabase MCP в Cursor или SQL Editor в Dashboard\n');
+  console.debug('═'.repeat(60));
+  console.debug('\n✅ Проверката е завършена!');
+  console.debug('\n💡 За пълна проверка използвайте Supabase MCP в Cursor или SQL Editor в Dashboard\n');
 }
 
 // Изпълнение на теста

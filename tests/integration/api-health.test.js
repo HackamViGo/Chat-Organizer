@@ -6,7 +6,7 @@
 const http = require('http');
 
 async function checkApiHealth(retries = 3, delay = 2000) {
-    console.log(`🧪 Running Integration Test: API Health Check (Attempts remaining: ${retries})`);
+    console.debug(`🧪 Running Integration Test: API Health Check (Attempts remaining: ${retries})`);
     
     for (let i = 0; i < retries; i++) {
         try {
@@ -21,7 +21,7 @@ async function checkApiHealth(retries = 3, delay = 2000) {
 
                 const req = http.request(options, (res) => {
                     if (res.statusCode === 200 || res.statusCode === 401) { 
-                        console.log('✅ API is up and responding.');
+                        console.debug('✅ API is up and responding.');
                         resolve(true);
                     } else {
                         console.warn(`⚠️ Unexpected status: ${res.statusCode}`);
@@ -49,13 +49,13 @@ async function checkApiHealth(retries = 3, delay = 2000) {
         }
 
         if (i < retries - 1) {
-            console.log(`⏳ Waiting ${delay}ms before next attempt...`);
+            console.debug(`⏳ Waiting ${delay}ms before next attempt...`);
             await new Promise(r => setTimeout(r, delay));
         }
     }
 
     console.error('❌ All health check attempts failed.');
-    console.log('💡 Ensure that "npm run dev" is running in a separate terminal.');
+    console.debug('💡 Ensure that "npm run dev" is running in a separate terminal.');
     return false;
 }
 

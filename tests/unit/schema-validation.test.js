@@ -33,7 +33,7 @@ function validateConversation(conversation) {
 }
 
 // THE TESTS
-console.log('🧪 Running Unit Tests: Schema Validation');
+console.debug('🧪 Running Unit Tests: Schema Validation');
 
 // test 1: Valid conversation
 const validChat = {
@@ -45,7 +45,7 @@ const validChat = {
 };
 const result1 = validateConversation(validChat);
 assert.strictEqual(result1.valid, true, 'Should be valid');
-console.log('✅ Passed: Valid conversation');
+console.debug('✅ Passed: Valid conversation');
 
 // test 2: Missing field
 const invalidChat = {
@@ -56,13 +56,13 @@ const invalidChat = {
 const result2 = validateConversation(invalidChat);
 assert.strictEqual(result2.valid, false, 'Should be invalid');
 assert.ok(result2.error.includes('Missing required field'), 'Should specify missing field');
-console.log('✅ Passed: Missing field detection');
+console.debug('✅ Passed: Missing field detection');
 
 // test 3: Invalid platform
 const wrongPlatform = { ...validChat, platform: 'skynet' };
 const result3 = validateConversation(wrongPlatform);
 assert.strictEqual(result3.valid, false, 'Should be invalid');
 assert.ok(result3.error.includes('Invalid platform'), 'Should detect invalid platform');
-console.log('✅ Passed: Invalid platform detection');
+console.debug('✅ Passed: Invalid platform detection');
 
-console.log('\n✨ All Unit Tests Passed!\n');
+console.debug('\n✨ All Unit Tests Passed!\n');

@@ -1,5 +1,13 @@
 import { vi, beforeEach } from 'vitest';
 
+// Mock import.meta.env and process.env for config tests
+(import.meta as any).env = {
+    VITE_API_BASE_URL: 'https://api.brainbox.ai',
+    VITE_DASHBOARD_URL: 'https://brainbox.ai',
+};
+process.env.VITE_API_BASE_URL = 'https://api.brainbox.ai';
+process.env.VITE_DASHBOARD_URL = 'https://brainbox.ai';
+
 // Mock Chrome Storage API
 const createStorageMock = () => {
     const storage: Record<string, any> = {};

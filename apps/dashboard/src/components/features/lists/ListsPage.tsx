@@ -98,7 +98,7 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       setNewListTitle('');
       setNewListColor('emerald');
       setIsCreatingList(false);
-      // console.log removed
+      // console.debug removed
     } catch (error) {
       console.error('Failed to create list:', error);
     }
@@ -119,7 +119,7 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       updateList(listId, { title: editingTitle });
       setEditingListId(null);
       setEditingTitle('');
-      // console.log removed
+      // console.debug removed
     } catch (error) {
       console.error('Failed to update list:', error);
     }
@@ -139,7 +139,7 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       
       deleteList(listId);
       if (selectedListId === listId) selectList(null);
-      // console.log removed
+      // console.debug removed
     } catch (error) {
       console.error('Failed to delete list:', error);
     }
@@ -173,7 +173,7 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       
       addItemToList(listId, data);
       setNewItemTexts(prev => ({ ...prev, [listId]: '' }));
-      // console.log removed
+      // console.debug removed
     } catch (error) {
       console.error('Failed to add item:', error);
     }
@@ -215,7 +215,7 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       updateItemInList(listId, itemId, { text: editingItemText });
       setEditingItemId(null);
       setEditingItemText('');
-      // console.log removed
+      // console.debug removed
     } catch (error) {
       console.error('Failed to update item:', error);
     }
@@ -232,7 +232,7 @@ export function ListsPage({ initialLists }: ListsPageProps) {
       if (error) throw error;
       
       deleteItemFromList(listId, itemId);
-      // console.log removed
+      // console.debug removed
     } catch (error) {
       console.error('Failed to delete item:', error);
     }

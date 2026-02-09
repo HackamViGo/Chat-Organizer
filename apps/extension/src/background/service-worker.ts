@@ -10,6 +10,27 @@ import { MessageRouter } from './modules/messageRouter';
 import { NetworkObserver } from './modules/networkObserver';
 import { InstallationManager } from './modules/installationManager';
 import { SyncManager } from './modules/syncManager';
+import { clearExtensionCache } from '@brainbox/shared';
+
+// ============================================================================
+// LIFECYCLE MANAGEMENT
+// ============================================================================
+
+/**
+ * Install event - skip waiting to ensure the new worker takes over immediately
+ */
+self.addEventListener('install', () => {
+    logger.info('Worker', '📥 Service Worker Installing...');
+    (self as any).skipWaiting();
+});
+
+/**
+ * Activate event - claim clients to ensure consistent control
+ */
+self.addEventListener('activate', (event: any) => {
+    logger.info('Worker', '✨ Service Worker Activating...');
+    event.waitUntil((self as any).clients.claim());
+});
 
 logger.info('Worker', '🚀 Service Worker Starting...');
 
@@ -43,6 +64,7 @@ const messageRouter = new MessageRouter(
 
 authManager.initialize();
 promptSyncManager.initialize();
+clearExtensionCache().catch(() => {});
 
 // Trigger sync queue processing on startup
 chrome.storage.local.get(['accessToken'], ({ accessToken }) => {

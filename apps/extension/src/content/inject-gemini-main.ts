@@ -1,10 +1,16 @@
 // BrainBox - Gemini Main World Script
 // Runs in the 'MAIN' world to access window objects like WIZ_global_data
 
+interface Window {
+    WIZ_global_data: any;
+    AF_initDataCallback: any[];
+    _sc_at: string;
+}
+
 (function () {
     'use strict';
 
-    // console.log('[BrainBox] MAIN world script loaded');
+    // console.debug('[BrainBox] MAIN world script loaded');
 
     function extractToken() {
         try {
@@ -29,13 +35,18 @@
             }
 
             if (token) {
-                // console.log('[BrainBox] Token extracted, sending to content script...');
+                // console.debug('[BrainBox] Token extracted, sending to content script...');
                 window.postMessage({ type: 'BRAINBOX_GEMINI_TOKEN', token: token }, '*');
             } else {
-                // console.log('[BrainBox] Token not found in standard locations');
+                // console.debug('[BrainBox] Token not found in standard locations');
             }
         } catch (e) {
             console.error('[BrainBox] Token extraction error:', e);
+            // Notify content script about error to show toast
+             window.postMessage({ 
+                type: 'BRAINBOX_ERROR', 
+                payload: { message: 'Gemini Token Extraction Failed' } 
+            }, '*');
         }
     }
 
@@ -53,7 +64,7 @@
     setInterval(() => {
         if (location.href !== lastUrl) {
             lastUrl = location.href;
-            // console.log('[BrainBox] Navigation detected, re-extracting token...');
+            // console.debug('[BrainBox] Navigation detected, re-extracting token...');
             setTimeout(extractToken, 500);
         }
     }, 1000);

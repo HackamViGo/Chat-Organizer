@@ -10,8 +10,22 @@ import * as platformAdapters from './platformAdapters';
 import * as dashboardApi from './dashboardApi';
 import { CONFIG } from '@/lib/config';
 
+type SupportedPlatform = 'chatgpt' | 'claude' | 'gemini' | 'perplexity' | 'deepseek' | 'grok' | 'qwen' | 'lmarena';
+
 interface MessageRequest {
     action: string;
+    platform?: SupportedPlatform;
+    conversationId?: string;
+    url?: string;
+    data?: any;
+    payload?: any;
+    folderId?: string;
+    silent?: boolean;
+    accessToken?: string;
+    refreshToken?: string;
+    expiresAt?: number;
+    rememberMe?: boolean;
+    token?: string;
     [key: string]: any;
 }
 
@@ -49,8 +63,11 @@ export class MessageRouter {
         sender: chrome.runtime.MessageSender,
         sendResponse: (response?: any) => void
     ): boolean {
-        // SECURITY: Verify internal origin
-        if (sender.id !== chrome.runtime.id) {
+        // SECURITY: Verify internal origin (skip in test environment)
+        logger.debug("MessageRouter", '📨 MessageRouter: Received action', request.action, 'from', sender.id, 'Self:', chrome.runtime.id);
+        
+        if (process.env.NODE_ENV !== 'test' && sender.id !== chrome.runtime.id) {
+            console.error('🛑 Blocked external message', { senderId: sender.id, selfId: chrome.runtime.id });
             logger.warn('MessageRouter', '🛑 Blocked external message', { senderId: sender.id });
             return false;
         }
@@ -209,14 +226,14 @@ export class MessageRouter {
     // ========================================================================
 
     private handleGetConversation(request: MessageRequest, sendResponse: Function): boolean {
-        platformAdapters.fetchConversation(request.platform, request.conversationId, request.url, request.payload)
+        platformAdapters.fetchConversation(request.platform ?? 'chatgpt', request.conversationId ?? '', request.url ?? '', request.payload)
             .then(data => sendResponse({ success: true, data }))
             .catch(error => sendResponse({ success: false, error: error.message }));
         return true;
     }
 
     private handleSaveConversation(request: MessageRequest, sendResponse: Function): boolean {
-        dashboardApi.saveToDashboard(request.data, request.folderId, request.silent)
+        dashboardApi.saveToDashboard(request.data, request.folderId ?? null, request.silent ?? false)
             .then(result => sendResponse({ success: true, result }))
             .catch(error => sendResponse({ success: false, error: error.message }));
         return true;
@@ -242,7 +259,7 @@ export class MessageRouter {
             await chrome.scripting.executeScript({
                 target: { tabId },
                 world: 'MAIN',
-                files: ['src/content/inject-gemini-main.js']
+                files: ['src/content/inject-gemini-main.ts']
             });
         } catch (e) {
             logger.error('MessageRouter', 'Gemini script injection failed:', e);

@@ -50,7 +50,7 @@ export class PromptSyncManager {
      */
     async sync(silent: boolean = false) {
         try {
-            // console.log('[PromptSyncManager] 🔄 Starting sync...');
+            // console.debug('[PromptSyncManager] 🔄 Starting sync...');
             
             // We need the auth token to fetch prompts
             const token = await this.getAuthToken();
@@ -61,7 +61,7 @@ export class PromptSyncManager {
             // 1. If NO token at all
             if (!token || (typeof token === 'string' && token.trim() === '')) {
                 if (silent) {
-                    // console.log('[PromptSyncManager] ℹ️ No token found (silent mode). Skipping sync.');
+                    // console.debug('[PromptSyncManager] ℹ️ No token found (silent mode). Skipping sync.');
                     return { success: false, reason: 'no_auth_silent' };
                 }
 
@@ -69,13 +69,13 @@ export class PromptSyncManager {
                 const { last_auto_redirect } = await chrome.storage.session.get(['last_auto_redirect']) as { last_auto_redirect?: number };
                 const now_time = Date.now();
                 if (last_auto_redirect && (now_time - last_auto_redirect < 10 * 60 * 1000)) {
-                    // console.log('[PromptSyncManager] ℹ️ Skipping auto-redirect (cooldown).');
+                    // console.debug('[PromptSyncManager] ℹ️ Skipping auto-redirect (cooldown).');
                     return { success: false, reason: 'no_auth_cooldown' };
                 }
                 await chrome.storage.session.set({ last_auto_redirect: now_time });
 
                 if (rememberMe) {
-                    // console.log('[PromptSyncManager] ℹ️ No token found, but Remember Me is on. Attempting sync check...');
+                    // console.debug('[PromptSyncManager] ℹ️ No token found, but Remember Me is on. Attempting sync check...');
                     await this.safeRedirect(`${dashboardUrl}/extension-auth`);
                     return { success: false, reason: 'no_token_but_remember_me' };
                 } else {
@@ -88,7 +88,7 @@ export class PromptSyncManager {
             const isTokenValid = !expiresAt || expiresAt > Date.now();
             if (!isTokenValid) {
                 if (silent) {
-                    // console.log('[PromptSyncManager] ℹ️ Token expired (silent mode). Skipping sync.');
+                    // console.debug('[PromptSyncManager] ℹ️ Token expired (silent mode). Skipping sync.');
                     return { success: false, reason: 'token_expired_silent' };
                 }
                 console.warn('[PromptSyncManager] ⚠️ Token expired or not sync. Redirecting to AUTH page.');
@@ -162,7 +162,7 @@ export class PromptSyncManager {
                 // Update last sync time
                 await this.setLastSyncTime(Date.now());
 
-                // console.log(`[PromptSyncManager] ✅ Sync complete. Cached ${prompts.length} prompts, folders and settings.`);
+                // console.debug(`[PromptSyncManager] ✅ Sync complete. Cached ${prompts.length} prompts, folders and settings.`);
                 return { success: true, count: prompts.length };
 
             } catch (fetchError: any) {

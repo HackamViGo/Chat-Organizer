@@ -601,13 +601,54 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`
       };
+
+      // --- Privacy Shield Layer ---
+      let finalContent = promptData.content;
+      try {
+        const privacyRes = await chrome.storage.local.get(['privacyConfig']);
+        const privacyConfig = privacyRes.privacyConfig;
+        
+        if (privacyConfig && privacyConfig.enabled) {
+          logger.debug('Prompt Inject', '🛡️ Privacy Shield active, masking content...');
+          const originalContent = finalContent;
+          
+          if (privacyConfig.maskEmail) {
+            finalContent = finalContent.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[EMAIL_MASKED]');
+          }
+          if (privacyConfig.maskPhone) {
+            finalContent = finalContent.replace(/(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g, '[PHONE_MASKED]');
+          }
+          if (privacyConfig.maskCreditCard) {
+            finalContent = finalContent.replace(/\b(?:\d[ -]*?){13,16}\b/g, '[CARD_MASKED]');
+          }
+          
+          if (privacyConfig.customPatterns && Array.isArray(privacyConfig.customPatterns)) {
+            privacyConfig.customPatterns.forEach((p: any) => {
+              if (p.pattern) {
+                try {
+                  const regex = new RegExp(p.pattern, 'g');
+                  finalContent = finalContent.replace(regex, p.replacement || '[MASKED]');
+                } catch (e) {
+                  logger.warn('Prompt Inject', 'Invalid custom pattern:', p.pattern);
+                }
+              }
+            });
+          }
+
+          if (finalContent !== originalContent) {
+            logger.info('Prompt Inject', '🛡️ Content masked by Privacy Shield');
+          }
+        }
+      } catch (e) {
+        logger.warn('Prompt Inject', '⚠️ Privacy Shield check failed, proceeding without masking:', e);
+      }
       
       const options: RequestInit = {
         method: 'POST',
         headers: headers,
         body: JSON.stringify({
           title: promptData.title,
-          content: promptData.content,
+          content: finalContent,
           folder_id: promptData.folder_id || null,
           color: '#6366f1',
           use_in_context_menu: promptData.use_in_context_menu || false

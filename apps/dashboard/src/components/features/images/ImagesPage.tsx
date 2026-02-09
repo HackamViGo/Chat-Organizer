@@ -571,7 +571,7 @@ export function ImagesPage({ userId }: { userId?: string }) {
       addFolder(data as any);
       if (isCreatingGroupFromSelection && selectedImageIds.size > 0) {
         if (process.env.NODE_ENV === 'development') {
-          // console.log('Moving selected images to new folder:', Array.from(selectedImageIds), 'folder:', (data as any).id);
+          // console.debug('Moving selected images to new folder:', Array.from(selectedImageIds), 'folder:', (data as any).id);
         }
         await moveImages(Array.from(selectedImageIds), (data as any).id);
         

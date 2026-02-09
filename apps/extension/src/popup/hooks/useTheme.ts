@@ -27,7 +27,7 @@ export function useTheme() {
     setTheme(newTheme);
     applyTheme(newTheme);
     chrome.storage.local.set({ theme: newTheme });
-    // console.log('[Popup] Theme toggled to:', newTheme);
+    // console.debug('[Popup] Theme toggled to:', newTheme);
   };
 
   return { theme, toggleTheme };

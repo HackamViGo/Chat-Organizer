@@ -400,14 +400,14 @@ export class AuthManager {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             
-            if (response.status === 401) {
+            if (response && response.status === 401) {
                 // Token is dead, cleanup
                 await chrome.storage.local.remove(['accessToken', 'refreshToken', 'userEmail', 'expiresAt']);
                 return { isValid: false, tokens: this.tokens };
             }
             
             return { 
-                isValid: response.ok, 
+                isValid: response?.ok ?? false, 
                 tokens: this.tokens 
             };
         } catch (e) {

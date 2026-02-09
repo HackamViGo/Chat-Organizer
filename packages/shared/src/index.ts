@@ -11,3 +11,4 @@ export * from './services/ai';
 export * from './services/prompt-library-fetcher';
 export * from './services/smart-prompt-search';
 export * from './constants/index';
+export * from './utils/cache';

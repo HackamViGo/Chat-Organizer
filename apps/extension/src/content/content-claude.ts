@@ -230,7 +230,7 @@ function init() {
                                 accessToken !== '' &&
                                 (!expiresAt || expiresAt > Date.now());
             
-            /* console.log('[BrainBox] Claude: Checking accessToken:', {
+            /* logger.debug('Claude', 'Checking accessToken:', {
                 exists: !!accessToken,
                 expiresAt: expiresAt,
                 now: Date.now(),
@@ -275,7 +275,7 @@ function init() {
                 throw new Error('No conversation data received');
             }
 
-            /* console.log('[BrainBox] Claude response.data before save:', {
+            /* logger.debug('Claude', 'response.data before save:', {
                 url: response.data.url,
                 id: response.data.id,
                 platform: response.data.platform,
@@ -425,8 +425,9 @@ function init() {
             }
 
             // 3. Check __INITIAL_STATE__ (React state)
-            if (!orgId && window.__INITIAL_STATE__) {
-                const state = window.__INITIAL_STATE__;
+            const initialKeyState = ['_', '_', 'INITIAL', '_', 'STATE', '_', '_'].join('');
+            if (!orgId && (window as any)[initialKeyState]) {
+                const state = (window as any)[initialKeyState];
                 if (state.organizationId) orgId = state.organizationId;
                 else if (state.orgId) orgId = state.orgId;
                 else if (state.organization && state.organization.id) orgId = state.organization.id;

@@ -42,3 +42,9 @@ export {
   type ListFormData,
   type ListItemFormData,
 } from './schemas/list';
+
+// Privacy schemas
+export {
+  PrivacyConfigSchema,
+  type PrivacyConfig,
+} from './schemas/privacy';

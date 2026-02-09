@@ -29,7 +29,7 @@ test.describe('BrainBox Extension E2E', () => {
              backgroundPage = await context.waitForEvent('serviceworker');
         }
         extensionId = backgroundPage.url().split('/')[2];
-        console.log(`🤖 Extension ID: ${extensionId}`);
+        console.debug(`🤖 Extension ID: ${extensionId}`);
     });
 
     test.afterEach(async () => {
@@ -63,7 +63,7 @@ test.describe('BrainBox Extension E2E', () => {
         // For this test, we accept if the dashboard is unauthorized but the script context is alive.
         const title = await page.title();
         expect(title).toBeDefined();
-        console.log('Page Title:', title);
+        console.debug('Page Title:', title);
     });
 
     test('Scenario B: Auth Sync (Dashboard -> Extension)', async () => {
@@ -126,7 +126,7 @@ test.describe('BrainBox Extension E2E', () => {
             
             const postData = route.request().postDataJSON();
             capturedPayload = postData;
-            console.log('📡 Intercepted API Call:', postData);
+            console.debug('📡 Intercepted API Call:', postData);
             
             // Validation
             try {
@@ -196,7 +196,7 @@ test.describe('BrainBox Extension E2E', () => {
             });
         });
 
-        console.log('Extension Response:', result);
+        console.debug('Extension Response:', result);
         expect(result.success).toBe(true);
         expect(capturedPayload).toBeTruthy();
         expect(capturedPayload.conversationId).toBe('test-123');

@@ -8,6 +8,11 @@ export class BrainBoxUI {
         this.styleInjected = false;
     }
 
+    showConfirmation(title: string, message: string) {
+        logger.debug("UI", 'BrainBox: Legacy showConfirmation called, redirecting to showToast');
+        return this.showToast(message, 'success');
+    }
+
     injectStyles() {
         if (this.styleInjected) return;
         const style = document.createElement('style');

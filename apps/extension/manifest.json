@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "BrainBox - AI Chat Organizer",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "Organize AI conversations from ChatGPT, Gemini, Claude, Grok, Perplexity, DeepSeek, and Qwen into your personal dashboard",
   "permissions": [
     "storage",
@@ -38,7 +38,6 @@
     "https://lmarena.ai/*",
     "https://arena.ai/*",
     "https://chat.qwen.ai/*"
-
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -179,11 +178,12 @@
     {
       "resources": [
         "src/icons/*",
-        "src/content/inject-gemini-main.js"
+        "src/content/inject-gemini-main.ts"
       ],
       "matches": [
         "https://gemini.google.com/*"
-      ]
+      ],
+      "use_dynamic_url": true
     }
   ],
   "content_security_policy": {

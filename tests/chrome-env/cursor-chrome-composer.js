@@ -34,7 +34,7 @@ const activeConnections = new Map(); // id -> { ws, title, type }
 
 function log(message, color = 'reset') {
   const time = new Date().toLocaleTimeString();
-  console.log(`${colors[color]}[${time}] ${message}${colors.reset}`);
+  console.debug(`${colors[color]}[${time}] ${message}${colors.reset}`);
 }
 
 async function getTargets() {
@@ -111,14 +111,14 @@ function handleMessage(target, msg) {
     else if (type === 'warning') color = 'yellow';
     else if (type === 'info') color = 'blue';
 
-    console.log(`${colors[typeColor]}${sourceLabel}${colors.reset} ${colors[color]}${type.toUpperCase()}: ${text}${colors.reset}`);
+    console.debug(`${colors[typeColor]}${sourceLabel}${colors.reset} ${colors[color]}${type.toUpperCase()}: ${text}${colors.reset}`);
   }
 
   // 2. Exceptions
   if (msg.method === 'Runtime.exceptionThrown') {
     const details = msg.params.exceptionDetails;
     const text = details.exception?.description || details.text;
-    console.log(`${colors.red}${sourceLabel} 🔴 EXCEPTION: ${text}${colors.reset}`);
+    console.debug(`${colors.red}${sourceLabel} 🔴 EXCEPTION: ${text}${colors.reset}`);
   }
 
   // 3. Network Events (Simplified)
@@ -126,14 +126,14 @@ function handleMessage(target, msg) {
     const { request } = msg.params;
     // Skip static assets
     if (!request.url.match(/\.(png|jpg|css|js|woff2|svg)/)) {
-        console.log(`${colors.dim}${sourceLabel} 🌐 ${request.method} ${request.url.substring(0, 100)}...${colors.reset}`);
+        console.debug(`${colors.dim}${sourceLabel} 🌐 ${request.method} ${request.url.substring(0, 100)}...${colors.reset}`);
     }
   }
 
   if (msg.method === 'Network.responseReceived') {
     const { response } = msg.params;
     if (response.status >= 400) {
-        console.log(`${colors.red}${sourceLabel} 📥 STATUS ${response.status}: ${response.url}${colors.reset}`);
+        console.debug(`${colors.red}${sourceLabel} 📥 STATUS ${response.status}: ${response.url}${colors.reset}`);
     }
   }
 }
@@ -141,7 +141,7 @@ function handleMessage(target, msg) {
 async function monitor() {
   log('🚀 BrainBox Multi-Target Monitor Active', 'bright');
   log(`Listening on port ${DEBUG_PORT}...`, 'dim');
-  console.log('─'.repeat(80));
+  console.debug('─'.repeat(80));
 
   while (true) {
     const targets = await getTargets();

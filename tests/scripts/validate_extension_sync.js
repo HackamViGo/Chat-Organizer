@@ -27,7 +27,7 @@ const colors = {
 };
 
 async function runValidation() {
-  console.log(`${colors.bright}${colors.blue}🚀 Starting Extended Extension Sync Validation...${colors.reset}\n`);
+  console.debug(`${colors.bright}${colors.blue}🚀 Starting Extended Extension Sync Validation...${colors.reset}\n`);
 
   if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
     console.error(`${colors.red}❌ Missing Supabase environment variables in .env.local${colors.reset}`);
@@ -37,14 +37,14 @@ async function runValidation() {
   const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   // 1. Authenticate
-  console.log(`${colors.cyan}🔐 Authenticating test user: ${TEST_EMAIL}...${colors.reset}`);
+  console.debug(`${colors.cyan}🔐 Authenticating test user: ${TEST_EMAIL}...${colors.reset}`);
   const { data: { session }, error: authError } = await supabase.auth.signInWithPassword({
     email: TEST_EMAIL,
     password: TEST_PASSWORD
   });
 
   if (authError) {
-    console.log(`${colors.yellow}⚠️ Sign in failed: ${authError.message}. Attempting signup...${colors.reset}`);
+    console.debug(`${colors.yellow}⚠️ Sign in failed: ${authError.message}. Attempting signup...${colors.reset}`);
     const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
       email: TEST_EMAIL,
       password: TEST_PASSWORD
@@ -54,10 +54,10 @@ async function runValidation() {
       console.error(`${colors.red}❌ Auth failed completely: ${signUpError.message}${colors.reset}`);
       process.exit(1);
     }
-    console.log(`${colors.green}✅ User created.${colors.reset}`);
+    console.debug(`${colors.green}✅ User created.${colors.reset}`);
     // Note: If email confirmation is ON, this will still lead to issues
   } else {
-    console.log(`${colors.green}✅ Authenticated.${colors.reset}`);
+    console.debug(`${colors.green}✅ Authenticated.${colors.reset}`);
   }
 
   const accessToken = session?.access_token;
@@ -78,7 +78,7 @@ async function runValidation() {
     ]
   };
 
-  console.log(`\n${colors.cyan}💾 Simulating Extension Save (POST /api/chats)...${colors.reset}`);
+  console.debug(`\n${colors.cyan}💾 Simulating Extension Save (POST /api/chats)...${colors.reset}`);
   const saveRes = await fetch(`${API_BASE_URL}/api/chats`, {
     method: 'POST',
     headers: {
@@ -94,10 +94,10 @@ async function runValidation() {
   }
 
   const savedChat = await saveRes.json();
-  console.log(`${colors.green}✅ Chat Saved (ID: ${savedChat.id})${colors.reset}`);
+  console.debug(`${colors.green}✅ Chat Saved (ID: ${savedChat.id})${colors.reset}`);
   
   // 3. Verify Upsert Logic (Update Same URL)
-  console.log(`\n${colors.cyan}🔄 Simulating Update (Same URL/SourceID)...${colors.reset}`);
+  console.debug(`\n${colors.cyan}🔄 Simulating Update (Same URL/SourceID)...${colors.reset}`);
   const updateChat = {
     ...testChat,
     title: 'Test Extension Sync (Updated)',
@@ -124,18 +124,18 @@ async function runValidation() {
   const updatedChatResult = await updateRes.json();
   
   if (updatedChatResult.id === savedChat.id) {
-    console.log(`${colors.green}✅ Update Verified: ID matched (Upsert worked)${colors.reset}`);
+    console.debug(`${colors.green}✅ Update Verified: ID matched (Upsert worked)${colors.reset}`);
   } else {
     console.error(`${colors.red}❌ Update Failed: Created new ID instead of updating${colors.reset}`);
   }
 
   if (updatedChatResult.title === 'Test Extension Sync (Updated)' && updatedChatResult.messages.length === 3) {
-    console.log(`${colors.green}✅ Content Verified: Title and Messages accurately updated${colors.reset}`);
+    console.debug(`${colors.green}✅ Content Verified: Title and Messages accurately updated${colors.reset}`);
   } else {
     console.error(`${colors.red}❌ Content Verification Failed${colors.reset}`);
   }
 
-  console.log(`\n${colors.bright}${colors.green}🎉 All Extension Sync Checks Passed!${colors.reset}`);
+  console.debug(`\n${colors.bright}${colors.green}🎉 All Extension Sync Checks Passed!${colors.reset}`);
 }
 
 runValidation().catch(err => {

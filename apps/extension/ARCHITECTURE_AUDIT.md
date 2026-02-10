@@ -24,9 +24,8 @@ The codebase has been fully migrated to TypeScript. All legacy `.js` source file
     *   `dynamicMenus.ts` - Context menu registration and event handling.
 
 ### `src/content/` (Isolated Worlds)
-*   **Gemini Master**: `brainbox_master.ts` - Complex interceptor for Gemini's `batchexecute` API and DOM-based extraction.
+*   **Universal UI & Scraper**: `prompt-inject.ts` (lives in `src/prompt-inject/`) - The primary interactive layer and scraper for all AI platforms.
 *   **Auth Bridge**: `content-dashboard-auth.ts` - Secure bridge that captures JWT tokens from the Dashboard and syncs them to the extension.
-*   **Platform Scripts**: `content-chatgpt.ts`, `content-claude.ts`, etc. - UI injection (buttons/toasts) for specific AI platforms.
 *   **Main World**: `inject-gemini-main.ts` - Script injected into the page's execution context to extract internal state (tokens).
 
 ### `src/lib/` (Shared Utilities)
@@ -79,7 +78,7 @@ graph TD
 - **Type Safety**: Global objects (e.g., `WIZ_global_data`) are now declared in `.d.ts` or local interfaces.
 
 ### B. UI Library Stabilization (Completed)
-- **The showConfirmation Fix**: The `BrainBoxUI` class in `src/lib/ui.ts` now implements `showConfirmation` as an alias to `showToast` with a legacy log. This prevents crashes in `brainbox_master.ts` when users trigger manual saves.
+- **Unified UI Provider**: The `BrainBoxUI` class in `src/lib/ui.ts` provides a consistent interface for toasts, folder selection, and confirmation across all injected environments.
 
 ### C. Auth Bridge Security (Verified)
 - **Origin Validation**: Strict validation in `validateOrigin` allows only trusted origins:

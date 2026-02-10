@@ -148,6 +148,19 @@ const createScriptingMock = () => ({
   executeScript: vi.fn(() => Promise.resolve([{ result: true }]))
 });
 
+// Mock Chrome Alarms API
+const createAlarmsMock = () => ({
+  create: vi.fn(),
+  get: vi.fn(),
+  getAll: vi.fn(),
+  clear: vi.fn(),
+  clearAll: vi.fn(),
+  onAlarm: {
+    addListener: vi.fn(),
+    removeListener: vi.fn()
+  }
+});
+
 // Initialize global chrome immediately
 global.chrome = {
     storage: createStorageMock(),
@@ -155,7 +168,8 @@ global.chrome = {
     tabs: createTabsMock(),
     webRequest: createWebRequestMock(),
     contextMenus: createContextMenusMock(),
-    scripting: createScriptingMock()
+    scripting: createScriptingMock(),
+    alarms: createAlarmsMock()
 } as any;
 
 // Helper to reset all mocks

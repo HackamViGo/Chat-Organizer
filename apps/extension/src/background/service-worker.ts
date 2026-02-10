@@ -68,27 +68,44 @@ const messageRouter = new MessageRouter(
 // START ALL MODULES
 // ============================================================================
 
-console.log('[BrainBox SW] 🔧 Initializing modules...');
-authManager.initialize();
-promptSyncManager.initialize();
-clearExtensionCache().catch(() => {});
+async function initApp() {
+    try {
+        console.log('[BrainBox SW] 🔧 Initializing modules...');
+        
+        // Ensure Auth is ready before anything else
+        await authManager.initialize();
+        await promptSyncManager.initialize();
+        
+        // Optional cleanup
+        clearExtensionCache().catch(() => {});
 
-// Trigger sync queue processing on startup
-authManager.checkAuth().then(isValid => {
-    console.log('[BrainBox SW] 📦 Auth session:', isValid ? 'Valid' : 'Not found');
-    if (isValid) {
-        chrome.storage.local.get(['accessToken'], ({ accessToken }) => {
+        // Trigger sync queue processing on startup
+        const isValid = await authManager.checkAuth();
+        console.log('[BrainBox SW] 📦 Auth session:', isValid ? 'Valid' : 'Not found');
+        
+        if (isValid) {
+            const { accessToken } = await chrome.storage.local.get(['accessToken']);
             SyncManager.initialize((accessToken as string) || null);
-        });
+        }
+
+        // Initialize features
+        dynamicMenus.initialize();
+        networkObserver.initialize();
+        installationManager.initialize();
+
+        // Start listening
+        messageRouter.listen();
+        
+        console.log('[BrainBox SW] ✅ All modules initialized');
+        logger.info('Worker', '✅ All modules initialized');
+    } catch (e) {
+        console.error('[BrainBox SW] ❌ Initialization Failed:', e);
+        logger.error('Worker', '❌ Initialization Failed', e);
     }
-});
+}
 
-dynamicMenus.initialize();
-networkObserver.initialize();
-installationManager.initialize();
-
-messageRouter.listen();
-console.log('[BrainBox SW] ✅ All modules initialized');
+// Start initialization
+initApp();
 
 // 4. API Proxy Listener (CORS Bridge)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

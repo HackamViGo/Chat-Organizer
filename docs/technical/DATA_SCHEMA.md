@@ -3,8 +3,7 @@
 **Project**: BrainBox AI Chat Organizer  
 **Version**: 3.1.0  
 **Type System**: TypeScript + Zod + Supabase PostgreSQL  
-**Generated**: 2026-02-10  
-**Authority**: Meta-Architect (Priority 1 - Identity-Locked)
+**Generated**: 2026-02-11  
 
 ---
 
@@ -68,7 +67,24 @@ interface Message {
 | **Gemini** | `gemini.adapter.ts` | `normalizers.ts` (Recursive Extraction) |
 | **ChatGPT**| `chatgpt.adapter.ts`| `normalizers.ts` (Tree Traversal) |
 | **Claude** | `claude.adapter.ts` | `normalizers.ts` (Linear Array) |
-| **DeepSeek**| `deepseek.adapter.ts`| `brainbox_master.ts` (JSON Intercept) |
+| **DeepSeek**| `deepseek.adapter.ts`| `normalizers.ts` (API/DOM Capture) |
+
+### 3.2 Extension Local Persistence (`chrome.storage.local`)
+Разширението използва `chrome.storage.local` за управление на опашката за синхронизация и кеширане на данни.
+
+**`brainbox_sync_queue`** (Sync Queue):
+```typescript
+interface SyncItem {
+  id: string;        // Unique Sync ID (UUID)
+  type: 'chat';      // Type of data to sync
+  data: Partial<Chat>; // Normalized data object
+  timestamp: number; // When it was captured
+  retries: number;   // Number of failed sync attempts
+}
+```
+
+**`brainbox_folders_cache`**: Кеширан списък с папки на потребителя за бърз достъп в UI.
+**`BRAINBOX_SESSION`**: JWT токени и данни за сесията.
 
 ---
 

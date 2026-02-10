@@ -3,23 +3,41 @@
  */
 const getSyncKey = () => {
     // Dynamically find the Supabase auth token in localStorage
+    const keys = [];
     for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-            return key;
+        if (key) {
+            keys.push(key);
+            if (key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                // console.debug(`[BrainBox] 🎯 Found Supabase key: ${key}`);
+                return key;
+            }
         }
     }
+    
+    // Check for specific production project ID just in case
+    const PROD_ID = 'biwiicspmrdecsebcdfp';
+    const prodKey = `sb-${PROD_ID}-auth-token`;
+    if (localStorage.getItem(prodKey)) {
+        return prodKey;
+    }
+
     return 'sb-localhost-auth-token'; // Fallback for dev
 };
 
 let SYNC_KEY = getSyncKey();
+let lastSessionState: string | null = null;
 
 function syncSession() {
     SYNC_KEY = getSyncKey();
-    console.log(`[BrainBox] 🔍 syncSession triggered using key: ${SYNC_KEY}`);
+    
     try {
         const sessionRaw = localStorage.getItem(SYNC_KEY);
-        console.log('[BrainBox] 📦 LocalStorage content:', sessionRaw ? 'Found' : 'Not Found');
+        
+        // Avoid spamming logs if state hasn't changed
+        if (sessionRaw === lastSessionState) return;
+        lastSessionState = sessionRaw;
+
         if (!sessionRaw) return;
 
         const session = JSON.parse(sessionRaw);

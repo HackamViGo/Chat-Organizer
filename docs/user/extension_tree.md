@@ -50,18 +50,9 @@ apps/extension/
     │       │   ├── perplexity.adapter.ts
     │       │   └── qwen.adapter.ts
     ├── content/
-    │   ├── brainbox_master.ts
-    │   ├── content-chatgpt.ts
-    │   ├── content-claude.ts
     │   ├── content-dashboard-auth.ts
-    │   ├── content-deepseek.ts
-    │   ├── content-grok.ts
-    │   ├── content-lmarena.ts
-    │   ├── content-perplexity.ts
-    │   ├── content-qwen.ts
     │   └── inject-gemini-main.ts
     ├── lib/
-    │   ├── config-global.ts
     │   ├── config.ts
     │   ├── logger.ts
     │   ├── normalizers.ts
@@ -104,7 +95,6 @@ apps/extension/
 - **schemas.ts**: Zod-based data validation and TypeScript interface definitions for core entities.
 - **rate-limiter.ts**: Implements scheduling logic to prevent API flooding and stay within platform limits.
 - **platformConfig.ts**: Metadata and configuration (URLs, selectors) for all supported AI platforms.
-- **config-global.ts**: Legacy/Global variable definitions for non-module script contexts.
 
 ### Background Modules (`src/background/modules/`)
 - **service-worker.ts**: Background entry point that initializes all manager modules on startup.
@@ -120,10 +110,8 @@ apps/extension/
 - **platformAdapters/base.ts**: Abstract class defining the required interface for all platform scrapers.
 
 ### Content Scripts (`src/content/`)
-- **brainbox_master.ts**: Specialized master script for Gemini that intercepts network traffic and DOM state.
 - **content-dashboard-auth.ts**: Secure bridge injected into the Dashboard to capture and sync JWT tokens.
 - **inject-gemini-main.ts**: Small script injected into the Main World to extract internal page state from Gemini.
-- **content-[platform].ts**: Strategy-specific scripts for ChatGPT, Claude, etc., used for UI injection.
 
 ---
 

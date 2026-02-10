@@ -1,34 +1,20 @@
 # Context Map Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: v3.0.0  
-**Architecture**: Chrome Extension (Manifest V3) + Next.js PWA (App Router)  
-**Generated**: 2026-02-06  
-**Authority**: Meta-Architect (Priority 1 - Boundary Definition)
-
----
-
-## ⚠️ CRITICAL NOTICE FOR AI AGENTS
-
-**PURPOSE**: This document prevents "code blur" between Extension and PWA by defining strict ownership boundaries.
-
-**AGENTS MUST**:
-1. **Read this FIRST** before starting any task
-2. **Limit scope** to 5-10 relevant files (not 500)
-3. **Respect No-Go Zones** (explicit approval required)
-4. **Follow Entry Points** for new features
-
-**VIOLATION OF BOUNDARIES** = Architecture degradation + merge conflicts + security risks
+**Version**: v3.1.0  
+**Generated**: 2026-02-11  
 
 ---
 
 ## 1. Project Topology Overview (v3.1.0)
 
+
 ```mermaid
 graph TB
     subgraph Extension["🧩 apps/extension (Vite)"]
         SW[service-worker.ts<br/>Entry Point]
-        MASTER[brainbox_master.ts<br/>Traffic Coordinator]
+        UI[prompt-inject.ts<br/>Universal UI & Scraper]
+        G_MAIN[inject-gemini-main.ts<br/>Main World Bridge]
         subgraph SW_Modules["📦 SW Modules"]
             MO[networkObserver.ts]
             MR[messageRouter.ts]
@@ -40,11 +26,11 @@ graph TB
             DM[dynamicMenus.ts]
             TM[tabManager.ts]
         end
-        CS_PLAT[Content Scripts<br/>(10+ Scripts / 8 Platforms)]
         CS_AUTH[content-dashboard-auth.ts<br/>Token Bridge]
         NORM[platformAdapters/<br/>Platform Parsers (v3.1.0)]
         
-        MASTER -->|Regex Guard| CS_PLAT
+        UI -->|Fetch/Save| SW
+        G_MAIN -->|Token Relay| UI
         EXT_SHARED["@brainbox/shared<br/>(Imported via Workspace)"]
     end
     
@@ -74,11 +60,9 @@ graph TB
         PKG_ASSETS -.->|UI Icons/Assets| Dashboard
     end
     
-    CS_PLAT -->|Captures Data| NORM
-    NORM -->|Uses Shared Types| PKG_SHARED
-    NORM -->|Sends via| SW
-    
+    UI -->|Captures Data| SW
     SW -->|Delegates to| SW_Modules
+    SW_Modules -->|Normalization| NORM
     DA -->|POST /api/chats| API
     SW -.->|Bearer Token| CS_AUTH
     
@@ -101,7 +85,7 @@ graph TB
 |---------------|-------|-------------------|-------------|-----------------|
 | **Auth: Supabase Session** | Dashboard | `apps/dashboard/src/lib/supabase/client.ts` | Single Source of Truth | ⚠️ YES |
 | **Auth: Token Bridge** | Extension | `apps/extension/src/content/content-dashboard-auth.ts` | Read-only from Dashboard session | ⚠️ YES |
-| **Auth: Token Manager** | Extension | `apps/extension/src/background/modules/authManager.ts` | Handles storage & refresh | ⚠️ YES |
+| **Auth: Token Manager** | Extension | `apps/extension/src/background/modules/authManager.ts` | Handles storage & refresh (via RELEVANT_API_REGEX) | ⚠️ YES |
 | **Database Types** | Shared | `packages/shared/src/types/database.ts` | Auto-generated from Supabase | ⚠️ YES |
 | **Validation Schemas** | Validation | `packages/validation/index.ts` | Zod Schemas for API/UI | ⚠️ YES |
 | **Extension Schemas** | Shared | `packages/shared/src/types/index.ts` | Shared logic for Ext/PWA | ⚠️ YES |
@@ -135,4 +119,4 @@ graph TB
 3.  **Message Passing**: През защитения токен бридж.
 
 ---
-*Документът е актуализиран на 10.02.2026 от Meta-Architect.*
+*Документът е актуализиран на 11.02.2026.*

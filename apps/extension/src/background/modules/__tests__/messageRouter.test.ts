@@ -68,6 +68,7 @@ describe('MessageRouter', () => {
     mockAuthManager = {
       setDashboardSession: vi.fn().mockResolvedValue(undefined),
       isSessionValid: vi.fn().mockResolvedValue(true),
+      checkAuth: vi.fn().mockResolvedValue(true),
       getAuthToken: vi.fn().mockResolvedValue('fake-token'),
       syncAll: vi.fn().mockResolvedValue({ isValid: true, tokens: {} })
     };
@@ -157,7 +158,7 @@ describe('MessageRouter', () => {
       (messageRouter as any).handleMessage(request, mockSender, sendResponse);
 
       await vi.waitFor(() => {
-        expect(mockAuthManager.isSessionValid).toHaveBeenCalled();
+        expect(mockAuthManager.checkAuth).toHaveBeenCalled();
         expect(sendResponse).toHaveBeenCalledWith({
           success: true,
           isValid: true

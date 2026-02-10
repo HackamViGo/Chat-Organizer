@@ -2,7 +2,7 @@
 
 **Project**: BrainBox AI Chat Organizer  
 **Version**: 3.1.0  
-**Stack**: Tailwind 4 + Next.js + JetBrains Mono  
+**Stack**: Tailwind 4.1 + Next.js + JetBrains Mono  
 **Theme**: Dark/Light (System Default)
 
 ---

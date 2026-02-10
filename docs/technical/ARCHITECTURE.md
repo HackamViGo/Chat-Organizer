@@ -1,10 +1,6 @@
 # BrainBox Architecture
 
-> [!IMPORTANT]
-> # ⚖️ АРХИТЕКТУРЕН ЗАКОН (Meta-Architect v3.1)
-> Тази архитектура е **ЖИВА** и се управлява единствено чрез [SKILL.md](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/.agent/skills/meta_architect/SKILL.md). Всеки опит за промяна без `Audit -> Knowledge -> State` цикъл ще бъде автоматично ревертиран.
-
-**Version**: 3.1.0 (2026-02-10)
+**Version**: 3.1.0 (2026-02-11)
 
 ## 🔭 High-Level Overview
 
@@ -75,7 +71,8 @@ graph TD
 Инжектира логика ("мозък") в AI уеб интерфейси.
 
 ### Security & Traffic Control
-- **`brainbox_master.ts`**: Централен координатор. Използва `RELEVANT_API_REGEX` за филтриране на мрежовия трафик и IndexedDB (`BrainBoxGeminiMaster`) за локално кеширане на сурови данни.
+- **`prompt-inject.ts`**: Unified UI/Scraper context script. Orchestrates interactions and fetches platform-specific data.
+- **`inject-gemini-main.ts`**: Main World bridge for Gemini token extraction.
 - **Content Security Policy (CSP)**: Стриктно заключена (`script-src 'self'`). Производственият билд автоматично премахва `localhost` препратките.
 
 ### Background Service Worker
@@ -86,8 +83,7 @@ graph TD
 - **`messageRouter.ts`**: Централен рутер за съобщения между частите на разширението.
 - **`platformAdapters/`**: Специфични адаптери за нормализиране на данни от 8+ платформи.
 
-### Platforms Support (8+)
-Базирано на специфични Content Scripts (`src/content/`):
+Базирано на универсален инжектор (`src/prompt-inject/`) и токен бриджове:
 - **ChatGPT, Claude, Gemini, DeepSeek, Grok, Perplexity, Qwen, LMArena**.
 
 ---
@@ -116,4 +112,4 @@ graph TD
 1.  **Authentication**: Supabase Auth (SSR за Dashboard, Client SDK за Extension чрез Token Bridge).
 2.  **API Security**: Валидация на `user_id` чрез JWT сесийни токени.
 3.  **RLS (Row Level Security)**: Postgres политики гарантират достъп само до собствени данни.
-4.  **Network Observation**: Разширението прехваща `batchexecute` (Gemini) и други API заявки за пасивно събиране на данни.
+4.  **Network Observation**: Разширението прехваща `batchexecute` (Gemini) и други API заявки чрез `RELEVANT_API_REGEX` (дефиниран в SYNC_PROTOCOL.md) за пасивно събиране на данни.

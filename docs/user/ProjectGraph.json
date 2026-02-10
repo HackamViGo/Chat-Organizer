@@ -1,19 +1,9 @@
 {
   "metadata": {
     "generated_at": "2026-02-10",
-    "total_nodes": 269
+    "total_nodes": 246
   },
   "nodes": {
-    ".cursor/mcp.json": {
-      "id": ".cursor/mcp.json",
-      "workspace": ".cursor",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for mcp.json",
-      "status": "ACTIVE"
-    },
     ".eslintrc.json": {
       "id": ".eslintrc.json",
       "workspace": "root",
@@ -31,7 +21,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for build.yml",
+      "responsibility": "GitHub Actions workflow for automated building and validation.",
       "status": "ACTIVE"
     },
     ".github/workflows/release.yml": {
@@ -43,7 +33,7 @@
       "side_effects": [
         "chrome_api"
       ],
-      "responsibility": "Handles logic for release.yml",
+      "responsibility": "GitHub Actions workflow for automated deployment and extension publishing.",
       "status": "ACTIVE"
     },
     ".github/workflows/test.yml": {
@@ -53,7 +43,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for test.yml",
+      "responsibility": "GitHub Actions workflow for automated testing and coverage reporting.",
       "status": "ACTIVE"
     },
     ".lintstagedrc.js": {
@@ -73,7 +63,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for extensions.json",
+      "responsibility": "Recommended VS Code extensions for consistent developer experience.",
       "status": "ACTIVE"
     },
     ".vscode/settings.json": {
@@ -83,117 +73,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for settings.json",
-      "status": "ACTIVE"
-    },
-    "agent_states/META_ARCHITECT_state.yml": {
-      "id": "agent_states/META_ARCHITECT_state.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for META_ARCHITECT_state.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/backend_specialist.yml": {
-      "id": "agent_states/backend_specialist.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for backend_specialist.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/devops_engineer.yml": {
-      "id": "agent_states/devops_engineer.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for devops_engineer.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/extension_builder_state.yml": {
-      "id": "agent_states/extension_builder_state.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for extension_builder_state.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/frontend_specialist.yml": {
-      "id": "agent_states/frontend_specialist.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for frontend_specialist.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/frontend_specialist_20260208_101536.yml": {
-      "id": "agent_states/frontend_specialist_20260208_101536.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for frontend_specialist_20260208_101536.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/frontend_specialist_20260208_101836.yml": {
-      "id": "agent_states/frontend_specialist_20260208_101836.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for frontend_specialist_20260208_101836.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/frontend_specialist_20260208_101845.yml": {
-      "id": "agent_states/frontend_specialist_20260208_101845.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for frontend_specialist_20260208_101845.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/frontend_specialist_20260209_161500.yml": {
-      "id": "agent_states/frontend_specialist_20260209_161500.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for frontend_specialist_20260209_161500.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/meta_architect.yml": {
-      "id": "agent_states/meta_architect.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for meta_architect.yml",
-      "status": "ACTIVE"
-    },
-    "agent_states/qa_examiner_state.yml": {
-      "id": "agent_states/qa_examiner_state.yml",
-      "workspace": "agent_states",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for qa_examiner_state.yml",
+      "responsibility": "Workspace-specific VS Code settings for code formatting and project behavior.",
       "status": "ACTIVE"
     },
     "apps/dashboard/next-env.d.ts": {
@@ -247,7 +127,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Chrome Extension manifest",
+      "responsibility": "Web App (PWA) manifest for Dashboard.",
       "status": "ACTIVE"
     },
     "apps/dashboard/public/sw.js": {
@@ -257,7 +137,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for sw.js",
+      "responsibility": "Core implementation logic for sw.js.",
       "status": "ACTIVE"
     },
     "apps/dashboard/public/workbox-01fd22c6.js": {
@@ -269,7 +149,7 @@
       "side_effects": [
         "network_request"
       ],
-      "responsibility": "Handles logic for workbox-01fd22c6.js",
+      "responsibility": "Core implementation logic for workbox-01fd22c6.js.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/app/api/account/delete/route.ts": {
@@ -698,7 +578,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for globals.css",
+      "responsibility": "Глобални Tailwind CSS стилове и дефиниции на дизайнерската система (Design System).",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/app/images/page.tsx": {
@@ -865,7 +745,7 @@
       "side_effects": [
         "network_request"
       ],
-      "responsibility": "Handles logic for ChatCard.tsx",
+      "responsibility": "Core implementation logic for ChatCard.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/chats/ChatStudio.tsx": {
@@ -881,7 +761,7 @@
       "side_effects": [
         "network_request"
       ],
-      "responsibility": "Handles logic for ChatStudio.tsx",
+      "responsibility": "Core implementation logic for ChatStudio.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/chats/CodeBlock.tsx": {
@@ -893,7 +773,7 @@
         "CodeBlock"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for CodeBlock.tsx",
+      "responsibility": "Core implementation logic for CodeBlock.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/chats/MasterToolbar.tsx": {
@@ -905,7 +785,7 @@
         "MasterToolbar"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for MasterToolbar.tsx",
+      "responsibility": "Core implementation logic for MasterToolbar.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/chats/MessageContent.tsx": {
@@ -933,7 +813,7 @@
         "AIAnalysisModal"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for AIAnalysisModal.tsx",
+      "responsibility": "Core implementation logic for AIAnalysisModal.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/chats/components/ChatActionMenu.tsx": {
@@ -947,7 +827,7 @@
         "ChatActionMenu"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for ChatActionMenu.tsx",
+      "responsibility": "Core implementation logic for ChatActionMenu.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/chats/components/ChatBadges.tsx": {
@@ -964,7 +844,7 @@
         "PlatformIcon"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for ChatBadges.tsx",
+      "responsibility": "Core implementation logic for ChatBadges.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/dashboard/ChatStatisticsCard.tsx": {
@@ -976,7 +856,7 @@
         "ChatStatisticsCard"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for ChatStatisticsCard.tsx",
+      "responsibility": "Core implementation logic for ChatStatisticsCard.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/dashboard/DailyPromptTipCard.tsx": {
@@ -988,7 +868,7 @@
         "DailyPromptTipCard"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for DailyPromptTipCard.tsx",
+      "responsibility": "Core implementation logic for DailyPromptTipCard.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/dashboard/DashboardMetrics.tsx": {
@@ -1012,7 +892,7 @@
         "GPT5AlphaCard"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for GPT5AlphaCard.tsx",
+      "responsibility": "Core implementation logic for GPT5AlphaCard.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/dashboard/NotificationsCard.tsx": {
@@ -1024,7 +904,7 @@
         "NotificationsCard"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for NotificationsCard.tsx",
+      "responsibility": "Core implementation logic for NotificationsCard.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/dashboard/RecentProjects.tsx": {
@@ -1048,7 +928,7 @@
         "SystemStatusCard"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for SystemStatusCard.tsx",
+      "responsibility": "Core implementation logic for SystemStatusCard.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/dashboard/UsageChart.tsx": {
@@ -1074,7 +954,7 @@
         "UserInfoCard"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for UserInfoCard.tsx",
+      "responsibility": "Core implementation logic for UserInfoCard.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/folders/FolderHeader.tsx": {
@@ -1156,7 +1036,7 @@
         "DailyPickCard"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for DailyPickCard.tsx",
+      "responsibility": "Core implementation logic for DailyPickCard.tsx.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/prompts/DailyPromptCard.css": {
@@ -1166,7 +1046,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for DailyPromptCard.css",
+      "responsibility": "Core implementation logic for DailyPromptCard.css.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/components/features/prompts/DailyPromptCard.tsx": {
@@ -1295,7 +1175,7 @@
       "side_effects": [
         "supabase_client"
       ],
-      "responsibility": "Handles logic for config.ts",
+      "responsibility": "Client-side and server-side shared configuration for the Next.js application.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/lib/logger.ts": {
@@ -1309,7 +1189,7 @@
         "logger"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for logger.ts",
+      "responsibility": "Core implementation logic for logger.ts.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/lib/services/ai.ts": {
@@ -1348,7 +1228,7 @@
         "SmartPromptSearch"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for smart-prompt-search.ts",
+      "responsibility": "Core implementation logic for smart-prompt-search.ts.",
       "status": "ACTIVE"
     },
     "apps/dashboard/src/lib/supabase/client.ts": {
@@ -1507,7 +1387,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for vercel.json",
+      "responsibility": "Core implementation logic for vercel.json.",
       "status": "ACTIVE"
     },
     "apps/extension/content-styles.css": {
@@ -2119,7 +1999,9 @@
       "id": "apps/extension/src/background/modules/syncManager.ts",
       "workspace": "apps",
       "type": "logic_module",
-      "imports_from_packages": [],
+      "imports_from_packages": [
+        "@brainbox/validation"
+      ],
       "public_api": [
         "SyncManager",
         "SyncItem"
@@ -2157,7 +2039,8 @@
         "./modules/networkObserver",
         "./modules/installationManager",
         "./modules/syncManager",
-        "@brainbox/shared"
+        "@brainbox/shared",
+        "@brainbox/validation"
       ],
       "public_api": [],
       "side_effects": [
@@ -2177,48 +2060,6 @@
       "responsibility": "Extension content script injected into pages",
       "status": "ACTIVE"
     },
-    "apps/extension/src/content/brainbox_master.ts": {
-      "id": "apps/extension/src/content/brainbox_master.ts",
-      "workspace": "apps",
-      "type": "logic_module",
-      "imports_from_packages": [
-        "../lib/logger"
-      ],
-      "public_api": [],
-      "side_effects": [
-        "chrome_api"
-      ],
-      "responsibility": "Extension content script injected into pages",
-      "status": "ACTIVE"
-    },
-    "apps/extension/src/content/content-chatgpt.ts": {
-      "id": "apps/extension/src/content/content-chatgpt.ts",
-      "workspace": "apps",
-      "type": "logic_module",
-      "imports_from_packages": [
-        "../lib/logger",
-        "../lib/ui"
-      ],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Extension content script injected into pages",
-      "status": "ACTIVE"
-    },
-    "apps/extension/src/content/content-claude.ts": {
-      "id": "apps/extension/src/content/content-claude.ts",
-      "workspace": "apps",
-      "type": "logic_module",
-      "imports_from_packages": [
-        "../lib/logger",
-        "../lib/ui"
-      ],
-      "public_api": [],
-      "side_effects": [
-        "chrome_api"
-      ],
-      "responsibility": "Extension content script injected into pages",
-      "status": "ACTIVE"
-    },
     "apps/extension/src/content/content-dashboard-auth.ts": {
       "id": "apps/extension/src/content/content-dashboard-auth.ts",
       "workspace": "apps",
@@ -2232,82 +2073,7 @@
         "chrome_api",
         "supabase_client"
       ],
-      "responsibility": "Extension content script injected into pages",
-      "status": "ACTIVE"
-    },
-    "apps/extension/src/content/content-deepseek.ts": {
-      "id": "apps/extension/src/content/content-deepseek.ts",
-      "workspace": "apps",
-      "type": "logic_module",
-      "imports_from_packages": [
-        "../lib/logger",
-        "../lib/ui"
-      ],
-      "public_api": [],
-      "side_effects": [
-        "chrome_api"
-      ],
-      "responsibility": "Extension content script injected into pages",
-      "status": "ACTIVE"
-    },
-    "apps/extension/src/content/content-grok.ts": {
-      "id": "apps/extension/src/content/content-grok.ts",
-      "workspace": "apps",
-      "type": "logic_module",
-      "imports_from_packages": [
-        "../lib/logger",
-        "../lib/ui"
-      ],
-      "public_api": [],
-      "side_effects": [
-        "chrome_api"
-      ],
-      "responsibility": "Extension content script injected into pages",
-      "status": "ACTIVE"
-    },
-    "apps/extension/src/content/content-lmarena.ts": {
-      "id": "apps/extension/src/content/content-lmarena.ts",
-      "workspace": "apps",
-      "type": "logic_module",
-      "imports_from_packages": [
-        "../lib/logger",
-        "../lib/ui"
-      ],
-      "public_api": [],
-      "side_effects": [
-        "chrome_api"
-      ],
-      "responsibility": "Extension content script injected into pages",
-      "status": "ACTIVE"
-    },
-    "apps/extension/src/content/content-perplexity.ts": {
-      "id": "apps/extension/src/content/content-perplexity.ts",
-      "workspace": "apps",
-      "type": "logic_module",
-      "imports_from_packages": [
-        "../lib/logger",
-        "../lib/ui"
-      ],
-      "public_api": [],
-      "side_effects": [
-        "chrome_api"
-      ],
-      "responsibility": "Extension content script injected into pages",
-      "status": "ACTIVE"
-    },
-    "apps/extension/src/content/content-qwen.ts": {
-      "id": "apps/extension/src/content/content-qwen.ts",
-      "workspace": "apps",
-      "type": "logic_module",
-      "imports_from_packages": [
-        "../lib/logger",
-        "../lib/ui"
-      ],
-      "public_api": [],
-      "side_effects": [
-        "chrome_api"
-      ],
-      "responsibility": "Extension content script injected into pages",
+      "responsibility": "Token Bridge content script that captures the Dashboard session and relays it to the background service worker.",
       "status": "ACTIVE"
     },
     "apps/extension/src/content/inject-gemini-main.ts": {
@@ -2317,7 +2083,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Extension content script injected into pages",
+      "responsibility": "Main-world injection script specialized for Gemini, used to access non-isolated variables and configuration.",
       "status": "ACTIVE"
     },
     "apps/extension/src/lib/config.ts": {
@@ -2789,7 +2555,7 @@
         "chrome_api",
         "network_request"
       ],
-      "responsibility": "Handles logic for temp_file_content.json",
+      "responsibility": "Core implementation logic for temp_file_content.json.",
       "status": "ACTIVE"
     },
     "next-env.d.ts": {
@@ -2847,7 +2613,7 @@
         "PROVIDER_ASSETS"
       ],
       "side_effects": [],
-      "responsibility": "Handles logic for index.ts",
+      "responsibility": "Core implementation logic for index.ts.",
       "status": "ACTIVE"
     },
     "packages/config": {
@@ -2928,7 +2694,7 @@
       "side_effects": [
         "supabase_client"
       ],
-      "responsibility": "Handles logic for database.types.ts",
+      "responsibility": "Core implementation logic for database.types.ts.",
       "status": "ACTIVE"
     },
     "packages/database/index.ts": {
@@ -2940,7 +2706,7 @@
       "side_effects": [
         "supabase_client"
       ],
-      "responsibility": "Handles logic for index.ts",
+      "responsibility": "Core implementation logic for index.ts.",
       "status": "ACTIVE"
     },
     "packages/database/package.json": {
@@ -2962,7 +2728,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for index.js",
+      "responsibility": "Core implementation logic for index.js.",
       "status": "ACTIVE"
     },
     "packages/shared/package-lock.json": {
@@ -2972,7 +2738,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for package-lock.json",
+      "responsibility": "Core implementation logic for package-lock.json.",
       "status": "ACTIVE"
     },
     "packages/shared/package.json": {
@@ -3008,7 +2774,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for ai_models_config.json",
+      "responsibility": "Core implementation logic for ai_models_config.json.",
       "status": "ACTIVE"
     },
     "packages/shared/src/constants/index.ts": {
@@ -3030,7 +2796,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for index.ts",
+      "responsibility": "Core implementation logic for index.ts.",
       "status": "ACTIVE"
     },
     "packages/shared/src/logic/promptSync.ts": {
@@ -3114,7 +2880,7 @@
       "side_effects": [
         "supabase_client"
       ],
-      "responsibility": "Handles logic for database.ts",
+      "responsibility": "Core implementation logic for database.ts.",
       "status": "ACTIVE"
     },
     "packages/shared/src/types/database.types.ts": {
@@ -3135,7 +2901,7 @@
       "side_effects": [
         "supabase_client"
       ],
-      "responsibility": "Handles logic for database.types.ts",
+      "responsibility": "Core implementation logic for database.types.ts.",
       "status": "ACTIVE"
     },
     "packages/shared/src/types/index.ts": {
@@ -3414,7 +3180,7 @@
       "side_effects": [
         "supabase_client"
       ],
-      "responsibility": "Handles logic for pnpm-lock.yaml",
+      "responsibility": "Core implementation logic for pnpm-lock.yaml.",
       "status": "ACTIVE"
     },
     "pnpm-workspace.yaml": {
@@ -3435,38 +3201,6 @@
       "public_api": [],
       "side_effects": [],
       "responsibility": "Root PostCSS configuration.",
-      "status": "ACTIVE"
-    },
-    "public/manifest.json": {
-      "id": "public/manifest.json",
-      "workspace": "public",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Chrome Extension manifest",
-      "status": "ACTIVE"
-    },
-    "public/sw.js": {
-      "id": "public/sw.js",
-      "workspace": "public",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [],
-      "responsibility": "Handles logic for sw.js",
-      "status": "ACTIVE"
-    },
-    "public/workbox-4754cb34.js": {
-      "id": "public/workbox-4754cb34.js",
-      "workspace": "public",
-      "type": "logic_module",
-      "imports_from_packages": [],
-      "public_api": [],
-      "side_effects": [
-        "network_request"
-      ],
-      "responsibility": "Handles logic for workbox-4754cb34.js",
       "status": "ACTIVE"
     },
     "remediation_plan.yml": {
@@ -3496,7 +3230,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for .last-run.json",
+      "responsibility": "Core implementation logic for .last-run.json.",
       "status": "ACTIVE"
     },
     "tests/cdp-audit.spec.ts": {
@@ -3509,7 +3243,7 @@
         "chrome_api",
         "network_request"
       ],
-      "responsibility": "Handles logic for cdp-audit.spec.ts",
+      "responsibility": "Core implementation logic for cdp-audit.spec.ts.",
       "status": "ACTIVE"
     },
     "tests/chrome-env/cursor-chrome-composer.js": {
@@ -3521,7 +3255,7 @@
       "side_effects": [
         "network_request"
       ],
-      "responsibility": "Handles logic for cursor-chrome-composer.js",
+      "responsibility": "Core implementation logic for cursor-chrome-composer.js.",
       "status": "ACTIVE"
     },
     "tests/database/check-rls.js": {
@@ -3534,7 +3268,7 @@
         "supabase_client",
         "network_request"
       ],
-      "responsibility": "Handles logic for check-rls.js",
+      "responsibility": "Core implementation logic for check-rls.js.",
       "status": "ACTIVE"
     },
     "tests/e2e-integration.spec.ts": {
@@ -3547,7 +3281,7 @@
         "chrome_api",
         "supabase_client"
       ],
-      "responsibility": "Handles logic for e2e-integration.spec.ts",
+      "responsibility": "Core implementation logic for e2e-integration.spec.ts.",
       "status": "ACTIVE"
     },
     "tests/e2e/extension.spec.ts": {
@@ -3557,7 +3291,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for extension.spec.ts",
+      "responsibility": "Core implementation logic for extension.spec.ts.",
       "status": "ACTIVE"
     },
     "tests/extension-audit.spec.ts": {
@@ -3569,7 +3303,7 @@
       "side_effects": [
         "network_request"
       ],
-      "responsibility": "Handles logic for extension-audit.spec.ts",
+      "responsibility": "Core implementation logic for extension-audit.spec.ts.",
       "status": "ACTIVE"
     },
     "tests/integration/api-health.test.js": {
@@ -3589,7 +3323,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for ghost_actor.spec.ts",
+      "responsibility": "Core implementation logic for ghost_actor.spec.ts.",
       "status": "ACTIVE"
     },
     "tests/results/.last-run.json": {
@@ -3599,7 +3333,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for .last-run.json",
+      "responsibility": "Core implementation logic for .last-run.json.",
       "status": "ACTIVE"
     },
     "tests/scripts/test-api.js": {
@@ -3624,7 +3358,7 @@
         "supabase_client",
         "network_request"
       ],
-      "responsibility": "Handles logic for validate_extension_sync.js",
+      "responsibility": "Core implementation logic for validate_extension_sync.js.",
       "status": "ACTIVE"
     },
     "tests/scripts/verify_sw_cdp.js": {
@@ -3634,7 +3368,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for verify_sw_cdp.js",
+      "responsibility": "Core implementation logic for verify_sw_cdp.js.",
       "status": "ACTIVE"
     },
     "tests/unit/schema-validation.test.js": {
@@ -3654,7 +3388,7 @@
       "imports_from_packages": [],
       "public_api": [],
       "side_effects": [],
-      "responsibility": "Handles logic for version-bump.ts",
+      "responsibility": "Core implementation logic for version-bump.ts.",
       "status": "ACTIVE"
     },
     "tsconfig.json": {

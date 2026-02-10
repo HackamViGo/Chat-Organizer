@@ -75,16 +75,13 @@ export class AuthManager {
     /**
      * Start listening for tokens
      */
-    initialize() {
+    async initialize() {
         this.registerListeners();
-        this.loadTokensFromStorage();
+        await this.loadTokensFromStorage();
         this.registerMessageListeners();
         logger.info('AuthManager', '🛡️ Initialized and listening.');
     }
 
-    private registerMessageListeners() {
-        // Consolidated into MessageRouter to avoid listener conflicts
-    }
 
     registerListeners() {
         if (typeof chrome.webRequest === 'undefined') {
@@ -448,11 +445,58 @@ export class AuthManager {
             
             console.log('[AuthManager] ✅ Session stored and verified successfully');
             logger.debug('AuthManager', '✅ Dashboard session updated');
+
+            // --- PROACTIVE REFRESH SCHEDULING ---
+            this.scheduleProactiveRefresh(sessionToStore.expires_at);
+
         } catch (error) {
             console.error('[AuthManager] ❌ Critical: Failed to save session!', error);
             logger.error('AuthManager', '❌ Failed to save session', error);
             throw error; // Re-throw for caller to handle
         }
+    }
+
+    /**
+     * Set up a chrome alarm to refresh the token before it expires
+     */
+    private async scheduleProactiveRefresh(expiresAtMs?: number) {
+        if (!expiresAtMs) return;
+
+        const ALARM_NAME = 'brainbox_token_refresh';
+        const GRACE_PERIOD_SEC = 5 * 60; // 5 minutes before
+        const now = Date.now();
+        const refreshTimeMs = expiresAtMs - (GRACE_PERIOD_SEC * 1000);
+        
+        // If it's already past the refresh time, refresh now
+        if (refreshTimeMs <= now) {
+            logger.info('AuthManager', '🕒 Token expires soon, refreshing now...');
+            await this.refreshSession();
+            return;
+        }
+
+        const delayInMinutes = Math.max(1, (refreshTimeMs - now) / 60000);
+        
+        chrome.alarms.create(ALARM_NAME, {
+            delayInMinutes: delayInMinutes
+        });
+        
+        logger.info('AuthManager', `⏰ Scheduled proactive refresh in ${Math.round(delayInMinutes)} minutes`);
+    }
+
+    /**
+     * Register alarm listener for token refresh
+     */
+    private registerMessageListeners() {
+        // Consolidated into MessageRouter for messages, 
+        // but we can register internal alarms here
+        chrome.alarms.onAlarm.addListener((alarm) => {
+            if (alarm.name === 'brainbox_token_refresh') {
+                logger.info('AuthManager', '⏰ Token refresh alarm triggered.');
+                this.refreshSession().catch(err => 
+                    logger.error('AuthManager', 'Proactive refresh failed', err)
+                );
+            }
+        });
     }
 
     async isSessionValid() {

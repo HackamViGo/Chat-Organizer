@@ -7,7 +7,8 @@
       "public_api": [],
       "imports_from_packages": [
         "@brainbox/shared/logic/promptSync",
-        "@brainbox/shared"
+        "@brainbox/shared",
+        "@brainbox/validation"
       ],
       "side_effects": [
         "chrome.storage.local",
@@ -42,7 +43,8 @@
         "AuthManager"
       ],
       "imports_from_packages": [
-        "@brainbox/shared"
+        "@brainbox/shared",
+        "@brainbox/validation"
       ],
       "side_effects": [
         "chrome.storage.local"
@@ -143,7 +145,9 @@
       "public_api": [
         "DashboardApi"
       ],
-      "imports_from_packages": [],
+      "imports_from_packages": [
+        "@brainbox/validation"
+      ],
       "side_effects": [
         "fetch",
         "chrome.storage.local"

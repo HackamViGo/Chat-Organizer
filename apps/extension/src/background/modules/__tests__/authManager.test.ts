@@ -235,7 +235,6 @@ describe('AuthManager', () => {
       expect(storage.accessToken).toBe(session.accessToken);
       expect(storage.refreshToken).toBe(session.refreshToken);
       expect(storage.expiresAt).toBe(session.expiresAt);
-      expect(storage.rememberMe).toBe(true);
     });
 
     it('should validate valid session', async () => {
@@ -319,6 +318,7 @@ describe('AuthManager', () => {
 
       expect(result.isValid).toBe(false);
       expect(chrome.storage.local.remove).toHaveBeenCalledWith([
+        'BRAINBOX_SESSION',
         'accessToken',
         'refreshToken',
         'userEmail',

@@ -60,7 +60,7 @@ const stripDevCSP = (env: Record<string, string>) => {
           // Scrub Host Permissions
           if (manifest.host_permissions) {
             manifest.host_permissions = manifest.host_permissions.filter((hp: string) => 
-              !hp.includes('localhost') && !hp.includes('127.0.0.1')
+              env.VITE_TEST_MODE === 'true' || (!hp.includes('localhost') && !hp.includes('127.0.0.1'))
             );
           }
 
@@ -83,7 +83,7 @@ const stripDevCSP = (env: Record<string, string>) => {
             manifest.web_accessible_resources.forEach((res: any) => {
               if (res.matches) {
                 res.matches = res.matches.filter((m: string) => 
-                  !m.includes('localhost') && !m.includes('127.0.0.1')
+                  env.VITE_TEST_MODE === 'true' || (!m.includes('localhost') && !m.includes('127.0.0.1'))
                 );
               }
               res.use_dynamic_url = true;
@@ -164,6 +164,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           popup: resolve(__dirname, 'src/popup/index.html'),
+          welcome: resolve(__dirname, 'src/welcome.html'),
           'inject-gemini-main': resolve(__dirname, 'src/content/inject-gemini-main.ts'),
         },
         output: {

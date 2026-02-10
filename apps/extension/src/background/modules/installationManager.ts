@@ -40,7 +40,7 @@ export class InstallationManager {
         
         // Open welcome page
         chrome.tabs.create({ 
-            url: chrome.runtime.getURL('welcome.html') 
+            url: chrome.runtime.getURL('src/welcome.html') 
         });
     }
 
@@ -51,6 +51,9 @@ export class InstallationManager {
         // Example: Clean up old storage keys
         // chrome.storage.local.remove(['deprecated_key']);
 
+        // REMOVED: Automatic session purge in dev mode.
+        // This causes constant logouts whenever the code reloads.
+        /*
         if (CONFIG.IS_DEV) {
             logger.info('InstallationManager', '🧹 Dev mode detected: Purging old sessions...');
             chrome.storage.local.remove([
@@ -63,5 +66,6 @@ export class InstallationManager {
                 logger.debug('InstallationManager', '✅ Cache purged successfully');
             });
         }
+        */
     }
 }

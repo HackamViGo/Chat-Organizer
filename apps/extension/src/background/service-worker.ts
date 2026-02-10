@@ -20,7 +20,6 @@ import { clearExtensionCache } from '@brainbox/shared';
  * Install event - skip waiting to ensure the new worker takes over immediately
  */
 self.addEventListener('install', () => {
-    console.log('[BrainBox SW] 📥 Service Worker Installing...');
     logger.info('Worker', '📥 Service Worker Installing...');
     (self as any).skipWaiting();
 });
@@ -29,18 +28,15 @@ self.addEventListener('install', () => {
  * Activate event - claim clients to ensure consistent control
  */
 self.addEventListener('activate', (event: any) => {
-    console.log('[BrainBox SW] ✨ Service Worker Activating...');
     logger.info('Worker', '✨ Service Worker Activating...');
     event.waitUntil((self as any).clients.claim());
 });
 
 // Track initialization count to detect double-loading
 (self as any).__BRAINBOX_INIT_COUNT__ = ((self as any).__BRAINBOX_INIT_COUNT__ || 0) + 1;
-console.log(`[BrainBox SW] 🚀 Service Worker Starting (Init: ${(self as any).__BRAINBOX_INIT_COUNT__})...`);
 logger.info('Worker', `🚀 Service Worker Starting (Init: ${(self as any).__BRAINBOX_INIT_COUNT__})...`);
 
 self.onerror = function(message, source, lineno, colno, error) {
-    console.error('[BrainBox SW] ❌ Global Error:', message, error);
     logger.error('Worker', '❌ Global Error: ' + message, error);
 };
 
@@ -70,7 +66,7 @@ const messageRouter = new MessageRouter(
 
 async function initApp() {
     try {
-        console.log('[BrainBox SW] 🔧 Initializing modules...');
+        logger.debug('Worker', '🔧 Initializing modules...');
         
         // Ensure Auth is ready before anything else
         await authManager.initialize();
@@ -81,7 +77,7 @@ async function initApp() {
 
         // Trigger sync queue processing on startup
         const isValid = await authManager.checkAuth();
-        console.log('[BrainBox SW] 📦 Auth session:', isValid ? 'Valid' : 'Not found');
+        logger.debug('Worker', `📦 Auth session: ${isValid ? 'Valid' : 'Not found'}`);
         
         if (isValid) {
             const { accessToken } = await chrome.storage.local.get(['accessToken']);
@@ -96,10 +92,8 @@ async function initApp() {
         // Start listening
         messageRouter.listen();
         
-        console.log('[BrainBox SW] ✅ All modules initialized');
         logger.info('Worker', '✅ All modules initialized');
     } catch (e) {
-        console.error('[BrainBox SW] ❌ Initialization Failed:', e);
         logger.error('Worker', '❌ Initialization Failed', e);
     }
 }

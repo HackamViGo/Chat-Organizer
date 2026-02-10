@@ -404,7 +404,7 @@ export class AuthManager {
     // ========================================================================
 
     async setDashboardSession(session: any) {
-        console.log('[AuthManager] 📥 Processing session sync...', {
+        logger.debug('AuthManager', '📥 Processing session sync', {
             access_token: session.access_token ? 'Present' : 'Missing',
             refresh_token: session.refresh_token ? 'Present' : 'Missing',
             expires_at: session.expires_at,
@@ -425,7 +425,7 @@ export class AuthManager {
                 throw new Error('Missing access_token in session');
             }
 
-            console.log('[AuthManager] 💾 Storing session in chrome.storage.local...');
+            logger.debug('AuthManager', '💾 Storing session in chrome.storage.local...');
             await chrome.storage.local.set({ BRAINBOX_SESSION: sessionToStore });
             
             // Backward compatibility for legacy token keys
@@ -443,14 +443,12 @@ export class AuthManager {
                 throw new Error('Session verification failed after write');
             }
             
-            console.log('[AuthManager] ✅ Session stored and verified successfully');
             logger.debug('AuthManager', '✅ Dashboard session updated');
 
             // --- PROACTIVE REFRESH SCHEDULING ---
             this.scheduleProactiveRefresh(sessionToStore.expires_at);
 
         } catch (error) {
-            console.error('[AuthManager] ❌ Critical: Failed to save session!', error);
             logger.error('AuthManager', '❌ Failed to save session', error);
             throw error; // Re-throw for caller to handle
         }

@@ -13,7 +13,7 @@ const IS_DEV = import.meta.env.DEV;
 
 // Check debug flag safely
 const isDebugMode = () => {
-  return true; // Forced for debugging
+  return import.meta.env.DEV || import.meta.env.VITE_DEBUG === 'true';
 };
 
 export const logger = {

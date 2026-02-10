@@ -1,0 +1,20 @@
+{
+  "name": "@brainbox/config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./tailwind": "./tailwind.config.ts",
+    "./postcss": "./postcss.config.js",
+    "./tsconfig": "./tsconfig.base.json"
+  },
+  "files": [
+    "tailwind.config.ts",
+    "postcss.config.js",
+    "tsconfig.base.json"
+  ],
+  "peerDependencies": {
+    "tailwindcss": "^4.0.0",
+    "postcss": "^8.0.0"
+  }
+}

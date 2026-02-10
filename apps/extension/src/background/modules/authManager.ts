@@ -26,6 +26,13 @@ export class AuthManager {
         qwen_app_id: string | null;
         lmarena_session: string | null;
         lmarena_fn_index: string | null;
+
+        // User IDs
+        chatgpt_user_id: string | null;
+        deepseek_user_id: string | null;
+        perplexity_user_id: string | null;
+        grok_user_id: string | null;
+        qwen_user_id: string | null;
     };
 
     constructor() {
@@ -44,7 +51,13 @@ export class AuthManager {
             qwen_xsrf: null,
             qwen_app_id: null,
             lmarena_session: null,
-            lmarena_fn_index: null
+            lmarena_fn_index: null,
+
+            chatgpt_user_id: null,
+            deepseek_user_id: null,
+            perplexity_user_id: null,
+            grok_user_id: null,
+            qwen_user_id: null
         };
         
         // Bind methods to ensure 'this' context
@@ -69,86 +82,112 @@ export class AuthManager {
     }
 
     registerListeners() {
+        if (typeof chrome.webRequest === 'undefined') {
+            logger.warn('AuthManager', '⚠️ chrome.webRequest is undefined. Network observation disabled.');
+            return;
+        }
+
+        const { onBeforeSendHeaders, onBeforeRequest } = chrome.webRequest;
+
         // --- ChatGPT ---
-        chrome.webRequest.onBeforeSendHeaders.addListener(
-            this.handleChatGPTHeaders as any,
-            { urls: ['https://chatgpt.com/backend-api/*'] },
-            ['requestHeaders']
-        );
+        if (onBeforeSendHeaders) {
+            onBeforeSendHeaders.addListener(
+                this.handleChatGPTHeaders as any,
+                { urls: ['https://chatgpt.com/backend-api/*'] },
+                ['requestHeaders']
+            );
+        }
 
         // --- Claude ---
-        chrome.webRequest.onBeforeRequest.addListener(
-            this.handleClaudeRequest as any,
-            { urls: ['https://claude.ai/api/organizations/*'] },
-            []
-        );
+        if (onBeforeRequest) {
+            onBeforeRequest.addListener(
+                this.handleClaudeRequest as any,
+                { urls: ['https://claude.ai/api/organizations/*'] },
+                []
+            );
+        }
 
         // --- Gemini ---
-        chrome.webRequest.onBeforeRequest.addListener(
-            this.handleGeminiRequest as any,
-            { urls: ['https://gemini.google.com/*', 'http://gemini.google.com/*'] },
-            ['requestBody']
-        );
+        if (onBeforeRequest) {
+            onBeforeRequest.addListener(
+                this.handleGeminiRequest as any,
+                { urls: ['https://gemini.google.com/*', 'http://gemini.google.com/*'] },
+                ['requestBody']
+            );
+        }
 
         // --- DeepSeek ---
-        chrome.webRequest.onBeforeSendHeaders.addListener(
-            this.handleDeepSeekHeaders as any,
-            { urls: ['https://chat.deepseek.com/api/*'] },
-            ['requestHeaders']
-        );
+        if (onBeforeSendHeaders) {
+            onBeforeSendHeaders.addListener(
+                this.handleDeepSeekHeaders as any,
+                { urls: ['https://chat.deepseek.com/api/*'] },
+                ['requestHeaders']
+            );
+        }
 
         // --- Perplexity ---
-        chrome.webRequest.onBeforeSendHeaders.addListener(
-            this.handlePerplexityHeaders as any,
-            { urls: ['https://www.perplexity.ai/api/*'] },
-            ['requestHeaders']
-        );
+        if (onBeforeSendHeaders) {
+            onBeforeSendHeaders.addListener(
+                this.handlePerplexityHeaders as any,
+                { urls: ['https://www.perplexity.ai/api/*'] },
+                ['requestHeaders']
+            );
+        }
 
         // --- Grok ---
-        chrome.webRequest.onBeforeSendHeaders.addListener(
-            this.handleGrokHeaders as any,
-            { urls: ['https://x.com/i/api/*', 'https://grok.com/api/*'] },
-            ['requestHeaders']
-        );
+        if (onBeforeSendHeaders) {
+            onBeforeSendHeaders.addListener(
+                this.handleGrokHeaders as any,
+                { urls: ['https://x.com/i/api/*', 'https://grok.com/api/*'] },
+                ['requestHeaders']
+            );
+        }
 
         // --- Qwen ---
-        chrome.webRequest.onBeforeSendHeaders.addListener(
-            this.handleQwenHeaders as any,
-            { urls: ['https://chat.qwenlm.ai/api/*'] },
-            ['requestHeaders']
-        );
+        if (onBeforeSendHeaders) {
+            onBeforeSendHeaders.addListener(
+                this.handleQwenHeaders as any,
+                { urls: ['https://chat.qwenlm.ai/api/*'] },
+                ['requestHeaders']
+            );
+        }
+
+        if (!onBeforeSendHeaders || !onBeforeRequest) {
+            logger.warn('AuthManager', '⚠️ Some webRequest events are missing. Partial observation active.');
+        }
     }
 
     async loadTokensFromStorage() {
-        const result = await chrome.storage.local.get([
-            'chatgpt_token', 
-            'gemini_at_token', 
-            'gemini_dynamic_key', 
-            'claude_org_id',
+        const result = (await chrome.storage.local.get([
+            'chatgpt_token',
+            'claude_token',
+            'gemini_dynamic_key',
             'deepseek_token',
-            'deepseek_version',
-            'perplexity_session',
-            'grok_csrf_token',
-            'grok_auth_token',
-            'qwen_xsrf_token',
-            'qwen_app_id',
-            'lmarena_session_hash',
-            'lmarena_fn_index'
-        ]);
-        
+            'perplexity_id',
+            'grok_token',
+            'qwen_token',
+            'chatgpt_user_id',
+            'claude_org_id',
+            'deepseek_user_id',
+            'perplexity_user_id',
+            'grok_user_id',
+            'qwen_user_id'
+        ])) as any;
+
         this.tokens.chatgpt = result.chatgpt_token || null;
-        this.tokens.gemini_at = result.gemini_at_token || null;
+        this.tokens.claude_session = result.claude_token || null;
         this.tokens.gemini_key = result.gemini_dynamic_key || null;
-        this.tokens.claude_org_id = result.claude_org_id || null;
         this.tokens.deepseek = result.deepseek_token || null;
-        this.tokens.deepseek_version = result.deepseek_version || null;
-        this.tokens.perplexity_session = result.perplexity_session || null;
-        this.tokens.grok_csrf = result.grok_csrf_token || null;
-        this.tokens.grok_auth = result.grok_auth_token || null;
-        this.tokens.qwen_xsrf = result.qwen_xsrf_token || null;
-        this.tokens.qwen_app_id = result.qwen_app_id || null;
-        this.tokens.lmarena_session = result.lmarena_session_hash || null;
-        this.tokens.lmarena_fn_index = result.lmarena_fn_index || null;
+        this.tokens.perplexity_session = result.perplexity_id || null;
+        this.tokens.grok_auth = result.grok_token || null;
+        this.tokens.qwen_xsrf = result.qwen_token || null;
+
+        this.tokens.chatgpt_user_id = result.chatgpt_user_id || null;
+        this.tokens.claude_org_id = result.claude_org_id || null;
+        this.tokens.deepseek_user_id = result.deepseek_user_id || null;
+        this.tokens.perplexity_user_id = result.perplexity_user_id || null;
+        this.tokens.grok_user_id = result.grok_user_id || null;
+        this.tokens.qwen_user_id = result.qwen_user_id || null;
     }
 
     // ========================================================================
@@ -193,8 +232,6 @@ export class AuthManager {
     }
 
     handleGeminiRequest(details: any) {
-        // Implementation from service-worker.js
-        
         // 1. Capture AT Token from URL
         if (details.url.includes('/app/')) {
             try {
@@ -241,6 +278,7 @@ export class AuthManager {
             logger.error('AuthManager', '❌ Gemini extraction error', error);
         }
     }
+
     /**
      * Generic dispatcher for platform headers (Grok, Perplexity, DeepSeek, Qwen)
      */
@@ -255,7 +293,6 @@ export class AuthManager {
             this.handleQwenHeaders(details);
         }
     }
-
 
     handleDeepSeekHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
@@ -375,7 +412,9 @@ export class AuthManager {
     }
 
     async isSessionValid() {
-        const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
+        const result = (await chrome.storage.local.get(['accessToken', 'expiresAt'])) as any;
+        const accessToken = result.accessToken;
+        const expiresAt = result.expiresAt;
         const isValid = accessToken && (!expiresAt || expiresAt > Date.now());
         return !!isValid;
     }
@@ -390,7 +429,8 @@ export class AuthManager {
         await this.loadTokensFromStorage();
         
         // 2. Verify Dashboard Session via Ping
-        const { accessToken } = await chrome.storage.local.get(['accessToken']);
+        const result = (await chrome.storage.local.get(['accessToken'])) as any;
+        const accessToken = result.accessToken;
         if (!accessToken) return { isValid: false, tokens: this.tokens };
 
         try {
@@ -422,6 +462,6 @@ export class AuthManager {
         // Return necessary headers for a platform request
         // This abstracts token retrieval for the API handlers
         // TODO: Implement cleaner interface for API calls
+        return platform;
     }
 }
-

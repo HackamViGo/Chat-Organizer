@@ -112,7 +112,9 @@ const stripDevCSP = (env: Record<string, string>) => {
         });
       };
       
-      walkDir(outDir);
+      if (fs.existsSync(outDir)) {
+        walkDir(outDir);
+      }
       console.debug('🛡️  HARDENED: Production assets finalized and scrubbed for security compliance.');
     }
   };
@@ -145,9 +147,16 @@ export default defineConfig(({ mode }) => {
       outDir: 'dist',
       emptyOutDir: true,
       sourcemap: !isProd,
+      chunkSizeWarningLimit: 1000,
       rollupOptions: {
         input: {
           popup: resolve(__dirname, 'src/popup/index.html'),
+        },
+        output: {
+          // Prevent nested src/ patterns in the final build
+          entryFileNames: `assets/[name].js`,
+          chunkFileNames: `assets/[name].js`,
+          assetFileNames: `assets/[name].[ext]`,
         },
       },
     },

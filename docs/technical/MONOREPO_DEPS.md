@@ -1,10 +1,28 @@
-# 📦 MONOREPO_DEPS.md - Карта на зависимостите
+# Monorepo Dependencies Documentation
 
-Този документ описва архитектурата на зависимостите в monorepo структурата на BrainBox, включително споделените пакети и външните библиотеки.
+**Project**: BrainBox AI Chat Organizer  
+**Version**: 3.1.0  
+**Manager**: pnpm 10.17.0  
+**Orchestrator**: Turborepo 2.8.1
 
 ---
 
-## 🗺️ Графика на вътрешните зависимости
+## 1. Core Stack Versions
+
+| Technology | Version | Role |
+|------------|---------|------|
+| **Node.js** | `>=22.0.0` | Runtime |
+| **pnpm** | `>=10.17.0` | Package Management |
+| **TypeScript** | `~5.9.3` | Type Safety |
+| **Next.js** | `^14.2.18` | Dashboard (App Router) |
+| **Vite** | `^7.3.1` | Extension Bundler |
+| **Supabase** | `^2.47.10` | Database & Auth |
+| **Tailwind** | `^4.1.18` | Styling (v4 Engine) |
+| **Zustand** | `^5.0.2` | State Management |
+
+---
+
+## 2. Project Topology
 
 ```mermaid
 graph TD
@@ -17,63 +35,49 @@ graph TD
         Shared["@brainbox/shared"]
         Validation["@brainbox/validation"]
         Database["@brainbox/database"]
+        Config["@brainbox/config"]
         Assets["@brainbox/assets"]
     end
 
     Extension --> Shared
     Extension --> Validation
+    Extension --> Config
     
+    Dashboard --> Shared
     Dashboard --> Validation
     Dashboard --> Database
+    Dashboard --> Config
     Dashboard --> Assets
 ```
 
 ---
 
-## 🔗 Вътрешни Workspace връзки
+## 3. Internal Workspace Dependencies
 
-| Пакет/Приложение | Зависи от (Internal) | Предначертание |
-| :--- | :--- | :--- |
-| **apps/extension** | `@brainbox/shared`, `@brainbox/validation` | Глобални типове и Zod валидация на чатове. |
-| **apps/dashboard** | `@brainbox/database`, `@brainbox/validation`, `@brainbox/assets` | Supabase SSR, Zod схеми и дизайн активи. |
-| **packages/shared** | - | Утилити и дефиниции за Chrome API/Services. |
-| **packages/validation**| - | Централизирани **Zod** схеми (Single Source of Truth). |
-| **packages/database** | - | Типове и клиенти за Supabase. |
-| **packages/assets** | - | Икони и статични активи. |
-
----
-
-## 🌍 Споделени външни зависимости (External)
-
-Тези библиотеки се използват на множество места и версиите им трябва да са синхронизирани:
-
-| Библиотека | Extension | Dashboard | Validation/DB | Версия (Root) |
-| :--- | :---: | :---: | :---: | :--- |
-| **React** | ✅ | ✅ | - | `^18.3.1` |
-| **Zod** | (via val) | ✅ | ✅ | `^3.25.76` |
-| **Supabase JS** | - | ✅ | ✅ | `^2.47.10` |
-| **TailwindCSS** | ✅ | ✅ | - | `^3.4.17` |
-| **TypeScript** | ✅ | ✅ | ✅ | `~5.8.2` |
-| **Lucide React** | - | ✅ | - | `^0.561.0` |
+| Package | Purpose |
+| :--- | :--- |
+| **`@brainbox/shared`** | Кананични типове и обща логика (Chat, Message, Platform). |
+| **`@brainbox/validation`** | Централизирани Zod схеми (Single Source of Truth). |
+| **`@brainbox/database`** | Supabase TypeScript дефиниции (Generated). |
+| **`@brainbox/config`** | Споделени конфигурации (Tailwind, TS, PostCSS, Models). |
+| **`@brainbox/assets`** | UI активи, брандинг и икони. |
 
 ---
 
-## 🛠️ Технологичен стек по компоненти
+## 4. External Library Highlights
 
-### apps/extension (Vite + CRXJS)
-- **Vite**: Бързо билдване и Hot Reload за Chrome Extension.
-- **CRXJS**: Плъгин за автоматично управление на `manifest.json`.
-- **Vitest**: Тестване на контент скриптове и фонова логика.
-
-### apps/dashboard (Next.js 14)
-- **Next.js**: App Router с SSR поддръжка.
-- **Zustand**: Олекотено управление на състоянието (State Management).
-- **Framer Motion**: Премиум анимации за интерфейса.
-
-### packages/validation
-- **Zod**: Използва се за валидиране на API заявки и форма в реално време.
+- **`@crxjs/vite-plugin`**: Изключително важен за Vite + Manifest V3 разработка.
+- **`@supabase/ssr`**: Управление на сесиите в Next.js App Router.
+- **`dompurify`**: Санитизация на прихванато съдържание в разширението.
+- **`lucide-react`**: Обединена система за икони.
 
 ---
 
-> [!NOTE]
-> Всички зависимости се управляват чрез **pnpm (Workspaces)**. Използвайте `pnpm install` от корена за инсталация.
+## 5. Maintenance Commands
+
+- `pnpm install` - Стандартна инсталация.
+- `pnpm verify` - Проверка на здравето на проекта (Min Score: 80).
+- `turbo build` - Проверка на билда в целия monorepo.
+
+---
+*Документът е актуализиран на 10.02.2026 от Meta-Architect.*

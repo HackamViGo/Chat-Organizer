@@ -1,6 +1,8 @@
 import type { Config } from 'tailwindcss';
+import baseConfig from '@brainbox/config/tailwind';
 
 export default {
+  ...baseConfig,
   content: ['./src/popup/**/*.{ts,tsx,html}'],
   darkMode: 'class', // Enable class-based dark mode
   theme: {
@@ -55,3 +57,4 @@ export default {
   },
   plugins: [],
 } satisfies Config;
+

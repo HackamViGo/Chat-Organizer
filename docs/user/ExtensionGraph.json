@@ -1,0 +1,848 @@
+{
+  "nodes": [
+    {
+      "id": "apps/extension/src/background/service-worker.ts",
+      "type": "background_script",
+      "responsibility": "The main entry point for the Chrome Extension service worker. Orchestrates lifecycle events (install, activate), initializes all core managers (AuthManager, PromptSyncManager, DynamicMenus, NetworkObserver, InstallationManager, MessageRouter, SyncManager), and provides a global CORS proxy bridge for secure backend communication via chrome.runtime.onMessage.",
+      "public_api": [],
+      "imports_from_packages": [
+        "@brainbox/shared/logic/promptSync",
+        "@brainbox/shared"
+      ],
+      "side_effects": [
+        "chrome.storage.local",
+        "chrome.runtime.onMessage",
+        "fetch",
+        "self.addEventListener"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/messageRouter.ts",
+      "type": "communication_router",
+      "responsibility": "Acts as the central communication hub, routing messages from popup and content scripts to their appropriate handlers. Processes actions like 'getConversation', 'saveToDashboard', 'syncAll', and 'checkAuth' by delegating to AuthManager, PromptSyncManager, and platform adapters. Returns responses via sendResponse callback.",
+      "public_api": [
+        "MessageRouter"
+      ],
+      "imports_from_packages": [
+        "@brainbox/shared",
+        "@brainbox/validation"
+      ],
+      "side_effects": [
+        "chrome.runtime.onMessage",
+        "chrome.runtime.sendMessage"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/authManager.ts",
+      "type": "shared_lib",
+      "responsibility": "Manages user authentication state across the extension lifecycle. Stores and validates JWT tokens in chrome.storage.local, handles token expiration checks, and provides session validation methods. Acts as the single source of truth for user identity and authentication status.",
+      "public_api": [
+        "AuthManager"
+      ],
+      "imports_from_packages": [
+        "@brainbox/shared"
+      ],
+      "side_effects": [
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/syncManager.ts",
+      "type": "shared_lib",
+      "responsibility": "Orchestrates asynchronous synchronization of captured chat data with the remote dashboard API. Implements a persistent queue stored in chrome.storage.local with retry logic (max 5 retries). Schedules periodic background sync using chrome.alarms API (5-minute intervals) to ensure offline-captured data is eventually uploaded.",
+      "public_api": [
+        "SyncManager"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.storage.local",
+        "chrome.alarms",
+        "fetch"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/tabManager.ts",
+      "type": "shared_lib",
+      "responsibility": "Monitors browser tab lifecycle events (onUpdated, onActivated, onRemoved) to maintain awareness of active AI platform tabs. Can trigger contextual script injections or badge updates based on tab URL patterns. Provides optional debug logging for tab state changes.",
+      "public_api": [
+        "TabManager"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.tabs.onUpdated",
+        "chrome.tabs.onActivated",
+        "chrome.tabs.onRemoved"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/networkObserver.ts",
+      "type": "shared_lib",
+      "responsibility": "Observes network requests using chrome.webRequest API to intercept and extract authentication tokens from AI platform HTTP headers. Stores captured tokens (e.g., ChatGPT session tokens, Gemini AT tokens) in chrome.storage.local for later use by platform adapters.",
+      "public_api": [
+        "NetworkObserver"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.webRequest.onBeforeRequest",
+        "chrome.webRequest.onBeforeSendHeaders",
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/cacheManager.ts",
+      "type": "shared_lib",
+      "responsibility": "Manages extension-wide cache invalidation and cleanup. Provides utilities to clear stale data from chrome.storage.local, ensuring fresh state after updates or user logout. Prevents memory bloat from accumulated cached conversation data.",
+      "public_api": [
+        "CacheManager"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/installationManager.ts",
+      "type": "shared_lib",
+      "responsibility": "Handles extension installation and update lifecycle events via chrome.runtime.onInstalled. Performs initial setup tasks like setting default storage values, displaying welcome pages, or migrating data from previous versions. Ensures clean state on fresh installs.",
+      "public_api": [
+        "InstallationManager"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.runtime.onInstalled",
+        "chrome.storage.local",
+        "chrome.tabs.create"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/dynamicMenus.ts",
+      "type": "shared_lib",
+      "responsibility": "Dynamically creates and manages context menu items via chrome.contextMenus API. Integrates with PromptSyncManager to populate menus with user's saved prompts. Handles menu click events to inject prompts into active tabs or trigger AI enhancement workflows.",
+      "public_api": [
+        "DynamicMenus"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.contextMenus",
+        "chrome.tabs.sendMessage"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/dashboardApi.ts",
+      "type": "shared_lib",
+      "responsibility": "Provides a centralized API client for all dashboard backend communication. Abstracts fetch calls with automatic Authorization header injection from chrome.storage.local tokens. Handles error responses (401 unauthorized, network failures) and provides typed methods for chat/prompt CRUD operations.",
+      "public_api": [
+        "DashboardApi"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "fetch",
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/index.ts",
+      "type": "shared_lib",
+      "responsibility": "Factory and registry for all supported AI platform adapters. Exports getAdapter() to retrieve the correct adapter instance by platform name, isPlatformSupported() for validation, and getSupportedPlatforms() for enumeration. Provides unified fetchConversation() interface that delegates to platform-specific implementations.",
+      "public_api": [
+        "getAdapter",
+        "isPlatformSupported",
+        "getSupportedPlatforms",
+        "fetchConversation"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/base.ts",
+      "type": "type_definition",
+      "responsibility": "Defines the abstract BasePlatformAdapter class and IPlatformAdapter interface contract. Provides shared utility methods (getStorageToken, getStorageValues, removeStorageKeys) for accessing chrome.storage.local. Enforces consistent Conversation and Message data structures across all platform-specific adapters.",
+      "public_api": [
+        "BasePlatformAdapter",
+        "IPlatformAdapter",
+        "Conversation",
+        "Message"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/chatgpt.adapter.ts",
+      "type": "shared_lib",
+      "responsibility": "Specialized adapter for OpenAI's ChatGPT platform. Fetches conversations via ChatGPT's internal API using stored session tokens from chrome.storage.local. Handles token expiration (401 responses) by clearing stale tokens. Normalizes ChatGPT's proprietary conversation format into BrainBox's canonical schema using normalizeChatGPT().",
+      "public_api": [
+        "ChatGPTAdapter"
+      ],
+      "imports_from_packages": [
+        "@brainbox/shared"
+      ],
+      "side_effects": [
+        "fetch",
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/claude.adapter.ts",
+      "type": "shared_lib",
+      "responsibility": "Specialized adapter for Anthropic's Claude platform. Authenticates via session cookies stored in chrome.storage.local and fetches conversation data from Claude's internal API. Handles 401 errors by invalidating tokens. Transforms Claude's message structure into BrainBox's standard Conversation schema using normalizeClaude().",
+      "public_api": [
+        "ClaudeAdapter"
+      ],
+      "imports_from_packages": [
+        "@brainbox/shared"
+      ],
+      "side_effects": [
+        "fetch",
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/gemini.adapter.ts",
+      "type": "shared_lib",
+      "responsibility": "Specialized adapter for Google's Gemini platform. Manages complex authentication using 'at' tokens and 'dynamic_key' parameters stored in chrome.storage.local. Constructs multi-layered JSON payloads (double-serialized) required by Gemini's batchexecute API. Parses Gemini's nested response format and normalizes via normalizeGemini().",
+      "public_api": [
+        "GeminiAdapter"
+      ],
+      "imports_from_packages": [
+        "@brainbox/shared"
+      ],
+      "side_effects": [
+        "fetch",
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/deepseek.adapter.ts",
+      "type": "shared_lib",
+      "responsibility": "Specialized adapter for DeepSeek platform. Authenticates using Bearer JWT tokens from chrome.storage.local and fetches session data via DeepSeek's /api/v0/chat_session/get_session endpoint. Handles 401 token expiration. Normalizes DeepSeek's 'selection_list' message format into BrainBox schema. Supports fallback to DOM-scraped payload if API fails.",
+      "public_api": [
+        "DeepSeekAdapter"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "fetch",
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/perplexity.adapter.ts",
+      "type": "shared_lib",
+      "responsibility": "Specialized adapter for Perplexity platform. Primarily relies on DOM-scraped payload from content script due to Perplexity's dynamic API structure. Validates scraped data and constructs Conversation objects. Provides rate-limited fetch scheduling to avoid detection. Generates conversation titles from first user message if not provided.",
+      "public_api": [
+        "PerplexityAdapter"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/grok.adapter.ts",
+      "type": "shared_lib",
+      "responsibility": "Specialized adapter for Grok (X.AI) platform. Fetches conversation data using session tokens from chrome.storage.local. Handles Grok's specific API endpoint structure and response format. Normalizes Grok conversations into BrainBox schema. Implements token expiration handling and automatic cleanup on 401 errors.",
+      "public_api": [
+        "GrokAdapter"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "fetch",
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/qwen.adapter.ts",
+      "type": "shared_lib",
+      "responsibility": "Specialized adapter for Qwen platform. Authenticates via tokens stored in chrome.storage.local and fetches session data from Qwen's API. Normalizes Qwen's message array format (with timestamp fields) into BrainBox schema. Supports fallback to DOM-scraped payload. Generates conversation titles from first user message when API title is missing.",
+      "public_api": [
+        "QwenAdapter"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "fetch",
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/lmarena.adapter.ts",
+      "type": "shared_lib",
+      "responsibility": "Specialized adapter for LMSYS Chatbot Arena (arena.ai). Handles Gradio framework internals by using session_hash and fn_index from chrome.storage.local. Constructs Gradio-specific POST requests to /run/predict endpoint. Normalizes Gradio's nested data arrays into BrainBox message format. Provides static extractGradioSession() helper for content script integration.",
+      "public_api": [
+        "LMArenaAdapter"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "fetch",
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/lmsys.adapter.ts",
+      "type": "shared_lib",
+      "responsibility": "Legacy adapter for LMSYS platform (chat.lmsys.org). Returns placeholder conversation due to Gradio architecture restrictions preventing direct API access from background context. Provides informational system message directing users to use UI-based save features. Maintained for backward compatibility.",
+      "public_api": [
+        "LmsysAdapter"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/content/inject-gemini-main.ts",
+      "type": "content_script",
+      "responsibility": "Specialized injection script for Gemini platform running in MAIN world context (bypassing content script isolation). Accesses Gemini's internal page variables and DOM structures unavailable in isolated context. Extracts dynamic authentication keys and conversation metadata. Communicates findings to isolated content script via window.postMessage.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [
+        "document",
+        "window",
+        "window.postMessage"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/prompt-inject/prompt-inject.ts",
+      "type": "ui_component",
+      "responsibility": "Universal prompt injection UI system running on all AI platform domains. Dynamically injects styled menus, dialogs, and notifications into host pages. Fetches user's prompt library from dashboard API. Handles prompt selection, creation, and textarea injection. Provides folder selection UI and toast notifications. Listens for background messages to trigger UI actions.",
+      "public_api": [
+        "BrainBoxPromptInject"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "document",
+        "chrome.runtime.onMessage",
+        "chrome.runtime.sendMessage",
+        "fetch"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/App.tsx",
+      "type": "ui_component",
+      "responsibility": "Root React component for extension popup UI. Orchestrates glassmorphic layout with Header, StatusBar, CurrentChat, ModulesPanel, QuickAccess, and Actions components. Provides premium dark-themed interface for extension control panel. Manages component hierarchy and responsive 380x520px viewport.",
+      "public_api": [
+        "App"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/index.tsx",
+      "type": "ui_component",
+      "responsibility": "React application entry point for popup. Mounts App component to DOM root element. Imports global CSS styles. Initializes React 18 concurrent rendering with createRoot(). Serves as the bridge between popup.html and React component tree.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [
+        "document"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/components/Header.tsx",
+      "type": "ui_component",
+      "responsibility": "Popup header component displaying BrainBox branding and utility controls. Provides theme toggle button (light/dark mode) via useTheme hook. Includes settings button that opens dashboard settings page in new tab using chrome.tabs.create. Shows app logo and version info.",
+      "public_api": [
+        "Header"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.tabs.create"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/components/StatusBar.tsx",
+      "type": "ui_component",
+      "responsibility": "Displays user authentication status in popup. Shows connected/disconnected state with visual indicators. Renders user email when authenticated. Provides sync and logout buttons. Uses useAuth hook to reactively update on storage changes. Handles authentication state transitions with appropriate UI feedback.",
+      "public_api": [
+        "StatusBar"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/components/CurrentChat.tsx",
+      "type": "ui_component",
+      "responsibility": "Displays currently active chat context in popup. Shows chat title from active tab's AI platform. Currently returns null (placeholder implementation). Designed to provide quick context about user's current conversation session.",
+      "public_api": [
+        "CurrentChat"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/components/ModulesPanel.tsx",
+      "type": "ui_component",
+      "responsibility": "Toggle panel for enabling/disabling extension modules. Provides switches for Chats and Prompts features. Uses useModules hook to manage module state in chrome.storage.local. Renders animated toggle switches with visual feedback. Allows users to selectively enable extension functionality.",
+      "public_api": [
+        "ModulesPanel"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/components/QuickAccess.tsx",
+      "type": "ui_component",
+      "responsibility": "Grid of platform quick-access buttons in popup. Displays 8 AI platforms (ChatGPT, Gemini, Claude, Grok, Perplexity, LMArena, DeepSeek, Qwen) with custom icons and gradient hover effects. Opens platform URLs in new tabs via chrome.tabs.create. Provides one-click navigation to supported AI platforms.",
+      "public_api": [
+        "QuickAccess"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.tabs.create"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/components/Actions.tsx",
+      "type": "ui_component",
+      "responsibility": "Primary action buttons in popup. Features prominent 'Open Dashboard' button that launches BrainBox web app in new tab using CONFIG.DASHBOARD_URL. Includes commented-out placeholders for future download and batch operations. Provides main user action interface.",
+      "public_api": [
+        "Actions"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.tabs.create"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/components/Footer.tsx",
+      "type": "ui_component",
+      "responsibility": "Popup footer displaying system status and version info. Shows animated green pulse indicator for 'System Ready' state. Displays extension version number. Provides visual confirmation of extension health at bottom of popup interface.",
+      "public_api": [
+        "Footer"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/hooks/useAuth.ts",
+      "type": "shared_lib",
+      "responsibility": "React hook managing authentication state for popup UI. Monitors chrome.storage.local for accessToken and userEmail changes via useStorage hook. Provides sync() method to trigger background auth validation and logout() to clear credentials. Returns reactive isConnected and userEmail state for UI components.",
+      "public_api": [
+        "useAuth"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.storage.local",
+        "chrome.runtime.sendMessage"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/hooks/useStorage.ts",
+      "type": "shared_lib",
+      "responsibility": "Generic React hook for real-time chrome.storage.local monitoring. Accepts array of storage keys and returns reactive values object. Listens to chrome.storage.onChanged events to update state automatically. Provides foundation for other hooks to build storage-backed reactive state.",
+      "public_api": [
+        "useStorage"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.storage.local",
+        "chrome.storage.onChanged"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/hooks/useTheme.ts",
+      "type": "shared_lib",
+      "responsibility": "React hook managing theme state (light/dark mode) for popup. Persists theme preference in chrome.storage.local. Provides toggleTheme() method and current theme value. Applies theme class to document root for CSS-based theming. Ensures theme consistency across popup sessions.",
+      "public_api": [
+        "useTheme"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.storage.local",
+        "document"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/hooks/useModules.ts",
+      "type": "shared_lib",
+      "responsibility": "React hook managing module enable/disable state for popup. Tracks 'chats' and 'prompts' module activation in chrome.storage.local. Provides toggleChats() and togglePrompts() methods. Returns reactive modules state object for ModulesPanel component.",
+      "public_api": [
+        "useModules"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "chrome.storage.local"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/styles/index.css",
+      "type": "stylesheet",
+      "responsibility": "Global CSS styles for popup UI. Imports Tailwind CSS base, components, and utilities. Defines custom animations (pulse-glow), glassmorphism effects, and dark mode color schemes. Provides foundational styling for all popup components.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/popup/index.html",
+      "type": "configuration",
+      "responsibility": "HTML entry point for extension popup. Defines viewport meta tags, charset, and root div element. Links to popup/index.tsx as module script. Serves as the container loaded by Chrome when user clicks extension icon.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/lib/config.ts",
+      "type": "shared_lib",
+      "responsibility": "Central configuration module providing read-only environment constants. Exports CONFIG object with API_BASE_URL, DASHBOARD_URL, VERSION, and DEBUG_MODE. Reads from import.meta.env (Vite environment variables). Provides single source of truth for environment-specific values across extension.",
+      "public_api": [
+        "CONFIG"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/lib/logger.ts",
+      "type": "shared_lib",
+      "responsibility": "Custom logging utility with context-aware tagging. Provides tiered methods (info, warn, error, debug) that prefix messages with module context. Respects DEBUG_MODE from config to conditionally enable debug logs. Ensures production builds can strip console calls via Vite's esbuild.drop configuration.",
+      "public_api": [
+        "logger"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "console"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/lib/normalizers.ts",
+      "type": "shared_lib",
+      "responsibility": "Pure transformation functions for platform-specific data normalization. Exports normalizeChatGPT, normalizeClaude, normalizeGemini, normalizeDeepSeek, etc. Converts proprietary API response formats into BrainBox's canonical Conversation schema. Handles edge cases like missing timestamps, malformed messages, and title extraction.",
+      "public_api": [
+        "normalizeChatGPT",
+        "normalizeClaude",
+        "normalizeGemini",
+        "normalizeDeepSeek"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/lib/rate-limiter.ts",
+      "type": "shared_lib",
+      "responsibility": "Request throttling and queuing system using Bottleneck library. Exports limiters object with platform-specific rate limiters (chatgpt, claude, gemini, etc.). Enforces minimum intervals between requests (e.g., 1000ms for ChatGPT) to prevent API throttling and bot detection. Provides schedule() method for queued execution.",
+      "public_api": [
+        "limiters",
+        "RateLimiter"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/lib/schemas.ts",
+      "type": "type_definition",
+      "responsibility": "TypeScript schema definitions and validation utilities for conversation data. Exports PLATFORMS, ROLES enums and Conversation, Message interfaces. Provides validateConversation() for runtime schema checking, createConversation() and createMessage() factory functions. Ensures type safety across extension codebase.",
+      "public_api": [
+        "PLATFORMS",
+        "ROLES",
+        "Conversation",
+        "Message",
+        "validateConversation",
+        "createConversation",
+        "createMessage"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/lib/platformConfig.ts",
+      "type": "shared_lib",
+      "responsibility": "Platform-specific configuration metadata. Defines URL patterns, selectors, and feature flags for each supported AI platform. Used by content scripts to identify platform context and adapt scraping strategies. Centralizes platform-specific constants for maintainability.",
+      "public_api": [
+        "platformConfig"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/lib/ui.ts",
+      "type": "shared_lib",
+      "responsibility": "Reusable UI component library for content scripts. Exports BrainBoxUI class with methods for showFolderSelector() (modal dialog), showToast() (notifications), and injectStyles(). Provides consistent UI patterns across platform-specific content scripts. Handles dark mode, animations, and accessibility.",
+      "public_api": [
+        "BrainBoxUI"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "document"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/types/global.d.ts",
+      "type": "type_definition",
+      "responsibility": "Global TypeScript ambient declarations for window augmentations. Defines BrainBoxUI, BrainBoxMaster, BrainBoxPromptInject, and BRAINBOX_PROMPT_INJECT_LOADED on Window interface. Ensures type safety for injected global objects used across content scripts.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/__tests__/setup.ts",
+      "type": "test_infrastructure",
+      "responsibility": "Vitest global test setup file. Mocks Chrome Extension APIs (storage, runtime, tabs, webRequest, contextMenus, scripting) for unit testing. Provides resetAllMocks() helper and beforeEach hook for test isolation. Mocks rate-limiter to bypass delays in tests. Configures import.meta.env for config tests.",
+      "public_api": [
+        "resetAllMocks",
+        "createStorageMock",
+        "createRuntimeMock"
+      ],
+      "imports_from_packages": [],
+      "side_effects": [
+        "global.chrome",
+        "global.fetch"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/__tests__/authManager.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for AuthManager. Validates token storage, session validation, expiration handling, and logout flows. Tests chrome.storage.local integration and error scenarios. Ensures authentication state management correctness.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/__tests__/messageRouter.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for MessageRouter. Validates message routing logic, action dispatching, and sendResponse callback handling. Tests integration with AuthManager and platform adapters. Ensures correct error propagation and response formatting.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/__tests__/integration.test.ts",
+      "type": "test_file",
+      "responsibility": "Integration tests for background module interactions. Tests end-to-end flows like authentication + conversation fetch + dashboard save. Validates cross-module communication and state consistency. Ensures system-level correctness.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/__tests__/newPlatforms.integration.test.ts",
+      "type": "test_file",
+      "responsibility": "Integration tests for newly added platforms (DeepSeek, Perplexity, Grok, Qwen, LMArena). Validates adapter registration, fetch flows, and normalization correctness. Ensures new platforms integrate seamlessly with existing infrastructure.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/__tests__/promptInjection.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for prompt injection system. Validates prompt fetching, menu creation, and injection logic. Tests chrome.tabs.sendMessage communication and error handling. Ensures prompt management features work correctly.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/chatgpt.adapter.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for ChatGPTAdapter. Validates API request construction, token handling, response parsing, and normalization. Tests 401 error handling and token cleanup. Ensures ChatGPT integration correctness.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/claude.adapter.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for ClaudeAdapter. Validates Claude API integration, session token usage, and conversation normalization. Tests error scenarios and data transformation correctness.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/gemini.adapter.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for GeminiAdapter. Validates complex payload serialization, 'at' token handling, and nested response parsing. Tests Gemini-specific authentication flow and normalization logic.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/deepseek.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for DeepSeekAdapter. Validates Bearer JWT authentication, API response parsing, and fallback to scraped payload. Tests normalization of DeepSeek's selection_list format.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/perplexity.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for PerplexityAdapter. Validates scraped payload processing and conversation construction. Tests fallback behavior when API is unavailable.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/grok.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for GrokAdapter. Validates Grok API integration, token management, and normalization. Tests error handling and response parsing.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/qwen.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for QwenAdapter. Validates Qwen API integration, message array normalization, and fallback payload handling. Tests timestamp conversion and title generation.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/lmarena.test.ts",
+      "type": "test_file",
+      "responsibility": "Unit tests for LMArenaAdapter. Validates Gradio API integration, session_hash handling, and nested data parsing. Tests extractGradioSession() helper and normalization logic.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/newPlatforms.adapter.test.ts",
+      "type": "test_file",
+      "responsibility": "Comprehensive test suite for all new platform adapters. Validates adapter factory registration, interface compliance, and cross-platform consistency. Ensures new adapters follow established patterns.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/src/background/modules/platformAdapters/__tests__/platformSave.test.ts",
+      "type": "test_file",
+      "responsibility": "Integration tests for platform save workflows. Validates end-to-end conversation capture and dashboard sync. Tests error recovery, retry logic, and offline queue behavior.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/manifest.json",
+      "type": "configuration",
+      "responsibility": "Chrome Extension Manifest V3 definition. Declares extension metadata (name, version, description), permissions (storage, tabs, contextMenus), host_permissions for AI platforms and dashboard, background service worker, and popup action. Serves as the authoritative configuration for Chrome's extension runtime.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/package.json",
+      "type": "configuration",
+      "responsibility": "NPM package manifest for extension subproject. Defines dependencies (@brainbox/config, @brainbox/shared, @brainbox/validation, React), devDependencies (Vite, TypeScript, Vitest, CRXJS), and scripts (dev, build, test suites). Configures monorepo workspace links and build tooling.",
+      "public_api": [],
+      "imports_from_packages": [
+        "@brainbox/config",
+        "@brainbox/shared",
+        "@brainbox/validation"
+      ],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/vite.config.ts",
+      "type": "configuration",
+      "responsibility": "Vite build configuration for extension. Integrates CRXJS plugin for Manifest V3 support. Implements stripDevCSP custom plugin to scrub localhost references and React DevTools hooks from production builds. Configures path aliases, environment variable injection, and sourcemap generation. Manages manifest.json templating with VITE_DASHBOARD_URL substitution.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [
+        "fs"
+      ],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/vitest.config.ts",
+      "type": "configuration",
+      "responsibility": "Vitest test runner configuration. Sets up jsdom environment for DOM testing, configures coverage reporting (v8 provider), and defines path aliases matching tsconfig.json. Specifies setup file (src/__tests__/setup.ts) for global test initialization. Enables globals and mock reset for test isolation.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/tsconfig.json",
+      "type": "configuration",
+      "responsibility": "TypeScript compiler configuration for extension. Extends root tsconfig.json with extension-specific path mappings (@brainbox/*, @/*). Configures ES2020 target, ESNext module system, and bundler module resolution. Includes Chrome types and Vite client types. Defines include/exclude patterns for compilation scope.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/tailwind.config.ts",
+      "type": "configuration",
+      "responsibility": "Tailwind CSS configuration for popup UI. Extends @brainbox/config/tailwind base config. Defines custom glassmorphism colors, platform-specific color palette, dark mode slate scale, and pulse-glow animation. Configures content paths for popup components. Enables class-based dark mode.",
+      "public_api": [],
+      "imports_from_packages": [
+        "@brainbox/config/tailwind"
+      ],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/postcss.config.js",
+      "type": "configuration",
+      "responsibility": "PostCSS configuration for CSS processing. Integrates Tailwind CSS and Autoprefixer plugins. Ensures CSS compatibility across browsers and processes Tailwind directives during build.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    },
+    {
+      "id": "apps/extension/README.md",
+      "type": "documentation",
+      "responsibility": "Extension subproject documentation. Provides overview of architecture, setup instructions, development workflows, and testing guidelines. Serves as entry point for developers working on the extension codebase.",
+      "public_api": [],
+      "imports_from_packages": [],
+      "side_effects": [],
+      "status": "ACTIVE"
+    }
+  ]
+}

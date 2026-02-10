@@ -1,39 +1,37 @@
 # Sync Protocol Documentation
 
 **Project**: BrainBox AI Chat Organizer  
-**Version**: 3.0.0
+**Version**: 3.1.0  
 **Stack**: Chrome Extension (Manifest V3) ↔ Next.js PWA  
-**Author**: Meta-Architect  
-**Date**: 2026-02-06
+**Generated**: 2026-02-10
 
 ---
 
 ## 1. Overview
 
-### High-Level Data Flow
+### High-Level Data Flow (v3.1.0)
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant Extension as Chrome Extension<br/>(Service Worker)
-    participant ContentScript as Content Script<br/>(10+ Scripts)
+    participant Ext_Master as content/brainbox_master.ts
+    participant Ext_SW as background/service-worker.ts
+    participant IDB as IndexedDB (Local Cache)
     participant Dashboard as Next.js Dashboard
-    participant Supabase as Supabase Database
-
-    User->>Dashboard: Login via OAuth/Email
-    Dashboard->>Supabase: Authenticate user
-    Supabase-->>Dashboard: Returns session + access_token
-    Dashboard->>Extension: Send tokens via content-dashboard-auth.ts
-    Extension->>Extension: Store tokens in chrome.storage.local
-
-    User->>ContentScript: Right-click -> "Save Chat to BrainBox"
-    ContentScript->>Extension: chrome.runtime.sendMessage({action: 'triggerSaveChat'})
-    Extension->>Extension: Fetch conversation via platform active listener
-    Extension->>Dashboard: POST /api/chats (with Bearer token)
-    Dashboard->>Supabase: Verify token + upsert chat
-    Supabase-->>Dashboard: Return chat record
-    Dashboard-->>Extension: Success response
-    Extension-->>ContentScript: Show success toast notification
+    
+    User->>Dashboard: Login / extension-auth
+    Dashboard->>Ext_SW: Send JWT via Token Bridge
+    Ext_SW->>Ext_SW: Save JWT in chrome.storage.local
+    
+    User->>Ext_Master: AI Interaction (ChatGPT/Gemini/etc.)
+    Ext_Master->>Ext_Master: Intercept XHR/Fetch (RELEVANT_API_REGEX)
+    Ext_Master->>IDB: Store Raw JSON Data + Encryption Keys
+    
+    User->>Ext_SW: Trigger "Save Chat"
+    Ext_SW->>IDB: Retrieve Decoded Conversation
+    Ext_SW->>Ext_SW: Normalize via PlatformAdapter
+    Ext_SW->>Dashboard: POST /api/chats (Bearer token)
+    Dashboard->>Ext_SW: 200 OK (Saved)
 ```
 
 ---
@@ -43,98 +41,37 @@ sequenceDiagram
 ### 2.1 Token Flow: Dashboard → Extension
 
 **Problem**: Chrome extensions cannot access HTTPOnly cookies from web pages.
-**Solution**: Explicit token transfer via `content-dashboard-auth.ts` on `/extension-auth` page.
+**Solution**: Сигурен трансфер на токени през `content-dashboard-auth.ts`, който работи на специалната страница `/extension-auth`.
 
-#### Implementation
-
-```mermaid
-flowchart LR
-    A[User logs in<br/>at /extension-auth] --> B{Auth successful?}
-    B -->|Yes| C[content-dashboard-auth.ts<br/>Extractions access_token]
-    C --> D[chrome.runtime.sendMessage<br/>action: 'setAuthToken']
-    D --> E[AuthManager stores<br/>in chrome.storage.local]
-    E --> F[Extension authenticated]
-    B -->|No| G[Show error UI]
-```
-
-#### Code Reference
-
-**Extension (Service Worker)**:
-`apps/extension/src/background/service-worker.ts` delegates to `AuthManager` modules.
-
-**Dashboard (Auth Page)**:
-`apps/dashboard/src/app/extension-auth/page.tsx` exposes session to content script (securely).
+**Handshake Steps**:
+1. Потребителят се логва в Dashboard-а.
+2. `content-dashboard-auth.ts` прихваща сесията и я изпраща към Background Service Worker.
+3. `authManager.ts` съхранява JWT токена в `chrome.storage.local`.
+4. Всички следващи заявки към API-то използват `Authorization: Bearer <JWT>`.
 
 ---
 
-## 3. Message Passing Interface
+## 3. Data Capture & Local Caching
 
-### 3.1 Architecture
+### 3.1 `brainbox_master.ts` (Traffic Coordinator)
+- **Regex Guard**: Използва `RELEVANT_API_REGEX` за филтриране на мрежовия трафик.
+- **Interception**: Прихваща и `XMLHttpRequest`, и `fetch`.
+- **IndexedDB**: Използва база данни `BrainBoxGeminiMaster` за временно съхранение на сурови отговори и ключове за декриптиране (специално за Gemini).
 
-```mermaid
-graph TD
-    A[Content Script<br/>Isolated Context] -->|chrome.runtime.sendMessage| B[Service Worker<br/>Background Context]
-    B -->|chrome.tabs.sendMessage| A
-    B -->|fetch with Bearer token| C[Dashboard API<br/>HTTPS]
-    C -->|JSON response| B
-```
-
-### 3.2 Message Types
-
-**Traffic Coordinator**: `brainbox_master.ts` acts as the "Safety Valve". It uses `RELEVANT_API_REGEX` to filter requests before they reach the Service Worker, preventing unnecessary message passing.
-
-| Action | Sender | Handler | Purpose |
-|--------|--------|---------|---------|
-
-| Action | Sender | Handler | Purpose |
-|--------|--------|---------|---------|
-| `setAuthToken` | Auth Content Script | Service Worker | Store Supabase session |
-| `triggerSaveChat` | Context Menu | Service Worker | Initiate conversation capture |
-| `saveToDashboard` | Platform Content Script | Service Worker | **[DEPRECATED]** Legacy manual save |
-| `fetchPrompts` | Content Script | Service Worker | Get user prompts (CSP bypass) |
-| `injectPrompt` | Context Menu | Content Script | Insert text into model textarea |
+### 3.2 Sync States
+| Състояние | Описание |
+|-----------|----------|
+| **CAPTURED** | Суровите данни са в IndexedDB. |
+| **NORMALIZED** | Данните са превърнати в каноничен `Chat` обект (в паметта на SW). |
+| **SYNCED** | Данните са успешно записани в Supabase. |
 
 ---
 
-## 4. Real-time Dashboard Sync
+## 4. Security Considerations
 
-### 4.1 Supabase Realtime
-The Dashboard uses `DataProvider.tsx` to subscribe to database changes.
-
-1.  **Subscription**: `supabase.channel('public:chats').on('postgres_changes', ...)`
-2.  **Optimistic UI**: Zustand stores update immediately on local actions.
-3.  **Cross-Tab Sync**: Changes made in Extension or another tab reflect instantly.
-
-## 5. Data Schemas
-
-### 4.1 Chat Sync Payload
-
-**Constraint**: Must match `@brainbox/validation` schema.
-
-```typescript
-// See packages/validation/src/index.ts (re-exports chat schemas)
-interface CreateChatInput {
-    title: string;
-    content: string;
-    messages: any[];
-    platform: string;
-    url: string;
-    folder_id?: string;
-}
-```
+- **CSP Bypass**: Разширението изпълнява всички тежки заявки (API calls) от Background контекста, за да избегне стриктните CSP политики на AI платформите.
+- **Fail-Fast**: Ако сесията е изтекла, `AuthManager` автоматично изпраща съобщение към потребителя за повторен лог-ин.
+- **No Global Leakage**: Данните в IndexedDB са достъпни само за разширението и се изчистват автоматично след успешна синхронизация.
 
 ---
-
-## 6. Security Considerations
-
-### 5.1 Token Exposure
-- **Storage**: `chrome.storage.local` (local only, no sync).
-- **Lifetime**: Handled by Supabase expiration. Extension auto-refreshes if possible or prompts re-login.
-
-### 5.2 Content Security Policy (CSP)
-- **Manifest V3**: No inline scripts. logic isolated in Service Worker.
-- **Fail-Fast URL Filtering**: `brainbox_master.ts` immediately blocks execution on non-relevant pages using regex.
-- **Global Error Boundaries**: Content scripts are wrapped in `try/catch` blocks to prevent modification of the DOM or console spam on error.
-
----
-**Version**: v3.0.0
+*Документът е актуализиран на 10.02.2026 от Meta-Architect.*

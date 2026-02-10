@@ -1,192 +1,29 @@
 {
   "manifest_version": 3,
-  "name": "BrainBox - AI Chat Organizer",
+  "name": "BrainBox",
+  "description": "AI Chat Organizer",
   "version": "3.0.1",
-  "description": "Organize AI conversations from ChatGPT, Gemini, Claude, Grok, Perplexity, DeepSeek, and Qwen into your personal dashboard",
-  "permissions": [
-    "storage",
-    "webRequest",
-    "cookies",
-    "contextMenus",
-    "notifications",
-    "tabs",
-    "scripting",
-    "activeTab",
-    "alarms"
-  ],
-  "host_permissions": [
-    "http://localhost/*",
-    "http://127.0.0.1/*",
-    "__DASHBOARD_URL__/*",
-    "https://your-factory-domain.com/*",
-    "https://chatgpt.com/*",
-    "https://chat.openai.com/*",
-    "https://claude.ai/*",
-    "https://gemini.google.com/*",
-    "https://chat.deepseek.com/*",
-    "https://api.deepseek.com/*",
-    "https://www.perplexity.ai/*",
-    "https://chat.qwenlm.ai/*",
-    "https://chat.lmsys.org/*",
-    "https://grok.com/*",
-    "https://*.x.ai/*",
-    "https://*.x.com/*",
-    "https://*.twitter.com/*",
-    "https://*.perplexity.ai/*",
-    "https://dashscope.aliyuncs.com/*",
-    "https://api.together.xyz/*",
-    "https://lmarena.ai/*",
-    "https://arena.ai/*",
-    "https://chat.qwen.ai/*"
-  ],
+  "action": {
+    "default_popup": "src/popup/index.html"
+  },
   "background": {
     "service_worker": "src/background/service-worker.ts",
     "type": "module"
   },
-  "content_scripts": [
-    {
-      "matches": [
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*"
-      ],
-      "js": [
-        "src/lib/ui.ts",
-        "src/content/content-chatgpt.ts",
-        "src/prompt-inject/prompt-inject.ts"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "https://claude.ai/*"
-      ],
-      "js": [
-        "src/lib/ui.ts",
-        "src/content/content-claude.ts",
-        "src/prompt-inject/prompt-inject.ts"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "https://gemini.google.com/*"
-      ],
-      "js": [
-        "src/lib/ui.ts",
-        "src/content/brainbox_master.ts",
-        "src/prompt-inject/prompt-inject.ts"
-      ],
-      "run_at": "document_start"
-    },
-    {
-      "matches": [
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*",
-        "https://claude.ai/*",
-        "https://gemini.google.com/*",
-        "https://chat.deepseek.com/*",
-        "https://www.perplexity.ai/*",
-        "https://grok.com/*",
-        "https://chat.qwen.ai/*",
-        "https://lmarena.ai/*"
-      ],
-      "js": [
-        "src/prompt-inject/prompt-inject.ts"
-      ],
-      "run_at": "document_idle"
-    },
-    {
-      "matches": [
-        "https://chat.deepseek.com/*"
-      ],
-      "js": [
-        "src/lib/ui.ts",
-        "src/content/content-deepseek.ts"
-      ],
-      "run_at": "document_end"
-    },
-    {
-      "matches": [
-        "https://www.perplexity.ai/*"
-      ],
-      "js": [
-        "src/lib/ui.ts",
-        "src/content/content-perplexity.ts"
-      ],
-      "run_at": "document_end"
-    },
-    {
-      "matches": [
-        "https://x.com/i/grok*",
-        "https://grok.com/*"
-      ],
-      "js": [
-        "src/lib/ui.ts",
-        "src/content/content-grok.ts"
-      ],
-      "run_at": "document_end"
-    },
-    {
-      "matches": [
-        "https://chat.qwen.ai/*"
-      ],
-      "js": [
-        "src/lib/ui.ts",
-        "src/content/content-qwen.ts"
-      ],
-      "run_at": "document_end"
-    },
-    {
-      "matches": [
-        "https://chat.lmsys.org/*",
-        "https://arena.ai/*"
-      ],
-      "js": [
-        "src/lib/ui.ts",
-        "src/content/content-lmarena.ts"
-      ],
-      "run_at": "document_end"
-    },
-    {
-      "matches": [
-        "__DASHBOARD_URL__/extension-auth",
-        "http://localhost:3000/extension-auth",
-        "http://127.0.0.1:3000/extension-auth"
-      ],
-      "js": [
-        "src/content/content-dashboard-auth.ts"
-      ],
-      "run_at": "document_idle"
-    }
+  "permissions": [
+    "storage",
+    "tabs",
+    "contextMenus",
+    "webRequest"
   ],
-  "action": {
-    "default_popup": "src/popup/index.html",
-    "default_icon": {
-      "16": "src/icons/icon16.png",
-      "32": "src/icons/icon32.png",
-      "48": "src/icons/icon48.png",
-      "128": "src/icons/icon128.png"
-    }
-  },
-  "icons": {
-    "16": "src/icons/icon16.png",
-    "32": "src/icons/icon32.png",
-    "48": "src/icons/icon48.png",
-    "128": "src/icons/icon128.png"
-  },
-  "web_accessible_resources": [
-    {
-      "resources": [
-        "src/icons/*",
-        "src/content/inject-gemini-main.ts"
-      ],
-      "matches": [
-        "https://gemini.google.com/*"
-      ],
-      "use_dynamic_url": true
-    }
-  ],
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'; connect-src 'self' ws://localhost:5173 http://localhost:5173 http://127.0.0.1:3000 http://localhost:3000 __DASHBOARD_URL__ https://chatgpt.com https://chat.openai.com https://claude.ai https://gemini.google.com https://grok.com https://api.x.ai https://x.com https://api.x.com https://twitter.com https://api.twitter.com https://*.perplexity.ai https://api.perplexity.ai https://chat.deepseek.com https://api.deepseek.com https://dashscope.aliyuncs.com https://api.together.xyz https://lmarena.ai https://arena.ai https://chat.qwen.ai"
-  }
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://*.deepseek.com/*",
+    "https://*.perplexity.ai/*",
+    "https://x.com/i/grok/*",
+    "https://*.qwenlm.ai/*",
+    "__DASHBOARD_URL__/*"
+  ]
 }

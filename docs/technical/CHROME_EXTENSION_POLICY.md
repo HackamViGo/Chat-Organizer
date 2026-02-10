@@ -1,167 +1,53 @@
+# BrainBox Chrome Extension Policy (Manifest V3)
 
-# Manifest V3 – permissions, CSP и специфики
+Този документ дефинира техническите политики, разрешения и сигурност за BrainBox Extension.
 
-Документът обобщава основните изисквания и особености на Manifest V3 за Chrome extensions – структури на permissions, Content Security Policy и ключови промени спрямо Manifest V2.
+## 1. Конфигурация на Manifest V3
 
-## 1. Основни промени в Manifest V3
+BrainBox използва Manifest V3, за да осигури максимална сигурност и производителност.
 
-- `manifest_version` трябва да бъде 3.  
-- Background страниците са заменени със service workers (background service workers).  
-- Забранен е „remotely hosted code“ – всички изпълними JS файлове трябва да са пакетирани в разширението.  
-- Модифицирането на заявки минава през `declarativeNetRequest` вместо blocking listeners в `webRequest`.  
-- Content Security Policy е затегната и не позволява изпълнение на произволни стрингове и inline скриптове в разширението.
+- **Background**: Използва Service Worker (`src/background/service-worker.ts`).
+- **Action**: Дефиниран попъп (`src/popup/index.html`).
+- **Scripting**: Използва инжектиране на контент скриптове за AI платформи.
 
-Примерни минимални полета в `manifest.json` за MV3:
+## 2. Декларирани Permissions
 
-```json
-{
-  "manifest_version": 3,
-  "name": "Example Extension",
-  "version": "1.0.0",
-  "background": {
-    "service_worker": "background.js",
-    "type": "module"
-  },
-  "action": {
-    "default_popup": "popup.html"
-  }
-}
-```
+Разширението изисква минимален набор от права:
 
-## 2. Категории permissions в Manifest V3
+- **`storage`**: За съхранение на сесийни токени, настройки и локален кеш (IndexedDB).
+- **`tabs`**: За комуникация между табовете и идентифициране на активната AI платформа.
+- **`contextMenus`**: За инжектиране на промпти директно чрез десен бутон в текстови полета.
+- **`webRequest`**: За пасивно прихващане на сесийни токени (Non-blocking Token Extraction). Ключово за синхронизацията без Content Script Injection.
 
-Chrome разделя permissions на няколко категории, декларирани в различни полета на manifest.json. 
+## 3. Host Permissions
 
-### 2.1. Поле `permissions`
+BrainBox има достъп само до оторизирани AI платформи и собствения си Dashboard:
 
-Полето `permissions` съдържа списък от „известни“ string‑ове за API‑та и специални права.
+- `https://gemini.google.com/*`
+- `https://chatgpt.com/*`
+- `https://claude.ai/*`
+- `https://*.deepseek.com/*`
+- `https://*.perplexity.ai/*`
+- `https://x.com/i/grok/*`
+- `https://*.qwenlm.ai/*`
+- `__DASHBOARD_URL__/*` (динамично се подменя по време на билд)
 
-Примери за често използвани permissions:
+## 4. Content Security Policy (CSP)
 
-- `"storage"` – достъп до `chrome.storage`.  
-- `"tabs"` – достъп до привилегировани полета на `Tab` обекти.  
-- `"activeTab"` – временен достъп до активния таб след потребителско действие.  
-- `"scripting"` – изпълнение на скриптове в страници чрез `chrome.scripting`.  
-- `"contextMenus"` – създаване на контекстни менюта.  
-- `"notifications"` – показване на нотификации.  
-- `"declarativeNetRequest"` – използване на Declarative Net Request API.  
+Стриктна политика за предотвратяване на XSS и неразрешено изпълнение на код:
 
-Пример:
+- **Extension Pages**: `script-src 'self'; object-src 'self';`
+- **Sandbox**: Не се използва sandbox за изпълнение на отдалечен код.
 
-```json
-{
-  "permissions": [
-    "storage",
-    "tabs",
-    "activeTab",
-    "scripting",
-    "declarativeNetRequest"
-  ]
-}
-```
+> [!IMPORTANT]
+> По време на производствения билд (`isProd`), `vite.config.ts` автоматично изчиства CSP от всякакви препратки към `localhost` или `127.0.0.1` за по-висока сигурност.
 
-### 2.2. Поле `optional_permissions`
+## 5. Сигурност на данните
 
-`optional_permissions` се заявяват, но се дават от потребителя в runtime.
+- **No Remote Code**: Всички скриптове са пакетирани локално. Няма използване на `eval()` или `new Function()`.
+- **Token Protection**: Сесийните токени се прехвърлят чрез защитенブリッジ (`content-dashboard-auth.ts`) и се съхраняват в `chrome.storage.local`.
+- **Hardening**: Всички производствени активи се сканират и "втвърдяват" (scrubbing) за премахване на развойни метаданни.
 
-### 2.3. Полета за host permissions
-
-За достъп до конкретни хостове се ползват: 
-
-host_permissions – задължителни host permissions.
-
-optional_host_permissions – допълнителни host permissions, заявявани динамично.
-
-Пример:
-
-'''
-{
-  "host_permissions": [
-    "https://www.developer.chrome.com/*"
-  ],
-  "optional_host_permissions": [
-    "http://*/*",
-    "https://*/*"
-  ]
-}
-'''
-
-## 3. Списък с често използвани Manifest V3 permissions (извадка)
-
-Официалната и пълна листа с permissions се поддържа от Chrome. 
-
-"activeTab" – временен достъп до текущия таб след user gesture.
-
-"alarms" – създаване на scheduled задачи.
-
-"bookmarks" – достъп и управление на отметки.
-
-"browsingData" – изчистване на различни типове browsing данни.
-
-"commands" – keyboard shortcuts за разширението.
-
-"contentSettings" – промяна на content settings (cookies, images и др.).
-
-"contextMenus" – добавяне на елементи в контекстното меню.
-
-"cookies" – четене и запис на бисквитки за разрешени хостове.
-
-"declarativeNetRequest" – филтриране и промяна на заявки чрез правила.
-
-"downloads" – управление на сваляния.
-
-"history" – достъп до browsing history.
-
-"notifications" – показване на системни нотификации.
-
-"scripting" – инжектиране на JS/CSS чрез chrome.scripting.
-
-"storage" – използване на chrome.storage.
-
-"tabs" – достъп до табовете и техните свойства.
-
-"topSites" – четене на най‑посещаваните сайтове.
-
-"webNavigation" – наблюдение на навигационни събития.
-
-
-
-## 4. Content Security Policy (CSP) в Manifest V3
-
-Manifest V3 използва по‑строга Content Security Policy за разширенията. 
-
-Минимална препоръчителна политика за extension pages: 
-
-'''
-{
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self';"
-  }
-}
-'''
-
-Ключови моменти: 
-
-Директива script-src 'self' – само скриптове от самото разширение.
-
-Забранени са inline скриптове и eval() в extension страниците.
-
-Не е разрешен „remotely hosted code" (remote JS файлове). 
-
-## 5. Специфики и добри практики
-
-Минимизирай исканите permissions. 
-
-Използвай optional_permissions за допълнителни функционалности. 
-
-Премини към declarativeNetRequest за мрежови промени. 
-
-## 6. Официални източници (актуални към 2026)
-
-Manifest V3 overview: https://developer.chrome.com/docs/extensions/develop/migrate/what-is-mv3 
-
-Migration guide: https://developer.chrome.com/docs/extensions/develop/migrate 
-
-Permissions: https://developer.chrome.com/docs/extensions/develop/concepts/declare-permissions 
-
-CSP: https://developer.chrome.com/docs/extensions/reference/manifest/content-security-policy 
+## 6. Източници
+- [Chrome Extension Permissions](https://developer.chrome.com/docs/extensions/mv3/declare_permissions/)
+- [Security in MV3](https://developer.chrome.com/docs/extensions/mv3/intro/mv3-migration/#security-improvements)

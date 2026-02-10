@@ -12,7 +12,6 @@
     "./services": "./src/services"
   },
   "devDependencies": {
-    "@types/chrome": "^0.1.36",
-    "typescript": "~5.8.2"
+    "@types/chrome": "^0.1.36"
   }
 }

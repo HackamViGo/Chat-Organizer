@@ -3,11 +3,12 @@
 > [!IMPORTANT]
 > # ⚖️ АРХИТЕКТУРЕН ЗАКОН (Meta-Architect v3.1)
 > Тази архитектура е **ЖИВА** и се управлява единствено чрез [SKILL.md](file:///home/stefanov/Projects/Chat%20Organizer%20Cursor/.agent/skills/meta_architect/SKILL.md). Всеки опит за промяна без `Audit -> Knowledge -> State` цикъл ще бъде автоматично ревертиран.
-**Version**: 3.0.0 (2026-02-06)
+
+**Version**: 3.1.0 (2026-02-10)
 
 ## 🔭 High-Level Overview
 
-BrainBox is a **monorepo** built with **Turborepo** comprising two main applications and shared packages:
+BrainBox е **monorepo**, изградено с **Turborepo**, включващо две основни приложения и споделени пакети:
 
 ```mermaid
 graph TD
@@ -35,6 +36,7 @@ graph TD
         Validation[@brainbox/validation]
         Database[@brainbox/database]
         Assets[@brainbox/assets]
+        Config[@brainbox/config]
     end
     
     User -->|Interact| CS
@@ -49,55 +51,69 @@ graph TD
 
 ## 🖥️ Dashboard (`apps/dashboard`)
 
-The dashboard is the command center for managing the prompt library.
+Командният център за управление на чатове, промпти и папки.
 
 ### Key Components
-- **`actions.tsx` (Server Actions)**: Handles server-side mutations.
-- **`DataProvider.tsx`**: Orchestrates parallel data fetching (`Promise.allSettled`) to eliminate waterfalls.
-- **`ChatCard.tsx`**: Decomposed into `ChatActions` and `ChatBadges` for maintainability.
+- **`actions.tsx` (Server Actions)**: Обработка на мутации от страна на сървъра.
+- **`DataProvider.tsx`**: Координира паралелно извличане на данни (`Promise.allSettled`) и Realtime абонаменти към Supabase.
+- **`ChatCard.tsx`**: Декомпозиран на `ChatActions` и `ChatBadges` за висока поддръжка.
 
-### State Management
-We use **Zustand** for global client state, ensuring atomic updates and minimal re-renders via `useShallow`.
+### State Management (Zustand)
+Използва се **Zustand** за глобално състояние на клиента с `useShallow` за оптимизация.
 
 **Core Stores**:
-- **`useChatStore`**: Manages chat lists, selection logic, and optimistic updates.
-- **`useFolderStore`**: Handles folder hierarchy and nesting logic.
-- **`usePromptStore`**: manages prompt templates.
+- **`useChatStore`**: Списък с чатове, логика за избор и оптимистични ъпдейти.
+- **`useFolderStore`**: Йерархия на папките и логика за вгнездяване.
+- **`usePromptStore`**: Управление на шаблони за промпти.
+- **`useImageStore`**: Галерия и управление на изображения.
+- **`useListStore`**: Списъци със задачи и управление на елементи.
 
 ---
 
 ## 🧩 Chrome Extension (`apps/extension`)
 
-The extension injects a "brain" into AI web interfaces.
+Инжектира логика ("мозък") в AI уеб интерфейси.
 
-### Security Model
-- **Content Security Policy (CSP)**: Strictly locked down. `script-src 'self'` prevents unauthorized code execution.
-- **`brainbox_master.ts`**: The central controller for injection logic. It uses a **Regex Filter** to strictly match allowed URLs before executing sensitive logic.
-- **Global Error Boundary**: Wraps injection points to prevent Extension errors from crashing the host page.
+### Security & Traffic Control
+- **`brainbox_master.ts`**: Централен координатор. Използва `RELEVANT_API_REGEX` за филтриране на мрежовия трафик и IndexedDB (`BrainBoxGeminiMaster`) за локално кеширане на сурови данни.
+- **Content Security Policy (CSP)**: Стриктно заключена (`script-src 'self'`). Производственият билд автоматично премахва `localhost` препратките.
 
-### Content Scripts
-- **Platform-Specific**: Dedicated scripts for ChatGPT, Claude, Gemini, etc. (e.g., `content-chatgpt.ts`).
-- **`prompt-inject.ts`**: Universal script for injecting the context menu into valid text areas.
+### Background Service Worker
+Организиран в модули в `src/background/modules/`:
+- **`authManager.ts`**: Управление на сесии и токен бридж.
+- **`syncManager.ts`**: Логика за повторни опити (retry) и фонова синхронизация.
+- **`dashboardApi.ts`**: Interceptor за комуникация с Dashboard API.
+- **`messageRouter.ts`**: Централен рутер за съобщения между частите на разширението.
+- **`platformAdapters/`**: Специфични адаптери за нормализиране на данни от 8+ платформи.
+
+### Platforms Support (8+)
+Базирано на специфични Content Scripts (`src/content/`):
+- **ChatGPT, Claude, Gemini, DeepSeek, Grok, Perplexity, Qwen, LMArena**.
 
 ---
 
 ## 📦 Shared Layer (`packages/`)
 
 ### `@brainbox/shared`
-- **Constants**: Limits, UI colors, and configuration.
-- **Utils**: Helper functions (e.g., `cn`, `formatDate`).
-- **Types**: Shared TypeScript interfaces to ensure contract alignment between Dashboard and Extension.
+- **Types**: Канонични интерфейси (`Chat`, `Prompt`, `Folder`, `User`).
+- **Constants**: Лимити, UI цветове и конфигурации.
+- **Services**: Споделени API клиенти и утилити (`cn`, `formatDate`).
 
 ### `@brainbox/validation`
-- **Zod Schemas**: Single source of truth for data validation.
-- Used by:
-  - **API Routes**: To validate request bodies.
-  - **Frontend Forms**: To validate user input.
+- **Zod Schemas**: Единствен източник на истина за валидност на данните.
+- Използва се в API маршрутите и формите на фронтенда.
+
+### `@brainbox/database`
+- **Supabase Types**: Автоматично генерирани типове от базата данни.
+
+### `@brainbox/config`
+- Споделени конфигурации за Tailwind, PostCSS, TypeScript и модели (`models.json`).
 
 ---
 
 ## 🛡️ Data Flow & Security
 
-1.  **Authentication**: Handled via Supabase Auth (SSR for Dashboard, Client SDK for Extension).
-2.  **API Security**: All API routes validate `user_id` from the session token before accessing data.
-3.  **RLS (Row Level Security)**: Postgres tables are protected by RLS polices ensuring users can only access their own data.
+1.  **Authentication**: Supabase Auth (SSR за Dashboard, Client SDK за Extension чрез Token Bridge).
+2.  **API Security**: Валидация на `user_id` чрез JWT сесийни токени.
+3.  **RLS (Row Level Security)**: Postgres политики гарантират достъп само до собствени данни.
+4.  **Network Observation**: Разширението прехваща `batchexecute` (Gemini) и други API заявки за пасивно събиране на данни.

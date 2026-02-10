@@ -22,7 +22,7 @@
 
 ---
 
-## 1. Project Topology Overview (v2.1.3)
+## 1. Project Topology Overview (v3.1.0)
 
 ```mermaid
 graph TB
@@ -38,10 +38,11 @@ graph TB
             CM[cacheManager.ts]
             IM[installationManager.ts]
             DM[dynamicMenus.ts]
+            TM[tabManager.ts]
         end
         CS_PLAT[Content Scripts<br/>(10+ Scripts / 8 Platforms)]
         CS_AUTH[content-dashboard-auth.ts<br/>Token Bridge]
-        NORM[platformAdapters/<br/>Platform Parsers (v3.0.0)]
+        NORM[platformAdapters/<br/>Platform Parsers (v3.1.0)]
         
         MASTER -->|Regex Guard| CS_PLAT
         EXT_SHARED["@brainbox/shared<br/>(Imported via Workspace)"]
@@ -61,9 +62,12 @@ graph TB
         PKG_DB[packages/database]
         PKG_VAL[packages/validation]
         PKG_SHARED[packages/shared]
+        PKG_CONFIG[packages/config]
         PKG_ASSETS[packages/assets]
         
         PKG_DB -.->|Database Types| PKG_SHARED
+        PKG_CONFIG -.->|Shared Config| Extension
+        PKG_CONFIG -.->|Shared Config| Dashboard
         PKG_VAL -.->|Validation| Extension
         PKG_VAL -.->|Validation| Dashboard
         PKG_ASSETS -.->|UI Icons/Assets| Extension
@@ -99,84 +103,36 @@ graph TB
 | **Auth: Token Bridge** | Extension | `apps/extension/src/content/content-dashboard-auth.ts` | Read-only from Dashboard session | ⚠️ YES |
 | **Auth: Token Manager** | Extension | `apps/extension/src/background/modules/authManager.ts` | Handles storage & refresh | ⚠️ YES |
 | **Database Types** | Shared | `packages/shared/src/types/database.ts` | Auto-generated from Supabase | ⚠️ YES |
-| **Validation Schemas** | Validation | `packages/validation/src/index.ts` | Zod Schemas for API/UI | ⚠️ YES |
+| **Validation Schemas** | Validation | `packages/validation/index.ts` | Zod Schemas for API/UI | ⚠️ YES |
 | **Extension Schemas** | Shared | `packages/shared/src/types/index.ts` | Shared logic for Ext/PWA | ⚠️ YES |
 | **API: Chat Sync** | Dashboard | `apps/dashboard/src/app/api/chats/route.ts` | Dual auth (Bearer/cookies) | NO |
 | **Platform Capture** | Extension | `apps/extension/src/content/` | Isolated content scripts | NO |
 | **Normalization** | Extension | `apps/extension/src/background/modules/platformAdapters/` | Must output canonical schema | ⚠️ YES |
 | **Bridge: Ext→API** | Extension | `apps/extension/src/background/modules/dashboardApi.ts` | Token interceptors | ⚠️ YES |
 | **Sync Logic** | Extension | `apps/extension/src/background/modules/syncManager.ts` | Retail & Retry logic | YES |
-| **Config Source** | Extension | `apps/extension/src/lib/config.ts` | Configuration Master | ⚠️ YES |
+| **Tab Management** | Extension | `apps/extension/src/background/modules/tabManager.ts` | Tracks AI platform tabs | NO |
+| **Config Source** | Config | `packages/config/` | Centralized project config | ⚠️ YES |
 | **Shared Assets** | Shared Assets | `packages/assets/src/index.ts` | Unified AI Provider Branding | NO |
 
+---
 
-### 2.1 Shared Packages (The Bridges)
+## 3. Communication Bridge (Monorepo Packages)
 
-1.  **`@brainbox/database`**:
-    *   **Content**: `database.types.ts` (Supabase generated).
-    *   **Rule**: Never edit manually. Run `supabase gen types` and update here.
-    *   **Consumers**: Dashboard API, Dashboard Components.
-
-2.  **`@brainbox/validation`**:
-    *   **Content**: Zod schemas (`createChatSchema`, `promptSchema`, etc.).
-    *   **Rule**: Single source of truth for data integrity.
-    *   **Consumers**: Dashboard API (backend validation), Dashboard UI (form validation).
-
-3.  **`@brainbox/shared`**:
-    *   **Content**: Logic/Schemas shared between Extension and Dashboard.
-    *   **Rule**: Code that must exist in both build environments.
-    *   **Consumers**: Extension, Dashboard.
-
-4.  **`@brainbox/assets`**:
-    *   **Content**: Centralized provider icons and UI assets.
-    *   **Rule**: Store high-res branding assets here for global project consistency.
-    *   **Consumers**: Extension (Popup), Dashboard (ChatCards).
+1.  **`@brainbox/database`**: Съдържа суровите дефиниции на таблиците.
+2.  **`@brainbox/validation`**: Единствен източник на истина за валидация (Zod).
+3.  **`@brainbox/shared`**: Типове и помощни функции, използвани в цялото monorepo.
+4.  **`@brainbox/config`**: Споделени конфигурации за Tailwind, PostCSS, TS и модели.
+5.  **`@brainbox/assets`**: Централизирани икони и брандинг активи.
 
 ---
 
-## 3. Communication Rules (Extension <-> Dashboard)
+## 4. Communication Rules (Extension <-> Dashboard)
 
-### 3.1 Strict API-Only Contract
-The Extension **NEVER** imports code directly from `apps/dashboard`.
-The Dashboard **NEVER** imports code directly from `apps/extension`.
-
-**Allowed Communication Channels**:
-1.  **HTTP API**: Extension calls `POST https://brainbox.ai/api/chats`.
-2.  **Shared Packages**: Both import from `packages/*` (via `@brainbox/*` alias).
-3.  **Message Passing**: Content scripts <-> Background <-> Dashboard (via Auth Bridge).
-
-### 3.2 Token Flow (The Handshake)
-1.  User logs in on Dashboard (`/extension-auth`).
-2.  `content-dashboard-auth.ts` detects session.
-3.  Sends token to `service-worker.ts`.
-4.  `AuthManager` (service-worker) saves to `chrome.storage.local`.
-5.  All subsequent API requests use `Authorization: Bearer <token>`.
-
-### 3.3 Configuration Flow (No Hardcoded URLs)
-1.  **Source**: `apps/extension/src/lib/config.ts` defines `API_BASE_URL` and `DASHBOARD_URL`.
-2.  **Init**: `service-worker.ts` imports config and saves it to `chrome.storage.local` on startup.
-3.  **Consumption**: Content scripts (e.g., `prompt-inject.js`) read config from `chrome.storage.local` asynchronously.
-4.  **Rule**: NEVER hardcode URLs in content scripts; always read from storage.
+### 4.1 Strict API-Only Contract
+Разширението **НИКОГА** не импортира код директно от `apps/dashboard`. Комуникацията става само през:
+1.  **HTTP API**: `Authorization: Bearer <token>`.
+2.  **Shared Packages**: Импорти чрез `@brainbox/*`.
+3.  **Message Passing**: През защитения токен бридж.
 
 ---
-
-## 4. No-Go Zones & Entry Points
-
-Refer to previous documentation for detailed file lists.
-**Key Update**: When adding a new field to `chats`:
-1.  Update Supabase Schema.
-2.  Regenerate `@brainbox/database`.
-3.  Update `@brainbox/validation`.
-4.  Update Extension Normalizers.
-5.  Update Dashboard UI.
-
----
-
-## 5. Agent Scope Strategy
-**Before starting:**
-1.  Identify if task is **Extension**, **Dashboard**, or **Shared**.
-2.  If **Shared**, you MUST check `packages/`.
-3.  Verity `turbo build` passes after changes.
-
----
-**Version**: v3.0.0
+*Документът е актуализиран на 10.02.2026 от Meta-Architect.*

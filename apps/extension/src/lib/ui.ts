@@ -1,6 +1,8 @@
 // BrainBox - Shared UI Components
 // Contains the Folder Selector and Toast logic to be reused across content scripts
 
+import { logger } from '@/lib/logger';
+
 export class BrainBoxUI {
     private styleInjected: boolean;
 

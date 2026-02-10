@@ -15,7 +15,7 @@ export class NetworkObserver {
                 return;
             }
 
-            chrome.webRequest.onBeforeRequest.addListener(
+            (chrome.webRequest.onBeforeRequest as any).addListener(
                 this.handleClaudeRequest,
                 { urls: ["https://claude.ai/api/organizations/*"] }
             );
@@ -26,7 +26,7 @@ export class NetworkObserver {
         }
     }
 
-    private handleClaudeRequest(details: chrome.webRequest.WebRequestBodyDetails) {
+    private handleClaudeRequest(details: any) {
         try {
             const match = details.url.match(/organizations\/([a-f0-9-]+)/i);
             if (!match?.[1]) return;

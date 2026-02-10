@@ -883,6 +883,37 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
         return true;
       }
 
+      if (request.action === 'showNotification') {
+        showNotification(request.message, request.type || 'info', request.duration);
+        sendResponse({ success: true });
+        return true;
+      }
+
+      if (request.action === 'openCreatePromptDialog') {
+        showCreatePromptDialog(request.selectedText || '');
+        sendResponse({ success: true });
+        return true;
+      }
+
+      if (request.action === 'showPromptMenu') {
+        (async () => {
+          const prompts = await fetchPrompts();
+          showPromptMenu(prompts, { mode: request.mode });
+          sendResponse({ success: true });
+        })();
+        return true;
+      }
+
+      if (request.action === 'triggerSaveChat') {
+        logger.info('Prompt Inject', '💾 Save chat triggered from background');
+        // This is a placeholder for actual scraping if needed.
+        // For now, we rely on the background script to use adapters.
+        // But we can show a placeholder notification.
+        showNotification('Syncing chat...', 'info');
+        sendResponse({ success: true });
+        return true;
+      }
+
       if (request.action === 'refreshPrompts') {
         logger.debug('Prompt Inject', '📨 Received message to refresh prompts');
         

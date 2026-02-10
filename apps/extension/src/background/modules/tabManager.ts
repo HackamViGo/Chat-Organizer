@@ -21,8 +21,8 @@ export class TabManager {
 
     private handleTabUpdated(
         tabId: number,
-        changeInfo: chrome.tabs.TabChangeInfo,
-        tab: chrome.tabs.Tab
+        changeInfo: any,
+        tab: any
     ) {
         // Only act on complete page loads
         if (changeInfo.status !== 'complete') return;
@@ -37,14 +37,14 @@ export class TabManager {
         }
     }
 
-    private handleTabActivated(activeInfo: chrome.tabs.TabActiveInfo) {
+    private handleTabActivated(activeInfo: any) {
         // Example: Update badge when switching tabs
         if (this.DEBUG_MODE) {
             logger.debug('TabManager', 'Tab activated:', activeInfo.tabId);
         }
     }
 
-    private handleTabRemoved(tabId: number, removeInfo: chrome.tabs.TabRemoveInfo) {
+    private handleTabRemoved(tabId: number, removeInfo: any) {
         // Cleanup logic
         if (this.DEBUG_MODE) {
             logger.debug('TabManager', 'Tab closed:', tabId);

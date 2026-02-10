@@ -5,15 +5,27 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 import fs from 'fs';
 
 // Read manifest and inject environment variables
-const manifestCallback = (env: Record<string, string>) => {
+const manifestCallback = (env: Record<string, string>, isProd: boolean) => {
   const manifestRaw = fs.readFileSync(resolve(__dirname, 'manifest.json'), 'utf-8');
   const dashboardUrl = env.VITE_DASHBOARD_URL || 'http://localhost:3000';
   const manifestStr = manifestRaw.replace(/__DASHBOARD_URL__/g, dashboardUrl);
   try {
-    return JSON.parse(manifestStr);
+    const manifest = JSON.parse(manifestStr);
+    console.log(`[Vite] 🛠️ Manifest callback triggered (isProd: ${isProd})`);
+    if (manifest.content_scripts) {
+        console.log(`[Vite] 📜 Content scripts found:`, manifest.content_scripts.map((s: any) => s.js));
+    } else {
+        console.warn(`[Vite] ⚠️ No content scripts in manifest.json!`);
+    }
+    if (!isProd) {
+      // Inject Dev CSP for Vite module loading
+      manifest.content_security_policy = {
+        extension_pages: "script-src 'self' http://localhost:5173; object-src 'self'; connect-src 'self' http://localhost:5173 ws://localhost:5173 http://localhost:3000",
+      };
+    }
+    return manifest;
   } catch (e) {
     console.error('❌ Manifest Parse Error:', e);
-    // Return original without replacement as fallback to allow CRX to handle errors
     return JSON.parse(manifestRaw);
   }
 };
@@ -57,7 +69,7 @@ const stripDevCSP = (env: Record<string, string>) => {
             manifest.content_scripts.forEach((script: any) => {
               if (script.matches) {
                 script.matches = script.matches.filter((m: string) => 
-                  !m.includes('localhost') && !m.includes('127.0.0.1')
+                  env.VITE_TEST_MODE === 'true' || (!m.includes('localhost') && !m.includes('127.0.0.1'))
                 );
               }
             });
@@ -129,13 +141,14 @@ export default defineConfig(({ mode }) => {
       __DASHBOARD_URL__: JSON.stringify(env.VITE_DASHBOARD_URL || 'http://localhost:3000'),
     },
     esbuild: {
-      drop: isProd ? ['console', 'debugger'] : [],
+      // Temporarily keeping all logs for debugging
+      pure: [],
     },
     plugins: [
       tsconfigPaths({
         root: __dirname,
       }),
-      crx({ manifest: manifestCallback(env) }),
+      crx({ manifest: manifestCallback(env, isProd) }),
       isProd && stripDevCSP(env),
     ].filter((p): p is any => Boolean(p)),
     resolve: {
@@ -151,6 +164,7 @@ export default defineConfig(({ mode }) => {
       rollupOptions: {
         input: {
           popup: resolve(__dirname, 'src/popup/index.html'),
+          'inject-gemini-main': resolve(__dirname, 'src/content/inject-gemini-main.ts'),
         },
         output: {
           // Prevent nested src/ patterns in the final build
@@ -165,8 +179,17 @@ export default defineConfig(({ mode }) => {
       port: 5173,
       strictPort: true,
       hmr: {
-        port: 5173,
+        protocol: 'ws',
+        host: 'localhost',
+        port: 5173, // Fixed port to avoid mismatch
       },
+      cors: true,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET,POST,PUT,DELETE,OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, X-Requested-With, Accept, Origin',
+        'Access-Control-Allow-Private-Network': 'true', // Critical for Chrome HMR loading
+      }
     },
   };
 });

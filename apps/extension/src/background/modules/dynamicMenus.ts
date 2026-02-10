@@ -11,16 +11,19 @@ import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import { enhancePrompt } from './dashboardApi';
 import { CONFIG } from '@/lib/config';
 import { logger } from '@/lib/logger';
+import { AuthManager } from './authManager';
 
 // We need a way to message the tab, currently utilizing the service worker's helper or rewriting it here.
 // For now, we'll assume we can emit a message or use chrome.tabs.
 
 export class DynamicMenus {
     private syncManager: PromptSyncManager;
+    private authManager: AuthManager;
     private DEBUG_MODE: boolean = true;
 
-    constructor(syncManager: PromptSyncManager) {
+    constructor(syncManager: PromptSyncManager, authManager: AuthManager) {
         this.syncManager = syncManager;
+        this.authManager = authManager;
         this.handleMenuClick = this.handleMenuClick.bind(this);
     }
 
@@ -140,8 +143,8 @@ export class DynamicMenus {
 
             // Get data from cache
             const prompts = await this.syncManager.getAllPrompts();
-            const { brainbox_user_settings_cache: settings } = await chrome.storage.local.get(['brainbox_user_settings_cache']);
-            const { brainbox_folders_cache: folders } = await chrome.storage.local.get(['brainbox_folders_cache']);
+            const { brainbox_user_settings_cache: settings } = await chrome.storage.local.get(['brainbox_user_settings_cache']) as any;
+            const { brainbox_folders_cache: folders } = await chrome.storage.local.get(['brainbox_folders_cache']) as any;
 
             const quickAccessFolderIds = (settings?.quickAccessFolders || []).slice(0, 3);
             
@@ -252,9 +255,9 @@ export class DynamicMenus {
                            (typeof info.menuItemId === 'string' && info.menuItemId.startsWith('brainbox_inject_prompt_'));
 
         if (isProtected) {
-            const { accessToken } = await chrome.storage.local.get(['accessToken']);
-            if (!accessToken) {
-                if (this.DEBUG_MODE) logger.warn('DynamicMenus', '⛔ User not logged in, redirecting...');
+            const isLoggedIn = await this.authManager.checkAuth();
+            if (!isLoggedIn) {
+                if (this.DEBUG_MODE) logger.warn('DynamicMenus', '⚠️ ⛔ User not logged in, redirecting...');
                 chrome.tabs.create({ url: `${CONFIG.DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
                 return;
             }

@@ -78,7 +78,12 @@ export class AuthManager {
     initialize() {
         this.registerListeners();
         this.loadTokensFromStorage();
+        this.registerMessageListeners();
         logger.info('AuthManager', '🛡️ Initialized and listening.');
+    }
+
+    private registerMessageListeners() {
+        // Consolidated into MessageRouter to avoid listener conflicts
     }
 
     registerListeners() {
@@ -402,21 +407,172 @@ export class AuthManager {
     // ========================================================================
 
     async setDashboardSession(session: any) {
-        await chrome.storage.local.set({
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken,
-            expiresAt: session.expiresAt,
-            rememberMe: session.rememberMe
+        console.log('[AuthManager] 📥 Processing session sync...', {
+            access_token: session.access_token ? 'Present' : 'Missing',
+            refresh_token: session.refresh_token ? 'Present' : 'Missing',
+            expires_at: session.expires_at,
+            user: session.user?.email
         });
-        logger.debug('AuthManager', '✅ Dashboard session updated');
+        
+        try {
+            // Normalize session structure (handle both camelCase and snake_case)
+            const sessionToStore = {
+                access_token: session.access_token || session.accessToken,
+                refresh_token: session.refresh_token || session.refreshToken,
+                expires_at: session.expires_at || session.expiresAt,
+                user: session.user
+            };
+
+            // Validate required fields
+            if (!sessionToStore.access_token) {
+                throw new Error('Missing access_token in session');
+            }
+
+            console.log('[AuthManager] 💾 Storing session in chrome.storage.local...');
+            await chrome.storage.local.set({ BRAINBOX_SESSION: sessionToStore });
+            
+            // Backward compatibility for legacy token keys
+            if (sessionToStore.access_token) {
+                await chrome.storage.local.set({
+                    accessToken: sessionToStore.access_token,
+                    refreshToken: sessionToStore.refresh_token,
+                    expiresAt: sessionToStore.expires_at
+                });
+            }
+
+            // Verify write
+            const verify = await chrome.storage.local.get('BRAINBOX_SESSION');
+            if (!verify.BRAINBOX_SESSION) {
+                throw new Error('Session verification failed after write');
+            }
+            
+            console.log('[AuthManager] ✅ Session stored and verified successfully');
+            logger.debug('AuthManager', '✅ Dashboard session updated');
+        } catch (error) {
+            console.error('[AuthManager] ❌ Critical: Failed to save session!', error);
+            logger.error('AuthManager', '❌ Failed to save session', error);
+            throw error; // Re-throw for caller to handle
+        }
     }
 
     async isSessionValid() {
-        const result = (await chrome.storage.local.get(['accessToken', 'expiresAt'])) as any;
+        const result = (await chrome.storage.local.get(['BRAINBOX_SESSION', 'accessToken', 'expiresAt'])) as any;
+        
+        // Try new key first (snake_case internally)
+        if (result.BRAINBOX_SESSION) {
+            const { access_token, expires_at } = result.BRAINBOX_SESSION;
+            // Add 5 minute grace period (300,000 ms)
+            const GRACE_PERIOD = 5 * 60 * 1000;
+            const now = Date.now();
+            
+            if (access_token && (!expires_at || expires_at > (now + GRACE_PERIOD))) {
+                logger.debug('AuthManager', '✅ Session is valid by BRAINBOX_SESSION', { expires_at, now });
+                return true;
+            }
+            
+            // If token is in grace period, try to refresh
+            if (access_token && expires_at && expires_at > now && expires_at <= (now + GRACE_PERIOD)) {
+                logger.info('AuthManager', '🕒 Session in grace period, initiating background refresh...');
+                this.refreshSession().catch(err => logger.error('AuthManager', 'Failed to refresh session in grace period', err));
+                return true; // Still "valid" for now
+            }
+
+            logger.warn('AuthManager', '❌ Session in BRAINBOX_SESSION is invalid/expired', { 
+                hasToken: !!access_token, 
+                expires_at, 
+                now,
+                diff: expires_at ? expires_at - now : 'N/A'
+            });
+            
+            if (!access_token) logger.warn('AuthManager', '❌ No access_token in BRAINBOX_SESSION');
+            else if (expires_at && expires_at <= now) logger.warn('AuthManager', '❌ Session in BRAINBOX_SESSION expired', { expires_at, now });
+            
+            return false;
+        }
+
+        // Fallback to legacy keys
         const accessToken = result.accessToken;
         const expiresAt = result.expiresAt;
-        const isValid = accessToken && (!expiresAt || expiresAt > Date.now());
+        const GRACE_PERIOD = 5 * 60 * 1000;
+        const now = Date.now();
+        const isValid = accessToken && (!expiresAt || expiresAt > (now + GRACE_PERIOD));
+        
+        if (accessToken && expiresAt && expiresAt > now && expiresAt <= (now + GRACE_PERIOD)) {
+            this.refreshSession().catch(err => logger.error('AuthManager', 'Failed to refresh legacy session', err));
+            return true;
+        }
+        
         return !!isValid;
+    }
+
+    /**
+     * Standardized checkAuth method for robust validation
+     */
+    async checkAuth(): Promise<boolean> {
+        const isValid = await this.isSessionValid();
+        if (isValid) return true;
+
+        // One last check directly from storage to be 100% sure
+        const storage = (await chrome.storage.local.get('BRAINBOX_SESSION')) as { BRAINBOX_SESSION?: any };
+        logger.debug('AuthManager', '🔍 Final check storage dump:', { 
+            hasSession: !!storage.BRAINBOX_SESSION, 
+            hasToken: !!storage.BRAINBOX_SESSION?.access_token 
+        });
+        if (storage.BRAINBOX_SESSION?.access_token) {
+            // If we have a token but it's expired, try one last refresh
+            try {
+                logger.info('AuthManager', '🔄 Session expired, attempting final refresh before redirect...');
+                const success = await this.refreshSession();
+                if (success) return true;
+            } catch (e) {
+                logger.warn('AuthManager', 'Final refresh attempt failed');
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Refresh the Dashboard session using the refresh token
+     */
+    async refreshSession(): Promise<boolean> {
+        try {
+            const { BRAINBOX_SESSION } = (await chrome.storage.local.get('BRAINBOX_SESSION')) as { BRAINBOX_SESSION?: any };
+            const refreshToken = BRAINBOX_SESSION?.refresh_token;
+
+            if (!refreshToken) {
+                logger.warn('AuthManager', 'No refresh token available');
+                return false;
+            }
+
+            const { CONFIG } = await import('@/lib/config');
+            const response = await fetch(`${CONFIG.DASHBOARD_URL}/api/auth/refresh`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ refreshToken })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Refresh failed with status ${response.status}`);
+            }
+
+            const data = await response.json();
+            if (data.accessToken) {
+                await this.setDashboardSession({
+                    access_token: data.accessToken,
+                    refresh_token: data.refreshToken,
+                    expires_at: data.expiresAt,
+                    user: BRAINBOX_SESSION?.user
+                });
+                logger.info('AuthManager', '✨ Session refreshed successfully');
+                return true;
+            }
+
+            return false;
+        } catch (error) {
+            logger.error('AuthManager', '❌ Failed to refresh session', error);
+            return false;
+        }
     }
 
     /**
@@ -429,8 +585,9 @@ export class AuthManager {
         await this.loadTokensFromStorage();
         
         // 2. Verify Dashboard Session via Ping
-        const result = (await chrome.storage.local.get(['accessToken'])) as any;
-        const accessToken = result.accessToken;
+        const result = (await chrome.storage.local.get(['BRAINBOX_SESSION', 'accessToken'])) as any;
+        const accessToken = result.BRAINBOX_SESSION?.access_token || result.accessToken;
+        
         if (!accessToken) return { isValid: false, tokens: this.tokens };
 
         try {
@@ -442,7 +599,7 @@ export class AuthManager {
             
             if (response && response.status === 401) {
                 // Token is dead, cleanup
-                await chrome.storage.local.remove(['accessToken', 'refreshToken', 'userEmail', 'expiresAt']);
+                await chrome.storage.local.remove(['BRAINBOX_SESSION', 'accessToken', 'refreshToken', 'userEmail', 'expiresAt']);
                 return { isValid: false, tokens: this.tokens };
             }
             

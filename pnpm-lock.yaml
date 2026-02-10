@@ -43,7 +43,7 @@ importers:
         version: 14.2.35(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       next-pwa:
         specifier: ^5.6.0
-        version: 5.6.0(@babel/core@7.29.0)(next@14.2.35(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0)))
+        version: 5.6.0(@babel/core@7.29.0)(next@14.2.35(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(webpack@5.105.0(webpack-cli@6.0.1))
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -185,7 +185,7 @@ importers:
         version: 14.2.35(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       next-pwa:
         specifier: ^5.6.0
-        version: 5.6.0(@babel/core@7.29.0)(next@14.2.35(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0)))
+        version: 5.6.0(@babel/core@7.29.0)(next@14.2.35(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(webpack@5.105.0(webpack-cli@6.0.1))
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -6405,19 +6405,19 @@ snapshots:
 
   '@webcomponents/custom-elements@1.6.0': {}
 
-  '@webpack-cli/configtest@3.0.1(webpack-cli@6.0.1(webpack@5.105.0))(webpack@5.105.0)':
+  '@webpack-cli/configtest@3.0.1(webpack-cli@6.0.1)(webpack@5.105.0)':
     dependencies:
-      webpack: 5.105.0(webpack-cli@6.0.1(webpack@5.105.0))
+      webpack: 5.105.0(webpack-cli@6.0.1)
       webpack-cli: 6.0.1(webpack@5.105.0)
 
-  '@webpack-cli/info@3.0.1(webpack-cli@6.0.1(webpack@5.105.0))(webpack@5.105.0)':
+  '@webpack-cli/info@3.0.1(webpack-cli@6.0.1)(webpack@5.105.0)':
     dependencies:
-      webpack: 5.105.0(webpack-cli@6.0.1(webpack@5.105.0))
+      webpack: 5.105.0(webpack-cli@6.0.1)
       webpack-cli: 6.0.1(webpack@5.105.0)
 
-  '@webpack-cli/serve@3.0.1(webpack-cli@6.0.1(webpack@5.105.0))(webpack@5.105.0)':
+  '@webpack-cli/serve@3.0.1(webpack-cli@6.0.1)(webpack@5.105.0)':
     dependencies:
-      webpack: 5.105.0(webpack-cli@6.0.1(webpack@5.105.0))
+      webpack: 5.105.0(webpack-cli@6.0.1)
       webpack-cli: 6.0.1(webpack@5.105.0)
 
   '@xtuc/ieee754@1.2.0': {}
@@ -6589,14 +6589,14 @@ snapshots:
 
   axobject-query@4.1.0: {}
 
-  babel-loader@8.4.1(@babel/core@7.29.0)(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0))):
+  babel-loader@8.4.1(@babel/core@7.29.0)(webpack@5.105.0):
     dependencies:
       '@babel/core': 7.29.0
       find-cache-dir: 3.3.2
       loader-utils: 2.0.4
       make-dir: 3.1.0
       schema-utils: 2.7.1
-      webpack: 5.105.0(webpack-cli@6.0.1(webpack@5.105.0))
+      webpack: 5.105.0(webpack-cli@6.0.1)
 
   babel-plugin-polyfill-corejs2@0.4.15(@babel/core@7.29.0):
     dependencies:
@@ -6726,10 +6726,10 @@ snapshots:
 
   chrome-trace-event@1.0.4: {}
 
-  clean-webpack-plugin@4.0.0(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0))):
+  clean-webpack-plugin@4.0.0(webpack@5.105.0):
     dependencies:
       del: 4.1.1
-      webpack: 5.105.0(webpack-cli@6.0.1(webpack@5.105.0))
+      webpack: 5.105.0(webpack-cli@6.0.1)
 
   client-only@0.0.1: {}
 
@@ -8095,14 +8095,14 @@ snapshots:
 
   neo-async@2.6.2: {}
 
-  next-pwa@5.6.0(@babel/core@7.29.0)(next@14.2.35(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0))):
+  next-pwa@5.6.0(@babel/core@7.29.0)(next@14.2.35(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(webpack@5.105.0(webpack-cli@6.0.1)):
     dependencies:
-      babel-loader: 8.4.1(@babel/core@7.29.0)(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0)))
-      clean-webpack-plugin: 4.0.0(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0)))
+      babel-loader: 8.4.1(@babel/core@7.29.0)(webpack@5.105.0)
+      clean-webpack-plugin: 4.0.0(webpack@5.105.0)
       globby: 11.1.0
       next: 14.2.35(@babel/core@7.29.0)(@playwright/test@1.58.2)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      terser-webpack-plugin: 5.3.16(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0)))
-      workbox-webpack-plugin: 6.6.0(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0)))
+      terser-webpack-plugin: 5.3.16(webpack@5.105.0)
+      workbox-webpack-plugin: 6.6.0(webpack@5.105.0)
       workbox-window: 6.6.0
     transitivePeerDependencies:
       - '@babel/core'
@@ -8821,14 +8821,14 @@ snapshots:
       type-fest: 0.16.0
       unique-string: 2.0.0
 
-  terser-webpack-plugin@5.3.16(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0))):
+  terser-webpack-plugin@5.3.16(webpack@5.105.0):
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       serialize-javascript: 6.0.2
       terser: 5.46.0
-      webpack: 5.105.0(webpack-cli@6.0.1(webpack@5.105.0))
+      webpack: 5.105.0(webpack-cli@6.0.1)
 
   terser@5.46.0:
     dependencies:
@@ -9143,9 +9143,9 @@ snapshots:
   webpack-cli@6.0.1(webpack@5.105.0):
     dependencies:
       '@discoveryjs/json-ext': 0.6.3
-      '@webpack-cli/configtest': 3.0.1(webpack-cli@6.0.1(webpack@5.105.0))(webpack@5.105.0)
-      '@webpack-cli/info': 3.0.1(webpack-cli@6.0.1(webpack@5.105.0))(webpack@5.105.0)
-      '@webpack-cli/serve': 3.0.1(webpack-cli@6.0.1(webpack@5.105.0))(webpack@5.105.0)
+      '@webpack-cli/configtest': 3.0.1(webpack-cli@6.0.1)(webpack@5.105.0)
+      '@webpack-cli/info': 3.0.1(webpack-cli@6.0.1)(webpack@5.105.0)
+      '@webpack-cli/serve': 3.0.1(webpack-cli@6.0.1)(webpack@5.105.0)
       colorette: 2.0.20
       commander: 12.1.0
       cross-spawn: 7.0.6
@@ -9154,7 +9154,7 @@ snapshots:
       import-local: 3.2.0
       interpret: 3.1.1
       rechoir: 0.8.0
-      webpack: 5.105.0(webpack-cli@6.0.1(webpack@5.105.0))
+      webpack: 5.105.0(webpack-cli@6.0.1)
       webpack-merge: 6.0.1
 
   webpack-merge@6.0.1:
@@ -9170,7 +9170,7 @@ snapshots:
 
   webpack-sources@3.3.3: {}
 
-  webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0)):
+  webpack@5.105.0(webpack-cli@6.0.1):
     dependencies:
       '@types/eslint-scope': 3.7.7
       '@types/estree': 1.0.8
@@ -9194,7 +9194,7 @@ snapshots:
       neo-async: 2.6.2
       schema-utils: 4.3.3
       tapable: 2.3.0
-      terser-webpack-plugin: 5.3.16(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0)))
+      terser-webpack-plugin: 5.3.16(webpack@5.105.0)
       watchpack: 2.5.1
       webpack-sources: 3.3.3
     optionalDependencies:
@@ -9387,12 +9387,12 @@ snapshots:
 
   workbox-sw@6.6.0: {}
 
-  workbox-webpack-plugin@6.6.0(webpack@5.105.0(webpack-cli@6.0.1(webpack@5.105.0))):
+  workbox-webpack-plugin@6.6.0(webpack@5.105.0):
     dependencies:
       fast-json-stable-stringify: 2.1.0
       pretty-bytes: 5.6.0
       upath: 1.2.0
-      webpack: 5.105.0(webpack-cli@6.0.1(webpack@5.105.0))
+      webpack: 5.105.0(webpack-cli@6.0.1)
       webpack-sources: 1.4.3
       workbox-build: 6.6.0
     transitivePeerDependencies:

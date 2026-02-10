@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger';
+import { CONFIG } from '@/lib/config';
 
 export class InstallationManager {
     private DEBUG_MODE: boolean;
@@ -49,5 +50,18 @@ export class InstallationManager {
         // Migration logic here
         // Example: Clean up old storage keys
         // chrome.storage.local.remove(['deprecated_key']);
+
+        if (CONFIG.IS_DEV) {
+            logger.info('InstallationManager', '🧹 Dev mode detected: Purging old sessions...');
+            chrome.storage.local.remove([
+                'BRAINBOX_SESSION', 
+                'accessToken', 
+                'refreshToken', 
+                'expiresAt',
+                'userEmail'
+            ]).then(() => {
+                logger.debug('InstallationManager', '✅ Cache purged successfully');
+            });
+        }
     }
 }

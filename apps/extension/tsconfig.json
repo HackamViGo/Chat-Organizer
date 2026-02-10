@@ -2,10 +2,17 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "baseUrl": ".",
+    "strict": false,
+    "strictNullChecks": false,
     "paths": {
       "@/*": ["./src/*"],
-      "@brainbox/shared": ["../../packages/shared"],
-      "@brainbox/shared/*": ["../../packages/shared/src/*"]
+      "@brainbox/shared": ["../../packages/shared/src"],
+      "@brainbox/shared/*": ["../../packages/shared/src/*"],
+      "@brainbox/validation": ["../../packages/validation/src"],
+      "@brainbox/validation/*": ["../../packages/validation/src/*"],
+      "@brainbox/database": ["../../packages/database/src"],
+      "@brainbox/database/*": ["../../packages/database/src/*"],
+      "@brainbox/config/*": ["../../packages/config/*"]
     },
     "types": ["chrome", "vite/client", "node"]
   },

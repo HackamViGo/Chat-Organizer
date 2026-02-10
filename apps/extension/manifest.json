@@ -14,7 +14,8 @@
     "storage",
     "tabs",
     "contextMenus",
-    "webRequest"
+    "webRequest",
+    "alarms"
   ],
   "host_permissions": [
     "https://gemini.google.com/*",
@@ -24,6 +25,43 @@
     "https://*.perplexity.ai/*",
     "https://x.com/i/grok/*",
     "https://*.qwenlm.ai/*",
-    "__DASHBOARD_URL__/*"
+    "__DASHBOARD_URL__/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["http://localhost:3000/*", "https://brainbox-alpha.vercel.app/*"],
+      "js": ["src/content/content-dashboard-auth.ts"],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "https://chatgpt.com/*",
+        "https://chat.openai.com/*",
+        "https://claude.ai/*",
+        "https://gemini.google.com/*",
+        "https://chat.deepseek.com/*",
+        "https://www.perplexity.ai/*",
+        "https://*.perplexity.ai/*",
+        "https://x.com/i/grok*",
+        "https://grok.com/*",
+        "https://chat.qwen.ai/*",
+        "https://chat.lmsys.org/*",
+        "https://arena.ai/*",
+        "https://lmarena.ai/*"
+      ],
+      "js": ["src/prompt-inject/prompt-inject.ts"],
+      "run_at": "document_end"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "assets/*"
+      ],
+      "matches": ["*://localhost/*", "https://gemini.google.com/*", "https://chatgpt.com/*", "https://claude.ai/*"]
+    }
   ]
 }

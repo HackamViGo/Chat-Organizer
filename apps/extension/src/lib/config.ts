@@ -16,8 +16,9 @@ const getEnvVar = (key: string): string => {
 
 export const CONFIG = {
     get API_BASE_URL() { return getEnvVar('VITE_API_BASE_URL').replace(/\/api$/, ''); },
-    get DASHBOARD_URL() { return getEnvVar('VITE_DASHBOARD_URL'); },
-    VERSION: '3.1.0'
+    DASHBOARD_URL: getEnvVar('VITE_DASHBOARD_URL'),
+    VERSION: '3.1.0',
+    IS_DEV: (import.meta as any).env?.DEV || process.env.NODE_ENV === 'development'
 } as const;
 
 export const API_BASE_URL = CONFIG.API_BASE_URL;

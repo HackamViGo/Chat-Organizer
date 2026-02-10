@@ -63,19 +63,21 @@ export class MessageRouter {
         sender: chrome.runtime.MessageSender,
         sendResponse: (response?: any) => void
     ): boolean {
-        // SECURITY: Verify internal origin (skip in test environment)
-        logger.debug("MessageRouter", '📨 MessageRouter: Received action', request.action, 'from', sender.id, 'Self:', chrome.runtime.id);
-        
-        if (process.env.NODE_ENV !== 'test' && sender.id !== chrome.runtime.id) {
-            console.error('🛑 Blocked external message', { senderId: sender.id, selfId: chrome.runtime.id });
-            logger.warn('MessageRouter', '🛑 Blocked external message', { senderId: sender.id });
+        const selfId = chrome.runtime.id;
+        const senderId = sender.id;
+        const isInternal = !senderId || senderId === selfId;
+
+        if (process.env.NODE_ENV !== 'test' && !isInternal) {
+            console.error('🛑 Blocked external message', { senderId, selfId, origin: sender.origin });
+            logger.warn('MessageRouter', '🛑 Blocked external message', { senderId, origin: sender.origin });
             return false;
         }
 
         if (this.DEBUG_MODE) {
-            logger.debug('MessageRouter', `📨 ${request.action}`, {
-                platform: request.platform,
-                hasData: !!request.data
+            logger.debug('MessageRouter', `📨 Action: ${request.action}`, {
+                senderId: senderId || 'internal',
+                origin: sender.origin,
+                payloadKeys: request.payload ? Object.keys(request.payload) : []
             });
         }
 
@@ -90,6 +92,9 @@ export class MessageRouter {
             
             case 'syncAll':
                 return this.handleSyncAll(sendResponse);
+
+            case 'SET_SESSION':
+                return this.handleSetSession(request, sendResponse);
 
             // ============ PROMPTS ============
             case 'fetchPrompts':
@@ -150,10 +155,25 @@ export class MessageRouter {
     }
 
     private handleCheckSession(sendResponse: Function): boolean {
-        this.authManager.isSessionValid()
+        this.authManager.checkAuth()
             .then(isValid => sendResponse({ success: true, isValid }))
             .catch(error => sendResponse({ success: false, error: error.message }));
         return true;
+    }
+
+    private handleSetSession(request: MessageRequest, sendResponse: Function): boolean {
+        this.performSetSession(request, sendResponse);
+        return true;
+    }
+
+    private async performSetSession(request: MessageRequest, sendResponse: Function): Promise<void> {
+        try {
+            await this.authManager.setDashboardSession(request.payload);
+            sendResponse({ success: true });
+        } catch (error: any) {
+            logger.error('MessageRouter', '❌ SET_SESSION failed', error);
+            sendResponse({ success: false, error: error.message });
+        }
     }
 
     private handleSyncAll(sendResponse: Function): boolean {
@@ -232,11 +252,52 @@ export class MessageRouter {
         return true;
     }
 
-    private handleSaveConversation(request: MessageRequest, sendResponse: Function): boolean {
-        dashboardApi.saveToDashboard(request.data, request.folderId ?? null, request.silent ?? false)
-            .then(result => sendResponse({ success: true, result }))
-            .catch(error => sendResponse({ success: false, error: error.message }));
-        return true;
+    private async ensureActiveSession(): Promise<boolean> {
+        const isValid = await this.authManager.checkAuth();
+        if (isValid) return true;
+
+        logger.info('MessageRouter', '🔄 No active session, attempting lazy pull from tabs...');
+        
+        try {
+            const tabs = await chrome.tabs.query({ 
+                url: ['http://localhost:3000/*', `${CONFIG.DASHBOARD_URL}/*`] 
+            });
+            for (const tab of tabs) {
+                if (!tab.id) continue;
+                try {
+                    const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_SESSION' });
+                    if (response && response.success && response.payload) {
+                        logger.info('MessageRouter', '✨ Lazy pull successful from tab', tab.id);
+                        await this.authManager.setDashboardSession(response.payload);
+                        return true;
+                    }
+                } catch (e) {
+                    // Ignore failures for specific tabs
+                }
+            }
+        } catch (e) {
+            logger.error('MessageRouter', '❌ Lazy pull failed', e);
+        }
+
+        return false;
+    }
+
+    private handleSaveConversation(request: MessageRequest, sendResponse: (response?: any) => void): boolean {
+        this.performSaveConversation(request, sendResponse);
+        return true; // Async response
+    }
+
+    private async performSaveConversation(request: MessageRequest, sendResponse: (response?: any) => void): Promise<void> {
+        const sessionActive = await this.ensureActiveSession();
+        logger.info('MessageRouter', `🔑 saveToDashboard requested. Session active: ${sessionActive}`);
+
+        try {
+            const result = await dashboardApi.saveToDashboard(request.data, request.folderId ?? null, request.silent ?? false);
+            sendResponse({ success: true, result });
+        } catch (error: any) {
+            logger.error('MessageRouter', '❌ saveToDashboard failed', error);
+            sendResponse({ success: false, error: error.message });
+        }
     }
 
     // ========================================================================

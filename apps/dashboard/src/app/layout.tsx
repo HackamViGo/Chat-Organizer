@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { JetBrains_Mono } from 'next/font/google';
 import { LayoutWrapper } from '@/components/layout/LayoutWrapper';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
+import { SessionBroadcaster } from '@/components/providers/SessionBroadcaster';
 import './globals.css';
 
 const jetbrainsMono = JetBrains_Mono({ subsets: ['latin'] });
@@ -34,6 +35,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+          <SessionBroadcaster />
           <LayoutWrapper>{children}</LayoutWrapper>
         </ThemeProvider>
       </body>

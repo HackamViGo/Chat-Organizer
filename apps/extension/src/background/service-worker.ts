@@ -20,6 +20,7 @@ import { clearExtensionCache } from '@brainbox/shared';
  * Install event - skip waiting to ensure the new worker takes over immediately
  */
 self.addEventListener('install', () => {
+    console.log('[BrainBox SW] 📥 Service Worker Installing...');
     logger.info('Worker', '📥 Service Worker Installing...');
     (self as any).skipWaiting();
 });
@@ -28,13 +29,18 @@ self.addEventListener('install', () => {
  * Activate event - claim clients to ensure consistent control
  */
 self.addEventListener('activate', (event: any) => {
+    console.log('[BrainBox SW] ✨ Service Worker Activating...');
     logger.info('Worker', '✨ Service Worker Activating...');
     event.waitUntil((self as any).clients.claim());
 });
 
-logger.info('Worker', '🚀 Service Worker Starting...');
+// Track initialization count to detect double-loading
+(self as any).__BRAINBOX_INIT_COUNT__ = ((self as any).__BRAINBOX_INIT_COUNT__ || 0) + 1;
+console.log(`[BrainBox SW] 🚀 Service Worker Starting (Init: ${(self as any).__BRAINBOX_INIT_COUNT__})...`);
+logger.info('Worker', `🚀 Service Worker Starting (Init: ${(self as any).__BRAINBOX_INIT_COUNT__})...`);
 
 self.onerror = function(message, source, lineno, colno, error) {
+    console.error('[BrainBox SW] ❌ Global Error:', message, error);
     logger.error('Worker', '❌ Global Error: ' + message, error);
 };
 
@@ -47,7 +53,7 @@ const authManager = new AuthManager();
 const promptSyncManager = new PromptSyncManager(CONFIG.DASHBOARD_URL);
 
 // 2. Feature Modules
-const dynamicMenus = new DynamicMenus(promptSyncManager);
+const dynamicMenus = new DynamicMenus(promptSyncManager, authManager);
 const networkObserver = new NetworkObserver(false);
 const installationManager = new InstallationManager(false);
 
@@ -62,13 +68,19 @@ const messageRouter = new MessageRouter(
 // START ALL MODULES
 // ============================================================================
 
+console.log('[BrainBox SW] 🔧 Initializing modules...');
 authManager.initialize();
 promptSyncManager.initialize();
 clearExtensionCache().catch(() => {});
 
 // Trigger sync queue processing on startup
-chrome.storage.local.get(['accessToken'], ({ accessToken }) => {
-    SyncManager.initialize(accessToken);
+authManager.checkAuth().then(isValid => {
+    console.log('[BrainBox SW] 📦 Auth session:', isValid ? 'Valid' : 'Not found');
+    if (isValid) {
+        chrome.storage.local.get(['accessToken'], ({ accessToken }) => {
+            SyncManager.initialize((accessToken as string) || null);
+        });
+    }
 });
 
 dynamicMenus.initialize();
@@ -76,6 +88,7 @@ networkObserver.initialize();
 installationManager.initialize();
 
 messageRouter.listen();
+console.log('[BrainBox SW] ✅ All modules initialized');
 
 // 4. API Proxy Listener (CORS Bridge)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {

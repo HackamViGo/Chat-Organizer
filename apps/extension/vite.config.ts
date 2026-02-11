@@ -7,7 +7,7 @@ import fs from 'fs';
 // Read manifest and inject environment variables
 const manifestCallback = (env: Record<string, string>, isProd: boolean) => {
   const manifestRaw = fs.readFileSync(resolve(__dirname, 'manifest.json'), 'utf-8');
-  const dashboardUrl = env.VITE_DASHBOARD_URL || 'http://localhost:3000';
+  const dashboardUrl = env.VITE_DASHBOARD_URL || (isProd ? 'https://brainbox-alpha.vercel.app' : 'http://localhost:3000');
   const manifestStr = manifestRaw.replace(/__DASHBOARD_URL__/g, dashboardUrl);
   try {
     const manifest = JSON.parse(manifestStr);
@@ -112,9 +112,13 @@ const stripDevCSP = (env: Record<string, string>) => {
             // Scrub React DevTools Global Hook (False positive in security scan)
             content = content.replace(/__REACT_DEVTOOLS_GLOBAL_HOOK__/g, 'REACT_DEVTOOLS_GLOBAL_HOOK_SCRUBBED');
             
+            // Replace __DASHBOARD_URL__ placeholder in all files (HTML/JS/JSON)
+            const dashboardUrl = env.VITE_DASHBOARD_URL || 'https://brainbox-alpha.vercel.app';
+            content = content.replace(/__DASHBOARD_URL__/g, dashboardUrl);
+
             // Ensure no stray localhost in build strings (extra safety)
             if (file.endsWith('.js')) {
-              content = content.replace(/http:\/\/localhost:3000/g, env.VITE_DASHBOARD_URL || 'https://brainbox.ai');
+              content = content.replace(/http:\/\/localhost:3000/g, dashboardUrl);
             }
 
             if (content !== original) {
@@ -127,7 +131,7 @@ const stripDevCSP = (env: Record<string, string>) => {
       if (fs.existsSync(outDir)) {
         walkDir(outDir);
       }
-      console.debug('🛡️  HARDENED: Production assets finalized and scrubbed for security compliance.');
+      console.debug('🛡️  HARDENED: Production assets finalized, placeholders replaced, and scrubbed for security compliance.');
     }
   };
 };
@@ -138,7 +142,7 @@ export default defineConfig(({ mode }) => {
 
   return {
     define: {
-      __DASHBOARD_URL__: JSON.stringify(env.VITE_DASHBOARD_URL || 'http://localhost:3000'),
+      __DASHBOARD_URL__: JSON.stringify(env.VITE_DASHBOARD_URL || (isProd ? 'https://brainbox-alpha.vercel.app' : 'http://localhost:3000')),
     },
     esbuild: {
       // Temporarily keeping all logs for debugging

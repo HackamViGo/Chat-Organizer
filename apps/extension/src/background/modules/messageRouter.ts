@@ -3,29 +3,14 @@
  * 
  * Central message routing hub with dependency injection
  */
-import { logger } from '@/lib/logger';
 import { AuthManager } from './authManager';
 import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import * as platformAdapters from './platformAdapters';
 import * as dashboardApi from './dashboardApi';
 import { CONFIG } from '@/lib/config';
 
-type SupportedPlatform = 'chatgpt' | 'claude' | 'gemini' | 'perplexity' | 'deepseek' | 'grok' | 'qwen' | 'lmarena';
-
 interface MessageRequest {
     action: string;
-    platform?: SupportedPlatform;
-    conversationId?: string;
-    url?: string;
-    data?: any;
-    payload?: any;
-    folderId?: string;
-    silent?: boolean;
-    accessToken?: string;
-    refreshToken?: string;
-    expiresAt?: number;
-    rememberMe?: boolean;
-    token?: string;
     [key: string]: any;
 }
 
@@ -52,7 +37,7 @@ export class MessageRouter {
      */
     listen() {
         chrome.runtime.onMessage.addListener(this.handleMessage);
-        logger.info('MessageRouter', '📡 Listening for messages...');
+        console.log('[MessageRouter] 📡 Listening for messages...');
     }
 
     /**
@@ -63,21 +48,10 @@ export class MessageRouter {
         sender: chrome.runtime.MessageSender,
         sendResponse: (response?: any) => void
     ): boolean {
-        const selfId = chrome.runtime.id;
-        const senderId = sender.id;
-        const isInternal = !senderId || senderId === selfId;
-
-        if (process.env.NODE_ENV !== 'test' && !isInternal) {
-            console.error('🛑 Blocked external message', { senderId, selfId, origin: sender.origin });
-            logger.warn('MessageRouter', '🛑 Blocked external message', { senderId, origin: sender.origin });
-            return false;
-        }
-
         if (this.DEBUG_MODE) {
-            logger.debug('MessageRouter', `📨 Action: ${request.action}`, {
-                senderId: senderId || 'internal',
-                origin: sender.origin,
-                payloadKeys: request.payload ? Object.keys(request.payload) : []
+            console.log(`[MessageRouter] 📨 ${request.action}`, {
+                platform: request.platform,
+                hasData: !!request.data
             });
         }
 
@@ -92,9 +66,6 @@ export class MessageRouter {
             
             case 'syncAll':
                 return this.handleSyncAll(sendResponse);
-
-            case 'SET_SESSION':
-                return this.handleSetSession(request, sendResponse);
 
             // ============ PROMPTS ============
             case 'fetchPrompts':
@@ -155,25 +126,10 @@ export class MessageRouter {
     }
 
     private handleCheckSession(sendResponse: Function): boolean {
-        this.authManager.checkAuth()
+        this.authManager.isSessionValid()
             .then(isValid => sendResponse({ success: true, isValid }))
             .catch(error => sendResponse({ success: false, error: error.message }));
         return true;
-    }
-
-    private handleSetSession(request: MessageRequest, sendResponse: Function): boolean {
-        this.performSetSession(request, sendResponse);
-        return true;
-    }
-
-    private async performSetSession(request: MessageRequest, sendResponse: Function): Promise<void> {
-        try {
-            await this.authManager.setDashboardSession(request.payload);
-            sendResponse({ success: true });
-        } catch (error: any) {
-            logger.error('MessageRouter', '❌ SET_SESSION failed', error);
-            sendResponse({ success: false, error: error.message });
-        }
     }
 
     private handleSyncAll(sendResponse: Function): boolean {
@@ -220,7 +176,7 @@ export class MessageRouter {
         if (request.token) {
             chrome.storage.local.set({ gemini_at_token: request.token }).then(() => {
                 if (this.DEBUG_MODE) {
-                    logger.debug('MessageRouter', '✅ Gemini AT token stored');
+                    console.log('[MessageRouter] ✅ Gemini AT token stored');
                 }
                 sendResponse({ success: true });
             });
@@ -246,58 +202,17 @@ export class MessageRouter {
     // ========================================================================
 
     private handleGetConversation(request: MessageRequest, sendResponse: Function): boolean {
-        platformAdapters.fetchConversation(request.platform ?? 'chatgpt', request.conversationId ?? '', request.url ?? '', request.payload)
+        platformAdapters.fetchConversation(request.platform, request.conversationId, request.url, request.payload)
             .then(data => sendResponse({ success: true, data }))
             .catch(error => sendResponse({ success: false, error: error.message }));
         return true;
     }
 
-    private async ensureActiveSession(): Promise<boolean> {
-        const isValid = await this.authManager.checkAuth();
-        if (isValid) return true;
-
-        logger.info('MessageRouter', '🔄 No active session, attempting lazy pull from tabs...');
-        
-        try {
-            const tabs = await chrome.tabs.query({ 
-                url: ['http://localhost:3000/*', `${CONFIG.DASHBOARD_URL}/*`] 
-            });
-            for (const tab of tabs) {
-                if (!tab.id) continue;
-                try {
-                    const response = await chrome.tabs.sendMessage(tab.id, { action: 'GET_SESSION' });
-                    if (response && response.success && response.payload) {
-                        logger.info('MessageRouter', '✨ Lazy pull successful from tab', tab.id);
-                        await this.authManager.setDashboardSession(response.payload);
-                        return true;
-                    }
-                } catch (e) {
-                    // Ignore failures for specific tabs
-                }
-            }
-        } catch (e) {
-            logger.error('MessageRouter', '❌ Lazy pull failed', e);
-        }
-
-        return false;
-    }
-
-    private handleSaveConversation(request: MessageRequest, sendResponse: (response?: any) => void): boolean {
-        this.performSaveConversation(request, sendResponse);
-        return true; // Async response
-    }
-
-    private async performSaveConversation(request: MessageRequest, sendResponse: (response?: any) => void): Promise<void> {
-        const sessionActive = await this.ensureActiveSession();
-        logger.info('MessageRouter', `🔑 saveToDashboard requested. Session active: ${sessionActive}`);
-
-        try {
-            const result = await dashboardApi.saveToDashboard(request.data, request.folderId ?? null, request.silent ?? false);
-            sendResponse({ success: true, result });
-        } catch (error: any) {
-            logger.error('MessageRouter', '❌ saveToDashboard failed', error);
-            sendResponse({ success: false, error: error.message });
-        }
+    private handleSaveConversation(request: MessageRequest, sendResponse: Function): boolean {
+        dashboardApi.saveToDashboard(request.data, request.folderId, request.silent)
+            .then(result => sendResponse({ success: true, result }))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
     }
 
     // ========================================================================
@@ -305,7 +220,7 @@ export class MessageRouter {
     // ========================================================================
 
     private handleOpenLoginPage(sendResponse: Function): boolean {
-        chrome.tabs.create({ url: `${CONFIG.DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
+        chrome.tabs.create({ url: `${CONFIG.API_BASE_URL}/auth/signin?redirect=/extension-auth` });
         sendResponse({ success: true });
         return true;
     }
@@ -320,10 +235,10 @@ export class MessageRouter {
             await chrome.scripting.executeScript({
                 target: { tabId },
                 world: 'MAIN',
-                files: ['src/content/inject-gemini-main.ts']
+                files: ['src/content/inject-gemini-main.js']
             });
         } catch (e) {
-            logger.error('MessageRouter', 'Gemini script injection failed:', e);
+            console.error('[MessageRouter] Gemini script injection failed:', e);
         }
     }
 }

@@ -1,6 +1,8 @@
-import { logger } from '@/lib/logger';
-import { CONFIG } from '@/lib/config';
-
+/**
+ * InstallationManager
+ * 
+ * Handles extension lifecycle events (install, update)
+ */
 export class InstallationManager {
     private DEBUG_MODE: boolean;
 
@@ -11,12 +13,12 @@ export class InstallationManager {
 
     initialize() {
         chrome.runtime.onInstalled.addListener(this.handleInstalled);
-        logger.info('InstallationManager', '🎬 Listening for lifecycle events...');
+        console.log('[InstallationManager] 🎬 Listening for lifecycle events...');
     }
 
     private handleInstalled(details: chrome.runtime.InstalledDetails) {
         if (this.DEBUG_MODE) {
-            logger.debug('InstallationManager', 'Event:', details.reason);
+            console.log('[InstallationManager] Event:', details.reason);
         }
 
         switch (details.reason) {
@@ -36,36 +38,19 @@ export class InstallationManager {
     }
 
     private onFirstInstall() {
-        logger.info('InstallationManager', '🎉 First install detected');
+        console.log('[InstallationManager] 🎉 First install detected');
         
         // Open welcome page
         chrome.tabs.create({ 
-            url: chrome.runtime.getURL('src/welcome.html') 
+            url: chrome.runtime.getURL('welcome.html') 
         });
     }
 
     private onUpdate(previousVersion?: string) {
-        logger.info('InstallationManager', `🔄 Updated from: ${previousVersion}`);
+        console.log('[InstallationManager] 🔄 Updated from:', previousVersion);
         
         // Migration logic here
         // Example: Clean up old storage keys
         // chrome.storage.local.remove(['deprecated_key']);
-
-        // REMOVED: Automatic session purge in dev mode.
-        // This causes constant logouts whenever the code reloads.
-        /*
-        if (CONFIG.IS_DEV) {
-            logger.info('InstallationManager', '🧹 Dev mode detected: Purging old sessions...');
-            chrome.storage.local.remove([
-                'BRAINBOX_SESSION', 
-                'accessToken', 
-                'refreshToken', 
-                'expiresAt',
-                'userEmail'
-            ]).then(() => {
-                logger.debug('InstallationManager', '✅ Cache purged successfully');
-            });
-        }
-        */
     }
 }

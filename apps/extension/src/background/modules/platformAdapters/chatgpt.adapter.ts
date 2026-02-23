@@ -3,10 +3,11 @@
  */
 
 import { BasePlatformAdapter, type Conversation } from './base';
-import { normalizeChatGPT } from '../../../lib/normalizers';
-import { validateConversation } from '../../../lib/schemas';
-import { limiters } from '../../../lib/rate-limiter';
-import { logger } from '../../../lib/logger';
+import { normalizeChatGPT } from '../../../lib/normalizers.js';
+import { validateConversation } from '../../../lib/schemas.js';
+import { limiters } from '../../../lib/rate-limiter.js';
+
+const DEBUG_MODE = true;
 
 export class ChatGPTAdapter extends BasePlatformAdapter {
     readonly platform = 'chatgpt';
@@ -39,9 +40,11 @@ export class ChatGPTAdapter extends BasePlatformAdapter {
             const conversation = normalizeChatGPT(data);
 
             // Validate (optional, for debugging)
-            const validation = validateConversation(conversation);
-            if (!validation.valid) {
-                logger.warn('ChatGPTAdapter', 'Validation warning:', validation.error);
+            if (DEBUG_MODE) {
+                const validation = validateConversation(conversation);
+                if (!validation.valid) {
+                    console.warn('[ChatGPTAdapter] Validation warning:', validation.error);
+                }
             }
 
             return conversation;

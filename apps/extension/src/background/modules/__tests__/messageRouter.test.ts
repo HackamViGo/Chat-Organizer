@@ -41,7 +41,7 @@ import { resetAllMocks } from '@/__tests__/setup';
 import * as dashboardApi from '../dashboardApi';
 import * as platformAdapters from '../platformAdapters';
 
-console.debug('[DEBUG] platformAdapters mock state:', typeof platformAdapters.fetchConversation);
+console.log('[DEBUG] platformAdapters mock state:', typeof platformAdapters.fetchConversation);
 
 describe('MessageRouter', () => {
   let messageRouter: MessageRouter;
@@ -53,12 +53,11 @@ describe('MessageRouter', () => {
   beforeEach(() => {
     resetAllMocks();
 
-    // Reset and configure dashboardApi mocks
-    vi.mocked(dashboardApi.getUserFolders).mockReset().mockResolvedValue([]);
-    vi.mocked(dashboardApi.saveToDashboard).mockReset().mockResolvedValue({ id: 'chat-123' });
+    // Set up default mock values
+    vi.mocked(dashboardApi.getUserFolders).mockResolvedValue([]);
+    vi.mocked(dashboardApi.saveToDashboard).mockResolvedValue({ id: 'chat-123' });
     
-    // Reset and configure platformAdapters mocks
-    vi.mocked(platformAdapters.fetchConversation).mockReset().mockResolvedValue({
+    vi.mocked(platformAdapters.fetchConversation).mockResolvedValue({
       id: 'conv-123',
       title: 'Test Chat',
       platform: 'chatgpt',
@@ -68,7 +67,6 @@ describe('MessageRouter', () => {
     mockAuthManager = {
       setDashboardSession: vi.fn().mockResolvedValue(undefined),
       isSessionValid: vi.fn().mockResolvedValue(true),
-      checkAuth: vi.fn().mockResolvedValue(true),
       getAuthToken: vi.fn().mockResolvedValue('fake-token'),
       syncAll: vi.fn().mockResolvedValue({ isValid: true, tokens: {} })
     };
@@ -83,7 +81,6 @@ describe('MessageRouter', () => {
     messageRouter = new MessageRouter(mockAuthManager, mockPromptSync, true);
     
     mockSender = {
-      id: chrome.runtime.id,
       tab: { id: 123, windowId: 1 } as any
     };
 
@@ -158,7 +155,7 @@ describe('MessageRouter', () => {
       (messageRouter as any).handleMessage(request, mockSender, sendResponse);
 
       await vi.waitFor(() => {
-        expect(mockAuthManager.checkAuth).toHaveBeenCalled();
+        expect(mockAuthManager.isSessionValid).toHaveBeenCalled();
         expect(sendResponse).toHaveBeenCalledWith({
           success: true,
           isValid: true
@@ -234,7 +231,7 @@ describe('MessageRouter', () => {
         expect(chrome.scripting.executeScript).toHaveBeenCalledWith({
           target: { tabId: 123 },
           world: 'MAIN',
-          files: ['src/content/inject-gemini-main.ts']
+          files: ['src/content/inject-gemini-main.js']
         });
         expect(sendResponse).toHaveBeenCalledWith({ success: true });
       });
@@ -342,24 +339,6 @@ describe('MessageRouter', () => {
           success: true,
           result: { id: 'chat-123' }
         });
-      });
-    });
-
-    it('should handle token expiry and trigger re-auth flow', async () => {
-      vi.mocked(dashboardApi.saveToDashboard).mockRejectedValueOnce(new Error('Unauthorized'));
-
-      const request = {
-        action: 'saveToDashboard',
-        data: { id: 'conv-123', platform: 'chatgpt' }
-      };
-
-      (messageRouter as any).handleMessage(request, mockSender, sendResponse);
-
-      await vi.waitFor(() => {
-        expect(sendResponse).toHaveBeenCalledWith(expect.objectContaining({ 
-          success: false,
-          error: 'Unauthorized'
-        }));
       });
     });
   });

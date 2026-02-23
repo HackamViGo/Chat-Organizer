@@ -235,6 +235,7 @@ describe('AuthManager', () => {
       expect(storage.accessToken).toBe(session.accessToken);
       expect(storage.refreshToken).toBe(session.refreshToken);
       expect(storage.expiresAt).toBe(session.expiresAt);
+      expect(storage.rememberMe).toBe(true);
     });
 
     it('should validate valid session', async () => {
@@ -318,7 +319,6 @@ describe('AuthManager', () => {
 
       expect(result.isValid).toBe(false);
       expect(chrome.storage.local.remove).toHaveBeenCalledWith([
-        'BRAINBOX_SESSION',
         'accessToken',
         'refreshToken',
         'userEmail',
@@ -342,85 +342,63 @@ describe('AuthManager', () => {
   });
 
   // ========================================================================
-  // AUTH LIFECYCLE STRESS TESTS
+  // GENERIC PLATFORM TOKEN CAPTURE (Grok, Perplexity, DeepSeek, Qwen)
   // ========================================================================
 
-  describe('Auth Lifecycle Stress Tests', () => {
-    it('Handshake Test: should accept tokens from Dashboard origin via message', async () => {
-      const authData = {
-        accessToken: 'dash-access-token',
-        refreshToken: 'dash-refresh-token',
-        expiresAt: Date.now() + 3600000,
-        rememberMe: true
-      };
+  describe('Generic Platform Token Capture', () => {
+    const testPlatforms = [
+      { 
+        name: 'Grok', 
+        url: 'https://grok.com/api/v1/chat', 
+        token: 'Bearer grok-test', 
+        header: 'Authorization',
+        storageKey: 'grok_auth_token' 
+      },
+      { 
+        name: 'Perplexity', 
+        url: 'https://www.perplexity.ai/api/v1/chat', 
+        token: 'Bearer pplx-test', 
+        header: 'Authorization',
+        storageKey: 'perplexity_session' 
+      },
+      { 
+        name: 'DeepSeek', 
+        url: 'https://chat.deepseek.com/api/v1/chat', 
+        token: 'Bearer ds-test', 
+        header: 'Authorization',
+        storageKey: 'deepseek_token' 
+      },
+      { 
+        name: 'Qwen', 
+        url: 'https://chat.qwenlm.ai/api/v1/chat', 
+        token: 'xsrf-test', 
+        header: 'X-Xsrf-Token',
+        storageKey: 'qwen_xsrf_token' 
+      }
+    ];
 
-      await authManager.setDashboardSession(authData);
+    testPlatforms.forEach(({ name, url, token, header, storageKey }) => {
+      it(`should capture ${name} token from ${header} header`, () => {
+        authManager.initialize();
+        const mockDetails = {
+          url,
+          requestHeaders: [{ name: header, value: token }]
+        } as any;
 
-      const storage = (chrome.storage.local as any)._getInternalStorage();
-      expect(storage.accessToken).toBe(authData.accessToken);
-      expect(storage.refreshToken).toBe(authData.refreshToken);
-      expect(storage.expiresAt).toBe(authData.expiresAt);
-      
-      const isValid = await authManager.isSessionValid();
-      expect(isValid).toBe(true);
+        authManager.handlePlatformHeaders(mockDetails);
+        expect(chrome.storage.local.set).toHaveBeenCalledWith({ [storageKey]: token });
+      });
     });
 
-    it('Persistence Test: should restore state after simulated restart', async () => {
-      // 1. Setup initial state in storage
-      await chrome.storage.local.set({
-        accessToken: 'persistent-token',
-        refreshToken: 'persistent-refresh',
-        expiresAt: Date.now() + 86400000,
-        chatgpt_token: 'Bearer cg-persistent'
-      });
+    it('should ignore tokens for unknown domains', () => {
+      authManager.initialize();
+      const mockDetails = {
+        url: 'https://unknown-domain.com/api',
+        requestHeaders: [{ name: 'Authorization', value: 'Bearer unknown-token' }]
+      } as any;
 
-      // 2. Kill current manager and spawn new one (Restart)
-      const newAuthManager = new AuthManager();
-      await newAuthManager.loadTokensFromStorage();
-
-      // 3. Verify state recovery
-      const isValid = await newAuthManager.isSessionValid();
-      expect(isValid).toBe(true);
-      
-      // Verify internal state (tokens property is private, but we can verify via syncAll or similar)
-      const syncResult = await newAuthManager.syncAll();
-      expect(syncResult.tokens.chatgpt).toBe('Bearer cg-persistent');
+      authManager.handlePlatformHeaders(mockDetails);
+      expect(chrome.storage.local.set).not.toHaveBeenCalled();
     });
-
-    it('Refresh Test: should report invalid session and cleanup on 401 (Simulated Refresh)', async () => {
-      await chrome.storage.local.set({
-        accessToken: 'dying-token',
-        refreshToken: 'refresh-me'
-      });
-      await authManager.loadTokensFromStorage();
-
-      // Mock 401 response for syncAll (Simulating failed refresh/dead token)
-      global.fetch = vi.fn().mockResolvedValue({
-        ok: false,
-        status: 401
-      });
-
-      const syncResult = await authManager.syncAll();
-      expect(syncResult.isValid).toBe(false);
-
-      // Storage should be scrubbed
-      const storage = (chrome.storage.local as any)._getInternalStorage();
-      expect(storage.accessToken).toBeUndefined();
-      expect(storage.refreshToken).toBeUndefined();
-    });
-
-    it('Refresh Test: should trust storage if fetch fails but token not expired (Offline mode)', async () => {
-        await chrome.storage.local.set({
-          accessToken: 'offline-token',
-          expiresAt: Date.now() + 3600000
-        });
-        await authManager.loadTokensFromStorage();
-  
-        // Mock network error
-        global.fetch = vi.fn().mockRejectedValue(new Error('No internet'));
-  
-        const syncResult = await authManager.syncAll();
-        expect(syncResult.isValid).toBe(true); // Should trust storage in offline mode
-      });
   });
 });

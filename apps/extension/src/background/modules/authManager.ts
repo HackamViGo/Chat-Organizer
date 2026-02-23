@@ -1,10 +1,8 @@
-import { logger } from '@/lib/logger';
-
 /**
  * AuthManager
  * 
  * Responsible for:
- * 1. Listening to network requests to capture tokens (ChatGPT, Gemini).
+ * 1. Listening to network requests to capture tokens (ChatGPT, Claude, Gemini).
  * 2. Managing auth state in chrome.storage.local.
  * 3. Validating Dashboard sessions.
  */
@@ -26,14 +24,8 @@ export class AuthManager {
         qwen_app_id: string | null;
         lmarena_session: string | null;
         lmarena_fn_index: string | null;
-
-        // User IDs
-        chatgpt_user_id: string | null;
-        deepseek_user_id: string | null;
-        perplexity_user_id: string | null;
-        grok_user_id: string | null;
-        qwen_user_id: string | null;
     };
+    private DEBUG_MODE: boolean;
 
     constructor() {
         this.tokens = {
@@ -51,14 +43,9 @@ export class AuthManager {
             qwen_xsrf: null,
             qwen_app_id: null,
             lmarena_session: null,
-            lmarena_fn_index: null,
-
-            chatgpt_user_id: null,
-            deepseek_user_id: null,
-            perplexity_user_id: null,
-            grok_user_id: null,
-            qwen_user_id: null
+            lmarena_fn_index: null
         };
+        this.DEBUG_MODE = false; // Disabled for production
         
         // Bind methods to ensure 'this' context
         this.handleChatGPTHeaders = this.handleChatGPTHeaders.bind(this);
@@ -75,121 +62,93 @@ export class AuthManager {
     /**
      * Start listening for tokens
      */
-    async initialize() {
+    initialize() {
         this.registerListeners();
-        await this.loadTokensFromStorage();
-        this.registerMessageListeners();
-        logger.info('AuthManager', '🛡️ Initialized and listening.');
+        this.loadTokensFromStorage();
+        console.log('[AuthManager] 🛡️ Initialized and listening.');
     }
 
-
     registerListeners() {
-        if (typeof chrome.webRequest === 'undefined') {
-            logger.warn('AuthManager', '⚠️ chrome.webRequest is undefined. Network observation disabled.');
-            return;
-        }
-
-        const { onBeforeSendHeaders, onBeforeRequest } = chrome.webRequest;
-
         // --- ChatGPT ---
-        if (onBeforeSendHeaders) {
-            onBeforeSendHeaders.addListener(
-                this.handleChatGPTHeaders as any,
-                { urls: ['https://chatgpt.com/backend-api/*'] },
-                ['requestHeaders']
-            );
-        }
+        chrome.webRequest.onBeforeSendHeaders.addListener(
+            this.handleChatGPTHeaders as any,
+            { urls: ['https://chatgpt.com/backend-api/*'] },
+            ['requestHeaders']
+        );
 
         // --- Claude ---
-        if (onBeforeRequest) {
-            onBeforeRequest.addListener(
-                this.handleClaudeRequest as any,
-                { urls: ['https://claude.ai/api/organizations/*'] },
-                []
-            );
-        }
+        chrome.webRequest.onBeforeRequest.addListener(
+            this.handleClaudeRequest as any,
+            { urls: ['https://claude.ai/api/organizations/*'] },
+            []
+        );
 
         // --- Gemini ---
-        if (onBeforeRequest) {
-            onBeforeRequest.addListener(
-                this.handleGeminiRequest as any,
-                { urls: ['https://gemini.google.com/*', 'http://gemini.google.com/*'] },
-                ['requestBody']
-            );
-        }
+        chrome.webRequest.onBeforeRequest.addListener(
+            this.handleGeminiRequest as any,
+            { urls: ['https://gemini.google.com/*', 'http://gemini.google.com/*'] },
+            ['requestBody']
+        );
 
         // --- DeepSeek ---
-        if (onBeforeSendHeaders) {
-            onBeforeSendHeaders.addListener(
-                this.handleDeepSeekHeaders as any,
-                { urls: ['https://chat.deepseek.com/api/*'] },
-                ['requestHeaders']
-            );
-        }
+        chrome.webRequest.onBeforeSendHeaders.addListener(
+            this.handleDeepSeekHeaders as any,
+            { urls: ['https://chat.deepseek.com/api/*'] },
+            ['requestHeaders']
+        );
 
         // --- Perplexity ---
-        if (onBeforeSendHeaders) {
-            onBeforeSendHeaders.addListener(
-                this.handlePerplexityHeaders as any,
-                { urls: ['https://www.perplexity.ai/api/*'] },
-                ['requestHeaders']
-            );
-        }
+        chrome.webRequest.onBeforeSendHeaders.addListener(
+            this.handlePerplexityHeaders as any,
+            { urls: ['https://www.perplexity.ai/api/*'] },
+            ['requestHeaders']
+        );
 
         // --- Grok ---
-        if (onBeforeSendHeaders) {
-            onBeforeSendHeaders.addListener(
-                this.handleGrokHeaders as any,
-                { urls: ['https://x.com/i/api/*', 'https://grok.com/api/*'] },
-                ['requestHeaders']
-            );
-        }
+        chrome.webRequest.onBeforeSendHeaders.addListener(
+            this.handleGrokHeaders as any,
+            { urls: ['https://x.com/i/api/*', 'https://grok.com/api/*'] },
+            ['requestHeaders']
+        );
 
         // --- Qwen ---
-        if (onBeforeSendHeaders) {
-            onBeforeSendHeaders.addListener(
-                this.handleQwenHeaders as any,
-                { urls: ['https://chat.qwenlm.ai/api/*'] },
-                ['requestHeaders']
-            );
-        }
-
-        if (!onBeforeSendHeaders || !onBeforeRequest) {
-            logger.warn('AuthManager', '⚠️ Some webRequest events are missing. Partial observation active.');
-        }
+        chrome.webRequest.onBeforeSendHeaders.addListener(
+            this.handleQwenHeaders as any,
+            { urls: ['https://chat.qwenlm.ai/api/*'] },
+            ['requestHeaders']
+        );
     }
 
     async loadTokensFromStorage() {
-        const result = (await chrome.storage.local.get([
-            'chatgpt_token',
-            'claude_token',
-            'gemini_dynamic_key',
-            'deepseek_token',
-            'perplexity_id',
-            'grok_token',
-            'qwen_token',
-            'chatgpt_user_id',
+        const result = await chrome.storage.local.get([
+            'chatgpt_token', 
+            'gemini_at_token', 
+            'gemini_dynamic_key', 
             'claude_org_id',
-            'deepseek_user_id',
-            'perplexity_user_id',
-            'grok_user_id',
-            'qwen_user_id'
-        ])) as any;
-
+            'deepseek_token',
+            'deepseek_version',
+            'perplexity_session',
+            'grok_csrf_token',
+            'grok_auth_token',
+            'qwen_xsrf_token',
+            'qwen_app_id',
+            'lmarena_session_hash',
+            'lmarena_fn_index'
+        ]);
+        
         this.tokens.chatgpt = result.chatgpt_token || null;
-        this.tokens.claude_session = result.claude_token || null;
+        this.tokens.gemini_at = result.gemini_at_token || null;
         this.tokens.gemini_key = result.gemini_dynamic_key || null;
-        this.tokens.deepseek = result.deepseek_token || null;
-        this.tokens.perplexity_session = result.perplexity_id || null;
-        this.tokens.grok_auth = result.grok_token || null;
-        this.tokens.qwen_xsrf = result.qwen_token || null;
-
-        this.tokens.chatgpt_user_id = result.chatgpt_user_id || null;
         this.tokens.claude_org_id = result.claude_org_id || null;
-        this.tokens.deepseek_user_id = result.deepseek_user_id || null;
-        this.tokens.perplexity_user_id = result.perplexity_user_id || null;
-        this.tokens.grok_user_id = result.grok_user_id || null;
-        this.tokens.qwen_user_id = result.qwen_user_id || null;
+        this.tokens.deepseek = result.deepseek_token || null;
+        this.tokens.deepseek_version = result.deepseek_version || null;
+        this.tokens.perplexity_session = result.perplexity_session || null;
+        this.tokens.grok_csrf = result.grok_csrf_token || null;
+        this.tokens.grok_auth = result.grok_auth_token || null;
+        this.tokens.qwen_xsrf = result.qwen_xsrf_token || null;
+        this.tokens.qwen_app_id = result.qwen_app_id || null;
+        this.tokens.lmarena_session = result.lmarena_session_hash || null;
+        this.tokens.lmarena_fn_index = result.lmarena_fn_index || null;
     }
 
     // ========================================================================
@@ -198,7 +157,7 @@ export class AuthManager {
 
     handleChatGPTHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
-            (h: any) => h.name.toLowerCase() === 'authorization'
+            h => h.name.toLowerCase() === 'authorization'
         );
 
         if (authHeader && authHeader.value?.startsWith('Bearer ')) {
@@ -206,7 +165,7 @@ export class AuthManager {
             if (this.tokens.chatgpt !== token) {
                 this.tokens.chatgpt = token;
                 chrome.storage.local.set({ chatgpt_token: token });
-                logger.debug('AuthManager', '✅ ChatGPT token updated');
+                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ ChatGPT token updated');
             }
         }
     }
@@ -224,16 +183,18 @@ export class AuthManager {
                             claude_org_id: orgId,
                             org_id_discovered_at: Date.now()
                         });
-                        logger.debug('AuthManager', '✅ Claude Org ID updated', orgId);
+                        if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Claude Org ID updated:', orgId);
                     }
                 }
             } catch (error) {
-                logger.error('AuthManager', '❌ Claude extraction error', error);
+                console.error('[AuthManager] ❌ Claude extraction error:', error);
             }
         }
     }
 
     handleGeminiRequest(details: any) {
+        // Implementation from service-worker.js
+        
         // 1. Capture AT Token from URL
         if (details.url.includes('/app/')) {
             try {
@@ -244,7 +205,7 @@ export class AuthManager {
                     if (this.tokens.gemini_at !== atToken) {
                         this.tokens.gemini_at = atToken;
                         chrome.storage.local.set({ gemini_at_token: atToken });
-                        logger.debug('AuthManager', '✅ Gemini AT Token updated');
+                        if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Gemini AT Token updated:', atToken);
                     }
                 }
             } catch (e) {
@@ -272,15 +233,14 @@ export class AuthManager {
                             gemini_dynamic_key: key,
                             key_discovered_at: Date.now()
                         });
-                        logger.debug('AuthManager', '✅ Gemini Dynamic Key updated');
+                        if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Gemini Dynamic Key updated:', key);
                     }
                 }
             }
         } catch (error) {
-            logger.error('AuthManager', '❌ Gemini extraction error', error);
+            console.error('[AuthManager] ❌ Gemini extraction error:', error);
         }
     }
-
     /**
      * Generic dispatcher for platform headers (Grok, Perplexity, DeepSeek, Qwen)
      */
@@ -296,9 +256,10 @@ export class AuthManager {
         }
     }
 
+
     handleDeepSeekHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
-            (h: any) => h.name.toLowerCase() === 'authorization'
+            h => h.name.toLowerCase() === 'authorization'
         );
 
         if (authHeader && authHeader.value?.startsWith('Bearer ')) {
@@ -306,23 +267,23 @@ export class AuthManager {
             if (this.tokens.deepseek !== token) {
                 this.tokens.deepseek = token;
                 chrome.storage.local.set({ deepseek_token: token });
-                logger.debug('AuthManager', '✅ DeepSeek token updated');
+                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ DeepSeek token updated');
             }
         }
 
-        const dsVersionHeader = details.requestHeaders?.find((h: any) => h.name.toLowerCase() === 'x-client-version');
+        const dsVersionHeader = details.requestHeaders?.find(h => h.name.toLowerCase() === 'x-client-version');
         if (dsVersionHeader && details.url.includes('deepseek.com')) {
             if (this.tokens.deepseek_version !== dsVersionHeader.value) {
                 this.tokens.deepseek_version = dsVersionHeader.value;
                 chrome.storage.local.set({ deepseek_version: dsVersionHeader.value });
-                logger.debug('AuthManager', '✅ DeepSeek version header updated');
+                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ DeepSeek version header updated');
             }
         }
     }
 
     handlePerplexityHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
-            (h: any) => h.name.toLowerCase() === 'authorization'
+            h => h.name.toLowerCase() === 'authorization'
         );
 
         if (authHeader && authHeader.value?.startsWith('Bearer ')) {
@@ -330,27 +291,27 @@ export class AuthManager {
             if (this.tokens.perplexity_session !== token) {
                 this.tokens.perplexity_session = token;
                 chrome.storage.local.set({ perplexity_session: token });
-                logger.debug('AuthManager', '✅ Perplexity token updated');
+                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Perplexity token updated');
             }
         }
 
         // Capture session cookies specifically for Perplexity (web API fallback)
-        const cookieHeader = details.requestHeaders?.find((h: any) => h.name.toLowerCase() === 'cookie');
+        const cookieHeader = details.requestHeaders?.find(h => h.name.toLowerCase() === 'cookie');
         if (cookieHeader && details.url.includes('perplexity.ai') && !authHeader) {
             if (this.tokens.perplexity_session !== cookieHeader.value) {
                 this.tokens.perplexity_session = cookieHeader.value;
                 chrome.storage.local.set({ perplexity_session: cookieHeader.value });
-                logger.debug('AuthManager', '✅ Perplexity session cookie captured');
+                if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Perplexity session cookie captured');
             }
         }
     }
 
     handleGrokHeaders(details: any) {
         const csrfHeader = details.requestHeaders?.find(
-            (h: any) => h.name.toLowerCase() === 'x-csrf-token'
+            h => h.name.toLowerCase() === 'x-csrf-token'
         );
         const authHeader = details.requestHeaders?.find(
-            (h: any) => h.name.toLowerCase() === 'authorization'
+            h => h.name.toLowerCase() === 'authorization'
         );
 
         let updated = false;
@@ -367,17 +328,17 @@ export class AuthManager {
             updated = true;
         }
 
-        if (updated) {
-            logger.debug('AuthManager', '✅ Grok tokens updated');
+        if (updated && this.DEBUG_MODE) {
+            console.log('[AuthManager] ✅ Grok tokens updated');
         }
     }
 
     handleQwenHeaders(details: any) {
         const xsrfHeader = details.requestHeaders?.find(
-            (h: any) => h.name.toLowerCase() === 'x-xsrf-token'
+            h => h.name.toLowerCase() === 'x-xsrf-token'
         );
         const appIdHeader = details.requestHeaders?.find(
-            (h: any) => h.name.toLowerCase() === 'x-app-id'
+            h => h.name.toLowerCase() === 'x-app-id'
         );
 
         let updated = false;
@@ -394,8 +355,8 @@ export class AuthManager {
             updated = true;
         }
 
-        if (updated) {
-            logger.debug('AuthManager', '✅ Qwen tokens updated');
+        if (updated && this.DEBUG_MODE) {
+            console.log('[AuthManager] ✅ Qwen tokens updated');
         }
     }
 
@@ -403,233 +364,33 @@ export class AuthManager {
     // Public API
     // ========================================================================
 
-    async setDashboardSession(session: any) {
-        logger.debug('AuthManager', '📥 Processing session sync', {
-            access_token: session.access_token ? 'Present' : 'Missing',
-            refresh_token: session.refresh_token ? 'Present' : 'Missing',
-            expires_at: session.expires_at,
-            user: session.user?.email
+    async setDashboardSession(session) {
+        await chrome.storage.local.set({
+            accessToken: session.accessToken,
+            refreshToken: session.refreshToken,
+            expiresAt: session.expiresAt,
+            rememberMe: session.rememberMe
         });
-        
-        try {
-            // Normalize session structure (handle both camelCase and snake_case)
-            const sessionToStore = {
-                access_token: session.access_token || session.accessToken,
-                refresh_token: session.refresh_token || session.refreshToken,
-                expires_at: session.expires_at || session.expiresAt,
-                user: session.user
-            };
-
-            // Validate required fields
-            if (!sessionToStore.access_token) {
-                throw new Error('Missing access_token in session');
-            }
-
-            logger.debug('AuthManager', '💾 Storing session in chrome.storage.local...');
-            await chrome.storage.local.set({ BRAINBOX_SESSION: sessionToStore });
-            
-            // Backward compatibility for legacy token keys
-            if (sessionToStore.access_token) {
-                await chrome.storage.local.set({
-                    accessToken: sessionToStore.access_token,
-                    refreshToken: sessionToStore.refresh_token,
-                    expiresAt: sessionToStore.expires_at
-                });
-            }
-
-            // Verify write
-            const verify = await chrome.storage.local.get('BRAINBOX_SESSION');
-            if (!verify.BRAINBOX_SESSION) {
-                throw new Error('Session verification failed after write');
-            }
-            
-            logger.debug('AuthManager', '✅ Dashboard session updated');
-
-            // --- PROACTIVE REFRESH SCHEDULING ---
-            this.scheduleProactiveRefresh(sessionToStore.expires_at);
-
-        } catch (error) {
-            logger.error('AuthManager', '❌ Failed to save session', error);
-            throw error; // Re-throw for caller to handle
-        }
-    }
-
-    /**
-     * Set up a chrome alarm to refresh the token before it expires
-     */
-    private async scheduleProactiveRefresh(expiresAtMs?: number) {
-        if (!expiresAtMs) return;
-
-        const ALARM_NAME = 'brainbox_token_refresh';
-        const GRACE_PERIOD_SEC = 5 * 60; // 5 minutes before
-        const now = Date.now();
-        const refreshTimeMs = expiresAtMs - (GRACE_PERIOD_SEC * 1000);
-        
-        // If it's already past the refresh time, refresh now
-        if (refreshTimeMs <= now) {
-            logger.info('AuthManager', '🕒 Token expires soon, refreshing now...');
-            await this.refreshSession();
-            return;
-        }
-
-        const delayInMinutes = Math.max(1, (refreshTimeMs - now) / 60000);
-        
-        chrome.alarms.create(ALARM_NAME, {
-            delayInMinutes: delayInMinutes
-        });
-        
-        logger.info('AuthManager', `⏰ Scheduled proactive refresh in ${Math.round(delayInMinutes)} minutes`);
-    }
-
-    /**
-     * Register alarm listener for token refresh
-     */
-    private registerMessageListeners() {
-        // Consolidated into MessageRouter for messages, 
-        // but we can register internal alarms here
-        chrome.alarms.onAlarm.addListener((alarm) => {
-            if (alarm.name === 'brainbox_token_refresh') {
-                logger.info('AuthManager', '⏰ Token refresh alarm triggered.');
-                this.refreshSession().catch(err => 
-                    logger.error('AuthManager', 'Proactive refresh failed', err)
-                );
-            }
-        });
+        if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Dashboard session updated');
     }
 
     async isSessionValid() {
-        const result = (await chrome.storage.local.get(['BRAINBOX_SESSION', 'accessToken', 'expiresAt'])) as any;
-        
-        // Try new key first (snake_case internally)
-        if (result.BRAINBOX_SESSION) {
-            const { access_token, expires_at } = result.BRAINBOX_SESSION;
-            // Add 5 minute grace period (300,000 ms)
-            const GRACE_PERIOD = 5 * 60 * 1000;
-            const now = Date.now();
-            
-            if (access_token && (!expires_at || expires_at > (now + GRACE_PERIOD))) {
-                logger.debug('AuthManager', '✅ Session is valid by BRAINBOX_SESSION', { expires_at, now });
-                return true;
-            }
-            
-            // If token is in grace period, try to refresh
-            if (access_token && expires_at && expires_at > now && expires_at <= (now + GRACE_PERIOD)) {
-                logger.info('AuthManager', '🕒 Session in grace period, initiating background refresh...');
-                this.refreshSession().catch(err => logger.error('AuthManager', 'Failed to refresh session in grace period', err));
-                return true; // Still "valid" for now
-            }
-
-            logger.warn('AuthManager', '❌ Session in BRAINBOX_SESSION is invalid/expired', { 
-                hasToken: !!access_token, 
-                expires_at, 
-                now,
-                diff: expires_at ? expires_at - now : 'N/A'
-            });
-            
-            if (!access_token) logger.warn('AuthManager', '❌ No access_token in BRAINBOX_SESSION');
-            else if (expires_at && expires_at <= now) logger.warn('AuthManager', '❌ Session in BRAINBOX_SESSION expired', { expires_at, now });
-            
-            return false;
-        }
-
-        // Fallback to legacy keys
-        const accessToken = result.accessToken;
-        const expiresAt = result.expiresAt;
-        const GRACE_PERIOD = 5 * 60 * 1000;
-        const now = Date.now();
-        const isValid = accessToken && (!expiresAt || expiresAt > (now + GRACE_PERIOD));
-        
-        if (accessToken && expiresAt && expiresAt > now && expiresAt <= (now + GRACE_PERIOD)) {
-            this.refreshSession().catch(err => logger.error('AuthManager', 'Failed to refresh legacy session', err));
-            return true;
-        }
-        
+        const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
+        const isValid = accessToken && (!expiresAt || expiresAt > Date.now());
         return !!isValid;
-    }
-
-    /**
-     * Standardized checkAuth method for robust validation
-     */
-    async checkAuth(): Promise<boolean> {
-        const isValid = await this.isSessionValid();
-        if (isValid) return true;
-
-        // One last check directly from storage to be 100% sure
-        const storage = (await chrome.storage.local.get('BRAINBOX_SESSION')) as { BRAINBOX_SESSION?: any };
-        logger.debug('AuthManager', '🔍 Final check storage dump:', { 
-            hasSession: !!storage.BRAINBOX_SESSION, 
-            hasToken: !!storage.BRAINBOX_SESSION?.access_token 
-        });
-        if (storage.BRAINBOX_SESSION?.access_token) {
-            // If we have a token but it's expired, try one last refresh
-            try {
-                logger.info('AuthManager', '🔄 Session expired, attempting final refresh before redirect...');
-                const success = await this.refreshSession();
-                if (success) return true;
-            } catch (e) {
-                logger.warn('AuthManager', 'Final refresh attempt failed');
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Refresh the Dashboard session using the refresh token
-     */
-    async refreshSession(): Promise<boolean> {
-        try {
-            const { BRAINBOX_SESSION } = (await chrome.storage.local.get('BRAINBOX_SESSION')) as { BRAINBOX_SESSION?: any };
-            const refreshToken = BRAINBOX_SESSION?.refresh_token;
-
-            if (!refreshToken) {
-                logger.warn('AuthManager', 'No refresh token available');
-                return false;
-            }
-
-            const { CONFIG } = await import('@/lib/config');
-            const response = await fetch(`${CONFIG.DASHBOARD_URL}/api/auth/refresh`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ refreshToken })
-            });
-
-            if (!response.ok) {
-                throw new Error(`Refresh failed with status ${response.status}`);
-            }
-
-            const data = await response.json();
-            if (data.accessToken) {
-                await this.setDashboardSession({
-                    access_token: data.accessToken,
-                    refresh_token: data.refreshToken,
-                    expires_at: data.expiresAt,
-                    user: BRAINBOX_SESSION?.user
-                });
-                logger.info('AuthManager', '✨ Session refreshed successfully');
-                return true;
-            }
-
-            return false;
-        } catch (error) {
-            logger.error('AuthManager', '❌ Failed to refresh session', error);
-            return false;
-        }
     }
 
     /**
      * Actively sync and verify all tokens
      */
     async syncAll() {
-        logger.debug('AuthManager', '🔄 Starting full token sync...');
+        if (this.DEBUG_MODE) console.log('[AuthManager] 🔄 Starting full token sync...');
         
         // 1. Refresh internal state from storage
         await this.loadTokensFromStorage();
         
         // 2. Verify Dashboard Session via Ping
-        const result = (await chrome.storage.local.get(['BRAINBOX_SESSION', 'accessToken'])) as any;
-        const accessToken = result.BRAINBOX_SESSION?.access_token || result.accessToken;
-        
+        const { accessToken } = await chrome.storage.local.get(['accessToken']);
         if (!accessToken) return { isValid: false, tokens: this.tokens };
 
         try {
@@ -639,28 +400,27 @@ export class AuthManager {
                 headers: { 'Authorization': `Bearer ${accessToken}` }
             });
             
-            if (response && response.status === 401) {
+            if (response.status === 401) {
                 // Token is dead, cleanup
-                await chrome.storage.local.remove(['BRAINBOX_SESSION', 'accessToken', 'refreshToken', 'userEmail', 'expiresAt']);
+                await chrome.storage.local.remove(['accessToken', 'refreshToken', 'userEmail', 'expiresAt']);
                 return { isValid: false, tokens: this.tokens };
             }
             
             return { 
-                isValid: response?.ok ?? false, 
+                isValid: response.ok, 
                 tokens: this.tokens 
             };
         } catch (e) {
-            logger.error('AuthManager', 'Sync ping failed', e);
+            console.error('[AuthManager] Sync ping failed:', e);
             // If offline, trust storage if not expired
             const valid = await this.isSessionValid();
             return { isValid: valid, tokens: this.tokens };
         }
     }
 
-    async getHeader(platform: any) {
+    async getHeader(platform) {
         // Return necessary headers for a platform request
         // This abstracts token retrieval for the API handlers
         // TODO: Implement cleaner interface for API calls
-        return platform;
     }
 }

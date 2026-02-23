@@ -2,7 +2,6 @@
 // Manifest V3 Background Script
 
 import { CONFIG } from '@/lib/config';
-import { logger } from '@/lib/logger';
 import { AuthManager } from './modules/authManager';
 import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
 import { DynamicMenus } from './modules/dynamicMenus';
@@ -10,34 +9,13 @@ import { MessageRouter } from './modules/messageRouter';
 import { NetworkObserver } from './modules/networkObserver';
 import { InstallationManager } from './modules/installationManager';
 import { SyncManager } from './modules/syncManager';
-import { clearExtensionCache } from '@brainbox/shared';
+// import { TabManager } from './modules/tabManager'; // Optional for future use
 
-// ============================================================================
-// LIFECYCLE MANAGEMENT
-// ============================================================================
-
-/**
- * Install event - skip waiting to ensure the new worker takes over immediately
- */
-self.addEventListener('install', () => {
-    logger.info('Worker', '📥 Service Worker Installing...');
-    (self as any).skipWaiting();
-});
-
-/**
- * Activate event - claim clients to ensure consistent control
- */
-self.addEventListener('activate', (event: any) => {
-    logger.info('Worker', '✨ Service Worker Activating...');
-    event.waitUntil((self as any).clients.claim());
-});
-
-// Track initialization count to detect double-loading
-(self as any).__BRAINBOX_INIT_COUNT__ = ((self as any).__BRAINBOX_INIT_COUNT__ || 0) + 1;
-logger.info('Worker', `🚀 Service Worker Starting (Init: ${(self as any).__BRAINBOX_INIT_COUNT__})...`);
+const DEBUG_MODE = false;
+console.log('[BrainBox Worker] 🚀 Service Worker Starting...');
 
 self.onerror = function(message, source, lineno, colno, error) {
-    logger.error('Worker', '❌ Global Error: ' + message, error);
+    console.error('[BrainBox Worker] ❌ Global Error:', message, error);
 };
 
 // ============================================================================
@@ -49,105 +27,36 @@ const authManager = new AuthManager();
 const promptSyncManager = new PromptSyncManager(CONFIG.DASHBOARD_URL);
 
 // 2. Feature Modules
-const dynamicMenus = new DynamicMenus(promptSyncManager, authManager);
-const networkObserver = new NetworkObserver(false);
-const installationManager = new InstallationManager(false);
+const dynamicMenus = new DynamicMenus(promptSyncManager);
+const networkObserver = new NetworkObserver(DEBUG_MODE);
+const installationManager = new InstallationManager(DEBUG_MODE);
+// const tabManager = new TabManager(DEBUG_MODE); // Optional
 
 // 3. Communication Router
 const messageRouter = new MessageRouter(
     authManager,
     promptSyncManager,
-    false
+    DEBUG_MODE
 );
 
 // ============================================================================
 // START ALL MODULES
 // ============================================================================
 
-async function initApp() {
-    try {
-        logger.debug('Worker', '🔧 Initializing modules...');
-        
-        // Ensure Auth is ready before anything else
-        await authManager.initialize();
-        await promptSyncManager.initialize();
-        
-        // Optional cleanup
-        clearExtensionCache().catch(() => {});
+authManager.initialize();
+promptSyncManager.initialize();
 
-        // Trigger sync queue processing on startup
-        const isValid = await authManager.checkAuth();
-        logger.debug('Worker', `📦 Auth session: ${isValid ? 'Valid' : 'Not found'}`);
-        
-        if (isValid) {
-            const { accessToken } = await chrome.storage.local.get(['accessToken']);
-            SyncManager.initialize((accessToken as string) || null);
-        }
-
-        // Initialize features
-        dynamicMenus.initialize();
-        networkObserver.initialize();
-        installationManager.initialize();
-
-        // Start listening
-        messageRouter.listen();
-        
-        logger.info('Worker', '✅ All modules initialized');
-    } catch (e) {
-        logger.error('Worker', '❌ Initialization Failed', e);
-    }
-}
-
-// Start initialization
-initApp();
-
-// 4. API Proxy Listener (CORS Bridge)
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === 'proxyToFactory') {
-        (async () => {
-             try {
-                const { payload } = request;
-                
-                // Get Auth Token
-                const { accessToken } = await chrome.storage.local.get('accessToken');
-                if (!accessToken) {
-                    throw new Error('No access token available');
-                }
-
-                logger.debug('Worker', '📡 Proxying to Factory:', CONFIG.API_BASE_URL + '/api/captures/save');
-
-                const response = await fetch(`${CONFIG.API_BASE_URL}/api/captures/save`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (response.status === 401) {
-                    logger.error('Worker', '❌ 401 Unauthorized - Token expired or invalid');
-                    // Potentially trigger re-login flow here
-                    sendResponse({ success: false, error: 'Unauthorized' });
-                    return;
-                }
-
-                if (!response.ok) {
-                     const errorText = await response.text();
-                     throw new Error(`Server error ${response.status}: ${errorText}`);
-                }
-
-                const data = await response.json();
-                sendResponse({ success: true, data });
-
-             } catch (error: any) {
-                 logger.error('Worker', '❌ Proxy Error:', error);
-                 sendResponse({ success: false, error: error.message });
-             }
-        })();
-        return true; // Keep channel open
-    }
+// Trigger sync queue processing on startup
+chrome.storage.local.get(['accessToken'], ({ accessToken }) => {
+    SyncManager.initialize(accessToken);
 });
+
+dynamicMenus.initialize();
+networkObserver.initialize();
+installationManager.initialize();
+// tabManager.initialize(); // Optional
+
+messageRouter.listen();
 
 // ============================================================================
 // CONFIGURATION SYNC
@@ -159,5 +68,4 @@ chrome.storage.local.set({
     EXTENSION_VERSION: CONFIG.VERSION
 });
 
-logger.info('Worker', '✅ All modules initialized');
-
+console.log('[BrainBox Worker] ✅ All modules initialized');

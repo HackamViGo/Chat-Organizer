@@ -3,9 +3,8 @@
  */
 
 import { BasePlatformAdapter, type Conversation } from './base';
-import { normalizeClaude } from '../../../lib/normalizers';
-import { limiters } from '../../../lib/rate-limiter';
-import { logger } from '../../../lib/logger';
+import { normalizeClaude } from '../../../lib/normalizers.js';
+import { limiters } from '../../../lib/rate-limiter.js';
 
 export class ClaudeAdapter extends BasePlatformAdapter {
     readonly platform = 'claude';
@@ -34,7 +33,7 @@ export class ClaudeAdapter extends BasePlatformAdapter {
 
             // Parse and normalize response
             const data = await response.json();
-            const conversation = normalizeClaude(data) as any;
+            const conversation = normalizeClaude(data);
 
             // Set URL
             if (providedUrl && providedUrl.includes('claude.ai')) {

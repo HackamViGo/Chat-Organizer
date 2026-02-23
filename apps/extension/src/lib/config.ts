@@ -1,50 +1,14 @@
 /**
- * BrainBox Configuration - Strict Environment Enforcement
+ * BrainBox Configuration
  * Single source of truth for the extension
  */
 
-const getEnvVar = (key: string): string => {
-  const env = (import.meta as any).env || (process as any).env || {};
-  const value = env[key];
-  const isTest = process.env.NODE_ENV === 'test';
-  
-  if (!value && (import.meta as any).env && !isTest) {
-    throw new Error(`CRITICAL: Missing Environment Variable ${key}`);
-  }
-  return value || '';
-};
-
 export const CONFIG = {
-    get API_BASE_URL() { return getEnvVar('VITE_API_BASE_URL').replace(/\/api$/, ''); },
-    DASHBOARD_URL: getEnvVar('VITE_DASHBOARD_URL'),
-    VERSION: '3.1.0',
-    IS_DEV: (import.meta as any).env?.DEV || process.env.NODE_ENV === 'development'
+    DASHBOARD_URL: 'http://localhost:3000', // Dev URL
+    // DASHBOARD_URL: 'https://brainbox-alpha.vercel.app', // Production URL
+    API_BASE_URL: 'http://localhost:3000', // Dev API
+    // API_BASE_URL: 'https://brainbox-alpha.vercel.app', // Production API
+    VERSION: '2.1.3'
 } as const;
 
-export const API_BASE_URL = CONFIG.API_BASE_URL;
-export const DASHBOARD_URL = CONFIG.DASHBOARD_URL;
-export const VERSION = CONFIG.VERSION;
-
 export type Config = typeof CONFIG;
-
-/**
- * BrainBox Global Configuration (Legacy/Global Context)
- * Used in non-module contexts if necessary
- */
-declare global {
-    interface Window {
-        BRAINBOX_CONFIG: {
-            DASHBOARD_URL: string;
-            VERSION: string;
-        };
-    }
-}
-
-// Initialize global config for non-module components if running in a window context
-if (typeof window !== 'undefined') {
-    window.BRAINBOX_CONFIG = {
-        DASHBOARD_URL: CONFIG.DASHBOARD_URL,
-        VERSION: CONFIG.VERSION
-    };
-}
-

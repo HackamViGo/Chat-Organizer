@@ -4,40 +4,10 @@
  */
 
 import { CONFIG } from '@/lib/config';
-import { logger } from '@/lib/logger';
 import { limiters } from '../../lib/rate-limiter.js';
 import type { Conversation, Message } from './platformAdapters/base';
 import { CacheManager } from './cacheManager';
 import { SyncManager } from './syncManager';
-import type { CreateChatInput } from '@brainbox/validation';
-
-const debugLog = (msg: string, data?: any) => {
-    logger.debug('DashboardAPI', msg, data);
-};
-
-/**
- * Robust fetch wrapper with HTML guard clause
- * Ensures we don't accidentally parse 404/500 HTML pages as JSON
- */
-async function fetchWithGuard(url: string, options: RequestInit): Promise<Response> {
-    const response = await fetch(url, options);
-    
-    // Guard Clause: Detect HTML responses when JSON is expected
-    const contentType = response.headers.get('Content-Type');
-    if (contentType && contentType.includes('text/html')) {
-        const text = await response.text();
-        const is404 = text.includes('404') || response.status === 404;
-        debugLog('🚨 HTML response detected instead of JSON!', { 
-            status: response.status, 
-            url,
-            is404,
-            preview: text.substring(0, 200) 
-        });
-        throw new Error(`Unexpected HTML response (${response.status}). Check connectivity or API_BASE_URL.`);
-    }
-    
-    return response;
-}
 
 // --- Optimized Tag Generation Logic (Whitelist based) ---
 
@@ -140,8 +110,7 @@ export function getOptimizedTags(messages: Message[]): string[] {
 // --- End Tag Generation Logic ---
 
 const API_BASE_URL = CONFIG.API_BASE_URL;
-const DASHBOARD_URL = CONFIG.DASHBOARD_URL;
-debugLog(`Using API_BASE_URL: ${API_BASE_URL}`);
+console.log(`[DashboardAPI] Using API_BASE_URL: ${API_BASE_URL}`);
 
 /**
  * Get user folders from Dashboard (Stale-While-Revalidate)
@@ -154,11 +123,11 @@ export async function getUserFolders(silent: boolean = false) {
     const fetchFromServer = async () => {
         const { accessToken } = await chrome.storage.local.get(['accessToken']);
         if (!accessToken) {
-            if (!silent) chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
+            if (!silent) chrome.tabs.create({ url: `${API_BASE_URL}/auth/signin?redirect=/extension-auth` });
             throw new Error('No access token');
         }
 
-        const response = await fetchWithGuard(`${API_BASE_URL}/api/folders`, {
+        const response = await fetch(`${API_BASE_URL}/api/folders`, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
 
@@ -175,7 +144,7 @@ export async function getUserFolders(silent: boolean = false) {
 
     // 3. Return cached data immediately if available, then refresh in background
     if (cached) {
-        fetchFromServer().catch(err => logger.warn('DashboardAPI', 'Background folder refresh failed', err));
+        fetchFromServer().catch(err => console.warn('[DashboardAPI] Background folder refresh failed:', err));
         return cached;
     }
 
@@ -194,7 +163,7 @@ export async function getUserSettings() {
         const { accessToken } = await chrome.storage.local.get(['accessToken']);
         if (!accessToken) return { quickAccessFolders: [] };
 
-        const response = await fetchWithGuard(`${API_BASE_URL}/api/user/settings`, {
+        const response = await fetch(`${API_BASE_URL}/api/user/settings`, {
             headers: { 'Authorization': `Bearer ${accessToken}` }
         });
 
@@ -207,7 +176,7 @@ export async function getUserSettings() {
     };
 
     if (cached) {
-        fetchFromServer().catch(err => logger.warn('DashboardAPI', 'Background settings refresh failed:', err));
+        fetchFromServer().catch(err => console.warn('[DashboardAPI] Background settings refresh failed:', err));
         return cached;
     }
 
@@ -223,23 +192,28 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
     const isTokenValid = accessToken && (!expiresAt || expiresAt > Date.now());
 
     if (!isTokenValid) {
-        logger.warn('DashboardAPI', '⚠️ Invalid or expired token');
-        if (!silent) chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
+        console.warn('[DashboardAPI] ⚠️ Invalid or expired token:', { hasToken: !!accessToken, expiresAt });
+        if (!silent) chrome.tabs.create({ url: `${API_BASE_URL}/auth/signin?redirect=/extension-auth` });
         throw new Error('Please authenticate first');
     }
 
-    const API_URL = `${API_BASE_URL}/api/chats`;
-    logger.info('DashboardAPI', `📤 Saving chat...`);
+    console.log(`[DashboardAPI] 📤 Saving chat to ${API_BASE_URL}/api/chats...`);
+    console.log(`[DashboardAPI] 🔑 Token check:`, { 
+        hasToken: !!accessToken, 
+        tokenStart: accessToken ? accessToken.substring(0, 10) + '...' : 'N/A',
+        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : 'Never',
+        now: new Date().toISOString()
+    });
 
     return await limiters.dashboard.schedule(async () => {
         const formattedContent = formatMessagesAsText(conversationData);
         const chatUrl = conversationData.url || `https://${conversationData.platform}/${conversationData.id}`;
         const localTags = getOptimizedTags(conversationData.messages || []);
 
-        const requestBody: CreateChatInput = {
+        const requestBody = {
             title: conversationData.title || 'Untitled Chat',
             content: formattedContent,
-            messages: conversationData.messages as any[] || [],
+            messages: conversationData.messages || [],
             platform: conversationData.platform,
             url: chatUrl,
             folder_id: folderId || null,
@@ -248,13 +222,13 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
 
         // 1. Check if we should even try (offline check)
         if (typeof navigator !== 'undefined' && !navigator.onLine) {
-            debugLog('📶 Offline detected. Queuing chat.');
-            await SyncManager.addToQueue('chat', { ...requestBody, folderId }); 
+            console.log('[DashboardAPI] 📶 Offline detected. Queuing chat.');
+            await SyncManager.addToQueue('chat', { ...requestBody, folderId }); // folderId included for context
             throw new Error('Offline: Saved to sync queue');
         }
 
         try {
-            const response = await fetchWithGuard(`${API_BASE_URL}/api/chats`, {
+            const response = await fetch(`${API_BASE_URL}/api/chats`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -265,7 +239,7 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
 
             if (response.status === 401) {
                 await chrome.storage.local.remove(['accessToken']);
-                if (!silent) chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
+                if (!silent) chrome.tabs.create({ url: `${API_BASE_URL}/auth/signin?redirect=/extension-auth` });
                 throw new Error('Session expired');
             }
 
@@ -273,14 +247,14 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
                 const errorText = await response.text();
                 // Queue on generic server errors (5xx)
                 if (response.status >= 500) {
-                    logger.warn('DashboardAPI', '⚠️ Server error. Queuing for retry.');
+                    console.warn('[DashboardAPI] ⚠️ Server error. Queuing for retry.');
                     await SyncManager.addToQueue('chat', { ...requestBody, folderId });
                 }
                 throw new Error(errorText);
             }
             
             const result = await response.json();
-            logger.info('DashboardAPI', '✅ Save successful');
+            console.log('[DashboardAPI] ✅ Save successful:', result);
 
             // 🚀 Trigger background sync of any previously queued items
             SyncManager.processQueue(async (item) => {
@@ -297,13 +271,13 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
                 } catch {
                     return false;
                 }
-            }).catch(err => logger.error('DashboardAPI', 'Queue processing failed:', err));
+            }).catch(err => console.error('[DashboardAPI] Queue processing failed:', err));
 
             return result;
         } catch (error: any) {
             // Queue on network errors (fetch failed)
             if (error instanceof TypeError && error.message.includes('fetch')) {
-                logger.warn('DashboardAPI', '📶 Network error. Queuing chat.');
+                console.warn('[DashboardAPI] 📶 Network error. Queuing chat.');
                 await SyncManager.addToQueue('chat', { ...requestBody, folderId });
                 throw new Error('Network error: Saved to sync queue');
             }
@@ -323,26 +297,25 @@ function formatMessagesAsText(conversationData: Conversation): string {
 }
 
 /**
- * Enhance prompt using Centralized AI Gateway
- * Uses the 'internal-enhancer' alias defined in models.json
+ * Enhance prompt using Gemini API
  */
 export async function enhancePrompt(promptText: string) {
     const { accessToken } = await chrome.storage.local.get(['accessToken']);
     
-    const response = await fetchWithGuard(`${API_BASE_URL}/api/ai/enhance`, {
+    // We don't strictly require login for enhancement if GEMINI_API_KEY is configured on server
+    // but we use the token to identify the user if possible.
+    
+    const response = await fetch(`${API_BASE_URL}/api/ai/enhance-prompt`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': accessToken ? `Bearer ${accessToken}` : ''
         },
-        body: JSON.stringify({ 
-            prompt: promptText,
-            model_alias: 'internal-enhancer' 
-        })
+        body: JSON.stringify({ prompt: promptText })
     });
 
     if (!response.ok) {
-        throw new Error('Failed to enhance prompt via gateway');
+        throw new Error('Failed to enhance prompt');
     }
 
     const data = await response.json();

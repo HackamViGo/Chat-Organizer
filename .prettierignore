@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+.turbo
+coverage
+*.snap
+pnpm-lock.yaml
+apps/extension/dist
+packages/database/database.types.ts
+packages/shared/src/types/database.types.ts
+

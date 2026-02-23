@@ -1,5 +1,8 @@
-import { logger } from '@/lib/logger';
-
+/**
+ * TabManager
+ * 
+ * Manages tab lifecycle and platform detection
+ */
 export class TabManager {
     private DEBUG_MODE: boolean;
 
@@ -16,13 +19,13 @@ export class TabManager {
         chrome.tabs.onActivated.addListener(this.handleTabActivated);
         chrome.tabs.onRemoved.addListener(this.handleTabRemoved);
         
-        logger.info('TabManager', '📑 Tab listeners registered');
+        console.log('[TabManager] 📑 Tab listeners registered');
     }
 
     private handleTabUpdated(
         tabId: number,
-        changeInfo: any,
-        tab: any
+        changeInfo: chrome.tabs.TabChangeInfo,
+        tab: chrome.tabs.Tab
     ) {
         // Only act on complete page loads
         if (changeInfo.status !== 'complete') return;
@@ -31,23 +34,23 @@ export class TabManager {
         // Example: Inject scripts on specific platforms
         if (tab.url.includes('gemini.google.com')) {
             if (this.DEBUG_MODE) {
-                logger.debug('TabManager', 'Gemini detected:', tabId);
+                console.log('[TabManager] Gemini detected:', tabId);
             }
             // Auto-inject logic here (optional)
         }
     }
 
-    private handleTabActivated(activeInfo: any) {
+    private handleTabActivated(activeInfo: chrome.tabs.TabActiveInfo) {
         // Example: Update badge when switching tabs
         if (this.DEBUG_MODE) {
-            logger.debug('TabManager', 'Tab activated:', activeInfo.tabId);
+            console.log('[TabManager] Tab activated:', activeInfo.tabId);
         }
     }
 
-    private handleTabRemoved(tabId: number, removeInfo: any) {
+    private handleTabRemoved(tabId: number, removeInfo: chrome.tabs.TabRemoveInfo) {
         // Cleanup logic
         if (this.DEBUG_MODE) {
-            logger.debug('TabManager', 'Tab closed:', tabId);
+            console.log('[TabManager] Tab closed:', tabId);
         }
     }
 }

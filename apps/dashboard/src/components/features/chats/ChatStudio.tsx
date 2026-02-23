@@ -3,17 +3,14 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useChatStore } from '@/store/useChatStore';
-import { Chat, Platform } from '@brainbox/shared';
+import { useShallow } from 'zustand/react/shallow';
+import { Chat, Platform, Message } from '@brainbox/shared';
 import { 
   Send, Bot, Sparkles, Plus, MessageSquare, 
   Cpu, Zap, MoreVertical, Trash2, ArrowLeft,
   Settings, CheckCircle, Lock, Key, Crown
 } from 'lucide-react';
 
-interface Message {
-  role: 'user' | 'model';
-  text: string;
-}
 
 const MODELS = [
   { id: 'gemini', name: 'Gemini 2.5 Flash', icon: Sparkles, color: 'text-blue-400', desc: 'Fast & Versatile' },
@@ -26,7 +23,14 @@ export const ChatStudio: React.FC = () => {
   const searchParams = useSearchParams();
   const activeChatId = searchParams.get('id');
   
-  const { chats, addChat, updateChat, deleteChat } = useChatStore();
+  const { chats, addChat, updateChat, deleteChat } = useChatStore(
+    useShallow((s) => ({
+      chats: s.chats,
+      addChat: s.addChat,
+      updateChat: s.updateChat,
+      deleteChat: s.deleteChat,
+    }))
+  );
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +67,7 @@ export const ChatStudio: React.FC = () => {
     if (activeChatId) {
       const existingChat = chats.find(c => c.id === activeChatId);
       if (existingChat && existingChat.content) {
-        setMessages([{ role: 'user', text: 'Continuing conversation...' }]);
+        setMessages([{ id: crypto.randomUUID(), role: 'system', content: 'Continuing conversation...', timestamp: Date.now() }]);
       } else {
         setMessages([]);
       }
@@ -86,7 +90,7 @@ export const ChatStudio: React.FC = () => {
 
     const userText = input;
     setInput('');
-    const newHistory = [...messages, { role: 'user' as const, text: userText }];
+    const newHistory: Message[] = [...messages, { id: crypto.randomUUID(), role: 'user', content: userText, timestamp: Date.now() }];
     setMessages(newHistory);
     setIsLoading(true);
 
@@ -126,11 +130,11 @@ export const ChatStudio: React.FC = () => {
       fullResponse = data.response || data.title || 'No response from AI';
 
       // Add AI response
-      setMessages(prev => [...prev, { role: 'model', text: fullResponse }]);
+      setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'assistant', content: fullResponse, timestamp: Date.now() }]);
 
       // Save to database
-      const rawContent = [...newHistory, { role: 'model' as const, text: fullResponse }]
-        .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.text}`)
+      const rawContent = [...newHistory, { id: crypto.randomUUID(), role: 'assistant' as const, content: fullResponse, timestamp: Date.now() }]
+        .map(m => `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`)
         .join('\n');
 
       if (!currentChatId) {
@@ -181,8 +185,10 @@ export const ChatStudio: React.FC = () => {
       }
       
       setMessages(prev => [...prev, { 
-        role: 'model', 
-        text: errorMessage
+        id: crypto.randomUUID(),
+        role: 'assistant', 
+        content: errorMessage,
+        timestamp: Date.now()
       }]);
     } finally {
       setIsLoading(false);
@@ -433,7 +439,7 @@ export const ChatStudio: React.FC = () => {
                        ? 'bg-blue-600 text-white rounded-tr-sm' 
                        : 'bg-white dark:bg-[#1a2236] border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-tl-sm'
                     }`}>
-                       <div className="whitespace-pre-wrap">{msg.text}</div>
+                       <div className="whitespace-pre-wrap">{msg.content}</div>
                     </div>
                  </div>
                ))

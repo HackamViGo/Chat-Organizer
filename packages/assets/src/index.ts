@@ -7,7 +7,6 @@ export const PROVIDER_ASSETS: Record<string, string> = {
   google: '/icons/providers/gemini.png',
   deepseek: '/icons/providers/deepseek.png',
   perplexity: '/icons/providers/perplexity.png',
-  mistral: '/icons/providers/mistral.png',
   grok: '/icons/providers/grok.png',
   xai: '/icons/providers/grok.png',
   qwen: '/icons/providers/qwen.png',

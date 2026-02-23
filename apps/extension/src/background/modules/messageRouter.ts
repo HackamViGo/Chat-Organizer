@@ -73,6 +73,9 @@ export class MessageRouter {
             
             case 'syncPrompts':
                 return this.handleSyncPrompts(sendResponse);
+            
+            case 'createPrompt':
+                return this.handleCreatePrompt(request, sendResponse);
 
             // ============ GEMINI ============
             case 'injectGeminiMainScript':
@@ -158,6 +161,13 @@ export class MessageRouter {
     private handleSyncPrompts(sendResponse: Function): boolean {
         this.promptSyncManager.sync()
             .then(result => sendResponse(result))
+            .catch(error => sendResponse({ success: false, error: error.message }));
+        return true;
+    }
+
+    private handleCreatePrompt(request: MessageRequest, sendResponse: Function): boolean {
+        dashboardApi.createPrompt(request.promptData)
+            .then(data => sendResponse({ success: true, data }))
             .catch(error => sendResponse({ success: false, error: error.message }));
         return true;
     }

@@ -9,7 +9,6 @@ const getGlobal = () => {
 };
 
 const GLOBAL = getGlobal();
-const IS_DEV = import.meta.env.DEV;
 
 // Check debug flag safely
 const isDebugMode = () => {
@@ -36,10 +35,25 @@ export const logger = {
   },
 
   error: (area: string, msg: string, err?: any) => {
-    // Errors are always logged, but we might want to suppress them in strict prod modes if not critical
-    // For now, keeping errors visible is safer, but strictly we could wrap this too if needed.
-    // The user instruction said "Ignore console.error only in global Error Boundaries", but standard errors are usually ok.
-    // However, to strictly follow "Zero-Log Policy" for INFO/DEBUG:
+    // Errors always logged (never suppressed)
     console.error(`[${area}] 🚨 ${msg}`, err || '');
+
+    // Sentry capture — production only.
+    // Requires: pnpm add @sentry/browser + VITE_SENTRY_DSN in .env
+    // Dynamic import via variable so Rollup does NOT bundle it at build time.
+    if (!import.meta.env.DEV && import.meta.env.VITE_SENTRY_DSN) {
+      try {
+        const sentryPkg = '@sentry/browser';
+        // @ts-ignore — installed on demand
+        import(/* @vite-ignore */ sentryPkg).then(({ captureException }: any) => {
+          captureException(err instanceof Error ? err : new Error(msg), {
+            tags: { area },
+            extra: { msg, originalError: err },
+          });
+        }).catch(() => { /* Sentry unavailable — fail silently */ });
+      } catch {
+        // Logging must never break the extension
+      }
+    }
   }
 };

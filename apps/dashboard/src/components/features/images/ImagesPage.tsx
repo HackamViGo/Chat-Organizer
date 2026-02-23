@@ -13,6 +13,7 @@ import { FOLDER_ICONS } from '@/components/layout/HybridSidebar';
 import { getFolderColorClass, getFolderTextColorClass, getFolderTextColorClasses, getFolderBorderColorClass, getCategoryIconContainerClasses } from '@brainbox/shared';
 import { useImageStore } from '@/store/useImageStore';
 import { useFolderStore } from '@/store/useFolderStore';
+import { useShallow } from 'zustand/react/shallow';
 import { createClient } from '@/lib/supabase/client';
 import type { Image as ImageType } from '@brainbox/shared';
 
@@ -38,9 +39,26 @@ export function ImagesPage({ userId }: { userId?: string }) {
     addToUploadQueue,
     updateUploadProgress,
     removeFromUploadQueue,
-  } = useImageStore();
+  } = useImageStore(useShallow(s => ({
+    images: s.images,
+    selectedImageIds: s.selectedImageIds,
+    uploadQueue: s.uploadQueue,
+    fetchImages: s.fetchImages,
+    deleteImages: s.deleteImages,
+    moveImages: s.moveImages,
+    toggleImageSelection: s.toggleImageSelection,
+    selectAllImages: s.selectAllImages,
+    clearSelection: s.clearSelection,
+    addToUploadQueue: s.addToUploadQueue,
+    updateUploadProgress: s.updateUploadProgress,
+    removeFromUploadQueue: s.removeFromUploadQueue,
+  })));
   
-  const { folders, addFolder, isLoading: foldersLoading } = useFolderStore();
+  const { folders, addFolder, isLoading: foldersLoading } = useFolderStore(useShallow(s => ({
+    folders: s.folders,
+    addFolder: s.addFolder,
+    isLoading: s.isLoading,
+  })));
   const searchParams = useSearchParams();
   const router = useRouter();
   

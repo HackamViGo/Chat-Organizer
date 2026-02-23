@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateEmbedding } from '../../../../lib/services/ai';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { z } from 'zod';
+import { aiRateLimit } from '@/lib/rate-limit';
 
 const searchSchema = z.object({
   query: z.string().min(1),
@@ -19,6 +20,14 @@ export async function POST(request: Request) {
 
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // S4-3: Rate Limiting
+    if (aiRateLimit) {
+      const { success } = await aiRateLimit.limit(user.id);
+      if (!success) {
+        return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+      }
     }
 
     // 1. Generate embedding for the query string

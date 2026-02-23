@@ -15,11 +15,13 @@ const getSyncKey = () => {
         }
     }
     
-    // Check for specific production project ID just in case
-    const PROD_ID = 'biwiicspmrdecsebcdfp';
-    const prodKey = `sb-${PROD_ID}-auth-token`;
-    if (localStorage.getItem(prodKey)) {
-        return prodKey;
+    // Remove the hardcoded reference, deduce by env var if available
+    const projectId = (import.meta as any).env?.VITE_SUPABASE_PROJECT_ID;
+    if (projectId) {
+        const prodKey = `sb-${projectId}-auth-token`;
+        if (localStorage.getItem(prodKey)) {
+            return prodKey;
+        }
     }
 
     return 'sb-localhost-auth-token'; // Fallback for dev

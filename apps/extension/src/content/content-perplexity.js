@@ -69,6 +69,7 @@
                     const titleEl = document.querySelector('h1');
                     if (titleEl) {
                         payload.messages.push({
+                            id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Date.now().toString(),
                             role: 'user',
                             content: titleEl.textContent,
                             timestamp: Date.now()
@@ -79,6 +80,7 @@
                     const answerEl = document.querySelector('.prose');
                     if (answerEl) {
                         payload.messages.push({
+                            id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : (Date.now() + 1).toString(),
                             role: 'assistant',
                             content: answerEl.innerText, // innerText preserves newlines better
                             timestamp: Date.now()

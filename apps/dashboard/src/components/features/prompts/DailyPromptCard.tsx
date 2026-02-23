@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Copy, Check, Bookmark, Zap, Play } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { usePromptStore } from '@/store/usePromptStore';
+import { useShallow } from 'zustand/react/shallow';
 import { Prompt } from '@brainbox/shared';
 import './DailyPromptCard.css';
 
@@ -17,7 +18,7 @@ export function DailyPromptCard({ userPrompts = [] }: DailyPromptCardProps) {
   const [isRevealed, setIsRevealed] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [copied, setCopied] = useState(false);
-  const { setPrompts } = usePromptStore();
+  const { setPrompts } = usePromptStore(useShallow(s => ({ setPrompts: s.setPrompts })));
 
   const dailyPromptData = {
     title: "Vibrant 3D Product Shot",

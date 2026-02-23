@@ -2,104 +2,92 @@
 
 **Project**: BrainBox AI Chat Organizer  
 **Version**: 3.1.0  
-**Stack**: Chrome Extension (Manifest V3) ↔ Next.js PWA  
-**Generated**: 2026-02-11
+**Stack**: Chrome Extension (Manifest V3) ↔ Next.js Dashboard  
+**Updated**: 2026-02-23
 
 ---
 
-## 1. Overview
+## 1. High-Level Data Flow
 
-### High-Level Data Flow (v3.1.0)
+The extension operates statelessly regarding persistent storage. It relies entirely on the Next.js Dashboard API for truth.
+
+1. **Capture**: Content scripts (`prompt-inject.ts`) capture DOM state.
+2. **Normalize**: Platform Adapters (`background/platforms/`) normalize raw AI JSON into the canonical `Message[]` schema.
+3. **Sync**: `dashboardApi.ts` sends a `POST /api/chats/extension` request using the Bearer token.
 
 ```mermaid
 sequenceDiagram
     participant User
     participant Ext_CS as content/prompt-inject.ts
     participant Ext_SW as background/service-worker.ts
-    participant Storage as chrome.storage.local (Sync Queue)
+    participant Storage as chrome.storage.local
     participant Dashboard as Next.js Dashboard
-    
-    User->>Dashboard: Login / extension-auth
-    Dashboard->>Ext_SW: Send JWT via Token Bridge
-    Ext_SW->>Ext_SW: Save JWT in storage.local
-    
+
+    User->>Dashboard: Login
+    Dashboard->>Ext_SW: Send JWT via Token Bridge (SET_SESSION)
+    Ext_SW->>Storage: Save JWT as BRAINBOX_SESSION
+
     User->>Ext_CS: AI Interaction (ChatGPT/Gemini/etc.)
-    Ext_CS->>Ext_CS: Capture state / Intercept tokens
-    Ext_CS->>Ext_SW: Send data for normalization
-    
+    Ext_CS->>Ext_SW: Send raw data for normalization
+    Ext_SW->>Ext_SW: Platform Adapter → canonical Message[]
+
     User->>Ext_SW: Trigger "Save Chat"
-    Ext_SW->>Storage: Add to brainbox_sync_queue
-    Ext_SW->>Dashboard: POST /api/chats (Bearer token)
+    Ext_SW->>Dashboard: POST /api/chats/extension (Bearer token)
     Dashboard-->>Ext_SW: 200 OK (Saved)
-    Ext_SW->>Storage: Remove from sync_queue
 ```
 
 ---
 
-## 2. Authentication Bridge
+## 2. Authentication Bridge (The Token Bridge)
 
-### 2.1 Token Flow: Dashboard → Extension
+- **Mechanism**: `content-dashboard-auth.ts` reads `localStorage` on the Dashboard domain and sends `SET_SESSION` to the Extension Background.
+- **Storage**: The JWT is stored in `chrome.storage.local` under `BRAINBOX_SESSION`.
+- **Refresh Logic**: The extension **MUST** proactively check `expires_at`. If the token is within 5 minutes of expiry, it must call `POST /api/auth/refresh` to rotate the token. If it fails, the user is logged out locally.
 
-**Problem**: Chrome extensions cannot access HTTPOnly cookies from web pages.
-**Solution**: Сигурен трансфер на токени през `content-dashboard-auth.ts`, който работи на специалната страница `/extension-auth`.
+### Token Bridge Security
 
-**Handshake Steps**:
-1. Потребителят се логва в Dashboard-а.
-2. `content-dashboard-auth.ts` прихваща сесията и я изпраща към Background Service Worker.
-3. `authManager.ts` съхранява JWT токена в `chrome.storage.local`.
-4. Всички следващи заявки към API-то използват `Authorization: Bearer <JWT>`.
-
----
-
-## 3. Data Capture & Local Caching
-
-### 3.1 `prompt-inject.ts` (Universal Coordinator)
-- **State Capture**: Следи промените в конверсацията и извлича уникалните ID-та.
-- **Interception**: Работи в тандем с `inject-gemini-main.ts` за извличане на токени в Gemini.
-- **Local Storage**: Използва `chrome.storage.local` за временно съхранение на опашката за синхронизация (`brainbox_sync_queue`).
-
-### 3.2 Sync States
-| Състояние | Описание |
-|-----------|----------|
-| **QUEUED** | Данните са в локалната опашка за синхронизация. |
-| **NORMALIZED** | Данните са превърнати в каноничен `Chat` обект (в паметта на SW). |
-| **SYNCED** | Данните са успешно записани в Supabase. |
+| Mechanism | Status |
+|-----------|--------|
+| `event.origin` validation on window messages | ✅ Implemented |
+| Storage: plain-text in `chrome.storage.local` | ⚠️ Planned: AES-GCM via SubtleCrypto |
+| Background JWT auto-refresh (<5 min expiry) | 🔲 Required — see Refresh Logic above |
 
 ---
 
-## 4. Security Considerations
+## 3. Network Interception
 
-- **CSP Bypass**: Разширението изпълнява всички тежки заявки (API calls) от Background контекста, за да избегне стриктните CSP политики на AI платформите.
-- **Fail-Fast**: Ако сесията е изтекла, `AuthManager` автоматично изпраща съобщение към потребителя за повторен лог-ин.
-- **Encryption**: Данните в локалното хранилище са достъпни само за разширението (изолиран контекст).
-- **Traffic Interception**: Използва се `RELEVANT_API_REGEX` за филтриране на мрежовия трафик.
-
-## 5. RELEVANT_API_REGEX Definition
-
-Използва се от `AuthManager` и `NetworkObserver` за прихващане на специфичните API заявки на AI платформите:
+Traffic is filtered via `RELEVANT_API_REGEX`, used by `AuthManager` and `NetworkObserver`:
 
 ```javascript
 const RELEVANT_API_REGEX = /((chatgpt\.com\/backend-api\/conversation|claude\.ai\/api\/organizations\/[^\/]+\/chat_conversations|gemini\.google\.com\/_\/GeminiWebGuiUi\/data\/batchexecute|chat\.deepseek\.com\/api\/v0\/chat\/history|perplexity\.ai\/api\/v1\/search|x\.com\/i\/api\/|grok\.com\/api\/|chat\.qwenlm\.ai\/api\/|chat\.lmsys\.org\/run\/predict))/i;
 ```
 
-Тази дефиниция гарантира, че разширението реагира само на "интересни" заявки, съдържащи данни за чатове или сесийни токени.
+---
 
-## 6. Security Gaps & Mitigation
+## 4. Sync States
 
-### 6.1 Encryption at Rest (Policy)
-- **Current State**: Токените и кешираните чатове се съхраняват в **plain-text** (`chrome.storage.local`). Защитата разчита единствено на изолацията на Chrome Extension Sandbox.
-- **Planned Mitigation**: Въвеждане на **AES-GCM** криптиране чрез `Web Crypto API (SubtleCrypto)`. Всяко записване в `storage.local` ще бъде преминало през `encrypt(data, masterKey)`.
-
-### 6.2 Token Rotation Policy
-- **JWT Rotation**: `AuthManager` автоматично ротира `access_token` при всяко изтичане, използвайки `refresh_token`.
-- **Session Life**: Сесиите са валидни 1 час (Supabase default), като опресняването става при оставащи < 5 минути (Grace Period).
-- **Hard Expiry**: При невалиден или липсващ `refresh_token`, потребителят се прехвърля автоматично към `/auth/signin`.
-
-### 6.3 Key Management Lifecycle
-- **Storage**: Ключовете за криптиране (бъдещи) ще се съхраняват в `chrome.storage.session` (само в паметта), за да не се записват на диска.
-- **Entropy**: Ключовете ще се генерират локално при първия лог-ин и ще се изтриват при `Logout`.
-- **Isolation**: Платформените токени (ChatGPT/Gemini) са изолирани в `AuthManager` и никога не се изпращат към Dashboard-а, освен ако не са нужни за сървърна синхронизация.
+| State | Description |
+|-------|-------------|
+| **QUEUED** | Data is in `brainbox_sync_queue` in `chrome.storage.local`. |
+| **NORMALIZED** | Data has been converted to canonical `Chat` object (in SW memory). |
+| **SYNCED** | Data successfully written to Supabase via Dashboard API. |
 
 ---
-*Документът е актуализиран на 11.02.2026.*
 
+## 5. Deprecation Notice
+
+> [!CAUTION]
+> The following components are **DEPRECATED** and must not be used in new code.
+
+| Component | Replacement | Status |
+|-----------|-------------|--------|
+| `BrainBoxGeminiMaster` IndexedDB | `chrome.storage.local` via SyncManager | 🚫 DEPRECATED |
+| `brainbox_master.ts` (monolithic XHR/Fetch patcher) | Modular Platform Adapters (`background/platforms/`) | 🚫 DEPRECATED |
+
+**IndexedDB is DEPRECATED**: The extension no longer uses `BrainBoxGeminiMaster` IndexedDB. All sync queues are managed in memory or `chrome.storage.local`.
+
+**`brainbox_master.ts` is DEPRECATED**: Replaced by modular Platform Adapters located in `src/background/modules/platformAdapters/`.
+
+---
+
+*Документът е актуализиран на 23.02.2026 от Meta-Architect.*

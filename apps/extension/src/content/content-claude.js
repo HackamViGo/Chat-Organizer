@@ -6,7 +6,10 @@
 
     let hoverButtons = new WeakMap();
     let hoverButtonsRegistry = new Map();
-    let observer = null;
+    // S5-2: Track instances globally for cleanup
+    let _mainObserver = null;
+    let _abortController = null;
+    let _navObserver = null;
     let ui = null;
 
     // ============================================================================
@@ -14,18 +17,32 @@
     // ============================================================================
 
     function init() {
-        console.log('[BrainBox] Claude init() called');
+        // S5-2: Cleanup previous instances (critical for SPA navigation)
+        if (_mainObserver) { _mainObserver.disconnect(); _mainObserver = null; }
+        if (_abortController) { _abortController.abort(); _abortController = null; }
+        _abortController = new AbortController();
+        // Reset registry on re-init to avoid stale references
+        hoverButtonsRegistry = new Map();
+
         if (window.BrainBoxUI) {
             ui = new window.BrainBoxUI();
-            console.log('[BrainBox] UI library loaded');
-        } else {
-            console.log('[BrainBox] UI library not found');
         }
         
         // Start proactive Organization ID detection
         startOrgIdDetection();
-        
-        console.log('[BrainBox] Claude content script initialized');
+    }
+
+    // S5-2: SPA navigation detection — re-init on URL change
+    function setupNavObserver() {
+        if (_navObserver) return; // Only one instance
+        let lastUrl = location.href;
+        _navObserver = new MutationObserver(() => {
+            if (location.href !== lastUrl) {
+                lastUrl = location.href;
+                init();
+            }
+        });
+        _navObserver.observe(document, { subtree: true, childList: true });
     }
 
     // ============================================================================
@@ -101,11 +118,11 @@
             return;
         }
 
-        observer = new MutationObserver(debounce(() => {
+        _mainObserver = new MutationObserver(debounce(() => {
             injectHoverButtons();
         }, 300));
 
-        observer.observe(sidebar, {
+        _mainObserver.observe(sidebar, {
             childList: true,
             subtree: true,
             characterData: false,
@@ -116,15 +133,11 @@
     function setupVisibilityListener() {
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                if (observer) {
-                    observer.disconnect();
-                    console.log('[BrainBox] Observer disconnected (tab inactive)');
-                }
+                if (_mainObserver) { _mainObserver.disconnect(); }
             } else {
                 setupConversationListObserver();
-                console.log('[BrainBox] Observer reconnected (tab active)');
             }
-        });
+        }, { signal: _abortController?.signal });
     }
 
     // ============================================================================
@@ -395,28 +408,17 @@
     // ============================================================================
 
     function startOrgIdDetection() {
-        console.log('[BrainBox] Starting Organization ID detection...');
-        
         // Try immediately
         detectAndSaveOrgId();
         
-        // Retry every 2 seconds for 10 times (to catch it after SPA hydration)
+        // Retry a few times for SPA hydration
         let attempts = 0;
         const interval = setInterval(() => {
             detectAndSaveOrgId();
             attempts++;
             if (attempts > 10) clearInterval(interval);
         }, 2000);
-        
-        // Listen for URL changes to re-detect
-        let lastUrl = location.href;
-        new MutationObserver(() => {
-            const url = location.href;
-            if (url !== lastUrl) {
-                lastUrl = url;
-                setTimeout(detectAndSaveOrgId, 1000); // Wait for navigation to settle
-            }
-        }).observe(document, {subtree: true, childList: true});
+        // Note: URL change is now handled by the global _navObserver in setupNavObserver()
     }
 
     function detectAndSaveOrgId() {
@@ -519,9 +521,10 @@
     });
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', () => { init(); setupNavObserver(); });
     } else {
         init();
+        setupNavObserver();
     }
 
 })();

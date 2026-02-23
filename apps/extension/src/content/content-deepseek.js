@@ -39,7 +39,8 @@
                 if (messageElements.length > 0) {
                     messageElements.forEach((el, index) => {
                          payload.messages.push({
-                            role: 'unknown',
+                            id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Date.now().toString(),
+                            role: 'assistant',
                             content: el.innerText,
                             timestamp: Date.now() + index
                         });

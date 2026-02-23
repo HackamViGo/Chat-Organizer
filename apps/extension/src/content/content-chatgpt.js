@@ -5,32 +5,48 @@
 
     let ui = null;
     let hoverButtons = new WeakMap();
-    let observer = null;
+    // S5-2: Track instances globally for cleanup
+    let _mainObserver = null;
+    let _abortController = null;
+    let _navObserver = null;
 
     // ============================================================================
     // INITIALIZATION
     // ============================================================================
 
     function init() {
-        console.log('[BrainBox ChatGPT] 🚀 Initializing...');
-        
-        // Retry logic for UI Library
+        // S5-2: Cleanup previous instances (critical for SPA navigation)
+        if (_mainObserver) { _mainObserver.disconnect(); _mainObserver = null; }
+        if (_abortController) { _abortController.abort(); _abortController = null; }
+        _abortController = new AbortController();
+
         let attempts = 0;
         const checkUI = () => {
             if (window.BrainBoxUI) {
                 ui = new window.BrainBoxUI();
-                console.log('[BrainBox ChatGPT] ✅ UI Library found');
                 start();
             } else if (attempts < 10) {
                 attempts++;
                 setTimeout(checkUI, 100);
             } else {
-                console.warn('[BrainBox ChatGPT] ⚠️ UI Library NOT found on window after retries');
-                start(); // Start anyway, but UI features might fail
+                start();
             }
         };
         
         checkUI();
+    }
+
+    // S5-2: SPA navigation detection — re-init on URL change
+    function setupNavObserver() {
+        if (_navObserver) return; // Only one instance
+        let lastUrl = location.href;
+        _navObserver = new MutationObserver(() => {
+            if (location.href !== lastUrl) {
+                lastUrl = location.href;
+                init();
+            }
+        });
+        _navObserver.observe(document, { subtree: true, childList: true });
     }
 
     function start() {
@@ -184,11 +200,11 @@
         attachHoverListeners();
 
         // Watch for new conversations appearing
-        observer = new MutationObserver(() => {
+        _mainObserver = new MutationObserver(() => {
             attachHoverListeners();
         });
 
-        observer.observe(sidebar, {
+        _mainObserver.observe(sidebar, {
             childList: true,
             subtree: true,
             characterData: false,
@@ -203,13 +219,11 @@
     function setupVisibilityListener() {
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) {
-                if (observer) {
-                    observer.disconnect();
-                }
+                if (_mainObserver) { _mainObserver.disconnect(); }
             } else {
                 setupConversationListObserver();
             }
-        });
+        }, { signal: _abortController?.signal });
     }
 
     // ============================================================================
@@ -416,9 +430,10 @@
     });
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', () => { init(); setupNavObserver(); });
     } else {
         init();
+        setupNavObserver();
     }
 
 })();

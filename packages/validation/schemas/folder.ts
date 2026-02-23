@@ -4,7 +4,7 @@
  */
 import { z } from 'zod';
 
-export const folderTypeEnum = z.enum(['chat', 'image', 'prompt', 'list', 'default', 'custom']);
+export const folderTypeEnum = z.enum(['chat', 'list', 'image', 'prompt']);
 
 export const createFolderSchema = z.object({
   name: z.string().min(1),

@@ -92,9 +92,10 @@ export class GrokAdapter extends BasePlatformAdapter {
         if (data.items) {
             for (const item of data.items) {
                 // sender: 1 = user, 2 = bot (Grok)
-                const role = item.sender === 1 ? 'user' : 'assistant';
+                const role: 'user' | 'assistant' = item.sender === 1 ? 'user' : 'assistant';
                 
                 messages.push({
+                    id: crypto.randomUUID(),
                     role,
                     content: item.message || item.text || '',
                     timestamp: item.timestamp ? item.timestamp * 1000 : Date.now()

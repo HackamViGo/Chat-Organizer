@@ -84,6 +84,7 @@ export class DeepSeekAdapter extends BasePlatformAdapter {
         if (data.data?.selection_list) {
             for (const item of data.data.selection_list) {
                 messages.push({
+                    id: crypto.randomUUID(),
                     role: item.role === 'user' ? 'user' : 'assistant',
                     content: item.content || '',
                     timestamp: item.created_at ? new Date(item.created_at).getTime() : Date.now()

@@ -5,6 +5,8 @@
  * Useful for offline support and retrying failed requests.
  */
 
+import { decryptToken } from '@/lib/crypto';
+
 export interface SyncItem {
     id: string;
     type: 'chat';
@@ -97,7 +99,8 @@ export class SyncManager {
     /**
      * Initialize periodic sync or startup sync
      */
-    static async initialize(accessToken: string | null) {
+    static async initialize(accessTokenParam: string | null) {
+        const accessToken = await decryptToken(accessTokenParam);
         if (!accessToken) return;
         
         // Initial sync on startup
@@ -108,7 +111,8 @@ export class SyncManager {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`
+                        'Authorization': `Bearer ${accessToken}`,
+                        'X-Extension-Key': CONFIG.EXTENSION_KEY
                     },
                     body: JSON.stringify(item.data)
                 });

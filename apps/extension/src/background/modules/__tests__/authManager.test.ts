@@ -230,29 +230,37 @@ describe('AuthManager', () => {
       };
 
       await authManager.setDashboardSession(session);
-
+      
       const storage = (chrome.storage.local as any)._getInternalStorage();
-      expect(storage.accessToken).toBe(session.accessToken);
-      expect(storage.refreshToken).toBe(session.refreshToken);
+      // Tokens should be encrypted (not equal to plain text)
+      expect(storage.accessToken).not.toBe(session.accessToken);
+      expect(storage.refreshToken).not.toBe(session.refreshToken);
+      
+      // But getDashboardToken should decrypt them correctly
+      const token = await authManager.getDashboardToken();
+      expect(token).toBe(session.accessToken);
+      
       expect(storage.expiresAt).toBe(session.expiresAt);
       expect(storage.rememberMe).toBe(true);
     });
 
     it('should validate valid session', async () => {
-      await chrome.storage.local.set({
+      const session = {
         accessToken: 'valid-token',
-        expiresAt: Date.now() + 3600000 // Future expiry
-      });
+        expiresAt: Date.now() + 3600000 
+      };
+      await authManager.setDashboardSession(session);
 
       const isValid = await authManager.isSessionValid();
       expect(isValid).toBe(true);
     });
 
     it('should reject expired session', async () => {
-      await chrome.storage.local.set({
+      const session = {
         accessToken: 'expired-token',
-        expiresAt: Date.now() - 1000 // Past expiry
-      });
+        expiresAt: Date.now() - 1000 
+      };
+      await authManager.setDashboardSession(session);
 
       const isValid = await authManager.isSessionValid();
       expect(isValid).toBe(false);
@@ -268,9 +276,10 @@ describe('AuthManager', () => {
     });
 
     it('should accept session without expiry', async () => {
-      await chrome.storage.local.set({
+      const session = {
         accessToken: 'token-without-expiry'
-      });
+      };
+      await authManager.setDashboardSession(session);
 
       const isValid = await authManager.isSessionValid();
       expect(isValid).toBe(true);
@@ -283,9 +292,8 @@ describe('AuthManager', () => {
 
   describe('syncAll()', () => {
     it('should verify dashboard token with API ping', async () => {
-      await chrome.storage.local.set({
-        accessToken: 'valid-token'
-      });
+      const session = { accessToken: 'valid-token' };
+      await authManager.setDashboardSession(session);
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: true,
@@ -298,17 +306,21 @@ describe('AuthManager', () => {
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/api/folders'),
         expect.objectContaining({
-          headers: { 'Authorization': 'Bearer valid-token' }
+          headers: { 
+            'Authorization': 'Bearer valid-token',
+            'X-Extension-Key': expect.any(String)
+          }
         })
       );
     });
 
     it('should cleanup on 401 response', async () => {
-      await chrome.storage.local.set({
+      const session = {
         accessToken: 'expired-token',
-        refreshToken: 'refresh-token',
-        userEmail: 'user@example.com'
-      });
+        refreshToken: 'refresh-token'
+      };
+      await authManager.setDashboardSession(session);
+      await chrome.storage.local.set({ userEmail: 'user@example.com' });
 
       global.fetch = vi.fn().mockResolvedValue({
         ok: false,
@@ -327,10 +339,11 @@ describe('AuthManager', () => {
     });
 
     it('should handle network errors gracefully', async () => {
-      await chrome.storage.local.set({
+      const session = {
         accessToken: 'token',
         expiresAt: Date.now() + 3600000
-      });
+      };
+      await authManager.setDashboardSession(session);
 
       global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
 

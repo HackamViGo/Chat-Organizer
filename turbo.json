@@ -24,13 +24,22 @@
       "persistent": true
     },
     "lint": {
-      "dependsOn": ["^lint"]
+      "dependsOn": [],
+      "outputs": [],
+      "cache": true
     },
     "type-check": {
-      "dependsOn": ["^type-check"]
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "cache": true
     },
     "test": {
-      "dependsOn": []
+      "dependsOn": ["^build"]
+    },
+    "verify": {
+      "dependsOn": ["type-check", "lint", "test"],
+      "outputs": [],
+      "cache": false
     }
   }
 }

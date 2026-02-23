@@ -92,6 +92,7 @@ export class LMArenaAdapter extends BasePlatformAdapter {
             for (let i = 0; i < conversationData.length; i += 2) {
                 if (conversationData[i]) {
                     messages.push({
+                        id: crypto.randomUUID(),
                         role: 'user',
                         content: conversationData[i],
                         timestamp: Date.now()
@@ -99,19 +100,23 @@ export class LMArenaAdapter extends BasePlatformAdapter {
                 }
                 if (conversationData[i + 1]) {
                     messages.push({
+                        id: crypto.randomUUID(),
                         role: 'assistant',
                         content: conversationData[i + 1],
-                        timestamp: Date.now()
+                        timestamp: Date.now() + (i * 10) + 5
                     });
                 }
             }
         } else if (conversationData?.messages) {
             // Format 2: Object with messages array
+            let idx = 0;
             for (const msg of conversationData.messages) {
+                const role = msg.role || (msg.is_user ? 'user' : 'assistant');
                 messages.push({
-                    role: msg.role || (msg.is_user ? 'user' : 'assistant'),
+                    id: crypto.randomUUID(),
+                    role: role === 'user' ? 'user' : 'assistant',
                     content: msg.content || msg.text || '',
-                    timestamp: Date.now()
+                    timestamp: Date.now() + (idx++ * 10)
                 });
             }
         }

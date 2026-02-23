@@ -48,8 +48,9 @@
                     // Alternative: Just capture the text.
                     const text = el.innerText;
                     if (text) {
-                        payload.messages.push({
-                            role: 'unknown', // generic role, let UI handle or assume alternating
+                         payload.messages.push({
+                            id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Date.now().toString(),
+                            role: 'assistant', // generic role, let UI handle or assume alternating
                             content: text,
                             timestamp: Date.now() + index // increment to keep order
                         });

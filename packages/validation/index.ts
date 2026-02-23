@@ -7,9 +7,15 @@
 export {
   createChatSchema,
   updateChatSchema,
+  platformEnum,
   type CreateChatInput,
   type UpdateChatInput,
 } from './schemas/chat';
+
+export {
+  messageSchema,  
+  type MessageInput,
+} from './schemas/message';
 
 // Prompt schemas
 export {

@@ -1,9 +1,14 @@
 import { logger } from '../lib/logger';
 
+// Global cleanup registry to prevent SPA memory leaks
+declare global {
+  interface Window {
+    _brainboxContentObserver?: MutationObserver;
+    _brainboxAbortController?: AbortController;
+  }
+}
+
 // Prevent multiple executions
-if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
-  logger.debug('Prompt Inject', '⏹️ Script already loaded, skipping init.');
-} else {
   (window as any).BRAINBOX_PROMPT_INJECT_LOADED = true;
 
   const CONFIG = {
@@ -583,26 +588,10 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
   // ============================================================================
   
   async function createPrompt(promptData: { title: string; content: string; folder_id: string | null; use_in_context_menu: boolean }): Promise<{ success: boolean; error?: string }> {
-    logger.debug('Prompt Inject', '📤 Creating prompt:', promptData.title);
+    logger.debug('Prompt Inject', '📤 Creating prompt via Background:', promptData.title);
     
     try {
-      const storage = await chrome.storage.local.get(['accessToken']);
-      const accessToken = storage.accessToken as string | undefined;
-      
-      if (!accessToken) {
-        const errorMsg = 'Extension not linked. Please sync from the dashboard.';
-        showNotification(errorMsg, 'warning');
-        throw new Error('Missing access token');
-      }
-      
-      const url = `${CONFIG.API_BASE_URL}${CONFIG.API_ENDPOINT}`;
-      
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${accessToken}`
-      };
-
-      // --- Privacy Shield Layer ---
+      // --- Privacy Shield Layer (Applied before sending to background) ---
       let finalContent = promptData.content;
       try {
         const privacyRes = await chrome.storage.local.get(['privacyConfig']);
@@ -642,42 +631,25 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
       } catch (e) {
         logger.warn('Prompt Inject', '⚠️ Privacy Shield check failed, proceeding without masking:', e);
       }
-      
-      const options: RequestInit = {
-        method: 'POST',
-        headers: headers,
-        body: JSON.stringify({
+
+      // Delegate to background script to bypass CSP and handle auth encryption
+      const response = await chrome.runtime.sendMessage({ 
+        action: 'createPrompt', 
+        promptData: {
           title: promptData.title,
           content: finalContent,
           folder_id: promptData.folder_id || null,
           color: '#6366f1',
           use_in_context_menu: promptData.use_in_context_menu || false
-        })
-      };
-      
-      const response = await fetch(url, options);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `HTTP error ${response.status}`);
-      }
-      
-      if (!response.ok) {
-        let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
-        try {
-          const errorData = await response.text();
-          if (errorData) {
-            errorMessage += ` - ${errorData}`;
-          }
-        } catch (e) {
-          // Ignore
         }
-        throw new Error(errorMessage);
+      });
+      
+      if (response && response.success) {
+        logger.debug('Prompt Inject', '✅ Prompt created successfully via background');
+        return { success: true };
+      } else {
+        throw new Error(response?.error || 'Failed to create prompt via background');
       }
-      
-      const data = await response.json();
-      logger.debug('Prompt Inject', '✅ Prompt created successfully:', data.id);
-      
-      return { success: true };
       
     } catch (error: any) {
       logger.debug('Prompt Inject', '❌ Error creating prompt:', error);
@@ -1030,24 +1002,35 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0, 0, 0, 0.5);
-        backdrop-filter: blur(4px);
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: opacity 0.3s ease;
       }
 
       .brainbox-prompt-menu-content {
         position: absolute;
-        top: 50%;
+        top: 80px;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translateX(-50%) translateY(-20px);
         width: 90%;
         max-width: 600px;
-        max-height: 80vh;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(12px) saturate(180%);
+        -webkit-backdrop-filter: blur(12px) saturate(180%);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 16px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0,0,0,0.05);
         display: flex;
         flex-direction: column;
+        max-height: 80vh;
         overflow: hidden;
+        animation: brainbox-slide-in 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+      }
+
+      @keyframes brainbox-slide-in {
+        from { opacity: 0; transform: translateX(-50%) translateY(-20px) scale(0.95); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
       }
 
       .brainbox-prompt-menu-header {
@@ -1078,11 +1061,11 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
 
       .brainbox-prompt-menu-search {
         width: 100%;
-        padding: 10px 16px;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
+        padding: 12px 18px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        border-radius: 12px;
         font-size: 14px;
-        background: white;
+        background: rgba(255, 255, 255, 0.5);
         color: #111827;
         outline: none;
         transition: all 0.2s;
@@ -1162,11 +1145,21 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
       }
 
       .brainbox-prompt-menu-item {
-        padding: 16px;
-        margin: 4px 0;
-        border-radius: 8px;
+        padding: 18px 24px;
+        margin: 6px;
+        border-radius: 12px;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 1px solid transparent;
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .brainbox-prompt-menu-item:hover {
+        background: rgba(255, 255, 255, 0.8);
+        transform: translateY(-2px) scale(1.01);
+        box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.1);
+        border-color: rgba(59, 130, 246, 0.3);
+      }
         border: 1px solid transparent;
       }
 
@@ -1701,6 +1694,19 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
   // PUBLIC API
   // ============================================================================
   
+  function handleKeydown(e: KeyboardEvent): void {
+    // Use Alt+P as a default shortcut for the prompt menu
+    if (e.altKey && (e.key === 'p' || e.key === 'P')) {
+      e.preventDefault();
+      logger.debug('Prompt Inject', '⌨️ Shortcut Alt+P triggered');
+      fetchPrompts().then(prompts => {
+        showPromptMenu(prompts);
+      }).catch(err => {
+        logger.error('Prompt Inject', 'Failed to fetch prompts for shortcut:', err);
+      });
+    }
+  }
+
   (window as any).BrainBoxPromptInject = {
     fetchPrompts,
     showPromptMenu,
@@ -1710,7 +1716,31 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
   };
 
   async function init(): Promise<void> {
+    // 1. Cleanup previous instances (Crucial for SPAs like ChatGPT/Claude)
+    cleanup();
+
+    // 2. Create new instances
+    window._brainboxAbortController = new AbortController();
+    const { signal } = window._brainboxAbortController;
+
     logger.debug('Prompt Inject', '🚀 Initializing BrainBox...');
+    
+    // Set up MutationObserver with cleanup support
+    window._brainboxContentObserver = new MutationObserver(() => {
+      // Logic for detecting textarea changes
+    });
+
+    window._brainboxContentObserver.observe(document.body, { 
+      childList: true, 
+      subtree: true 
+    });
+
+    // 3. Attach events safely using the signal
+    document.addEventListener('keydown', handleKeydown, { signal });
+    
+    // Safety: Global cleanup when window is unloaded
+    window.addEventListener('unload', cleanup, { once: true });
+
     await loadConfig();
     injectStyles();
     setupMessageListener();
@@ -1718,14 +1748,31 @@ if ((window as any).BRAINBOX_PROMPT_INJECT_LOADED) {
     // Notify background that we are ready
     chrome.runtime.sendMessage({ action: 'contentScriptReady', platform: 'universal' }).catch(() => {});
   }
+
+  function cleanup(): void {
+    if (window._brainboxContentObserver) {
+      window._brainboxContentObserver.disconnect();
+      window._brainboxContentObserver = undefined;
+      logger.debug('Prompt Inject', '🧹 Disconnected MutationObserver');
+    }
+    if (window._brainboxAbortController) {
+      window._brainboxAbortController.abort();
+      window._brainboxAbortController = undefined;
+      logger.debug('Prompt Inject', '🧹 Aborted listeners & controllers');
+    }
+    
+    // Remove injected menus if they exist
+    const menu = document.getElementById('brainbox-prompt-menu');
+    if (menu) menu.remove();
+    const dialog = document.getElementById('brainbox-create-prompt-dialog');
+    if (dialog) dialog.remove();
+  }
   
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => { init(); });
   } else {
     init();
   }
-} // End of else block from the top of the file
-
 
 /**
  * File: apps/extension/src/prompt-inject/prompt-inject.ts

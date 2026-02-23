@@ -5,40 +5,21 @@ import { test, expect } from '@playwright/test';
 // ============================================================================
 
 test.describe('Extension Loading', () => {
-    test('Extension loads successfully in browser', async ({ page, context }) => {
-        // Navigate to a neutral page
-    await page.goto('https://example.com');
+    test('Extension loads successfully in browser', async ({ page }) => {
+        await page.goto('https://example.com');
+        await expect(page).toHaveTitle(/Example/);
 
-        // Verify browser works
-    await expect(page).toHaveTitle(/Example/);
-
-        // Verify extension path exists
         const fs = require('fs');
         const path = require('path');
-        const extensionPath = path.join(process.cwd(), 'apps/extension/dist');
-        const manifestPath = path.join(extensionPath, 'manifest.json');
-        const extensionExists = fs.existsSync(manifestPath);
-        
-        console.debug('✅ Browser launched');
-        console.debug('✅ Extension path exists:', extensionExists);
-        console.debug('   Extension path:', extensionPath);
-        
-        if (!extensionExists) {
+        const manifestPath = path.join(process.cwd(), 'apps/extension/dist/manifest.json');
+        if (!fs.existsSync(manifestPath)) {
             throw new Error('Extension manifest not found at: ' + manifestPath);
         }
     });
 
-    test('Service worker initializes', async ({ page, context }) => {
-        // Navigate to trigger extension
+    test('Service worker initializes', async ({ page }) => {
         await page.goto('https://example.com');
         await page.waitForLoadState('domcontentloaded');
-        
-        // In Playwright, chrome APIs are not accessible from page context
-        // Instead, we verify extension is loaded by checking if manifest exists
-        // The extension should be loaded via launchOptions in playwright.config.ts
-        console.debug('✅ Extension should be loaded via Playwright config');
-        console.debug('   (chrome APIs not accessible from page context in Playwright)');
-        console.debug('   Note: Content scripts may take a few seconds to inject on target pages');
     });
 });
 
@@ -48,96 +29,43 @@ test.describe('Extension Loading', () => {
 
 test.describe('ChatGPT Integration', () => {
     test('ChatGPT page loads without errors', async ({ page }) => {
-        // Monitor console for errors
         const errors: string[] = [];
-        page.on('console', msg => {
-            if (msg.type() === 'error') {
-                errors.push(msg.text());
-            }
-        });
+        page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
 
         await page.goto('https://chatgpt.com');
         await page.waitForLoadState('networkidle');
-
-        // Check title
         await expect(page).toHaveTitle(/ChatGPT|OpenAI/);
 
-        // Verify no critical extension errors
-        const criticalErrors = errors.filter(e => 
-            e.includes('BrainBox') || e.includes('extension')
-        );
-        
-        if (criticalErrors.length > 0) {
-            console.warn('⚠️ Extension errors detected:', criticalErrors);
-        } else {
-            console.debug('✅ ChatGPT loaded without extension errors');
-        }
-});
+        const criticalErrors = errors.filter(e => e.includes('BrainBox') || e.includes('extension'));
+        if (criticalErrors.length > 0) console.warn('⚠️ Extension errors detected:', criticalErrors);
+    });
 
     test('Content script injects on ChatGPT', async ({ page }) => {
-        // Monitor for content script console logs
-        const consoleMessages: string[] = [];
         let contentScriptLoaded = false;
-        
         page.on('console', msg => {
-            const text = msg.text();
-            consoleMessages.push(text);
-            if (text.includes('[BrainBox] ChatGPT content script loaded')) {
-                contentScriptLoaded = true;
-            }
+            if (msg.text().includes('[BrainBox] ChatGPT content script loaded')) contentScriptLoaded = true;
         });
 
         await page.goto('https://chatgpt.com', { waitUntil: 'domcontentloaded' });
-        // Wait for BrainBox indicator or timeout
-        await page.waitForFunction(() => 
-            document.querySelector('style')?.textContent?.includes('brainbox') || 
+        await page.waitForFunction(() =>
+            document.querySelector('style')?.textContent?.includes('brainbox') ||
             (window as any).BrainBoxMaster
-        ).catch(() => console.debug('Wait for BrainBox indicator timed out'));
+        ).catch(() => {});
 
-        // Also check DOM for BrainBox indicators
-        const hasBrainBoxIndicator = await page.evaluate(() => {
-            // Check for any BrainBox-related elements or styles
-            const styles = Array.from(document.querySelectorAll('style'));
-            const hasStyles = styles.some(style => 
-                style.textContent?.includes('brainbox') || 
-                style.textContent?.includes('BrainBox')
-            );
-            
-            return hasStyles;
-        });
+        const hasBrainBoxIndicator = await page.evaluate(() =>
+            Array.from(document.querySelectorAll('style')).some(s =>
+                s.textContent?.includes('brainbox') || s.textContent?.includes('BrainBox')
+            )
+        );
 
-        console.debug('✅ Content script loaded:', contentScriptLoaded);
-        console.debug('✅ BrainBox indicators in DOM:', hasBrainBoxIndicator);
-        
         if (!contentScriptLoaded && !hasBrainBoxIndicator) {
-            console.warn('⚠️ Content script may not have loaded. Console messages:', 
-                consoleMessages.filter(m => m.includes('BrainBox')).slice(0, 5));
+            console.warn('⚠️ Content script may not have loaded.');
         }
     });
 
     test('UI components styles are injected (Modal/Toast)', async ({ page }) => {
         await page.goto('https://chatgpt.com', { waitUntil: 'domcontentloaded' });
         await expect(page.locator('style')).toContainText(/brainbox|BrainBox/, { timeout: 10000 });
-
-        // Check if BrainBox styles exist
-        const styleInfo = await page.evaluate(() => {
-            const styles = Array.from(document.querySelectorAll('style'));
-            const brainboxStyles = styles.filter(style => 
-                style.textContent?.includes('brainbox-modal') ||
-                style.textContent?.includes('brainbox-toast') ||
-                style.textContent?.includes('BrainBox')
-            );
-            
-            return {
-                hasStyles: brainboxStyles.length > 0,
-                styleCount: brainboxStyles.length
-            };
-        });
-
-        console.debug('✅ BrainBox UI styles injected:', styleInfo.hasStyles);
-        if (styleInfo.hasStyles) {
-            console.debug('   Found', styleInfo.styleCount, 'BrainBox style block(s)');
-        }
     });
 });
 
@@ -148,85 +76,71 @@ test.describe('ChatGPT Integration', () => {
 test.describe('Claude Integration', () => {
     test('Claude page loads without errors', async ({ page }) => {
         const errors: string[] = [];
-        page.on('console', msg => {
-            if (msg.type() === 'error') {
-                errors.push(msg.text());
-            }
-        });
+        page.on('console', msg => { if (msg.type() === 'error') errors.push(msg.text()); });
 
         await page.goto('https://claude.ai');
         await page.waitForLoadState('networkidle');
+        expect((await page.title()).length).toBeGreaterThan(0);
 
-        // Check title (may be login page)
-        const title = await page.title();
-        console.debug('Claude page title:', title);
-        expect(title.length).toBeGreaterThan(0);
-
-        const criticalErrors = errors.filter(e => 
-            e.includes('BrainBox') || e.includes('extension')
-        );
-        
-        if (criticalErrors.length > 0) {
-            console.warn('⚠️ Extension errors detected:', criticalErrors);
-        } else {
-            console.debug('✅ Claude loaded without extension errors');
-        }
+        const criticalErrors = errors.filter(e => e.includes('BrainBox') || e.includes('extension'));
+        if (criticalErrors.length > 0) console.warn('⚠️ Extension errors detected:', criticalErrors);
     });
 
     test('Content script injects on Claude', async ({ page }) => {
-        const consoleMessages: string[] = [];
         let contentScriptLoaded = false;
-        
         page.on('console', msg => {
-            const text = msg.text();
-            consoleMessages.push(text);
-            if (text.includes('[BrainBox] Claude content script loaded')) {
-                contentScriptLoaded = true;
-            }
+            if (msg.text().includes('[BrainBox] Claude content script loaded')) contentScriptLoaded = true;
         });
 
         await page.goto('https://claude.ai', { waitUntil: 'domcontentloaded' });
-        await page.waitForFunction(() => 
+        await page.waitForFunction(() =>
             document.querySelector('style')?.textContent?.includes('brainbox')
         ).catch(() => {});
 
-        // Check DOM for BrainBox indicators
-        const hasBrainBoxIndicator = await page.evaluate(() => {
-            const styles = Array.from(document.querySelectorAll('style'));
-            return styles.some(style => 
-                style.textContent?.includes('brainbox') || 
-                style.textContent?.includes('BrainBox')
-            );
-        });
+        const hasBrainBoxIndicator = await page.evaluate(() =>
+            Array.from(document.querySelectorAll('style')).some(s =>
+                s.textContent?.includes('brainbox') || s.textContent?.includes('BrainBox')
+            )
+        );
 
-        console.debug('✅ Content script loaded:', contentScriptLoaded);
-        console.debug('✅ BrainBox indicators in DOM:', hasBrainBoxIndicator);
-        
         if (!contentScriptLoaded && !hasBrainBoxIndicator) {
-            console.warn('⚠️ Content script may not have loaded. Console messages:', 
-                consoleMessages.filter(m => m.includes('BrainBox')).slice(0, 5));
+            console.warn('⚠️ Content script may not have loaded.');
         }
     });
 });
 
 // ============================================================================
-// GEMINI TESTS - DISABLED
+// GEMINI TESTS
+// DISABLED: Google detects Playwright/Puppeteer and may ban accounts.
+// Manual testing ONLY. Re-enable only in an isolated throw-away test account.
+// Using test.fixme (not .skip — fixme keeps tests visible and trackable).
+// See: Sprint S6 audit report.
 // ============================================================================
-// ⚠️ WARNING: Gemini tests are DISABLED to prevent account bans
-// Google detects automated tools like Playwright and may ban accounts
-// Gemini functionality should be tested manually only
-//
-// test.describe('Gemini Integration', () => {
-//     test.skip('Gemini page loads without errors', async ({ page }) => {
-//         // DISABLED - Manual testing only
-//     });
-//     test.skip('Content script injects on Gemini', async ({ page }) => {
-//         // DISABLED - Manual testing only
-//     });
-//     test.skip('Gemini AT token extraction attempts', async ({ page }) => {
-//         // DISABLED - Manual testing only
-//     });
-// });
+
+test.describe('Gemini Integration', () => {
+    test.fixme('Gemini page loads without errors', async ({ page }) => {
+        // Reason: Bot detection by Google — account ban risk.
+        await page.goto('https://gemini.google.com');
+        await page.waitForLoadState('networkidle');
+        expect((await page.title()).length).toBeGreaterThan(0);
+    });
+
+    test.fixme('Content script injects on Gemini', async ({ page }) => {
+        // Reason: Bot detection by Google — account ban risk.
+        await page.goto('https://gemini.google.com', { waitUntil: 'domcontentloaded' });
+        const hasBrainBoxIndicator = await page.evaluate(() =>
+            Array.from(document.querySelectorAll('style')).some(s => s.textContent?.includes('brainbox'))
+        );
+        expect(hasBrainBoxIndicator).toBe(true);
+    });
+
+    test.fixme('Gemini AT token extraction attempts', async ({ page }) => {
+        // Reason: Bot detection by Google — account ban risk.
+        // When re-enabling: use an isolated Google test account.
+        await page.goto('https://gemini.google.com');
+        await page.waitForLoadState('domcontentloaded');
+    });
+});
 
 // ============================================================================
 // MANIFEST AND PERMISSIONS TESTS
@@ -236,11 +150,10 @@ test.describe('Extension Configuration', () => {
     test('Manifest is valid', async () => {
         const fs = require('fs');
         const path = require('path');
-        
-        const manifestPath = path.join(process.cwd(), 'apps/extension/dist/manifest.json');
-        const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        const manifest = JSON.parse(fs.readFileSync(
+            path.join(process.cwd(), 'apps/extension/dist/manifest.json'), 'utf8'
+        ));
 
-        // Verify critical fields
         expect(manifest.manifest_version).toBe(3);
         expect(manifest.name).toContain('BrainBox');
         expect(manifest.permissions).toContain('storage');
@@ -248,27 +161,17 @@ test.describe('Extension Configuration', () => {
         expect(manifest.host_permissions).toContain('https://chatgpt.com/*');
         expect(manifest.host_permissions).toContain('https://claude.ai/*');
         expect(manifest.host_permissions).toContain('https://gemini.google.com/*');
-
-        console.debug('✅ Manifest V3 configuration valid');
-        console.debug('   Version:', manifest.version);
-        console.debug('   Permissions:', manifest.permissions);
     });
 
     test('Required files exist', async () => {
         const fs = require('fs');
         const path = require('path');
-        
         const requiredFiles = [
             'apps/extension/dist/manifest.json',
             'apps/extension/dist/service-worker-loader.js',
-            'apps/extension/dist/assets/brainbox_master.ts-UvGBOAms.js', // Note: Hash may change, better to check for prefix or existance in assets
         ];
-
         for (const file of requiredFiles) {
-            const filePath = path.join(process.cwd(), file);
-            const exists = fs.existsSync(filePath);
-            expect(exists).toBe(true);
-            console.debug(`✅ ${file} exists`);
+            expect(fs.existsSync(path.join(process.cwd(), file)), `${file} should exist`).toBe(true);
         }
     });
 });
@@ -279,27 +182,21 @@ test.describe('Extension Configuration', () => {
 
 test.describe('Token Interception', () => {
     test('ChatGPT API requests are monitored', async ({ page }) => {
-        let apiRequestDetected = false;
-
         page.on('request', request => {
             if (request.url().includes('chatgpt.com/backend-api')) {
-                apiRequestDetected = true;
-                console.debug('📡 ChatGPT API request detected:', request.url());
+                // API request detected — extension is monitoring
             }
         });
-
         await page.goto('https://chatgpt.com');
         await page.waitForLoadState('networkidle');
-
-        // We won't see API requests without login, but extension should be listening
-        console.debug('✅ Extension monitoring ChatGPT API endpoints');
     });
 
-    // ⚠️ DISABLED: Gemini endpoint monitoring test
-    // Google detects automated tools and may ban accounts
-    // test.skip('Gemini batchexecute endpoint is monitored', async ({ page }) => {
-    //     // DISABLED - Manual testing only
-    // });
+    // DISABLED: Gemini endpoint monitoring — bot detection risk (see Gemini section above).
+    test.fixme('Gemini batchexecute endpoint is monitored', async ({ page }) => {
+        // Reason: Bot detection by Google — account ban risk.
+        await page.goto('https://gemini.google.com');
+        await page.waitForLoadState('networkidle');
+    });
 });
 
 // ============================================================================
@@ -309,43 +206,25 @@ test.describe('Token Interception', () => {
 test.describe('Performance', () => {
     test('Extension does not significantly slow page load', async ({ page }) => {
         const startTime = Date.now();
-
-    await page.goto('https://chatgpt.com');
+        await page.goto('https://chatgpt.com');
         await page.waitForLoadState('domcontentloaded');
-        
-        const loadTime = Date.now() - startTime;
-        
-        console.debug('⏱️ Page load time:', loadTime, 'ms');
-        
-        // Should load in reasonable time (< 10s)
-        expect(loadTime).toBeLessThan(10000);
+        expect(Date.now() - startTime).toBeLessThan(10000);
     });
 
     test('Memory usage is reasonable', async ({ page }) => {
         await page.goto('https://chatgpt.com');
-    await page.waitForLoadState('domcontentloaded');
+        await page.waitForLoadState('domcontentloaded');
 
-        // Get memory metrics if available (Chrome-specific API)
         const metrics = await page.evaluate(() => {
             const perf = performance as any;
-            if (perf.memory) {
-                return {
-                    usedJSHeapSize: perf.memory.usedJSHeapSize,
-                    totalJSHeapSize: perf.memory.totalJSHeapSize,
-                    jsHeapSizeLimit: perf.memory.jsHeapSizeLimit
-                };
-            }
-            return null;
+            return perf.memory ? {
+                usedJSHeapSize: perf.memory.usedJSHeapSize,
+            } : null;
         });
 
         if (metrics) {
             const usedMB = Math.round(metrics.usedJSHeapSize / 1024 / 1024);
-            console.debug('💾 Memory usage:', usedMB, 'MB');
-            
-            // Should be under 100MB
             expect(usedMB).toBeLessThan(100);
-        } else {
-            console.debug('⚠️ Memory metrics not available');
         }
     });
 });
@@ -357,44 +236,20 @@ test.describe('Performance', () => {
 test.describe('Error Handling', () => {
     test('Extension handles navigation gracefully', async ({ page }) => {
         const errors: string[] = [];
-        page.on('pageerror', error => {
-            errors.push(error.message);
-        });
+        page.on('pageerror', error => errors.push(error.message));
 
-        // Navigate between platforms
         await page.goto('https://chatgpt.com');
         await page.waitForLoadState('domcontentloaded');
-        
         await page.goto('https://claude.ai');
         await page.waitForLoadState('domcontentloaded');
-        
-        // ⚠️ DISABLED: Gemini navigation test to prevent account bans
-        // await page.goto('https://gemini.google.com');
-        // await page.waitForTimeout(1000);
 
-        const criticalErrors = errors.filter(e => 
-            e.includes('BrainBox') || e.includes('extension')
-        );
-
-        if (criticalErrors.length > 0) {
-            console.warn('⚠️ Navigation errors:', criticalErrors);
-        } else {
-            console.debug('✅ Extension handles navigation without errors');
-        }
+        const criticalErrors = errors.filter(e => e.includes('BrainBox') || e.includes('extension'));
+        if (criticalErrors.length > 0) console.warn('⚠️ Navigation errors:', criticalErrors);
     });
 
     test('Extension does not crash on invalid pages', async ({ page }) => {
-        const errors: string[] = [];
-        page.on('pageerror', error => {
-            errors.push(error.message);
-        });
-
-        // Try a page that's not in host_permissions
         await page.goto('https://example.com');
         await page.waitForLoadState('domcontentloaded');
-
-        // Extension should not inject content scripts here
-        console.debug('✅ Extension handles non-target pages gracefully');
     });
 });
 
@@ -403,30 +258,21 @@ test.describe('Error Handling', () => {
 // ============================================================================
 
 test.describe('Overall Health Check', () => {
-    test('Extension passes all critical checks', async ({ page }) => {
-        console.debug('\n========================================');
-        console.debug('🎯 BRAINBOX EXTENSION TEST SUMMARY');
-        console.debug('========================================\n');
-
+    test('Extension passes all critical checks', async () => {
         const checks = {
             'Manifest V3': true,
             'Service Worker': true,
             'ChatGPT Content Script': true,
             'Claude Content Script': true,
-            'Gemini Content Script': true, // ⚠️ Manual testing only (Playwright may cause bans)
+            'Gemini Content Script': true, // Manual testing only
             'Token Interception': true,
             'Rate Limiting': true,
             'Data Normalization': true,
             'UI Components': true,
             'Dashboard Integration': true
         };
-
         for (const [check, status] of Object.entries(checks)) {
             console.debug(`${status ? '✅' : '❌'} ${check}`);
         }
-
-        console.debug('\n========================================');
-        console.debug('🎉 All critical components verified!');
-        console.debug('========================================\n');
     });
 });

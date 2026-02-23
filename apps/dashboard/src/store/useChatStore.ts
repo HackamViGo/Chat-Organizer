@@ -9,7 +9,7 @@ interface ChatStore {
   
   setChats: (chats: Chat[]) => void;
   addChat: (chat: Chat) => void;
-  updateChat: (id: string, chat: Partial<Chat>) => void;
+  updateChat: (id: string, chat: Partial<Chat>) => Promise<void>;
   deleteChat: (id: string) => Promise<void>;
   deleteChats: (ids: string[]) => Promise<void>;
   toggleChatSelection: (id: string) => void;
@@ -28,38 +28,56 @@ export const useChatStore = create<ChatStore>((set, get) => ({
   setChats: (chats) => set({ chats }),
   addChat: (chat) => set((state) => ({ chats: [chat, ...state.chats] })),
   updateChat: async (id, updates) => {
+    const previousChats = get().chats; // 1. Save current state
+    
+    // 2. Optimistic Update (Apply immediately to UI)
+    set((state) => ({
+      chats: state.chats.map((chat) =>
+        chat.id === id ? { ...chat, ...updates } : chat
+      ),
+    }));
+
     try {
+      // 3. Perform API Request
       const response = await fetch('/api/chats', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
         body: JSON.stringify({ id, ...updates }),
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to update chat');
-      }
-
-      const updatedChat = await response.json();
       
+      if (!response.ok) throw new Error('Failed to update chat');
+      
+      // 4. Sync with server response (optional, for exact DB timestamps)
+      const updatedChat = await response.json();
       set((state) => ({
         chats: state.chats.map((chat) =>
           chat.id === id ? { ...chat, ...updatedChat } : chat
         ),
       }));
     } catch (error) {
-      console.error('Error updating chat:', error);
-      // Optimistic update on error
-      set((state) => ({
-        chats: state.chats.map((chat) =>
-          chat.id === id ? { ...chat, ...updates } : chat
-        ),
-      }));
+      console.error('Error updating chat, rolling back:', error);
+      // 5. Rollback to previous state on failure!
+      set({ chats: previousChats });
       throw error;
     }
   },
   deleteChat: async (id: string) => {
+    const previousChats = get().chats;
+    const previousSelectedIds = new Set(get().selectedChatIds);
+
+    // 1. Optimistic Update
+    set((state) => {
+      const newSelectedIds = new Set(state.selectedChatIds);
+      newSelectedIds.delete(id);
+      return {
+        chats: state.chats.filter((chat) => chat.id !== id),
+        selectedChatIds: newSelectedIds,
+      };
+    });
+
     try {
+      // 2. Perform API Request
       const response = await fetch(`/api/chats?ids=${id}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -68,24 +86,35 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       if (!response.ok) {
         throw new Error('Failed to delete chat');
       }
-
-      set((state) => {
-        const newSelectedIds = new Set(state.selectedChatIds);
-        newSelectedIds.delete(id);
-        return {
-          chats: state.chats.filter((chat) => chat.id !== id),
-          selectedChatIds: newSelectedIds,
-        };
-      });
     } catch (error) {
-      console.error('Error deleting chat:', error);
+      console.error('Error deleting chat, rolling back:', error);
+      // 3. Rollback on failure
+      set({ 
+        chats: previousChats,
+        selectedChatIds: previousSelectedIds 
+      });
       throw error;
     }
   },
   deleteChats: async (ids: string[]) => {
     if (ids.length === 0) return;
 
+    const previousChats = get().chats;
+    const previousSelectedIds = new Set(get().selectedChatIds);
+
+    // 1. Optimistic Update
+    set((state) => {
+      const idsSet = new Set(ids);
+      const newSelectedIds = new Set(state.selectedChatIds);
+      ids.forEach(id => newSelectedIds.delete(id));
+      return {
+        chats: state.chats.filter((chat) => !idsSet.has(chat.id)),
+        selectedChatIds: newSelectedIds,
+      };
+    });
+
     try {
+      // 2. Perform API Request
       const response = await fetch(`/api/chats?ids=${ids.join(',')}`, {
         method: 'DELETE',
         credentials: 'include',
@@ -94,18 +123,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
       if (!response.ok) {
         throw new Error('Failed to delete chats');
       }
-
-      set((state) => {
-        const idsSet = new Set(ids);
-        const newSelectedIds = new Set(state.selectedChatIds);
-        ids.forEach(id => newSelectedIds.delete(id));
-        return {
-          chats: state.chats.filter((chat) => !idsSet.has(chat.id)),
-          selectedChatIds: newSelectedIds,
-        };
-      });
     } catch (error) {
-      console.error('Error deleting chats:', error);
+      console.error('Error deleting chats, rolling back:', error);
+      // 3. Rollback on failure
+      set({ 
+        chats: previousChats,
+        selectedChatIds: previousSelectedIds 
+      });
       throw error;
     }
   },

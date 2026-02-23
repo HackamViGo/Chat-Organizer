@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Prompt, PromptUpdate } from '@brainbox/shared';
 import { usePromptStore } from '@/store/usePromptStore';
+import { useShallow } from 'zustand/react/shallow';
 import { createClient } from '@/lib/supabase/client';
 import { 
   MoreVertical, Trash2, Edit2, Copy, Check, X, AlertTriangle, Menu, Square, CheckSquare
@@ -35,7 +36,14 @@ const BG_COLORS: Record<string, string> = {
 };
 
 export function PromptCard({ prompt, onEdit }: PromptCardProps) {
-  const { deletePrompt, updatePrompt, selectedPromptIds, togglePromptSelection } = usePromptStore();
+  const { deletePrompt, updatePrompt, selectedPromptIds, togglePromptSelection } = usePromptStore(
+    useShallow((s) => ({
+      deletePrompt: s.deletePrompt,
+      updatePrompt: s.updatePrompt,
+      selectedPromptIds: s.selectedPromptIds,
+      togglePromptSelection: s.togglePromptSelection,
+    }))
+  );
   const [showMenu, setShowMenu] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);

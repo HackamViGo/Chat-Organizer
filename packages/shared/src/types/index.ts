@@ -1,7 +1,7 @@
 import { Database, Json } from './database.types';
 
 export type Chat = Database['public']['Tables']['chats']['Row'] & { 
-  tags?: Json | null;
+  tags?: string[] | null;
   embedding?: number[] | null;
   detailed_summary?: string | null;
 };
@@ -67,3 +67,15 @@ export interface UploadItem {
 }
 
 export type { PrivacyConfig } from '@brainbox/validation';
+
+export interface Message {
+  id: string
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  timestamp: number
+  metadata?: {
+    model?: string
+    images?: string[]
+    [key: string]: unknown
+  }
+}

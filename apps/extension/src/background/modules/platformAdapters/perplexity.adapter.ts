@@ -87,6 +87,7 @@ export class PerplexityAdapter extends BasePlatformAdapter {
         if (data.thread?.messages) {
             for (const msg of data.thread.messages) {
                 messages.push({
+                    id: crypto.randomUUID(),
                     role: msg.role === 'user' ? 'user' : 'assistant',
                     content: msg.text || msg.content || '',
                     timestamp: msg.created_at ? new Date(msg.created_at).getTime() : Date.now()

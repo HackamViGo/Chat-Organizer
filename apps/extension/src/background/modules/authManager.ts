@@ -1,3 +1,5 @@
+import { encryptToken, decryptToken } from '@/lib/crypto';
+
 /**
  * AuthManager
  * 
@@ -59,13 +61,18 @@ export class AuthManager {
         this.handleQwenHeaders = this.handleQwenHeaders.bind(this);
     }
 
-    /**
-     * Start listening for tokens
-     */
     initialize() {
         this.registerListeners();
         this.loadTokensFromStorage();
         console.log('[AuthManager] 🛡️ Initialized and listening.');
+
+        // S2-3 Auto Refresh Token Check
+        chrome.alarms.create('token-refresh-check', { periodInMinutes: 4 });
+        chrome.alarms.onAlarm.addListener((alarm) => {
+            if (alarm.name === 'token-refresh-check') {
+                this.getDashboardToken();
+            }
+        });
     }
 
     registerListeners() {
@@ -157,7 +164,7 @@ export class AuthManager {
 
     handleChatGPTHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'authorization'
+            (h: any) => h.name.toLowerCase() === 'authorization'
         );
 
         if (authHeader && authHeader.value?.startsWith('Bearer ')) {
@@ -259,7 +266,7 @@ export class AuthManager {
 
     handleDeepSeekHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'authorization'
+            (h: any) => h.name.toLowerCase() === 'authorization'
         );
 
         if (authHeader && authHeader.value?.startsWith('Bearer ')) {
@@ -271,7 +278,7 @@ export class AuthManager {
             }
         }
 
-        const dsVersionHeader = details.requestHeaders?.find(h => h.name.toLowerCase() === 'x-client-version');
+        const dsVersionHeader = details.requestHeaders?.find((h: any) => h.name.toLowerCase() === 'x-client-version');
         if (dsVersionHeader && details.url.includes('deepseek.com')) {
             if (this.tokens.deepseek_version !== dsVersionHeader.value) {
                 this.tokens.deepseek_version = dsVersionHeader.value;
@@ -283,7 +290,7 @@ export class AuthManager {
 
     handlePerplexityHeaders(details: any) {
         const authHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'authorization'
+            (h: any) => h.name.toLowerCase() === 'authorization'
         );
 
         if (authHeader && authHeader.value?.startsWith('Bearer ')) {
@@ -296,7 +303,7 @@ export class AuthManager {
         }
 
         // Capture session cookies specifically for Perplexity (web API fallback)
-        const cookieHeader = details.requestHeaders?.find(h => h.name.toLowerCase() === 'cookie');
+        const cookieHeader = details.requestHeaders?.find((h: any) => h.name.toLowerCase() === 'cookie');
         if (cookieHeader && details.url.includes('perplexity.ai') && !authHeader) {
             if (this.tokens.perplexity_session !== cookieHeader.value) {
                 this.tokens.perplexity_session = cookieHeader.value;
@@ -308,10 +315,10 @@ export class AuthManager {
 
     handleGrokHeaders(details: any) {
         const csrfHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'x-csrf-token'
+            (h: any) => h.name.toLowerCase() === 'x-csrf-token'
         );
         const authHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'authorization'
+            (h: any) => h.name.toLowerCase() === 'authorization'
         );
 
         let updated = false;
@@ -335,10 +342,10 @@ export class AuthManager {
 
     handleQwenHeaders(details: any) {
         const xsrfHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'x-xsrf-token'
+            (h: any) => h.name.toLowerCase() === 'x-xsrf-token'
         );
         const appIdHeader = details.requestHeaders?.find(
-            h => h.name.toLowerCase() === 'x-app-id'
+            (h: any) => h.name.toLowerCase() === 'x-app-id'
         );
 
         let updated = false;
@@ -364,20 +371,83 @@ export class AuthManager {
     // Public API
     // ========================================================================
 
-    async setDashboardSession(session) {
+    async setDashboardSession(session: any) {
+        const encryptedAccess = session.accessToken ? await encryptToken(session.accessToken) : null;
+        const encryptedRefresh = session.refreshToken ? await encryptToken(session.refreshToken) : null;
+
         await chrome.storage.local.set({
-            accessToken: session.accessToken,
-            refreshToken: session.refreshToken,
+            accessToken: encryptedAccess,
+            refreshToken: encryptedRefresh,
             expiresAt: session.expiresAt,
             rememberMe: session.rememberMe
         });
         if (this.DEBUG_MODE) console.log('[AuthManager] ✅ Dashboard session updated');
     }
 
+    async getDashboardToken(): Promise<string | null> {
+        const { accessToken: encryptedToken, refreshToken: encryptedRefresh } = await chrome.storage.local.get(['accessToken', 'refreshToken']);
+        if (!encryptedToken) return null;
+
+        const token = await decryptToken(encryptedToken);
+        if (!token) return null;
+
+        const tokenParts = token.split('.');
+        if (tokenParts.length !== 3) return token;
+
+        try {
+            const payload = JSON.parse(atob(tokenParts[1].replace(/-/g, '+').replace(/_/g, '/')));
+            const exp = payload.exp;
+            if (exp && (exp - Date.now() / 1000 < 300)) {
+                if (this.DEBUG_MODE) console.log('[AuthManager] Token expiring soon, refreshing...');
+                const refreshToken = encryptedRefresh ? await decryptToken(encryptedRefresh) : null;
+                if (!refreshToken) throw new Error('No refresh token');
+
+                const { CONFIG } = await import('@/lib/config');
+                const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'X-Extension-Key': CONFIG.EXTENSION_KEY
+                    },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.access_token) {
+                        const newEncryptedToken = await encryptToken(data.access_token);
+                        const newEncryptedRefresh = data.refresh_token ? await encryptToken(data.refresh_token) : encryptedRefresh;
+                        await chrome.storage.local.set({ 
+                            accessToken: newEncryptedToken,
+                            refreshToken: newEncryptedRefresh,
+                            expiresAt: data.expires_at ? data.expires_at * 1000 : null
+                        });
+                        return data.access_token;
+                    }
+                }
+                
+                // Failed to refresh
+                await chrome.storage.local.remove(['accessToken', 'refreshToken', 'expiresAt', 'userEmail']);
+                chrome.runtime.sendMessage({ type: 'AUTH_EXPIRED' });
+                return null;
+            }
+        } catch (e) {
+            console.error('[AuthManager] Token check failed:', e);
+        }
+
+        return token;
+    }
+
     async isSessionValid() {
-        const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
-        const isValid = accessToken && (!expiresAt || expiresAt > Date.now());
-        return !!isValid;
+        const { expiresAt } = await chrome.storage.local.get('expiresAt');
+        
+        // If we have an expiry timestamp and it's in the past, session is invalid
+        if (expiresAt && Date.now() > expiresAt) {
+            return false;
+        }
+
+        const accessToken = await this.getDashboardToken();
+        return !!accessToken;
     }
 
     /**
@@ -390,14 +460,17 @@ export class AuthManager {
         await this.loadTokensFromStorage();
         
         // 2. Verify Dashboard Session via Ping
-        const { accessToken } = await chrome.storage.local.get(['accessToken']);
+        const accessToken = await this.getDashboardToken();
         if (!accessToken) return { isValid: false, tokens: this.tokens };
 
         try {
             // Using a simple fetch to verify token validity
             const { CONFIG } = await import('@/lib/config');
             const response = await fetch(`${CONFIG.API_BASE_URL}/api/folders`, {
-                headers: { 'Authorization': `Bearer ${accessToken}` }
+                headers: { 
+                    'Authorization': `Bearer ${accessToken}`,
+                    'X-Extension-Key': CONFIG.EXTENSION_KEY
+                }
             });
             
             if (response.status === 401) {
@@ -418,7 +491,7 @@ export class AuthManager {
         }
     }
 
-    async getHeader(platform) {
+    async getHeader(platform: any) {
         // Return necessary headers for a platform request
         // This abstracts token retrieval for the API handlers
         // TODO: Implement cleaner interface for API calls

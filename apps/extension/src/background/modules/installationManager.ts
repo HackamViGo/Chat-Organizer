@@ -1,3 +1,5 @@
+import { CONFIG } from '@/lib/config';
+
 /**
  * InstallationManager
  * 
@@ -40,9 +42,13 @@ export class InstallationManager {
     private onFirstInstall() {
         console.log('[InstallationManager] 🎉 First install detected');
         
-        // Open welcome page
-        chrome.tabs.create({ 
-            url: chrome.runtime.getURL('welcome.html') 
+        chrome.storage.local.get(['BRAINBOX_SESSION', 'accessToken'], (result) => {
+            const hasSession = !!(result.BRAINBOX_SESSION || result.accessToken);
+            const url = hasSession 
+                ? `${CONFIG.DASHBOARD_URL}/` 
+                : `${CONFIG.DASHBOARD_URL}/auth/signin`;
+
+            chrome.tabs.create({ url });
         });
     }
 

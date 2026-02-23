@@ -92,6 +92,7 @@ export class QwenAdapter extends BasePlatformAdapter {
         if (data.messages) {
             for (const msg of data.messages) {
                 messages.push({
+                    id: crypto.randomUUID(),
                     role: msg.role === 'user' ? 'user' : 'assistant',
                     content: msg.content || '',
                     timestamp: msg.timestamp ? msg.timestamp * 1000 : Date.now()

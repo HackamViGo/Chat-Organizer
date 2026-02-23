@@ -7,7 +7,7 @@
 
   const CONFIG = {
     DB_NAME: 'BrainBoxGeminiMaster',
-    DB_VERSION: 6, // Intentionally bumping version to ensure schema updates
+    DB_VERSION: 8, // Intentionally bumping version to ensure schema updates
     AUTO_SAVE_ENABLED: true,
     SAVE_INTERVAL: 10000, // Sync interval 10 seconds (less aggressive)
     MAX_RETRIES: 3,

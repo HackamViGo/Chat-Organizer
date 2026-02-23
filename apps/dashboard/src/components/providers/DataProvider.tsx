@@ -5,6 +5,7 @@ import { useFolderStore } from '@/store/useFolderStore';
 import { usePromptStore } from '@/store/usePromptStore';
 import { useChatStore } from '@/store/useChatStore';
 import { createClient } from '@/lib/supabase/client';
+import { CONFIG } from '@/lib/config';
 
 export function DataProvider({ children }: { children: React.ReactNode }) {
   const { setFolders, setLoading: setFoldersLoading, addFolder, updateFolder, deleteFolder } = useFolderStore();
@@ -21,12 +22,10 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setChatsLoading(true);
 
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-
       const [chatsResult, foldersResult, promptsResult] = await Promise.allSettled([
-        fetch('/api/chats', { credentials: 'include', cache: 'no-store' }).then(res => res.ok ? res.json() : null),
-        fetch('/api/folders', { credentials: 'include', cache: 'no-store' }).then(res => res.ok ? res.json() : null),
-        user ? supabase.from('prompts').select('*').eq('user_id', user.id).order('created_at', { ascending: false }) : Promise.resolve({ data: null, error: null })
+        fetch(`${CONFIG.API_BASE_URL}/api/chats`, { credentials: 'include', cache: 'no-store' }).then(res => res.ok ? res.json() : null),
+        fetch(`${CONFIG.API_BASE_URL}/api/folders`, { credentials: 'include', cache: 'no-store' }).then(res => res.ok ? res.json() : null),
+        fetch(`${CONFIG.API_BASE_URL}/api/prompts`, { credentials: 'include', cache: 'no-store' }).then(res => res.ok ? res.json() : null)
       ]);
 
       // Handle Chats
@@ -40,11 +39,8 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       }
 
       // Handle Prompts
-      if (promptsResult.status === 'fulfilled') {
-        const { data, error } = promptsResult.value;
-        if (!error && data) {
-          setPrompts(data);
-        }
+      if (promptsResult.status === 'fulfilled' && promptsResult.value) {
+        setPrompts(promptsResult.value.prompts || []);
       }
 
     } catch (error) {
@@ -55,7 +51,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setPromptsLoading(false);
       setChatsLoading(false);
     }
-  }, [setFolders, setFoldersLoading, setPrompts, setPromptsLoading, setChats, setChatsLoading, supabase]);
+  }, [setFolders, setFoldersLoading, setPrompts, setPromptsLoading, setChats, setChatsLoading]);
 
   useEffect(() => {
     // Initial fetch
@@ -68,6 +64,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       } else if (event === 'SIGNED_OUT') {
         setFolders([]);
         setPrompts([]);
+        setChats([]);
       }
     });
 
@@ -77,7 +74,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'folders' }, (payload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload;
         if (eventType === 'INSERT') {
-          // Check if already in store (avoid duplicates from local UI actions)
           const state = useFolderStore.getState();
           if (!state.folders.some(f => f.id === newRecord.id)) {
             addFolder(newRecord as any);
@@ -102,7 +98,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         } else if (eventType === 'UPDATE') {
           updatePrompt(newRecord.id, newRecord as any);
         } else if (eventType === 'DELETE') {
-          deletePrompt(oldRecord.id);
+          deletePrompt(payload.old?.id);
         }
       })
       .subscribe();
@@ -117,16 +113,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
             addChat(newRecord as any);
           }
         } else if (eventType === 'UPDATE') {
-          // Note: we don't call the API again here, just update local store
-          useChatStore.setState((state) => ({
-            chats: state.chats.map((chat) =>
-              chat.id === newRecord.id ? { ...chat, ...newRecord } : chat
-            ),
-          }));
+          // S4-4: Use action instead of setState
+          useChatStore.getState().updateChat(newRecord.id, newRecord as any);
         } else if (eventType === 'DELETE') {
-          useChatStore.setState((state) => ({
-            chats: state.chats.filter((chat) => chat.id !== oldRecord.id),
-          }));
+          // S4-4: Use action instead of setState
+          useChatStore.getState().deleteChat(oldRecord.id);
         }
       })
       .subscribe();

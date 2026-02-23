@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextRequest, NextResponse } from 'next/server';
+import { createChatSchema } from '@brainbox/validation';
+import { syncRateLimit } from '@/lib/rate-limit';
 
 // CORS headers for Chrome extension
 const corsHeaders = {
@@ -18,9 +20,11 @@ export async function POST(request: NextRequest) {
   try {
     // Get extension key from header
     const extensionKey = request.headers.get('X-Extension-Key');
+    const validKey = process.env.EXTENSION_KEY;
     
-    if (!extensionKey) {
-      return new NextResponse('Missing extension key', { 
+    if (!extensionKey || (validKey && extensionKey !== validKey)) {
+      console.warn('[ExtensionAPI] ⚠️ Invalid or missing extension key');
+      return new NextResponse('Unauthorized: Invalid extension key', { 
         status: 401,
         headers: corsHeaders 
       });
@@ -61,9 +65,30 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // S4-3: Rate Limiting
+    if (syncRateLimit) {
+      const { success } = await syncRateLimit.limit(user.id);
+      if (!success) {
+        return NextResponse.json(
+          { error: 'Rate limit exceeded' },
+          { status: 429, headers: corsHeaders }
+        );
+      }
+    }
+
     // Get request body
     const body = await request.json();
-    const { title, content, platform, url, folder_id } = body;
+    
+    // S4-1: Zod Validation
+    const result = createChatSchema.safeParse(body);
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Validation failed', details: result.error.flatten() },
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const { title, content, platform, url, folder_id } = result.data;
 
     // Save chat to database
     const { data, error } = await supabase

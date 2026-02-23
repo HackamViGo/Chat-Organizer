@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -18,15 +18,18 @@ export type Database = {
         Row: {
           content: string | null
           created_at: string | null
+          detailed_summary: string | null
+          embedding: string | null
           folder_id: string | null
           id: string
           is_archived: boolean | null
+          messages: Json | null
           platform: string | null
+          source_id: string | null
           summary: string | null
+          tags: Json | null
           tasks: Json | null
           title: string
-          source_id: string | null
-          messages: Json | null
           updated_at: string | null
           url: string | null
           user_id: string
@@ -34,15 +37,18 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string | null
+          detailed_summary?: string | null
+          embedding?: string | null
           folder_id?: string | null
           id?: string
           is_archived?: boolean | null
+          messages?: Json | null
           platform?: string | null
+          source_id?: string | null
           summary?: string | null
+          tags?: Json | null
           tasks?: Json | null
           title: string
-          source_id?: string | null
-          messages?: Json | null
           updated_at?: string | null
           url?: string | null
           user_id: string
@@ -50,15 +56,18 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string | null
+          detailed_summary?: string | null
+          embedding?: string | null
           folder_id?: string | null
           id?: string
           is_archived?: boolean | null
+          messages?: Json | null
           platform?: string | null
+          source_id?: string | null
           summary?: string | null
+          tags?: Json | null
           tasks?: Json | null
           title?: string
-          source_id?: string | null
-          messages?: Json | null
           updated_at?: string | null
           url?: string | null
           user_id?: string
@@ -323,6 +332,7 @@ export type Database = {
           email: string
           full_name: string | null
           id: string
+          settings: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -331,6 +341,7 @@ export type Database = {
           email: string
           full_name?: string | null
           id?: string
+          settings?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -339,6 +350,7 @@ export type Database = {
           email?: string
           full_name?: string | null
           id?: string
+          settings?: Json | null
           updated_at?: string | null
         }
         Relationships: []
@@ -348,7 +360,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      match_chats: {
+        Args: {
+          match_count: number
+          match_threshold: number
+          p_user_id: string
+          query_embedding: string
+        }
+        Returns: {
+          detailed_summary: string
+          id: string
+          similarity: number
+          summary: string
+          tags: Json
+          tasks: Json
+          title: string
+          updated_at: string
+          url: string
+        }[]
+      }
     }
     Enums: {
       folder_type_enum: "chat" | "list" | "image" | "prompt"

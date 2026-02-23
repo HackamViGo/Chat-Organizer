@@ -392,8 +392,8 @@ function determineGeminiRoleImproved(text, index, previousMessages) {
     const strongUserIndicators = [
         /^Продължи/i,  // "Continue"
         /^Отлично!?\s*Продължаваме/i,  // "Excellent! Continuing..."
-        /^(Генерирай|Направи|Създай|Покажи|Дай|Искам|Моля)/i,  // Bulgarian commands
-        /^(Continue|Generate|Create|Show|Give|I want|Please)/i,  // English commands
+        /^(Генерирай|Направи|Създай|Покажи|Дай|Искам|Моля|Казахте)/i,  // Bulgarian commands
+        /^(Continue|Generate|Create|Show|Give|I want|Please|You said|You)/i,  // English commands
         /\?[^?]*$/,  // Ends with question mark
         /^[А-ЯA-Z][а-яa-z]{1,30}[!?]?$/,  // Short capitalized sentence (1-30 chars)
     ];
@@ -491,6 +491,10 @@ function determineGeminiRoleImproved(text, index, previousMessages) {
  */
 function formatGeminiMessageContent(msg) {
     let content = msg.text || '';
+    
+    // Phase 2: Clean up prefixes from Gemini content
+    // Improved regex to handle leading whitespace, newlines, and various punctuation
+    content = content.replace(/^[\s\n]*(Казахте|You said|You)\s*[:：]?\s*/i, '').trim();
     
     if (msg.images && msg.images.length > 0) {
         content += '\n\n[Images: ' + msg.images.length + ']';

@@ -2,14 +2,14 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { MessageRouter } from '../messageRouter';
 import { AuthManager } from '../authManager';
 import { NetworkObserver } from '../networkObserver';
-import * as platformAdapters from '../platformAdapters';
 import * as dashboardApi from '../dashboardApi';
 import { ChatGPTAdapter } from '../platformAdapters/chatgpt.adapter';
 import { resetAllMocks } from '../../../__tests__/setup';
 
-// Mock dependencies
+// S6-3: Mock only dashboardApi (HTTP boundary to our own backend).
+// platformAdapters are NOT mocked — they run their real code against a
+// mocked global fetch, so the normalizer pipeline is exercised.
 vi.mock('../dashboardApi');
-vi.mock('../platformAdapters');
 
 describe('Integration Tests - End-to-End Flows', () => {
   let messageRouter: MessageRouter;
@@ -24,12 +24,11 @@ describe('Integration Tests - End-to-End Flows', () => {
     vi.mocked(dashboardApi.getUserFolders).mockResolvedValue([]);
     vi.mocked(dashboardApi.saveToDashboard).mockResolvedValue({ success: true, id: 'saved-conv-123' } as any);
     
-    vi.mocked(platformAdapters.fetchConversation).mockResolvedValue({
-      id: 'conv-123',
-      title: 'Test Chat',
-      platform: 'chatgpt',
-      messages: []
-    } as any);
+    // S6-3: Stub fetch so real adapters get a synthetic response
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: () => Promise.resolve({ id: 'conv-123', title: 'Test Chat', platform: 'chatgpt', messages: [] })
+    }));
 
     authManager = new AuthManager();
     authManager.initialize();
@@ -52,12 +51,11 @@ describe('Integration Tests - End-to-End Flows', () => {
   describe('Flow 1: Login → Capture Token → Save Chat', () => {
     it('should complete full ChatGPT save flow', async () => {
       // Setup: Mock specifically for this integration test
-      vi.mocked(platformAdapters.fetchConversation).mockResolvedValueOnce({
-        id: 'conv-integration-123',
-        title: 'Integration Test Chat',
-        platform: 'chatgpt',
-        messages: [{ role: 'user', content: 'Hello' }]
-      } as any);
+      // Setup: Stub fetch so real ChatGPTAdapter gets a synthetic response
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ id: 'conv-integration-123', title: 'Integration Test Chat', platform: 'chatgpt', messages: [{ role: 'user', content: 'Hello' }] })
+      }));
 
       // STEP 1: User logs in via dashboard
       const loginRequest = {
@@ -148,12 +146,11 @@ describe('Integration Tests - End-to-End Flows', () => {
       });
 
       // STEP 3: Fetch and save conversation
-      vi.mocked(platformAdapters.fetchConversation).mockResolvedValueOnce({
-        id: 'conv-456',
-        title: 'Claude Integration Test',
-        platform: 'claude',
-        messages: []
-      } as any);
+      // Stub fetch for ClaudeAdapter to return a synthetic conversation
+      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+        ok: true,
+        json: () => Promise.resolve({ uuid: 'conv-456', name: 'Claude Integration Test', chat_messages: [] })
+      }));
 
       const saveRequest = {
         action: 'saveToDashboard',
@@ -207,8 +204,9 @@ describe('Integration Tests - End-to-End Flows', () => {
       messageRouter['handleMessage'](refreshRequest, {} as any, vi.fn());
 
       await vi.waitFor(async () => {
-        const res = await chrome.storage.local.get(['accessToken']);
-        expect(res.accessToken).toBe('new-access-token');
+        // The token is stored encrypted
+        const token = await authManager.getDashboardToken();
+        expect(token).toBe('new-access-token');
       });
     });
   });

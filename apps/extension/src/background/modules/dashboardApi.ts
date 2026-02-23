@@ -121,14 +121,19 @@ export async function getUserFolders(silent: boolean = false) {
     
     // 2. Define the background refresh logic
     const fetchFromServer = async () => {
-        const { accessToken } = await chrome.storage.local.get(['accessToken']);
+        const { accessToken: encryptedToken } = await chrome.storage.local.get(['accessToken']);
+        const accessToken = await decryptToken(encryptedToken);
         if (!accessToken) {
-            if (!silent) chrome.tabs.create({ url: `${API_BASE_URL}/auth/signin?redirect=/extension-auth` });
+            const { DASHBOARD_URL } = CONFIG;
+            if (!silent) chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
             throw new Error('No access token');
         }
 
         const response = await fetch(`${API_BASE_URL}/api/folders`, {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
+            headers: { 
+                'Authorization': `Bearer ${accessToken}`,
+                'X-Extension-Key': CONFIG.EXTENSION_KEY
+            }
         });
 
         if (!response.ok) {
@@ -160,11 +165,15 @@ export async function getUserSettings() {
     const cached = await CacheManager.getSettings();
 
     const fetchFromServer = async () => {
-        const { accessToken } = await chrome.storage.local.get(['accessToken']);
+        const { accessToken: encryptedToken } = await chrome.storage.local.get(['accessToken']);
+        const accessToken = await decryptToken(encryptedToken);
         if (!accessToken) return { quickAccessFolders: [] };
 
         const response = await fetch(`${API_BASE_URL}/api/user/settings`, {
-            headers: { 'Authorization': `Bearer ${accessToken}` }
+            headers: { 
+                'Authorization': `Bearer ${accessToken}`,
+                'X-Extension-Key': CONFIG.EXTENSION_KEY
+            }
         });
 
         if (!response.ok) return { quickAccessFolders: [] };
@@ -183,17 +192,23 @@ export async function getUserSettings() {
     return await fetchFromServer();
 }
 
+import { decryptToken } from '@/lib/crypto';
+
 /**
  * Save conversation to Dashboard
  */
 export async function saveToDashboard(conversationData: Conversation, folderId: string | null, silent: boolean) {
-    const { accessToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
+    const { accessToken: encryptedToken, expiresAt } = await chrome.storage.local.get(['accessToken', 'expiresAt']);
+    const accessToken = await decryptToken(encryptedToken);
 
     const isTokenValid = accessToken && (!expiresAt || expiresAt > Date.now());
 
     if (!isTokenValid) {
         console.warn('[DashboardAPI] ⚠️ Invalid or expired token:', { hasToken: !!accessToken, expiresAt });
-        if (!silent) chrome.tabs.create({ url: `${API_BASE_URL}/auth/signin?redirect=/extension-auth` });
+        if (!silent) {
+            const { DASHBOARD_URL } = CONFIG;
+            chrome.tabs.create({ url: `${DASHBOARD_URL}/auth/signin?redirect=/extension-auth` });
+        }
         throw new Error('Please authenticate first');
     }
 
@@ -232,7 +247,8 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${accessToken}`
+                    'Authorization': `Bearer ${accessToken}`,
+                    'X-Extension-Key': CONFIG.EXTENSION_KEY
                 },
                 body: JSON.stringify(requestBody)
             });
@@ -263,7 +279,8 @@ export async function saveToDashboard(conversationData: Conversation, folderId: 
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${accessToken}`
+                            'Authorization': `Bearer ${accessToken}`,
+                            'X-Extension-Key': CONFIG.EXTENSION_KEY
                         },
                         body: JSON.stringify(item.data)
                     });
@@ -300,7 +317,8 @@ function formatMessagesAsText(conversationData: Conversation): string {
  * Enhance prompt using Gemini API
  */
 export async function enhancePrompt(promptText: string) {
-    const { accessToken } = await chrome.storage.local.get(['accessToken']);
+    const { accessToken: encryptedToken } = await chrome.storage.local.get(['accessToken']);
+    const accessToken = await decryptToken(encryptedToken);
     
     // We don't strictly require login for enhancement if GEMINI_API_KEY is configured on server
     // but we use the token to identify the user if possible.
@@ -309,7 +327,8 @@ export async function enhancePrompt(promptText: string) {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': accessToken ? `Bearer ${accessToken}` : ''
+            'Authorization': accessToken ? `Bearer ${accessToken}` : '',
+            'X-Extension-Key': CONFIG.EXTENSION_KEY
         },
         body: JSON.stringify({ prompt: promptText })
     });
@@ -320,4 +339,30 @@ export async function enhancePrompt(promptText: string) {
 
     const data = await response.json();
     return data.enhancedPrompt;
+}
+
+/**
+ * Create a new prompt in Dashboard
+ */
+export async function createPrompt(promptData: any) {
+    const { accessToken: encryptedToken } = await chrome.storage.local.get(['accessToken']);
+    const accessToken = await decryptToken(encryptedToken);
+
+    if (!accessToken) throw new Error('Unauthorized');
+
+    const response = await fetch(`${API_BASE_URL}/api/prompts`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
+            'X-Extension-Key': CONFIG.EXTENSION_KEY
+        },
+        body: JSON.stringify(promptData)
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to create prompt');
+    }
+
+    return await response.json();
 }

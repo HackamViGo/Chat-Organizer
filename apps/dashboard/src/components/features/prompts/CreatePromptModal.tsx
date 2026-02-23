@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { promptSchema, type PromptFormData } from '@brainbox/validation';
 import { usePromptStore } from '@/store/usePromptStore';
+import { useShallow } from 'zustand/react/shallow';
 import { createClient } from '@/lib/supabase/client';
 import { X, Check } from 'lucide-react';
 import { Prompt } from '@brainbox/shared';
@@ -37,7 +38,12 @@ const PRESET_COLORS = [
 
 export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreatePromptModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { addPrompt, updatePrompt } = usePromptStore();
+  const { addPrompt, updatePrompt } = usePromptStore(
+    useShallow((s) => ({
+      addPrompt: s.addPrompt,
+      updatePrompt: s.updatePrompt,
+    }))
+  );
 
   const {
     register,

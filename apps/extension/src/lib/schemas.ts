@@ -1,6 +1,8 @@
 // BrainBox - Common Schema Definitions
 // This file defines the target structure for all conversations regardless of platform
 
+import { type Message } from '@brainbox/shared';
+
 export const PLATFORMS = {
     CHATGPT: 'chatgpt',
     CLAUDE: 'claude',
@@ -22,13 +24,7 @@ export const ROLES = {
 
 export type Role = typeof ROLES[keyof typeof ROLES];
 
-export interface Message {
-    id: string;
-    role: Role;
-    content: string;
-    timestamp: number;
-    metadata?: Record<string, any>;
-}
+export type { Message };
 
 export interface Conversation {
     id: string;

@@ -3,9 +3,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { BrainCircuit, Send, X, Sparkles, User } from 'lucide-react';
 import { useChatStore } from '@/store/useChatStore';
+import { useShallow } from 'zustand/react/shallow';
 
 export const GlobalBrain: React.FC = () => {
-  const { chats } = useChatStore();
+  const chats = useChatStore(useShallow((s) => s.chats));
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [history, setHistory] = useState<{ role: 'user' | 'ai'; content: string }[]>([

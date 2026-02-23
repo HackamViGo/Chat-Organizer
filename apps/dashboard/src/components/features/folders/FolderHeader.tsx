@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Folder as FolderType } from '@brainbox/shared';
 import { useFolderStore } from '@/store/useFolderStore';
+import { useShallow } from 'zustand/react/shallow';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 import { Edit2, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
@@ -34,7 +35,7 @@ const BG_COLORS: Record<string, string> = {
 
 export default function FolderHeader({ folder, chatCount }: FolderHeaderProps) {
   const router = useRouter();
-  const { deleteFolder } = useFolderStore();
+  const { deleteFolder } = useFolderStore(useShallow(s => ({ deleteFolder: s.deleteFolder })));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 

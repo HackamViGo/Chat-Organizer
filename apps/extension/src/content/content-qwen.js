@@ -35,6 +35,7 @@
                 
                 if (fullText.trim().length > 0) {
                      payload.messages.push({
+                        id: typeof crypto.randomUUID === 'function' ? crypto.randomUUID() : Date.now().toString(),
                         role: 'assistant', // Default to showing content
                         content: fullText,
                         timestamp: Date.now()

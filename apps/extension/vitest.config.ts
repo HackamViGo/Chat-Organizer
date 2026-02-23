@@ -16,6 +16,11 @@ export default defineConfig({
         '**/__tests__/**'
       ]
     },
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      '**/*.spec.ts'
+    ],
     mockReset: true,
     restoreMocks: true
   },

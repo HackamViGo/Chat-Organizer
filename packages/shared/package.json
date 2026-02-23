@@ -11,6 +11,9 @@
     "./types": "./src/types",
     "./services": "./src/services"
   },
+  "dependencies": {
+    "@brainbox/validation": "workspace:*"
+  },
   "devDependencies": {
     "@types/chrome": "^0.1.36"
   }

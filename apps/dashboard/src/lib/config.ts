@@ -9,8 +9,11 @@ export const CONFIG = {
   SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
 
   // API & Dashboard URLs
-  API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000/api',
+  API_BASE_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000',
   DASHBOARD_URL: process.env.DASHBOARD_URL || 'http://localhost:3000',
+
+  // Security
+  EXTENSION_KEY: process.env.EXTENSION_KEY || '',
 
   // Third-party API Keys (Server-only)
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',

@@ -135,20 +135,35 @@ const createContextMenusMock = () => ({
   }
 });
 
+// Mock Chrome Alarms API
+const createAlarmsMock = () => ({
+  create: vi.fn(),
+  onAlarm: {
+    addListener: vi.fn(),
+    removeListener: vi.fn()
+  }
+});
+
 // Mock Chrome Scripting API
 const createScriptingMock = () => ({
   executeScript: vi.fn(() => Promise.resolve([{ result: true }]))
 });
 
-// Initialize global chrome immediately
 global.chrome = {
     storage: createStorageMock(),
     runtime: createRuntimeMock(),
     tabs: createTabsMock(),
     webRequest: createWebRequestMock(),
     contextMenus: createContextMenusMock(),
-    scripting: createScriptingMock()
+    scripting: createScriptingMock(),
+    alarms: createAlarmsMock()
 } as any;
+
+// Mock Crypto for tests (Node 18+ has webcrypto)
+import { webcrypto } from 'node:crypto';
+if (!global.crypto) {
+    global.crypto = webcrypto as any;
+}
 
 // Helper to reset all mocks
 export const resetAllMocks = () => {

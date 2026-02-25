@@ -11,7 +11,7 @@
     AUTO_SAVE_ENABLED: true,
     SAVE_INTERVAL: 10000, // Sync interval 10 seconds (less aggressive)
     MAX_RETRIES: 3,
-    DEBUG_MODE: true
+    DEBUG_MODE: false // Production: disabled
   };
 
   if (CONFIG.DEBUG_MODE) console.log('[🧠 BrainBox Master] Loading...');
@@ -2069,7 +2069,7 @@
     disableAutoSync: () => { CONFIG.AUTO_SAVE_ENABLED = false; },
     
     // Debugging
-    enableDebug: () => { CONFIG.DEBUG_MODE = true; },
+    enableDebug: () => { CONFIG.DEBUG_MODE = false; /* Production: disabled */ },
     disableDebug: () => { CONFIG.DEBUG_MODE = false; },
     
     // Database access

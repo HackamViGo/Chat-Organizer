@@ -1,7 +1,7 @@
 /**
  * AI Service - Centralized Gateway Routing
  * All internal AI tasks (analysis, summary, enhancement) must route 
- * via the central API gateway defined in models.json.
+ * via the central API gateway defined in ai_models_config.json.
  */
 
 export interface AIAnalysisResult {
@@ -10,7 +10,7 @@ export interface AIAnalysisResult {
   tasks: string[];
 }
 
-// Internal model aliases (aligned with packages/config/models.json)
+// Internal model aliases (aligned with packages/shared/src/config/ai_models_config.json)
 const MODELS = {
   ANALYSIS: 'internal-analyzer',
   SUMMARY: 'internal-summarizer',

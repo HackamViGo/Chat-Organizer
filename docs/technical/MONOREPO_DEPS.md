@@ -56,7 +56,7 @@ graph TD
 
 | Package | Purpose |
 | :--- | :--- |
-| **`@brainbox/shared`** | Кананични типове и обща логика (Chat, Message, Platform). |
+| **`@brainbox/shared`** | Канонични типове и обща логика (Chat, Message, Platform). Тук е и единственият валиден AI конфиг (`src/config/ai_models_config.json`). |
 | **`@brainbox/validation`** | Централизирани Zod схеми (Single Source of Truth). |
 | **`@brainbox/database`** | Supabase TypeScript дефиниции (Generated). |
 | **`@brainbox/config`** | Споделени конфигурации (Tailwind, TS, PostCSS, Models). |
@@ -80,4 +80,10 @@ graph TD
 - `turbo build` - Проверка на билда в целия monorepo.
 
 ---
-*Документът е актуализиран на 10.02.2026 от Meta-Architect.*
+
+## 6. Build Configuration
+
+- `ignoreBuildErrors` и `ignoreDuringBuilds` са премахнати на 25.02.2026. Билдът изисква стриктно преминаване на TypeScript и ESLint проверки.
+
+---
+*Документът е актуализиран на 25.02.2026 от Meta-Architect.*

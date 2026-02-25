@@ -7,7 +7,7 @@ import { normalizeChatGPT } from '../../../lib/normalizers.js';
 import { validateConversation } from '../../../lib/schemas.js';
 import { limiters } from '../../../lib/rate-limiter.js';
 
-const DEBUG_MODE = true;
+const DEBUG_MODE = false; // Production: disabled
 
 export class ChatGPTAdapter extends BasePlatformAdapter {
     readonly platform = 'chatgpt';

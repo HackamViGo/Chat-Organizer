@@ -3,16 +3,12 @@ import { generatePromptImprovement } from '@brainbox/shared';
 import { z } from 'zod';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { aiRateLimit } from '@/lib/rate-limit';
-
-const requestSchema = z.object({
-  prompt: z.string().min(1),
-  apiKey: z.string().optional(),
-});
+import { aiEnhanceRequestSchema } from '@brainbox/validation';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { prompt, apiKey } = requestSchema.parse(body);
+    const { prompt, apiKey } = aiEnhanceRequestSchema.parse(body);
 
     const supabase = createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();

@@ -3,17 +3,12 @@ import { generateEmbedding } from '../../../../lib/services/ai';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { z } from 'zod';
 import { aiRateLimit } from '@/lib/rate-limit';
-
-const searchSchema = z.object({
-  query: z.string().min(1),
-  limit: z.number().optional().default(10),
-  threshold: z.number().optional().default(0.5),
-});
+import { aiSearchRequestSchema } from '@brainbox/validation';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { query, limit, threshold } = searchSchema.parse(body);
+    const { query, limit, threshold } = aiSearchRequestSchema.parse(body);
 
     const supabase = createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();

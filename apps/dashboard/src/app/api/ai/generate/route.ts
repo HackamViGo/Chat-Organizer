@@ -3,16 +3,7 @@ import { analyzeChatContent } from '@brainbox/shared';
 import { z } from 'zod';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { aiRateLimit } from '@/lib/rate-limit';
-
-const requestSchema = z.object({
-  content: z.string().min(1),
-  apiKey: z.string().optional(), // Optional: can use server-side env var instead
-  history: z.array(z.object({
-    role: z.enum(['user', 'model']),
-    text: z.string()
-  })).optional(),
-  systemInstruction: z.string().optional(),
-});
+import { aiGenerateRequestSchema } from '@brainbox/validation';
 
 /**
  * AI Generate API endpoint
@@ -25,7 +16,7 @@ const requestSchema = z.object({
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { content, apiKey, history, systemInstruction } = requestSchema.parse(body);
+    const { content, apiKey, history, systemInstruction } = aiGenerateRequestSchema.parse(body);
 
     const supabase = createServerSupabaseClient();
     const { data: { user } } = await supabase.auth.getUser();

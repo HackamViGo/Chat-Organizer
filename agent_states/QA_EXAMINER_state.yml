@@ -1,0 +1,5 @@
+agent: QA_EXAMINER
+status: IDLE
+history:
+  - date: "2026-02-22"
+    task: "Extension Deep Audit"

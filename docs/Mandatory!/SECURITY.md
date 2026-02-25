@@ -21,7 +21,7 @@
 ### Задължителни политики за всяка user-owned таблица
 
 ```sql
--- Прилага се за: chats, folders, prompts, images, lists, list_items
+-- Прилага се за: users (за профили), chats, folders, prompts, images, lists, list_items
 
 ALTER TABLE <table_name> ENABLE ROW LEVEL SECURITY;
 

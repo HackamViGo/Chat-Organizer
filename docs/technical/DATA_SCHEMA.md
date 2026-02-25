@@ -91,7 +91,8 @@ interface SyncItem {
 ## 4. Validation & Database
 
 ### 4.1 Zod Schemas (`@brainbox/validation`)
-- `createChatSchema`, `createPromptSchema`, `createFolderSchema`, `listSchema`.
+- Централизиран източник на истина (Source of Truth) за всички API validation схеми. Inline схемите вътре в самите API routes са забранени.
+- `createChatSchema`, `createPromptSchema`, `createFolderSchema`, `listSchema`, `searchQuerySchema`, etc.
 
 ### 4.2 Security & Constraints
 - **RLS**: Всички заявки се филтрират по `user_id` чрез `auth.uid()`.

@@ -47,7 +47,10 @@ export const ChatStudio: React.FC = () => {
     if (typeof window !== 'undefined') {
       try {
         const storedPro = localStorage.getItem('isPro') === 'true';
-        const storedKey = localStorage.getItem('geminiApiKey') || '';
+        // NOTE: geminiApiKey uses sessionStorage (not localStorage) to reduce XSS exposure.
+        // Key is cleared when tab closes. User re-enters on next session.
+        // TODO: migrate to server-side settings storage (tracked in CHANGES.log)
+        const storedKey = sessionStorage.getItem('geminiApiKey') || '';
         setIsPro(storedPro);
         setApiKey(storedKey);
       } catch (error) {
@@ -205,11 +208,11 @@ export const ChatStudio: React.FC = () => {
     e.preventDefault();
     if (apiKeyInput.trim() && typeof window !== 'undefined') {
       try {
-        localStorage.setItem('geminiApiKey', apiKeyInput.trim());
+        sessionStorage.setItem('geminiApiKey', apiKeyInput.trim());
         setApiKey(apiKeyInput.trim());
       } catch (error) {
-        console.warn('Failed to save API key to localStorage:', error);
-        // Still set in state even if localStorage fails
+        console.warn('Failed to save API key to sessionStorage:', error);
+        // Still set in state even if sessionStorage fails
         setApiKey(apiKeyInput.trim());
       }
     }

@@ -1,0 +1,5 @@
+cursor_hooks.sh
+.cursor/rules/database.md
+.cursor/rules/extension.md
+.cursor/rules/typescript.md
+tests/cursor-chrome-composer.js

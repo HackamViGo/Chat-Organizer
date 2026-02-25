@@ -1,14 +1,14 @@
 ---
-trigger: always_on
+trigger: manual
 ---
 
- 🧠 BrainBox - Meta-Architect Agent Protocol (v3.1)
+🧠 BrainBox - Meta-Architect Agent Protocol (v3.1)
 
 project_name: "BrainBox - AI Chat Organizer"
 architecture_version: "2.2.0"
 protocol_version: "3.1.0"
-last_updated: "2026-02-06"
-operational_kernel: ".agent/skills/meta_architect/SKILL.md"
+last_updated: "2026-02-24"
+operational_kernel: "docs/Mandatory!/ARCHITECTURE.md"
 
 # ═══════════════════════════════════════════════════════════════
 # 1. SYSTEM IDENTITY & HIERARCHY
@@ -31,14 +31,14 @@ communication_standards:
 # ═══════════════════════════════════════════════════════════════
 
 core_directives:
-  1_profile_binding: "NO ANONYMOUS TASKS. You must adopt a specific Profile from 'meta_architect/profiles/*.yml' before acting."
-  2_graph_driven: "Every architectural decision MUST reference a valid 'node_id' from 'knowledge_graph.json'."
+  1_profile_binding: "NO ANONYMOUS TASKS. Adopt a profile from 'agent_states/' or 'docs/Mandatory!/ARCHITECTURE.md' guidelines before acting."
+  2_graph_driven: "Every architectural decision MUST reference a valid concept from 'docs/technical/CONTEXT_MAP.md'."
   3_health_gate: "A task is NOT done until 'pnpm verify' returns a Health Score > 80."
-  4_state_aware: "You MUST update 'agent_states/{role}_state.yml' upon completion of missions."
+  4_state_aware: "You MUST update 'agent_states/{ROLE_NAME}_state.yml' upon completion. Valid roles: META_ARCHITECT, GRAPH_GUARDIAN, QA_EXAMINER, EXTENSION_BUILDER, DASHBOARD_BUILDER, DB_ARCHITECT, DOCS_LIBRARIAN"
 
 knowledge_hierarchy:
   1_local: "Consult 'docs/' and 'agent_states/' first."
-  2_graph: "Consult 'knowledge_graph.json' second."
+  2_graph: "Consult 'docs/technical/CONTEXT_MAP.md' second."
   3_external: "Use 'Context7' ONLY if explicitly allowed by Tool Belt."
 
 # ═══════════════════════════════════════════════════════════════
@@ -66,32 +66,30 @@ monorepo_structure:
 # You assume these roles via 'sub_agent_template.md' fusion.
 
 agents:
-  META_ARCHITECT:
-    scope: "Orchestration, Tool Belt Assignment, Triad Management"
+  EXTENSION_BUILDER:
+    scope: "apps/extension/"
+    state: "agent_states/EXTENSION_BUILDER_state.yml"
+    role_doc: "docs/agents/roles/EXTENSION_BUILDER.md"
     
-  GRAPH_GUARDIAN:
-    scope: "Reality Checks via Context7"
-    trigger: "Touching Stale Nodes (>30 days)"
+  DASHBOARD_BUILDER:
+    scope: "apps/dashboard/"
+    state: "agent_states/DASHBOARD_BUILDER_state.yml"
+    role_doc: "docs/agents/roles/DASHBOARD_BUILDER.md"
+    
+  DB_ARCHITECT:
+    scope: "supabase/migrations/"
+    state: "agent_states/DB_ARCHITECT_state.yml"
+    role_doc: "docs/agents/roles/DB_ARCHITECT.md"
     
   QA_EXAMINER:
-    scope: "Blind Audits"
-    constraint: "Read-Only on Tests. Can patch Code."
+    scope: "read-only + code patches"
+    state: "agent_states/QA_EXAMINER_state.yml"
+    role_doc: "docs/agents/roles/QA_EXAMINER.md"
     
-  EXTENSION_BUILDER:
-    scope: "Chrome Extension (Apps/Extension)"
-    rules: ["Use 'chrome.alarms'", "Isolate Content Scripts", "No 'window' exposure"]
-      
-  DASHBOARD_BUILDER:
-    scope: "Web App (Apps/Dashboard)"
-    rules: ["Isomorphic Logging", "Strict Zod Validation"]
-      
-  DB_ARCHITECT:
-    scope: "Supabase & Data Layer"
-    rules: ["RLS Mandatory", "Migrations Only"]
-
   DOCS_LIBRARIAN:
-    scope: "Documentation Integrity"
-    rules: ["Code is Truth", "Update Docs on Architectural Change"]
+    scope: "docs/"
+    state: "agent_states/DOCS_LIBRARIAN_state.yml"
+    role_doc: "docs/agents/roles/DOCS_LIBRARIAN.md"
 
 # ═══════════════════════════════════════════════════════════════
 # 5. CODING STANDARDS (THE "NO-GO" ZONES)

@@ -1,15 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SmartPromptSearch } from '@/lib/services/smart-prompt-search';
 import { z } from 'zod';
-
-const searchSchema = z.object({
-  query: z.string().min(1),
-});
+import { searchQuerySchema } from '@brainbox/validation';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { query } = searchSchema.parse(body);
+    const { query } = searchQuerySchema.parse(body);
 
     const result = await SmartPromptSearch.findBestMatch(query);
 

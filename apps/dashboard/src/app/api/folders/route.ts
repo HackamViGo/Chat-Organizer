@@ -2,30 +2,19 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { z } from 'zod';
-
-// Zod schemas for validation
-const updateFolderSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1).optional(),
-  color: z.string().min(1).optional(),
-  type: z.enum(['chat', 'image', 'prompt', 'list', 'default', 'custom']).optional(),
-  icon: z.string().optional(),
-  parent_id: z.string().uuid().nullable().optional(),
-});
-
-const createFolderSchema = z.object({
-  name: z.string().min(1),
-  color: z.string().min(1),
-  type: z.enum(['chat', 'image', 'prompt', 'list', 'default', 'custom']).optional(),
-  icon: z.string().optional(),
-  parent_id: z.string().uuid().nullable().optional(),
-});
+import {
+  createFolderSchema,
+  updateFolderSchema,
+  type CreateFolderInput,
+  type UpdateFolderInput
+} from '@brainbox/validation';
 
 // Helper to get user from either cookies or Authorization header
 async function getAuthenticatedUser(request: NextRequest) {
   const authHeader = request.headers.get('Authorization');
-  
+
   // If Authorization header exists, use it (for extension)
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const supabase = createClient(

@@ -26,8 +26,8 @@ export {
 } from './schemas/prompt';
 
 // Legacy aliases for backward compatibility
-export { createPromptSchema as promptSchema } from './schemas/prompt';
-export type { CreatePromptInput as PromptFormData } from './schemas/prompt';
+export { createPromptSchema as promptSchema, searchQuerySchema } from './schemas/prompt';
+export type { CreatePromptInput as PromptFormData, SearchQueryInput } from './schemas/prompt';
 
 // Folder schemas
 export {
@@ -54,3 +54,13 @@ export {
   PrivacyConfigSchema,
   type PrivacyConfig,
 } from './schemas/privacy';
+
+// AI schemas
+export {
+  aiGenerateRequestSchema,
+  aiEnhanceRequestSchema,
+  aiSearchRequestSchema,
+  type AIGenerateRequestInput,
+  type AIEnhanceRequestInput,
+  type AISearchRequestInput,
+} from './schemas/ai';

@@ -16,7 +16,7 @@ import { CONFIG } from '@/lib/config';
 
 export class DynamicMenus {
     private syncManager: PromptSyncManager;
-    private DEBUG_MODE: boolean = true;
+    private DEBUG_MODE: boolean = false; // Production: disabled
 
     constructor(syncManager: PromptSyncManager) {
         this.syncManager = syncManager;

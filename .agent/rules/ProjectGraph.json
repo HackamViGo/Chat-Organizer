@@ -1,14 +1,14 @@
 {
   "metadata": {
-    "generated_at": "2026-02-27T23:10:00Z",
-    "generated_by": "DOCS_LIBRARIAN",
-    "total_nodes": 43,
+    "generated_at": "2026-02-27T23:50:00Z",
+    "generated_by": "ENV_ENGINEER",
+    "total_nodes": 45,
     "coverage": {
       "tier1": "17/17",
-      "tier2": "18/M",
+      "tier2": "20/M",
       "tier3": "100%"
     },
-    "notes": "Full project coverage achieved. Tier 3 nodes summarized by feature area/package for clarity. Added infrastructure config nodes."
+    "notes": "Added linting configuration nodes. implemented two-tier linting strategy for legacy debt management."
   },
   "nodes": [
     {
@@ -453,6 +453,20 @@
       ],
       "side_effects": [],
       "public_api": [],
+      "status": "active"
+    },
+    {
+      "id": "eslint.config.mjs",
+      "workspace": "root",
+      "type": "config",
+      "responsibility": "Monorepo ESLint configuration using Flat Config, implements two-tier validation (Strict vs Warn).",
+      "status": "active"
+    },
+    {
+      "id": ".lintstagedrc.js",
+      "workspace": "root",
+      "type": "config",
+      "responsibility": "Configuration for lint-staged, manages pre-commit hooks with memory optimization and legacy debt handling.",
       "status": "active"
     }
   ]

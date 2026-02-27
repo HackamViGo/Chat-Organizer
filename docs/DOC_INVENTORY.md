@@ -8,7 +8,7 @@
 | `docs/Mandatory!/ARCHITECTURE.md` | Глобална 3-слойна архитектура | Всички агенти |
 | `docs/Mandatory!/SECURITY.md` | RLS, JWT и сигурност | DB & API Агенти |
 | `docs/Mandatory!/CODE_GUIDELINES.md` | Стандарти за код и Zustand | Frontend Агенти |
-| `docs/EXTENSION.md` | Deep-dive в разширението | Extension Builder |
+| `docs/Mandatory!/EXTENSION.md` | Deep-dive в разширението | Extension Builder |
 | `docs/technical/SYNC_PROTOCOL.md` | Протокол за синхронизация | Backend/Ext Агенти |
 | `docs/technical/CONTEXT_MAP.md` | Топология на файловете | Всички агенти |
 | `docs/technical/DATA_SCHEMA.md` | Каноничен формат на данните | Всички агенти |

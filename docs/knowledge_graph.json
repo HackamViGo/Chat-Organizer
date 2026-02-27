@@ -1,0 +1,273 @@
+{
+  "metadata": {
+    "title": "BrainBox Knowledge Graph",
+    "version": "1.0.0",
+    "last_updated": "2026-02-27",
+    "description": "Master map of external documentation, business logic rules, schemas, and security policies."
+  },
+  "nodes": [
+    {
+      "id": "A.1",
+      "category": "External Documentation",
+      "title": "Chrome Extension Manifest V3",
+      "url": "https://developer.chrome.com/docs/extensions/mv3/",
+      "tags": ["extension", "mv3", "chrome"],
+      "relevance": "Core architecture for apps/extension, defining background workers and storage APIs."
+    },
+    {
+      "id": "A.2",
+      "category": "External Documentation",
+      "title": "Supabase Docs",
+      "url": "https://supabase.com/docs/",
+      "tags": ["database", "auth", "rls"],
+      "relevance": "Primary backend service for Auth, PostgreSQL, and RLS management."
+    },
+    {
+      "id": "A.3",
+      "category": "External Documentation",
+      "title": "Next.js Documentation",
+      "url": "https://nextjs.org/docs/",
+      "tags": ["dashboard", "ssr", "api"],
+      "relevance": "Framework for apps/dashboard, managing routing and server-side logic."
+    },
+    {
+      "id": "A.4",
+      "category": "External Documentation",
+      "title": "Tailwind CSS Documentation",
+      "url": "https://tailwindcss.com/docs/",
+      "tags": ["ui", "styling"],
+      "relevance": "Styling framework used across all UI components."
+    },
+    {
+      "id": "B.1",
+      "category": "Business Logic",
+      "title": "Token Bridge Mechanism",
+      "node_name": "token-bridge-auth",
+      "rationale": "Captures auth tokens from AI platforms via webRequest listeners to bypass direct API access limitations.",
+      "implementation": "apps/extension/src/background/modules/authManager.ts"
+    },
+    {
+      "id": "B.2",
+      "category": "Business Logic",
+      "title": "Offline Sync Queue",
+      "node_name": "offline-sync-queue",
+      "rationale": "Ensures data consistency by queuing chat saves when dashboard is unreachable or extension is offline.",
+      "implementation": "apps/extension/src/background/modules/syncManager.ts (using chrome.storage.local)"
+    },
+    {
+      "id": "B.3",
+      "category": "Business Logic",
+      "title": "Optimistic Updates Pattern",
+      "node_name": "optimistic-updates-pattern",
+      "rationale": "Zustand pattern: snapshot -> update -> API call -> rollback. Ensures zero-latency feel for users.",
+      "implementation": "Zustand stores in apps/dashboard/src/store/ (e.g., chatStore.ts)"
+    },
+    {
+      "id": "B.4",
+      "category": "Business Logic",
+      "title": "RLS Double Protection",
+      "node_name": "rls-plus-api-filter",
+      "rationale": "Manual filtering in API routes (.eq('user_id', user.id)) serves as a secondary layer to Supabase RLS policies.",
+      "implementation": "apps/dashboard/src/app/api/ and supabase/migrations/"
+    },
+    {
+      "id": "B.5",
+      "category": "Business Logic",
+      "title": "Zod Single Source of Truth",
+      "node_name": "zod-single-source",
+      "rationale": "All data validation is centralized to prevent schema drift between extension, dashboard, and API.",
+      "implementation": "packages/validation/schemas/"
+    },
+    {
+      "id": "B.6",
+      "category": "Business Logic",
+      "title": "AES-GCM Encrypted Token Storage",
+      "node_name": "aes-gcm-jwt-storage",
+      "rationale": "Protects JWTs in extension storage using Web Crypto API + chrome.runtime.id as PBKDF2 seed.",
+      "implementation": "apps/extension/src/lib/crypto.ts"
+    },
+    {
+      "id": "B.7",
+      "category": "Business Logic",
+      "title": "Debug Mode Convention",
+      "node_name": "debug-mode-convention",
+      "rationale": "Platform-agnostic logger ensuring no logs persist in production while providing deep trace during development.",
+      "implementation": "packages/shared/src/utils/logger.ts"
+    },
+    {
+      "id": "B.8",
+      "category": "Business Logic",
+      "title": "MV3 Service Worker Lifespan",
+      "node_name": "mv3-service-worker-limits",
+      "rationale": "Handles short-lived SW execution cycles using alarms and persistent queue instead of global variables.",
+      "implementation": "apps/extension/src/background/service-worker.ts"
+    },
+    {
+      "id": "B.9",
+      "category": "Business Logic",
+      "title": "Environment Variable Switching",
+      "node_name": "environment-switching",
+      "rationale": "Config manager abstracts API endpoints based on development vs production build flags.",
+      "implementation": "apps/extension/src/lib/config.ts"
+    },
+    {
+      "id": "B.10",
+      "category": "Business Logic",
+      "title": "Gemini Session-Only API Keys",
+      "node_name": "gemini-api-key-session",
+      "rationale": "Stores Gemini keys in sessionStorage instead of localStorage to eliminate persistent XSS theft risk.",
+      "implementation": "apps/dashboard/src/components/features/chats/ChatStudio.tsx"
+    },
+    {
+      "id": "B.11",
+      "category": "Business Logic",
+      "title": "Platform-Specific Rate Limits",
+      "node_name": "platform-rate-limits",
+      "rationale": "Each AI platform has different rate tolerance. Values derived from testing to avoid detection/blocking.",
+      "implementation": "apps/extension/src/lib/rate-limiter.ts",
+      "values": {
+        "chatgpt": "60 req/min",
+        "claude": "30 req/min",
+        "gemini": "20 req/min",
+        "deepseek": "40 req/min",
+        "perplexity": "30 req/min",
+        "grok": "20 req/min",
+        "qwen": "50 req/min",
+        "lmarena": "10 req/min",
+        "dashboard": "100 req/min"
+      },
+      "note": "Implementation uses Token Bucket algorithm with 60s windows."
+    },
+    {
+      "id": "B.12",
+      "category": "Business Logic",
+      "title": "Remember Me — 30-Day Session",
+      "node_name": "remember-me-session",
+      "rationale": "Users opt-in to extended session via checkbox. Cookie maxAge set to 30 days only for auth tokens.",
+      "implementation": "apps/dashboard/src/lib/supabase/client.ts",
+      "storage_key": "brainbox_remember_me",
+      "session_duration": "30 days (default: session)"
+    },
+    {
+      "id": "B.13",
+      "category": "Business Logic",
+      "title": "Pending Improvements — Found in Research",
+      "items": [
+        {
+          "topic": "Upstash Rate Limiting",
+          "current": "Token Bucket in Extension, local check in Dashboard",
+          "better": "Use @upstash/ratelimit for Dashboard API routes for global sliding window support",
+          "effort": "low",
+          "impact": "medium"
+        },
+        {
+          "topic": "RLS Subquery Optimization",
+          "current": "auth.uid() = user_id",
+          "better": "user_id = (SELECT auth.uid()) — cached subquery is more performant in Postgres",
+          "effort": "low",
+          "impact": "medium"
+        }
+      ]
+    },
+    {
+      "id": "C.1",
+      "category": "Schemas",
+      "title": "Chat Schema",
+      "fields": ["title", "content", "platform", "url", "folder_id", "messages", "tags", "tasks", "embedding"],
+      "location": "packages/validation/schemas/chat.ts"
+    },
+    {
+      "id": "C.2",
+      "category": "Schemas",
+      "title": "Prompt Schema",
+      "fields": ["title", "content", "color", "folder_id", "use_in_context_menu"],
+      "location": "packages/validation/schemas/prompt.ts"
+    },
+    {
+      "id": "C.3",
+      "category": "Schemas",
+      "title": "AI Generate Request Schema",
+      "fields": ["content (min 1)", "apiKey (optional)", "history (optional)", "systemInstruction (optional)"],
+      "location": "packages/validation/schemas/ai.ts"
+    },
+    {
+      "id": "D.1",
+      "category": "Guidelines",
+      "title": "Package Isolation",
+      "rule": "Rule #2: Apps (Extension/Dashboard) must never import from each other; common logic goes to packages/."
+    },
+    {
+      "id": "D.2",
+      "category": "Guidelines",
+      "title": "PNPM Enforcement",
+      "rule": "Rule #1: Only pnpm is allowed. Existence of package-lock.json is a critical failure."
+    },
+    {
+      "id": "D.3",
+      "category": "Guidelines",
+      "title": "CORS Headers for Extension API Calls",
+      "rule": "Dashboard API routes that serve Extension requests must include CORS headers with Allow-Origin: *",
+      "headers": {
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+        "Access-Control-Allow-Headers": "Content-Type, Authorization",
+        "Access-Control-Allow-Credentials": "true"
+      },
+      "note": "Allow-Credentials: true is necessary for cookie-based auth fallback."
+    },
+    {
+      "id": "E.1",
+      "category": "Security",
+      "title": "Mandatory RLS policies",
+      "policy": "Row Level Security must be enabled for ALL tables. user_id check is gravity."
+    },
+    {
+      "id": "E.2",
+      "category": "Security",
+      "title": "File Upload Limits & Validation",
+      "policy": "Validate MIME type AND file size before upload. Never trust client-side validation.",
+      "limits": {
+        "avatar": "1MB (assumed standard)",
+        "images": "2MB"
+      },
+      "implementation": "apps/dashboard/src/app/api/images/route.ts",
+      "required_checks": ["MIME type check", "size < limit", "upsert: false"]
+    },
+    {
+      "id": "E.3",
+      "category": "Security",
+      "title": "Performance & Quality Thresholds",
+      "thresholds": {
+        "api_response_target": "< 500ms",
+        "bundle_size_main": "< 250KB",
+        "lighthouse_score": "> 90",
+        "lcp": "< 2.5s",
+        "cls": "< 0.1"
+      },
+      "source": "AI_BEST_PRACTICES_GUIDE.md targets"
+    },
+    {
+      "id": "F.1",
+      "category": "Roadmap",
+      "title": "Deprecation of legacy code",
+      "task": "Remove/refactor brainbox_master.js into modular AuthManager/SyncManager components."
+    },
+    {
+      "id": "G.1",
+      "category": "Configuration & Resource Map",
+      "title": "Environment & API Configuration",
+      "description": "Central lookup for configuration files and environment variables. Avoid redundant searches.",
+      "locations": {
+        "local_supabase_keys": "supabase/.supabase_local_keys.txt (Auto-generated by CLI status)",
+        "global_env": [".env", ".env.local (root)"],
+        "dashboard_env": ["apps/dashboard/.env", "apps/dashboard/.env.local"],
+        "extension_env": ["apps/extension/.env.development", "apps/extension/.env.production"],
+        "supabase_config": "supabase/config.toml",
+        "database_migrations": "supabase/migrations/",
+        "validation_schemas": "packages/validation/schemas/",
+        "shared_types": "packages/shared/src/types/"
+      },
+      "usage_guide": "Never hardcode keys. Use verified locations to resolve environment dependencies."
+    }
+  ]
+}

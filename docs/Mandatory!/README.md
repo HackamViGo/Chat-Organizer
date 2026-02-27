@@ -9,7 +9,7 @@
 4. `SECURITY.md` — RLS политики, JWT сигурност и защита на личните данни.
 
 ## При работа по Chrome Extension
-- `docs/EXTENSION.md` — Платформи, адаптери, файлова карта и специфични за разширението проблеми.
+- `docs/Mandatory!/EXTENSION.md` — Платформи, адаптери, файлова карта и специфични за разширението проблеми.
 - `docs/technical/CHROME_EXTENSION_POLICY.md` — Политики за сигурност и изисквания на Chrome Web Store.
 
 ## При работа по Dashboard & API

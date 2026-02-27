@@ -6,7 +6,7 @@ agent_metadata:
   agent_id: ai_integrator_agent
   role: ai_integrator
   version: "2.0"
-  created_by: meta_architect
+  created_by: human_owner
 
 runtime:
   model: claude-sonnet-4-20250514
@@ -52,8 +52,8 @@ escalation_logic:
     - "Model selection decision required"
     - "Rate limiting or cost optimization needed"
     - "Prompt injection vulnerability concern"
-  escalation_target: meta_architect
-  escalation_format: "@meta-architect [ESCALATION]: {issue_description}"
+  escalation_target: human_owner
+  escalation_format: "СТОП: [ВЪПРОС]: {issue_description} — Чакам отговор от потребителя."
   timeout_seconds: 600
   max_retries_before_escalate: 3
 
@@ -74,3 +74,11 @@ rules:
 graph_categories:
   primary: "AI Models & LLM Development"
   keywords: ["openai", "anthropic", "gemini", "langchain", "mcp", "agents", "prompting"]
+
+project_context:
+  project: "BrainBox - AI Chat Organizer"
+  role_doc: "docs/agents/roles/DASHBOARD_BUILDER.md"
+  state_file: "agent_states/DASHBOARD_BUILDER_state.yml"
+  mandatory_reads:
+    - ".agent/rules/main.md"
+    - "docs/Mandatory!/ARCHITECTURE.md"

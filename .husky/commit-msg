@@ -1,0 +1,11 @@
+pnpm exec commitlint --edit "$1"
+
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "❌ Commit message does not follow Conventional Commits format."
+  echo "   Examples:"
+  echo "   feat(dashboard): add folder nesting"
+  echo "   fix(extension): resolve auth token refresh"
+  echo "   docs: update ARCHITECTURE.md"
+  exit 1
+fi

@@ -1,7 +1,7 @@
 # EXTENSION_BUILDER
 
 **Scope:** `apps/extension/` само  
-**Прочети преди работа:** `main.md` → `docs/EXTENSION.md` → `docs/technical/SYNC_PROTOCOL.md`
+**Прочети преди работа:** `main.md` → `docs/Mandatory!/EXTENSION.md` → `docs/technical/SYNC_PROTOCOL.md`
 
 **Може:**
 - Промени в content scripts, адаптери, service worker

@@ -16,7 +16,7 @@
 
 ## 1. Row Level Security (RLS) — Задължително
 
-Всяка таблица с потребителски данни трябва да има RLS. Това е последната линия на защита срещу директни Supabase REST API заявки.
+Всяка таблица с потребителски данни трябва да има RLS. Това е последната линия на защита срещу директни Supabase REST API заявки. Използвайте `(SELECT auth.uid())` вместо само `auth.uid()` за по-добра производителност (PostgreSQL кешира подзаявката).
 
 ### Задължителни политики за всяка user-owned таблица
 
@@ -27,19 +27,19 @@ ALTER TABLE <table_name> ENABLE ROW LEVEL SECURITY;
 
 -- SELECT: само собствени данни
 CREATE POLICY "<table>_select_own" ON <table_name>
-  FOR SELECT USING (auth.uid() = user_id);
+  FOR SELECT USING (user_id = (SELECT auth.uid()));
 
 -- INSERT: само с правилен user_id
 CREATE POLICY "<table>_insert_own" ON <table_name>
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
+  FOR INSERT WITH CHECK (user_id = (SELECT auth.uid()));
 
 -- UPDATE: само собствени данни
 CREATE POLICY "<table>_update_own" ON <table_name>
-  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+  FOR UPDATE USING (user_id = (SELECT auth.uid())) WITH CHECK (user_id = (SELECT auth.uid()));
 
 -- DELETE: само собствени данни
 CREATE POLICY "<table>_delete_own" ON <table_name>
-  FOR DELETE USING (auth.uid() = user_id);
+  FOR DELETE USING (user_id = (SELECT auth.uid()));
 ```
 
 ### Проверка
@@ -151,7 +151,31 @@ if (!success) {
 
 ---
 
-## 5. Secrets Management
+## 5. File Upload Security
+
+Всички качвания на файлове трябва да бъдат валидирани сървърно за размер и тип на съдържанието.
+
+**Правила:**
+- **Максимален размер за изображения:** 2MB
+- **Валидация на MIME тип:** Задължително в API route (напр. `image/png`, `image/jpeg`).
+- **Storage Protection:** Никога не позволявайте `upsert: true` в Supabase Storage без изрично потвърждение.
+- **API Check:** `if (buffer.length > 2 * 1024 * 1024) return Error(400)`.
+
+---
+
+## 6. CORS Policy за Extension
+
+API маршрутите, които обслужват заявки от Chrome Extension, трябва да имат специфични CORS хедъри.
+
+**Изисквани хедъри:**
+- `Access-Control-Allow-Origin: '*'` (или специфични AI платформи)
+- `Access-Control-Allow-Methods: 'GET, POST, PUT, DELETE, OPTIONS'`
+- `Access-Control-Allow-Headers: 'Content-Type, Authorization'`
+- `Access-Control-Allow-Credentials: 'true'` (за поддръжка на cookie fallback)
+
+---
+
+## 7. Secrets Management
 
 ### Environment Variables — класификация
 
@@ -168,7 +192,7 @@ if (!success) {
 
 ---
 
-## 6. Content Security Policy
+## 8. Content Security Policy
 
 ### Dashboard (Next.js)
 
@@ -200,7 +224,7 @@ const securityHeaders = [
 
 ---
 
-## 7. Sanitization
+## 9. Sanitization
 
 Съдържание, уловено от AI платформи, е HTML/markdown от трета страна.
 
@@ -218,7 +242,7 @@ const safeHtml = DOMPurify.sanitize(rawContent, {
 
 ---
 
-## 8. Access Logs
+## 10. Access Logs
 
 При P0/P1 security events логваме:
 
@@ -237,7 +261,7 @@ logger.info('Security', 'Auth attempt', {
 
 ---
 
-## 9. Security Checklist за PR Review
+## 11. Security Checklist за PR Review
 
 - [ ] Новите API routes имат auth check в началото?
 - [ ] `user_id` идва от `auth.getUser()`, не от request body?

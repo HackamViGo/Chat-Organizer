@@ -1,4 +1,3 @@
-# ui_specialist.agent
 # Frontend/UI Specialist Sub-Agent Configuration
 # Version: 2.0 - Superior Meta-Architect+ Ecosystem
 
@@ -6,7 +5,7 @@ agent_metadata:
   agent_id: ui_specialist_agent
   role: frontend_specialist
   version: "2.0"
-  created_by: meta_architect
+  created_by: human_owner
 
 runtime:
   model: claude-sonnet-4-20250514
@@ -49,8 +48,8 @@ escalation_logic:
     - "Unknown React/Next.js pattern"
     - "API contract mismatch with backend"
     - "Accessibility (ARIA) compliance uncertainty"
-  escalation_target: meta_architect
-  escalation_format: "@meta-architect [ESCALATION]: {issue_description}"
+  escalation_target: human_owner
+  escalation_format: "СТОП: [ВЪПРОС]: {issue_description} — Чакам отговор от потребителя."
   timeout_seconds: 600
   max_retries_before_escalate: 3
 
@@ -70,3 +69,11 @@ rules:
 graph_categories:
   primary: "Programming Languages & Frameworks"
   keywords: ["react", "nextjs", "tailwind", "typescript", "frontend"]
+
+project_context:
+  project: "BrainBox - AI Chat Organizer"
+  role_doc: "docs/agents/roles/DASHBOARD_BUILDER.md"
+  state_file: "agent_states/DASHBOARD_BUILDER_state.yml"
+  mandatory_reads:
+    - ".agent/rules/main.md"
+    - "docs/Mandatory!/ARCHITECTURE.md"

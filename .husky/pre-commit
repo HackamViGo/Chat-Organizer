@@ -1,0 +1,9 @@
+echo "🔍 Pre-commit: Running lint-staged..."
+pnpm exec lint-staged
+
+if [ $? -ne 0 ]; then
+  echo "❌ Pre-commit failed. Fix errors before committing."
+  exit 1
+fi
+
+echo "✅ Pre-commit passed."

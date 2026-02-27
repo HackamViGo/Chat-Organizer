@@ -38,7 +38,9 @@
 - Изпълнява background fetch към AI платформите, използвайки уловените credentials
 - Нормализира отговорите към canonical `Chat` schema
 - Поддържа локална sync queue (offline-first) в `chrome.storage.local`
-- Комуникира с Dashboard изключително чрез HTTP API с Bearer JWT
+- Комуникация с Dashboard чрез HTTP API с Bearer JWT
+- **Rate Limiting:** Интегриран Token Bucket ограничител (apps/extension/src/lib/rate-limiter.ts) за избягване на блокиране от AI платформи:
+  - ChatGPT: 60 RPM | Claude: 30 RPM | Gemini: 20 RPM | Dashboard: 100 RPM
 
 **Какво НЕ прави:**
 - Не съдържа бизнес логика (тя е в Dashboard)
@@ -151,6 +153,23 @@ Dashboard /extension-auth page → content-dashboard-auth.ts → chrome.runtime.
 
 ---
 
+## Карта на ресурсите и конфигурацията (Resource & Configuration Map)
+
+Справка за местоположението на ключови настройки и ресурси. Използвайте тези пътища за бърза навигация и избягване на дублиращи се търсения.
+
+| Ресурс | Местоположение (Path) | Описание |
+|--------|----------------------|----------|
+| **Local Supabase Keys** | `supabase/.supabase_local_keys.txt` | Генериран файл с URL, Anon Key и Service Key за локална среда. |
+| **Global Environment** | `.env`, `.env.local` | Глобални настройки в корена на проекта. |
+| **Dashboard Config** | `apps/dashboard/.env`, `.env.local` | Настройки специфични за Dashboard приложението. |
+| **Extension Config** | `apps/extension/.env.production`, `.env.development` | Настройки специфични за Chrome Extension. |
+| **Supabase Config** | `supabase/config.toml` | Настройки на Supabase CLI и Docker контейнерите. |
+| **Database Migrations** | `supabase/migrations/` | SQL скриптове за дефиниране на схемата и RLS политиките. |
+| **Validation Schemas** | `packages/validation/schemas/` | Zod схеми за валидация (единствен сорс на истина). |
+| **Shared Types** | `packages/shared/src/types/` | Споделени TypeScript интерфейси и типове. |
+
+---
+
 ## Правила при промяна на архитектурата
 
 1. Промяна в комуникационните пътеки → актуализирай този файл + `CONTEXT_MAP.md`
@@ -158,3 +177,16 @@ Dashboard /extension-auth page → content-dashboard-auth.ts → chrome.runtime.
 3. Нова Zod schema → добавя се само в `@brainbox/validation`
 4. Нова таблица в Supabase → migration + `pnpm db:gen` + актуализация на `@brainbox/database`
 5. Нова платформа в Extension → нов adapter + нов content script + актуализация на `DATA_SCHEMA.md`
+
+---
+
+## Производителност и Качество (Performance & Quality)
+
+Всички компоненти и API-та трябва да се стремят към следните нива:
+
+| Метрика | Цел | Обяснение |
+|---------|-----|-----------|
+| **API Response** | < 500ms | Време за отговор на Dashboard API (без AI generation) |
+| **Main Bundle** | < 250KB | Размер на основния JavaScript пакет на Dashboard |
+| **Lighthouse** | > 90 | Performance, Accessibility, SEO и Best Practices |
+| **LCP** | < 2.5s | Largest Contentful Paint за Dashboard страниците |

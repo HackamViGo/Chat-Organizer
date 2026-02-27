@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { encryptToken, decryptToken } from '@/lib/crypto'
 import { logger } from '@/lib/logger'
 
@@ -405,7 +406,6 @@ export class AuthManager {
         const refreshToken = encryptedRefresh ? await decryptToken(encryptedRefresh) : null
         if (!refreshToken) throw new Error('No refresh token')
 
-        const { CONFIG } = await import('@/lib/config')
         const response = await fetch(`${CONFIG.API_BASE_URL}/api/auth/refresh`, {
           method: 'POST',
           headers: {

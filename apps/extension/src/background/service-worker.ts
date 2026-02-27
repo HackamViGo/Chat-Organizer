@@ -1,71 +1,70 @@
 // BrainBox AI Chat Organizer - Service Worker
 // Manifest V3 Background Script
 
-import { CONFIG } from '@/lib/config';
-import { AuthManager } from './modules/authManager';
-import { PromptSyncManager } from '@brainbox/shared/logic/promptSync';
-import { DynamicMenus } from './modules/dynamicMenus';
-import { MessageRouter } from './modules/messageRouter';
-import { NetworkObserver } from './modules/networkObserver';
-import { InstallationManager } from './modules/installationManager';
-import { SyncManager } from './modules/syncManager';
+import { PromptSyncManager } from '@brainbox/shared/logic/promptSync'
+
+import { AuthManager } from './modules/authManager'
+import { DynamicMenus } from './modules/dynamicMenus'
+import { InstallationManager } from './modules/installationManager'
+import { MessageRouter } from './modules/messageRouter'
+import { NetworkObserver } from './modules/networkObserver'
+import { SyncManager } from './modules/syncManager'
+
+import { CONFIG } from '@/lib/config'
+import { logger } from '@/lib/logger'
 // import { TabManager } from './modules/tabManager'; // Optional for future use
 
-const DEBUG_MODE = false;
-console.log('[BrainBox Worker] 🚀 Service Worker Starting...');
+const DEBUG_MODE = false
+logger.info('worker', 'Service Worker Starting...')
 
-self.onerror = function(message, source, lineno, colno, error) {
-    console.error('[BrainBox Worker] ❌ Global Error:', message, error);
-};
+self.onerror = function (message, source, lineno, colno, error) {
+  logger.error('worker', `Global Error: ${message}`, error)
+}
 
 // ============================================================================
 // MODULE INITIALIZATION
 // ============================================================================
 
 // 1. Core Managers
-const authManager = new AuthManager();
-const promptSyncManager = new PromptSyncManager(CONFIG.DASHBOARD_URL);
+const authManager = new AuthManager()
+const promptSyncManager = new PromptSyncManager(CONFIG.DASHBOARD_URL)
 
 // 2. Feature Modules
-const dynamicMenus = new DynamicMenus(promptSyncManager);
-const networkObserver = new NetworkObserver(DEBUG_MODE);
-const installationManager = new InstallationManager(DEBUG_MODE);
+const dynamicMenus = new DynamicMenus(promptSyncManager)
+const networkObserver = new NetworkObserver(DEBUG_MODE)
+const installationManager = new InstallationManager(DEBUG_MODE)
 // const tabManager = new TabManager(DEBUG_MODE); // Optional
 
 // 3. Communication Router
-const messageRouter = new MessageRouter(
-    authManager,
-    promptSyncManager,
-    DEBUG_MODE
-);
+const messageRouter = new MessageRouter(authManager, promptSyncManager, DEBUG_MODE)
 
 // ============================================================================
 // START ALL MODULES
 // ============================================================================
 
-authManager.initialize();
-promptSyncManager.initialize();
+authManager.initialize()
+promptSyncManager.initialize()
 
 // Trigger sync queue processing on startup
 chrome.storage.local.get(['accessToken'], ({ accessToken }) => {
-    SyncManager.initialize(accessToken);
-});
+  SyncManager.initialize(accessToken)
+})
 
-dynamicMenus.initialize();
-networkObserver.initialize();
-installationManager.initialize();
+dynamicMenus.initialize()
+networkObserver.initialize()
+installationManager.initialize()
 // tabManager.initialize(); // Optional
 
-messageRouter.listen();
+messageRouter.listen()
 
 // ============================================================================
 // CONFIGURATION SYNC
 // ============================================================================
 
-chrome.storage.local.set({ 
-    API_BASE_URL: CONFIG.API_BASE_URL,
-    DASHBOARD_URL: CONFIG.DASHBOARD_URL,
-    EXTENSION_VERSION: CONFIG.VERSION
-});
+chrome.storage.local.set({
+  API_BASE_URL: CONFIG.API_BASE_URL,
+  DASHBOARD_URL: CONFIG.DASHBOARD_URL,
+  EXTENSION_VERSION: CONFIG.VERSION,
+})
 
-console.log('[BrainBox Worker] ✅ All modules initialized');
+logger.info('worker', 'All modules initialized')

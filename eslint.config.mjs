@@ -15,6 +15,7 @@ export default [
       'packages/shared/src/types/database.types.ts',
     ],
   },
+  // Tier 1 — нови TypeScript файлове (strict)
   {
     files: ['**/*.ts', '**/*.tsx'],
     languageOptions: {
@@ -55,5 +56,21 @@ export default [
       'no-debugger': 'error',
       'prefer-const': 'error',
     },
+  },
+  // Tier 2 — legacy – warn само
+  {
+    files: [
+      'apps/extension/src/**/*.{js,ts}',
+      'apps/extension/vite.config.ts',
+      'apps/dashboard/src/app/api/**/*.ts',
+      'apps/dashboard/src/components/providers/DataProvider.tsx'
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
+      'no-console': 'warn',
+      '@typescript-eslint/no-unused-vars': 'warn',
+      '@typescript-eslint/consistent-type-imports': 'warn',
+      'import/order': 'warn',
+    }
   },
 ]

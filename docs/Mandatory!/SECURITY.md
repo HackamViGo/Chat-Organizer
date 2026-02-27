@@ -67,7 +67,10 @@ ORDER BY tablename;
 
 ```typescript
 // Задължително в НАЧАЛОТО на всеки API route
-const { data: { user }, error } = await supabase.auth.getUser()
+const {
+  data: { user },
+  error,
+} = await supabase.auth.getUser()
 if (error || !user) {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }
@@ -101,6 +104,7 @@ async function getToken(): Promise<string | null> {
 Вижте `CODE_GUIDELINES.md §2` за детайлни правила.
 
 **Критични точки:**
+
 - `user_id` никога не се приема от клиент — само от `auth.getUser()` server-side
 - `id` полета се валидират като UUID: `z.string().uuid()`
 - String inputs имат `max()` ограничение: `z.string().max(50000)` за messages, `z.string().max(500)` за titles
@@ -119,18 +123,18 @@ import { Redis } from '@upstash/redis'
 
 export const aiRateLimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, '1 m'),  // 5 AI requests per minute
+  limiter: Ratelimit.slidingWindow(5, '1 m'), // 5 AI requests per minute
   analytics: true,
 })
 
 export const syncRateLimit = new Ratelimit({
   redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(30, '1 m'),  // 30 sync requests per minute
+  limiter: Ratelimit.slidingWindow(30, '1 m'), // 30 sync requests per minute
   analytics: true,
 })
 
 // Употреба в API route
-const identifier = user.id  // per-user, не per-IP за auth routes
+const identifier = user.id // per-user, не per-IP за auth routes
 const { success, limit, remaining } = await aiRateLimit.limit(identifier)
 if (!success) {
   return NextResponse.json(
@@ -142,12 +146,12 @@ if (!success) {
 
 **Лимити по endpoint тип:**
 
-| Endpoint | Лимит | Window | Identifier |
-|----------|-------|--------|------------|
-| `/api/ai/*` | 5 req | 1 минута | user.id |
-| `/api/chats/extension` | 30 req | 1 минута | user.id |
-| `/api/chats` (CRUD) | 100 req | 1 минута | user.id |
-| `/api/auth/*` | 10 req | 5 минути | IP |
+| Endpoint               | Лимит   | Window   | Identifier |
+| ---------------------- | ------- | -------- | ---------- |
+| `/api/ai/*`            | 5 req   | 1 минута | user.id    |
+| `/api/chats/extension` | 30 req  | 1 минута | user.id    |
+| `/api/chats` (CRUD)    | 100 req | 1 минута | user.id    |
+| `/api/auth/*`          | 10 req  | 5 минути | IP         |
 
 ---
 
@@ -156,6 +160,7 @@ if (!success) {
 Всички качвания на файлове трябва да бъдат валидирани сървърно за размер и тип на съдържанието.
 
 **Правила:**
+
 - **Максимален размер за изображения:** 2MB
 - **Валидация на MIME тип:** Задължително в API route (напр. `image/png`, `image/jpeg`).
 - **Storage Protection:** Никога не позволявайте `upsert: true` в Supabase Storage без изрично потвърждение.
@@ -168,6 +173,7 @@ if (!success) {
 API маршрутите, които обслужват заявки от Chrome Extension, трябва да имат специфични CORS хедъри.
 
 **Изисквани хедъри:**
+
 - `Access-Control-Allow-Origin: '*'` (или специфични AI платформи)
 - `Access-Control-Allow-Methods: 'GET, POST, PUT, DELETE, OPTIONS'`
 - `Access-Control-Allow-Headers: 'Content-Type, Authorization'`
@@ -179,14 +185,18 @@ API маршрутите, които обслужват заявки от Chrome
 
 ### Environment Variables — класификация
 
-| Variable | Тип | Достъпен в | Забележка |
-|----------|-----|------------|-----------|
-| `NEXT_PUBLIC_SUPABASE_URL` | Public | Клиент + Сървър | OK — public URL |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public | Клиент + Сървър | OK — RLS я защитава |
-| `SUPABASE_SERVICE_ROLE_KEY` | Secret | Само сървър | **Никога в клиент** |
-| `AI_API_KEY` (Gemini, etc.) | Secret | Само сървър | **Никога в клиент** |
-| `UPSTASH_REDIS_REST_URL` | Secret | Само сървър | |
-| `UPSTASH_REDIS_REST_TOKEN` | Secret | Само сървър | |
+| Variable                        | Тип       | Достъпен в      | Забележка                                    |
+| ------------------------------- | --------- | --------------- | -------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | Public    | Клиент + Сървър | OK — public URL                              |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Public    | Клиент + Сървър | OK — RLS я защитава                          |
+| `SUPABASE_SERVICE_ROLE_KEY`     | Secret    | Само сървър     | **Никога в клиент**                          |
+| `AI_API_KEY` (Gemini, etc.)     | Secret    | Само сървър     | **Никога в клиент**                          |
+| `geminiApiKey` (User input)     | Sensitive | Клиент          | `sessionStorage` само. (Виж §gemini-api-key) |
+| `UPSTASH_REDIS_REST_URL`        | Secret    | Само сървър     |                                              |
+| `UPSTASH_REDIS_REST_TOKEN`      | Secret    | Само сървър     |                                              |
+
+**§gemini-api-key (Client-side API Keys):**
+Ако потребителят предоставя собствен API ключ (напр. за Gemini), този ключ **задължително** се съхранява в `sessionStorage`, а не в `localStorage`. Това минимизира прозореца за XSS атаки (изтрива се при затваряне на таба). В бъдеще е планирана миграция към server-side proxy.
 
 **Правило:** Ако variable не е `NEXT_PUBLIC_` — тя е сървърна. Ако е сървърна — не се импортира в компоненти.
 
@@ -206,12 +216,12 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'",  // Next.js изисква unsafe-inline
+      "script-src 'self' 'unsafe-inline'", // Next.js изисква unsafe-inline
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
       "img-src 'self' data: https:",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
       "font-src 'self' https://fonts.gstatic.com",
-    ].join('; ')
+    ].join('; '),
   },
 ]
 ```
@@ -234,7 +244,7 @@ import DOMPurify from 'dompurify'
 
 const safeHtml = DOMPurify.sanitize(rawContent, {
   ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'code', 'pre', 'ul', 'ol', 'li'],
-  ALLOWED_ATTR: [],  // Никакви attr — предотвратява event handlers
+  ALLOWED_ATTR: [], // Никакви attr — предотвратява event handlers
 })
 ```
 

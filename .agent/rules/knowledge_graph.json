@@ -1,8 +1,8 @@
 {
   "metadata": {
     "title": "BrainBox Knowledge Graph",
-    "version": "1.0.0",
-    "last_updated": "2026-02-27",
+    "version": "1.2.0",
+    "last_updated": "2026-02-27T23:10:00Z",
     "description": "Master map of external documentation, business logic rules, schemas, and security policies."
   },
   "nodes": [
@@ -173,7 +173,17 @@
       "id": "C.1",
       "category": "Schemas",
       "title": "Chat Schema",
-      "fields": ["title", "content", "platform", "url", "folder_id", "messages", "tags", "tasks", "embedding"],
+      "fields": [
+        "title",
+        "content",
+        "platform",
+        "url",
+        "folder_id",
+        "messages",
+        "tags",
+        "tasks",
+        "embedding"
+      ],
       "location": "packages/validation/schemas/chat.ts"
     },
     {
@@ -187,7 +197,12 @@
       "id": "C.3",
       "category": "Schemas",
       "title": "AI Generate Request Schema",
-      "fields": ["content (min 1)", "apiKey (optional)", "history (optional)", "systemInstruction (optional)"],
+      "fields": [
+        "content (min 1)",
+        "apiKey (optional)",
+        "history (optional)",
+        "systemInstruction (optional)"
+      ],
       "location": "packages/validation/schemas/ai.ts"
     },
     {
@@ -214,6 +229,18 @@
         "Access-Control-Allow-Credentials": "true"
       },
       "note": "Allow-Credentials: true is necessary for cookie-based auth fallback."
+    },
+    {
+      "id": "D.4",
+      "category": "Guidelines",
+      "title": "Strict Type Safety in Errors",
+      "rule": "API route catch blocks must use `catch (error: unknown)` and proper type guards. `catch (error: any)` is forbidden."
+    },
+    {
+      "id": "D.5",
+      "category": "Guidelines",
+      "title": "Zustand Rendering Optimization",
+      "rule": "Always use `useShallow` when selecting from Zustand stores to prevent excessive re-renders (Rule #6)."
     },
     {
       "id": "E.1",
@@ -250,7 +277,7 @@
       "id": "F.1",
       "category": "Roadmap",
       "title": "Deprecation of legacy code",
-      "task": "Remove/refactor brainbox_master.js into modular AuthManager/SyncManager components."
+      "task": "brainbox_master.js deactivated from manifest content_scripts. Pending final archival decision by EXTENSION_BUILDER."
     },
     {
       "id": "G.1",

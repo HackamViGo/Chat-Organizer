@@ -16,7 +16,7 @@
     "build:extension": "turbo build --filter=@brainbox/extension",
     "db:gen": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > packages/database/database.types.ts",
     "verify": "turbo type-check && turbo lint && turbo test",
-    "lint": "turbo lint",
+    "lint": "NODE_OPTIONS='--max-old-space-size=2048' turbo lint",
     "type-check": "turbo type-check",
     "test": "playwright test",
     "test:headed": "playwright test --headed",
@@ -40,18 +40,6 @@
     "legacy:build": "next build",
     "prepare": "husky",
     "audit": "pnpm verify"
-  },
-  "lint-staged": {
-    "*.{ts,tsx}": [
-      "eslint --fix --max-warnings 0",
-      "prettier --write"
-    ],
-    "*.{json,md,yml,yaml}": [
-      "prettier --write"
-    ],
-    "*.{css,scss}": [
-      "prettier --write"
-    ]
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

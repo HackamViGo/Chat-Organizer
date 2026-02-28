@@ -1,0 +1,21 @@
+/* BrainBox UI — Color Tokens
+ * Namespace: --ui-color-*
+ * Usage: Shadcn-compat tokens are set per-app in @theme or .dark blocks.
+ *        Platform colors are shared across Dashboard and Extension.
+ */
+
+:root {
+  /* Platform identity colors — used for badges, glow effects, quick-access buttons */
+  --ui-color-platform-chatgpt:    hsl(142 71% 45%);
+  --ui-color-platform-gemini:     hsl(217 91% 60%);
+  --ui-color-platform-claude:     hsl(25  95% 53%);
+  --ui-color-platform-grok:       hsl(0   0%  100%);
+  --ui-color-platform-perplexity: hsl(189 94% 43%);
+  --ui-color-platform-lmarena:    hsl(43  96% 56%);
+  --ui-color-platform-deepseek:   hsl(217 91% 60%);
+  --ui-color-platform-qwen:       hsl(262 83% 58%);
+
+  /* Glass morphism palette */
+  --ui-color-glass-bg:     hsl(222 47% 11% / 0.7);
+  --ui-color-glass-border: hsl(0   0%  100% / 0.1);
+}

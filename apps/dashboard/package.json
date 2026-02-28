@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@brainbox/assets": "workspace:*",
+    "@brainbox/ui": "workspace:*",
     "@brainbox/config": "workspace:*",
     "@brainbox/database": "workspace:*",
     "@brainbox/validation": "workspace:*",

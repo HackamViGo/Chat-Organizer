@@ -1,0 +1,29 @@
+/* BrainBox UI — Z-Index Scale
+ * Namespace: --ui-z-*
+ *
+ * ⚠️  TWO SEPARATE STACKS — DO NOT MIX:
+ *
+ * Standard stack (Dashboard + Extension Popup): own DOM, full control → max 400
+ * Content script stack (injected in ChatGPT/Gemini/Claude DOM):
+ *   These platforms use z-index values up to ~1000000. Our injected UI
+ *   MUST appear above their elements, so values start at 10000.
+ *   This is intentional and correct — it is NOT the same scale as above.
+ */
+
+:root {
+  /* ── Standard UI stack (Dashboard + Extension Popup) ──────────────── */
+  --ui-z-base:         0;    /* Normal layout flow                       */
+  --ui-z-dnd:          5;    /* Drag-and-drop handles (DailyPromptCard)  */
+  --ui-z-dropdown:   100;    /* Select menus, tooltips, popovers          */
+  --ui-z-sticky:     200;    /* Sticky headers, fixed sidebars            */
+  --ui-z-modal:      300;    /* Modals, dialogs (Shadcn: z-50)           */
+  --ui-z-toast:      400;    /* Toast notifications                       */
+
+  /* ── Content Script stack (injected into foreign DOM) ────────────── */
+  --ui-z-content-overlay:      10000;    /* Checkboxes, export toolbars  */
+  --ui-z-content-notification: 10001;    /* In-page toasts               */
+  --ui-z-content-auth:         10000;    /* Auth banner overlay           */
+  --ui-z-content-menu:        999999;    /* Prompt menu (bb-prompt-menu) */
+  --ui-z-content-drag:       1000000;    /* Drag handles in prompt menu  */
+  --ui-z-content-fullscreen: 9999999;    /* Fullscreen overlays (lib/ui) */
+}

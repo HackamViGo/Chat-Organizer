@@ -1,0 +1,12 @@
+/* BrainBox UI — Typography Tokens
+ * Namespace: --ui-font-*
+ * Usage:
+ *   Dashboard   → font-family: var(--ui-font-mono)  (JetBrains Mono, design choice)
+ *   Ext Popup   → font-family: var(--ui-font-sans)  (Inter)
+ *   Content CSS → do NOT use tokens; use system stack inline (see prompt-inject.ts)
+ */
+
+:root {
+  --ui-font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ui-font-mono: 'JetBrains Mono', 'Menlo', 'DejaVu Sans Mono', monospace;
+}

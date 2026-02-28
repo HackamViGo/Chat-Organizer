@@ -23,6 +23,7 @@
   },
   "dependencies": {
     "@brainbox/shared": "workspace:*",
+    "@brainbox/ui": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -40,7 +41,6 @@
     "happy-dom": "^14.0.0",
     "jsdom": "^27.4.0",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.19",
     "typescript": "~5.8.2",
     "vite": "^5.4.0",
     "vitest": "^2.0.0"

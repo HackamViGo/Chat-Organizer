@@ -26,20 +26,24 @@ export async function POST(request: NextRequest) {
 
     if (!extensionKey || (validKey && extensionKey !== validKey)) {
       console.warn('[ExtensionAPI] ⚠️ Invalid or missing extension key')
-      return new NextResponse('Unauthorized: Invalid extension key', {
-        status: 401,
+      return NextResponse.json(
+      { error: 'Unauthorized: Invalid extension key' },
+      { status: 401,
         headers: corsHeaders,
-      })
+      }
+    )
     }
 
     // Get Authorization header (Supabase access token)
     const authHeader = request.headers.get('Authorization')
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return new NextResponse('Missing or invalid authorization', {
-        status: 401,
+      return NextResponse.json(
+      { error: 'Missing or invalid authorization' },
+      { status: 401,
         headers: corsHeaders,
-      })
+      }
+    )
     }
 
     const accessToken = authHeader.replace('Bearer ', '')
@@ -64,10 +68,12 @@ export async function POST(request: NextRequest) {
     } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      return new NextResponse('Invalid access token', {
-        status: 401,
+      return NextResponse.json(
+      { error: 'Invalid access token' },
+      { status: 401,
         headers: corsHeaders,
-      })
+      }
+    )
     }
 
     // S4-3: Rate Limiting
@@ -118,9 +124,11 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     console.error('Extension API error:', error)
     const message = error instanceof Error ? error.message : 'Internal server error'
-    return new NextResponse(message, {
-      status: 500,
+    return NextResponse.json(
+      { error: message ?? 'Internal Server Error' },
+      { status: 500,
       headers: corsHeaders,
-    })
+    }
+    )
   }
 }

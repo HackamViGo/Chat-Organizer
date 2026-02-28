@@ -39,7 +39,7 @@ interface Window {
 
       if (token) {
         // console.debug('[BrainBox] Token extracted, sending to content script...');
-        window.postMessage({ type: 'BRAINBOX_GEMINI_TOKEN', token: token }, '*')
+        window.postMessage({ type: 'BRAINBOX_GEMINI_TOKEN', token: token }, 'https://gemini.google.com')
       } else {
         // console.debug('[BrainBox] Token not found in standard locations');
       }
@@ -51,7 +51,7 @@ interface Window {
           type: 'BRAINBOX_ERROR',
           payload: { message: 'Gemini Token Extraction Failed' },
         },
-        '*'
+        'https://gemini.google.com'
       )
     }
   }

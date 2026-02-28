@@ -60,7 +60,10 @@ export async function GET(request: NextRequest) {
   }
 
   if (!user) {
-    return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: corsHeaders }
+    )
   }
 
   try {
@@ -74,7 +77,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ images: data || [] }, { headers: corsHeaders })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(message, { status: 500, headers: corsHeaders })
+    return NextResponse.json(
+      { error: message ?? 'Internal Server Error' },
+      { status: 500, headers: corsHeaders }
+    )
   }
 }
 
@@ -126,7 +132,10 @@ export async function POST(request: NextRequest) {
   }
 
   if (!user) {
-    return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: corsHeaders }
+    )
   }
 
   try {
@@ -261,6 +270,9 @@ export async function POST(request: NextRequest) {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
     console.error('[BrainBox API] Failed to save images:', message)
-    return new NextResponse(message, { status: 500, headers: corsHeaders })
+    return NextResponse.json(
+      { error: message ?? 'Internal Server Error' },
+      { status: 500, headers: corsHeaders }
+    )
   }
 }

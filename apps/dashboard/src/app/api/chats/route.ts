@@ -99,7 +99,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ chats: data || [] })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(errorMessage, { status: 500 })
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }
 
@@ -107,7 +110,10 @@ export async function POST(request: NextRequest) {
   const { supabase, user } = await getAuthenticatedClient(request)
 
   if (!user) {
-    return new NextResponse('Unauthorized', { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
   }
 
   try {
@@ -175,7 +181,10 @@ export async function POST(request: NextRequest) {
       )
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(errorMessage, { status: 500 })
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }
 
@@ -183,7 +192,10 @@ export async function PUT(request: NextRequest) {
   const { supabase, user } = await getAuthenticatedClient(request)
 
   if (!user) {
-    return new NextResponse('Unauthorized', { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
   }
 
   try {
@@ -209,7 +221,10 @@ export async function PUT(request: NextRequest) {
       )
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(errorMessage, { status: 500 })
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }
 
@@ -217,16 +232,25 @@ export async function DELETE(request: NextRequest) {
   const { supabase, user } = await getAuthenticatedClient(request)
 
   if (!user) {
-    return new NextResponse('Unauthorized', { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
   }
 
   try {
     const { searchParams } = new URL(request.url)
     const ids = searchParams.get('ids')
-    if (!ids) return new NextResponse('Chat IDs are required', { status: 400 })
+    if (!ids) return NextResponse.json(
+      { error: 'Chat IDs are required' },
+      { status: 400 }
+    )
 
     const chatIds = ids.split(',').filter((id) => id.trim())
-    if (chatIds.length === 0) return new NextResponse('No valid chat IDs provided', { status: 400 })
+    if (chatIds.length === 0) return NextResponse.json(
+      { error: 'No valid chat IDs provided' },
+      { status: 400 }
+    )
 
     const { error } = await supabase.from('chats').delete().eq('user_id', user.id).in('id', chatIds)
 
@@ -234,6 +258,9 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true, deletedCount: chatIds.length })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(errorMessage, { status: 500 })
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }

@@ -11,7 +11,7 @@ export async function GET() {
       error: authError,
     } = await supabase.auth.getUser()
     if (authError || !user) {
-      return new NextResponse('Unauthorized', { status: 401 })
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     const { data: chats, error: chatsError } = await supabase
@@ -49,6 +49,9 @@ export async function GET() {
     })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(message, { status: 500 })
+    return NextResponse.json(
+      { error: message ?? 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }

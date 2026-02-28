@@ -29,13 +29,19 @@ export async function GET(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return new NextResponse('Unauthorized', { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
   }
 
   const { data, error } = await supabase.from('users').select('settings').eq('id', user.id).single()
 
   if (error) {
-    return new NextResponse(error.message, { status: 500 })
+    return NextResponse.json(
+      { error: error.message ?? 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 
   return NextResponse.json({ settings: data.settings || {} })
@@ -67,7 +73,10 @@ export async function PUT(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   if (!user) {
-    return new NextResponse('Unauthorized', { status: 401 })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
   }
 
   try {
@@ -86,6 +95,9 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ settings: data.settings })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(message, { status: 500 })
+    return NextResponse.json(
+      { error: message ?? 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }

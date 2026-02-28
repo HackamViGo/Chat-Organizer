@@ -77,12 +77,16 @@ logger.debug('dashboard-auth', 'Content Dashboard Auth script loaded')
 syncSession()
 
 // Post a message to window to signal loading (useful for tests)
-window.postMessage({ type: 'BRAINBOX_CONTENT_LOADED' }, '*')
+window.postMessage({ type: 'BRAINBOX_CONTENT_LOADED' }, window.location.origin)
 
 // Listen for explicit session broadcasts from Dashboard
 window.addEventListener('message', (event) => {
-  // Security: Only accept messages from same origin
-  if (event.origin !== window.location.origin) {
+  // Security: Explicit allowlist
+  const ALLOWED_ORIGINS = [
+    'https://brainbox-alpha.vercel.app',
+    'http://localhost:3000',
+  ];
+  if (!ALLOWED_ORIGINS.includes(event.origin)) {
     logger.warn('dashboard-auth', 'Rejected message from foreign origin', event.origin)
     return
   }
@@ -187,7 +191,7 @@ window.addEventListener('storage', (event) => {
   if (event.key && event.key.startsWith('sb-') && event.key.endsWith('-auth-token')) {
     logger.debug('dashboard-auth', `Storage change detected for key: ${event.key}`)
     syncSession()
-    window.postMessage({ type: 'BRAINBOX_SESSION_SYNCED' }, '*')
+    window.postMessage({ type: 'BRAINBOX_SESSION_SYNCED' }, window.location.origin)
   }
 })
 

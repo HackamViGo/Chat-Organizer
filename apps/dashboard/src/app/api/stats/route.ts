@@ -59,7 +59,10 @@ export async function GET(request: NextRequest) {
   }
 
   if (!user) {
-    return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders })
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: corsHeaders }
+    )
   }
 
   try {
@@ -109,6 +112,9 @@ export async function GET(request: NextRequest) {
     )
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(message, { status: 500, headers: corsHeaders })
+    return NextResponse.json(
+      { error: message ?? 'Internal Server Error' },
+      { status: 500, headers: corsHeaders }
+    )
   }
 }

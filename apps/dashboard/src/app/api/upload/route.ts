@@ -41,13 +41,19 @@ export async function POST(request: Request) {
         error: authError,
       } = await supabase.auth.getUser()
       if (authError) {
-        return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders })
+        return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: corsHeaders }
+    )
       }
       user = cookieUser
     }
 
     if (!user) {
-      return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders })
+      return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: corsHeaders }
+    )
     }
 
     const formData = await request.formData()
@@ -55,7 +61,10 @@ export async function POST(request: Request) {
     const folderId = formData.get('folderId') as string | null
 
     if (!file) {
-      return new NextResponse('No file provided', { status: 400, headers: corsHeaders })
+      return NextResponse.json(
+      { error: 'No file provided' },
+      { status: 400, headers: corsHeaders }
+    )
     }
 
     // Validation (reduced to 2MB to fit within 50MB bucket limit)
@@ -108,6 +117,9 @@ export async function POST(request: Request) {
     return NextResponse.json(imageRecord, { headers: corsHeaders })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(message, { status: 500, headers: corsHeaders })
+    return NextResponse.json(
+      { error: message ?? 'Internal Server Error' },
+      { status: 500, headers: corsHeaders }
+    )
   }
 }

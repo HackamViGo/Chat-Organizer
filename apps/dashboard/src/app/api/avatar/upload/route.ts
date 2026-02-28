@@ -38,7 +38,10 @@ export async function POST(request: NextRequest) {
         error: authError,
       } = await supabase.auth.getUser()
       if (authError || !tokenUser) {
-        return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders })
+        return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: corsHeaders }
+    )
       }
       user = tokenUser
     } else {
@@ -49,7 +52,10 @@ export async function POST(request: NextRequest) {
         error: authError,
       } = await supabase.auth.getUser()
       if (authError || !cookieUser) {
-        return new NextResponse('Unauthorized', { status: 401, headers: corsHeaders })
+        return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401, headers: corsHeaders }
+    )
       }
       user = cookieUser
     }

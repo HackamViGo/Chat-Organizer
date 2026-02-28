@@ -50,9 +50,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ prompts: data || [] });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, { 
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }
 
@@ -110,9 +112,11 @@ export async function PUT(request: NextRequest) {
   }
 
   if (!user) {
-    return new NextResponse('Unauthorized', {
-      status: 401
-    });
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401
+    }
+    );
   }
 
   try {
@@ -140,9 +144,11 @@ export async function PUT(request: NextRequest) {
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, { 
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }
 
@@ -200,9 +206,11 @@ export async function POST(request: NextRequest) {
   }
 
   if (!user) {
-    return new NextResponse('Unauthorized', {
-      status: 401
-    });
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401
+    }
+    );
   }
 
   try {
@@ -229,8 +237,10 @@ export async function POST(request: NextRequest) {
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, { 
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }

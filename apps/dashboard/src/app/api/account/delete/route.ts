@@ -12,7 +12,10 @@ export async function DELETE() {
       error: authError,
     } = await supabase.auth.getUser()
     if (authError || !user) {
-      return new NextResponse('Unauthorized', { status: 401 })
+      return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
     }
 
     // Delete all user data
@@ -62,6 +65,9 @@ export async function DELETE() {
   } catch (error: unknown) {
     logger.error('API', 'Error in delete account', error)
     const message = error instanceof Error ? error.message : 'Failed to delete account'
-    return new NextResponse(message, { status: 500 })
+    return NextResponse.json(
+      { error: message ?? 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }

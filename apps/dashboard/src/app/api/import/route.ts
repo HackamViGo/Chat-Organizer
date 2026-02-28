@@ -11,14 +11,20 @@ export async function POST(request: Request) {
       error: authError,
     } = await supabase.auth.getUser()
     if (authError || !user) {
-      return new NextResponse('Unauthorized', { status: 401 })
+      return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401 }
+    )
     }
 
     const body = await request.json()
     const { chats, folders } = body
 
     if (!Array.isArray(chats)) {
-      return new NextResponse('Invalid data format: chats must be an array', { status: 400 })
+      return NextResponse.json(
+      { error: 'Invalid data format: chats must be an array' },
+      { status: 400 }
+    )
     }
 
     let importedChats = 0
@@ -57,6 +63,9 @@ export async function POST(request: Request) {
     })
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error'
-    return new NextResponse(message, { status: 500 })
+    return NextResponse.json(
+      { error: message ?? 'Internal Server Error' },
+      { status: 500 }
+    )
   }
 }

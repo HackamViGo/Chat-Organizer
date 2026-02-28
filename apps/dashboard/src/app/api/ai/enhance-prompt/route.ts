@@ -28,7 +28,19 @@ export async function POST(request: Request) {
       }
     }
 
-    const enhancedPrompt = await generatePromptImprovement(prompt, apiKey || '')
+    const apiKeyToUse = apiKey || process.env.GEMINI_API_KEY
+
+    if (!apiKeyToUse) {
+      return NextResponse.json(
+        {
+          error: 'API Key Required',
+          message: 'GEMINI_API_KEY not configured.',
+        },
+        { status: 400 }
+      )
+    }
+
+    const enhancedPrompt = await generatePromptImprovement(prompt, apiKeyToUse)
 
     return NextResponse.json({ enhancedPrompt })
   } catch (error: unknown) {

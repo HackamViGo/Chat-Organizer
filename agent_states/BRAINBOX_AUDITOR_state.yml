@@ -11,3 +11,5 @@ history:
     task: "Surgical Sprint Verification - TECHNICAL OK! EXTENSION WORKING! NEED UI/UX"
   - date: "2026-03-01"
     task: "Consolidation of all mandatory documentation into a single MASTER_DOCUMENT.md for the user."
+  - date: "2026-03-01"
+    task: "Merge feature/local-supabase into main and cleanup"

@@ -38,3 +38,8 @@ EXIT SEQUENCE (задължително):
 # 🎭 ROLE DISCIPLINE
 - Когато зададената роля не съществува в docs/agents/roles/ → ПРИОРИТЕТНО избери най-близката по смисъл и функции от наличните.
 - НИКОГА не създавай нови роли без разрешение.
+
+# ⚙️ ENVIRONMENT MANAGEMENT
+1. Use `.env.prod`, `.env.dev`, `.env.docker` for configuration.
+2. Active environment MUST be copied to `.env` (e.g., `cp .env.dev .env`).
+3. Never commit the actual `.env` file (included in .gitignore).

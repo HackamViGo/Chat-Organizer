@@ -234,7 +234,7 @@ interface Message {
 [Step 2] Token Bridge — content-dashboard-auth.ts
   Инжектира се в Dashboard pages (manifest.json matches)
   → Reads localStorage key: /^sb-.*-auth-token$/
-  → FALLBACK: hardcoded key 'biwiicspmrdecsebcdfp' (PROD PROJECT ID!)
+  → FALLBACK: hardcoded key 'uuwnefffuitkskdsljpv' (PROD PROJECT ID!)
   → Extracts: { access_token, refresh_token, expires_at }
   → chrome.runtime.sendMessage({ action: 'SET_SESSION', ... })
   Security check: rejects if event.origin !== window.location.origin ✓
@@ -274,7 +274,7 @@ interface Message {
 |--------|--------|---------|
 | XSS protection | ✓ | `event.origin` check в window message listener |
 | Token encryption | ✗ | Plain text в chrome.storage.local |
-| Hardcoded project ID | ✗ | `biwiicspmrdecsebcdfp` в source code |
+| Hardcoded project ID | ✗ | `uuwnefffuitkskdsljpv` в source code |
 | Refresh token rotation | ✗ | Няма background refresh — session dies silently |
 | Rate limiting | ✗ | `/api/chats/extension` неограничен |
 | CORS policy | ⚠️ | Само `chrome-extension://`, `localhost`, `127.0.0.1` allowed |
@@ -532,7 +532,7 @@ Penalty таблица (от CONTRIBUTING.md):
 | **P0** | §1 / АУДИТ 1 | `test` task в turbo.json има `dependsOn: []` — тестовете не чакат packages да build-нат | В clean build: тестове се изпълняват срещу stale артефакти → false negatives/positives | Добави `"dependsOn": ["^build"]` към `test` task |
 | **P1** | §1 / АУДИТ 1 | `next-pwa@^5.6.0` е несъвместим с Next.js 14 App Router | PWA functionality може да не работи; `webpack-cli` се тегли ненужно | Мигрирай към `@ducanh2912/next-pwa` или Serwist (App Router compatible) |
 | **P1** | §2 / АУДИТ 2 | `messages: z.array(z.any())` в createChatSchema — напълно нетипизирана validation | Malformed messages data достига DB без проверка; тихи data corruption bugs | Дефинирай `messageSchema` в @brainbox/validation и замени `z.any()` |
-| **P1** | §3 / АУДИТ 3 | Hardcoded Supabase project ID `biwiicspmrdecsebcdfp` в `content-dashboard-auth.ts` | Project ID exposed в source code; трябва да е env variable | Refactor: използвай env variable или dynamic detection |
+| **P1** | §3 / АУДИТ 3 | Hardcoded Supabase project ID `uuwnefffuitkskdsljpv` в `content-dashboard-auth.ts` | Project ID exposed в source code; трябва да е env variable | Refactor: използвай env variable или dynamic detection |
 | **P1** | §3 / АУДИТ 3 | Няма background JWT refresh логика. Token expires → user logged out от Extension. | UX: потребителят sessions terminate без предупреждение след 1 час | Имплементирай `authManager.ts` auto-refresh: poll `expires_at`, call `/api/auth/refresh` |
 | **P1** | §1 / АУДИТ 1 | Agent 1 §1: `/api/chats/extension` и много API routes нямат rate limiting | Потребител/Extension може да spam-ва API без ограничение; DoS вектор | Имплементирай rate limiting middleware (Upstash Redis вече е в dependencies!) |
 | **P1** | §2 / АУДИТ 2 | `package-lock.json` в `packages/shared/` — npm е изпълняван директно | Dependency drift: npm и pnpm могат да install-нат различни версии | Изтрий `package-lock.json`, добави `packages/shared/node_modules` в workspace hoisting |

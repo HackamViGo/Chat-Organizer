@@ -150,7 +150,7 @@
 
 **Механизми на синхронизация:**
 1. **Initial Sync & Polling (Local Storage Read)**:
-   - Търси ключ в `localStorage`, започващ с `sb-` и завършващ на `-auth-token`. Има fallback към специфично Prod ID (`biwiicspmrdecsebcdfp`) или `sb-localhost-auth-token`.
+   - Търси ключ в `localStorage`, започващ с `sb-` и завършващ на `-auth-token`. Има fallback към специфично Prod ID (`uuwnefffuitkskdsljpv`) или `sb-localhost-auth-token`.
    - Чете `access_token`, `refresh_token`, `expires_at` и ги изпраща към background-а чрез `chrome.runtime.sendMessage({ action: 'SET_SESSION' })`.
    - Има setInterval на 5 секунди като polyfill/застраховка.
 2. **Explicit Broadcasts (Window Messages)**:

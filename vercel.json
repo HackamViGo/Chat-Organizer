@@ -1,0 +1,5 @@
+{
+  "buildCommand": "pnpm turbo build --filter=@brainbox/dashboard",
+  "outputDirectory": "apps/dashboard/.next",
+  "framework": "nextjs"
+}

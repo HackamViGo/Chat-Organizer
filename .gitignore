@@ -66,4 +66,5 @@ docs/temp/
 # Project state and internal docs
 walkthrough.md
 *.tsbuildinfo
-.env*.local
+.env*
+!.env.example

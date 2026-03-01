@@ -31,74 +31,74 @@ const ThemeToggle: React.FC = () => {
   const isDark = theme === 'dark';
 
   return (
-    <button
-      onClick={() => setTheme(isDark ? 'light' : 'dark')}
-      className="p-2 rounded-lg hover:bg-white/10 transition-colors text-slate-400 hover:text-white flex items-center justify-center"
-      aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-    >
-      {isDark ? <Sun size={20} /> : <Moon size={20} />}
-    </button>
-  );
-};
-
-// --- NavItem Component ---
-interface NavItemProps {
-  to: string;
-  icon: React.ElementType;
-  label: string;
-  isActive: boolean;
-  isHovered: boolean;
-  children?: React.ReactNode;
-  specialStyle?: string;
-  layout?: boolean | "position" | "size" | "preserve-aspect"; 
-}
-
-const NavItem: React.FC<NavItemProps> = ({ 
-  to, icon: Icon, label, isActive, isHovered, children, specialStyle, layout 
-}) => {
-  return (
-    <motion.div 
-      layout={layout || "position"}
-      className="flex flex-col w-full group/nav relative"
-    >
-      <Link 
-        href={to}
-        aria-label={label}
-        className={`
-          relative flex items-center w-full h-12 transition-all duration-200 overflow-hidden
-          ${isActive 
-            ? (specialStyle || 'text-primary bg-primary/10')
-            : 'text-slate-400 hover:text-white hover:bg-white/5'}
-        `}
+      <button
+        onClick={() => setTheme(isDark ? 'light' : 'dark')}
+        className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground flex items-center justify-center"
+        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
-        {isActive && !specialStyle && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
-        )}
-        
-        {/* Fixed Rail Anchor */}
-        <div className="w-20 h-full shrink-0 flex items-center justify-center">
-          <motion.div
-             whileHover={{ scale: children ? 1 : 1.1 }}
-             className="flex items-center justify-center"
-          >
-            <Icon size={20} className={isActive ? (specialStyle ? 'text-white' : 'text-primary') : 'text-slate-400 group-hover/nav:text-white'} />
-          </motion.div>
-        </div>
-        
-        <AnimatePresence>
-          {isHovered && (
-            <motion.span
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -10 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="truncate whitespace-nowrap text-sm font-medium pr-4"
-            >
-              {label}
-            </motion.span>
+        {isDark ? <Sun size={20} /> : <Moon size={20} />}
+      </button>
+    );
+  };
+  
+  // --- NavItem Component ---
+  interface NavItemProps {
+    to: string;
+    icon: React.ElementType;
+    label: string;
+    isActive: boolean;
+    isHovered: boolean;
+    children?: React.ReactNode;
+    specialStyle?: string;
+    layout?: boolean | "position" | "size" | "preserve-aspect"; 
+  }
+  
+  const NavItem: React.FC<NavItemProps> = ({ 
+    to, icon: Icon, label, isActive, isHovered, children, specialStyle, layout 
+  }) => {
+    return (
+      <motion.div 
+        layout={layout || "position"}
+        className="flex flex-col w-full group/nav relative"
+      >
+        <Link 
+          href={to}
+          aria-label={label}
+          className={`
+            relative flex items-center w-full h-12 transition-all duration-200 overflow-hidden
+            ${isActive 
+              ? (specialStyle || 'text-primary bg-primary/10')
+              : 'text-muted-foreground hover:text-foreground hover:bg-accent/50'}
+          `}
+        >
+          {isActive && !specialStyle && (
+            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r-full" />
           )}
-        </AnimatePresence>
-      </Link>
+          
+          {/* Fixed Rail Anchor */}
+          <div className="w-20 h-full shrink-0 flex items-center justify-center">
+            <motion.div
+               whileHover={{ scale: children ? 1 : 1.1 }}
+               className="flex items-center justify-center"
+            >
+              <Icon size={20} className={isActive ? (specialStyle ? 'text-white' : 'text-primary') : 'text-muted-foreground group-hover/nav:text-foreground'} />
+            </motion.div>
+          </div>
+          
+          <AnimatePresence>
+            {isHovered && (
+              <motion.span
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -10 }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className="truncate whitespace-nowrap text-sm font-medium pr-4"
+              >
+                {label}
+              </motion.span>
+            )}
+          </AnimatePresence>
+        </Link>
 
       <AnimatePresence initial={false}>
         {isHovered && children && (
@@ -266,24 +266,25 @@ function HybridSidebarContent() {
         }}
         transition={{ ease: [0.4, 0, 0.2, 1], duration: 0.45 }}
         className={`
-          fixed left-0 top-0 h-screen z-[60] bg-slate-900 border-r border-white/10
+          fixed left-0 top-0 h-screen z-[60] 
+          bg-card/95 backdrop-blur-xl border-r border-border
           flex flex-col shadow-2xl 
           md:translate-x-0 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           will-change-[width,transform]
-          transition-colors
+          transition-all duration-300
         `}
       >
         <button 
           onClick={() => setMobileSidebarOpen(false)}
           aria-label="Close sidebar"
-          className={`md:hidden absolute top-4 right-4 p-2 text-slate-400 hover:text-white ${!isMobileSidebarOpen && 'hidden'}`}
+          className={`md:hidden absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground ${!isMobileSidebarOpen && 'hidden'}`}
         >
           <X size={20} />
         </button>
 
         {/* 1. Header Section */}
         <motion.div layout="position" className="flex flex-col shrink-0">
-          <div className="h-16 flex items-center shrink-0 border-b border-white/10 bg-slate-900 overflow-hidden">
+          <div className="h-16 flex items-center shrink-0 border-b border-border bg-transparent overflow-hidden">
              {/* Fixed Rail Anchor: Logo */}
              <div className="w-20 shrink-0 flex items-center justify-center">
                 <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
@@ -298,7 +299,7 @@ function HybridSidebarContent() {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -10 }}
                     transition={{ duration: 0.45, ease: [0.4, 0, 0.2, 1] }}
-                    className="text-xl font-bold text-white tracking-tight whitespace-nowrap"
+                    className="text-xl font-bold text-foreground tracking-tight whitespace-nowrap"
                   >
                     BrainBox
                   </motion.h1>
@@ -309,7 +310,7 @@ function HybridSidebarContent() {
           {/* Search Section */}
           <div className="py-4 flex items-center relative h-14 w-full">
              <div className="w-20 shrink-0 flex items-center justify-center z-10 pointer-events-none">
-                 <Search size={20} className="text-slate-400" />
+                 <Search size={20} className="text-muted-foreground" />
              </div>
 
              <AnimatePresence>
@@ -324,7 +325,7 @@ function HybridSidebarContent() {
                     <input 
                       type="text" 
                       placeholder="Search..." 
-                      className="w-full bg-black/20 text-sm text-white placeholder:text-slate-500 rounded-lg py-2 pl-[52px] pr-3 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all shadow-inner"
+                      className="w-full bg-secondary/50 text-sm text-foreground placeholder:text-muted-foreground rounded-lg py-2 pl-[52px] pr-3 border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-inner"
                       style={{ paddingLeft: '56px' }} 
                     />
                  </motion.div>
@@ -498,10 +499,10 @@ function HybridSidebarContent() {
         </LayoutGroup>
 
         {/* 3. Footer Section (Stabilized) */}
-        <motion.div 
+         <motion.div 
           layout="position"
           className={`
-            py-3 border-t border-white/10 bg-slate-900 shrink-0 flex flex-col mt-auto
+            py-3 border-t border-border bg-transparent shrink-0 flex flex-col mt-auto
             ${isHovered ? 'px-0' : 'items-center'}
           `}
         >

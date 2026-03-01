@@ -9,9 +9,9 @@
   },
   "scripts": {
     "dev": "turbo dev",
+    "build": "turbo build",
     "dev:dashboard": "turbo dev --filter=@brainbox/dashboard",
     "dev:extension": "turbo dev --filter=@brainbox/extension",
-    "build": "turbo build",
     "build:dashboard": "turbo build --filter=@brainbox/dashboard",
     "build:extension": "turbo build --filter=@brainbox/extension",
     "db:gen": "supabase gen types typescript --project-id $SUPABASE_PROJECT_ID > packages/database/database.types.ts",

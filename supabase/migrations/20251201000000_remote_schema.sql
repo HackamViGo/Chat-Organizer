@@ -166,6 +166,7 @@ RETURNS TABLE (
   similarity       float
 )
 LANGUAGE sql STABLE
+SET search_path TO public, extensions
 AS $$
   SELECT
     c.id,

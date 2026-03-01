@@ -29,3 +29,12 @@ EXIT SEQUENCE (задължително):
 2. Ако cross-role → append в docs/agents/logs/CHANGES.log  
 3. Обнови agent_states/{ROLE}_state.yml
 4. Докладвай на потребителя на БЪЛГАРСКИ
+
+# 🌐 GIT PROTOCOL (MANDATORY)
+1. Always branch from 'dev' (git checkout dev && git pull).
+2. feature/<name> or fix/<name>. No direct push to main/dev.
+3. Push ONLY feature branch. PR MUST target 'dev'.
+
+# 🎭 ROLE DISCIPLINE
+- Когато зададената роля не съществува в docs/agents/roles/ → ПРИОРИТЕТНО избери най-близката по смисъл и функции от наличните.
+- НИКОГА не създавай нови роли без разрешение.

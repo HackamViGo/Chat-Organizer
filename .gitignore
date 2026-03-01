@@ -58,7 +58,9 @@ audit_report.md
 docs/audit_report.md
 docs/project/audit_summary.md
 scripts/pre-migration/
-docs/user/*
+docs/user/
+docs/archive/
+docs/temp/
 
 
 # Project state and internal docs

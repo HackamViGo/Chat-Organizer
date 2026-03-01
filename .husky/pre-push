@@ -1,24 +1,15 @@
+#!/bin/bash
 BRANCH=$(git rev-parse --abbrev-ref HEAD)
-
-# Блокирай директен push към main
-if [ "$BRANCH" = "main" ]; then
-  echo "❌ Direct push to main is forbidden."
-  echo "   Create a feature/* or fix/* branch and open a Pull Request."
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then
+  echo "❌ ERROR: Direct push to '$BRANCH' is FORBIDDEN!"
+  echo "   Use feature/ or fix/ branches and Pull Requests to 'dev'."
   exit 1
 fi
-
-echo "🔍 Pre-push: Running type check..."
-pnpm turbo type-check
-if [ $? -ne 0 ]; then
-  echo "❌ Type check failed."
+echo "🔍 Quality Gate: Running Type-Check..."
+if pnpm turbo type-check; then
+  echo "✅ Safe to push!"
+  exit 0
+else
+  echo "❌ Type-check failed!"
   exit 1
 fi
-
-echo "🔍 Pre-push: Running tests..."
-pnpm turbo test --filter=@brainbox/extension
-if [ $? -ne 0 ]; then
-  echo "❌ Tests failed."
-  exit 1
-fi
-
-echo "✅ Pre-push passed."

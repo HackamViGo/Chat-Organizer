@@ -12,6 +12,17 @@
   },
   "nodes": [
     {
+      "id": "docs/user/MASTER_DOCUMENT.md",
+      "workspace": "docs",
+      "type": "documentation",
+      "responsibility": "Consolidated master system documentation for BrainBox, providing a single source of truth for architecture, security, guidelines, and workflows.",
+      "dependencies": [
+        "docs/Mandatory!"
+      ],
+      "dependents": [],
+      "status": "active"
+    },
+    {
       "id": "apps/dashboard/src/lib/services/sync-batch.service.ts",
       "workspace": "dashboard",
       "type": "module",

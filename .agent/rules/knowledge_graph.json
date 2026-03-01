@@ -56,6 +56,19 @@
       "relevance": "Tailwind v4 (CSS-first) used across ALL apps. Entry: @import 'tailwindcss'. Theme: @theme {} block. PostCSS: @tailwindcss/postcss. No tailwind.config.ts needed."
     },
     {
+      "id": "A.5",
+      "category": "Project Documentation",
+      "title": "Master System Documentation",
+      "url": "docs/user/MASTER_DOCUMENT.md",
+      "tags": [
+        "master",
+        "guide",
+        "consolidated",
+        "docs"
+      ],
+      "relevance": "Single source of truth for the entire BrainBox system, merging 22 mandatory documents."
+    },
+    {
       "id": "B.1",
       "category": "Business Logic",
       "title": "Token Bridge Mechanism",

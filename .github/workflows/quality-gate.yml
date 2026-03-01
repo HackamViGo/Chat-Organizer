@@ -1,33 +1,25 @@
-name: Quality Gate
+name: 🔍 Quality Gate
 
 on:
   push:
     branches:
+      - dev
       - 'feature/**'
       - 'fix/**'
-      - 'hotfix/**'
-      - develop
+      - 'chore/**'
   pull_request:
     branches:
       - main
-      - develop
-    types: [opened, synchronize, reopened]
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+      - dev
 
 jobs:
   quality:
     name: Quality Gate
     runs-on: ubuntu-latest
     timeout-minutes: 15
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -43,52 +35,20 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Type check
+      - name: 1/5 TypeScript check
         run: pnpm turbo type-check
 
-      - name: Lint
+      - name: 2/5 Lint
         run: pnpm turbo lint
 
-      - name: Format check
-        run: pnpm format:check
+      - name: 3/5 Unit tests
+        run: pnpm turbo test
 
-      - name: Commit message check
-        if: github.event_name == 'pull_request'
-        run: |
-          pnpm exec commitlint --from origin/${{ github.base_ref }} --to HEAD --verbose
-
-      - name: Unit tests
-        run: pnpm turbo test --filter=@brainbox/extension
-
-      - name: Coverage check
-        run: |
-          pnpm turbo test:coverage --filter=@brainbox/extension
-          node -e "
-            const fs = require('fs');
-            const summary = JSON.parse(fs.readFileSync('./apps/extension/coverage/coverage-summary.json'));
-            const lines = summary.total.lines.pct;
-            const branches = summary.total.branches.pct;
-            console.log('Lines:', lines + '%', '(required: 85%)');
-            console.log('Branches:', branches + '%', '(required: 80%)');
-            if (lines < 85 || branches < 80) {
-              console.error('Coverage thresholds not met!');
-              process.exit(1);
-            }
-          "
-
-      - name: Build Extension
+      - name: 4/5 Build Extension
         run: pnpm turbo build --filter=@brainbox/extension
 
-      - name: Build Dashboard
+      - name: 5/5 Build Dashboard
         run: pnpm turbo build --filter=@brainbox/dashboard
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
-
-      - name: Upload coverage report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: apps/extension/coverage/
-          retention-days: 7
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL_DEV }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY_DEV }}

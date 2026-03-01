@@ -1,0 +1,15 @@
+#!/bin/bash
+BRANCH=$(git rev-parse --abbrev-ref HEAD)
+if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then
+  echo "❌ ERROR: Direct push to '$BRANCH' is FORBIDDEN!"
+  echo "   Use feature/ or fix/ branches and Pull Requests to 'dev'."
+  exit 1
+fi
+echo "🔍 Quality Gate: Running Type-Check..."
+if pnpm turbo type-check; then
+  echo "✅ Safe to push!"
+  exit 0
+else
+  echo "❌ Type-check failed!"
+  exit 1
+fi

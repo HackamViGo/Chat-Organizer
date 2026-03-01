@@ -83,6 +83,17 @@ export const createChatSchema = z.object({
 })
 
 export type CreateChatInput = z.infer<typeof createChatSchema>
+
+// ✅ В packages/validation/schemas/ai.ts
+export const aiGenerateRequestSchema = z.object({
+  content: z.string().min(1),
+  apiKey: z.string().optional(),
+  history: z.array(z.object({
+    role: z.enum(['user', 'model']),
+    text: z.string()
+  })).optional(),
+  systemInstruction: z.string().optional(),
+})
 ```
 
 ### 2.3 Error handling при validation
@@ -283,6 +294,8 @@ export async function POST(request: Request) {
   // 1. Auth — винаги първо
   const supabase = await createServerClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
+  // Никога не използвай user id от request body — само от auth.getUser()
+  // getUser() валидира JWT сървърно, getSession() може да върне стари данни.
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
@@ -425,6 +438,7 @@ it('calls deleteChat', () => {
 | React компонент | PascalCase | `ChatCard`, `FolderTree` |
 | Hook | `use` prefix + PascalCase | `useChatStore`, `useShallow` |
 | Zustand store файл | `use` + Feature + `Store` | `useChatStore.ts` |
+| Zustand persist key | `brainbox-{entity}-store` | `brainbox-chat-store` |
 | API route файл | `route.ts` в директория | `api/chats/route.ts` |
 | Adapter файл | `platform.adapter.ts` | `chatgpt.adapter.ts` |
 | Content script | `content-platform.ts` | `content-claude.ts` |

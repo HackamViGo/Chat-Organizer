@@ -1,6 +1,7 @@
 # ARCHITECTURE.md
 
-> **Версия:** 3.1.0  
+> **Версия:** 3.2.0
+> **Последна актуализация:** 2026-02-28
 > **Авторитет:** Архитект. Промени изискват архитектурен review, не само PR approval.  
 > **Правило:** Никой агент не добавя нов слой, нов state manager или нова комуникационна пътека без да актуализира този файл първо.
 
@@ -38,7 +39,11 @@
 - Изпълнява background fetch към AI платформите, използвайки уловените credentials
 - Нормализира отговорите към canonical `Chat` schema
 - Поддържа локална sync queue (offline-first) в `chrome.storage.local`
-- Комуникира с Dashboard изключително чрез HTTP API с Bearer JWT
+- Комуникация с Dashboard чрез HTTP API с Bearer JWT
+- **Rate Limiting:** Интегриран Token Bucket ограничител (apps/extension/src/lib/rate-limiter.ts) за избягване на блокиране от AI платформи:
+  - ChatGPT: 60 RPM | Claude: 30 RPM | Gemini: 20 RPM | Dashboard: 100 RPM
+  > ⚠️ **Rate limit разяснение:** Клиентският bucket на Extension (Dashboard: 100 RPM) е по-висок от сървърния лимит на Dashboard ($30 RPM за `/api/chats/extension`, виж SECURITY.md §4). Двата лимита са в **различни слоеве**: Extension ограничава собствения си темп (client-side), а Dashboard server ограничава входния трафик (server-side). Sync service-ът трябва да batch-ва заявките, за да остане под 30 RPM сървърния лимит.
+  > ℹ️ `/api/chats` (CRUD) лимитът е отделен — 100 req/мин за нормален Dashboard CRUD трафик (не Extension sync).
 
 **Какво НЕ прави:**
 - Не съдържа бизнес логика (тя е в Dashboard)
@@ -77,7 +82,8 @@
 1. `middleware.ts` — auth guard, CORS за Extension, rate limiting
 2. `app/api/**/route.ts` — API layer, Zod validation, Supabase операции
 3. `store/*.ts` — Zustand, UI state, optimistic updates
-4. `components/` — React компоненти, само рендериране и event handling
+4. `lib/services/sync-batch.service.ts` — Обединява и забавя (debounce) API заявки от store-овете за предпазване от rate limits (30 RPM).
+5. `components/` — React компоненти, само рендериране и event handling
 
 **Правило за слоевете:** Логика тече само надолу. Компонент не извиква Supabase директно. Store не рендерира UI. API route не импортира от store.
 
@@ -92,8 +98,9 @@ Monorepo пакети, достъпни в двете приложения чр�
 | `@brainbox/shared` | TypeScript типове, utility функции, constants | Всичко |
 | `@brainbox/validation` | Zod schemas — единствен source of truth за валидация | Dashboard API, Extension adapters |
 | `@brainbox/database` | Supabase генерирани TypeScript типове | Dashboard, shared |
-| `@brainbox/config` | Tailwind, TypeScript, PostCSS конфигурации | Двете приложения |
+| `@brainbox/config` | TypeScript, PostCSS конфигурации (legacy shell) | Двете приложения |
 | `@brainbox/assets` | AI платформени икони и branding | Dashboard UI, Extension popup |
+| `@brainbox/ui` | Централизирани design tokens (colors, typography, z-index, effects) | Dashboard, Extension popup |
 
 **Правило:** Пакетите не съдържат runtime логика, специфична за едното приложение. Ако нещо работи само в Extension — то е в Extension. Ако работи само в Dashboard — то е в Dashboard.
 
@@ -151,6 +158,23 @@ Dashboard /extension-auth page → content-dashboard-auth.ts → chrome.runtime.
 
 ---
 
+## Карта на ресурсите и конфигурацията (Resource & Configuration Map)
+
+Справка за местоположението на ключови настройки и ресурси. Използвайте тези пътища за бърза навигация и избягване на дублиращи се търсения.
+
+| Ресурс | Местоположение (Path) | Описание |
+|--------|----------------------|----------|
+| **Local Supabase Keys** | `supabase/.supabase_local_keys.txt` | Генериран файл с URL, Anon Key и Service Key за локална среда. |
+| **Global Environment** | `.env`, `.env.local` | Глобални настройки в корена на проекта. |
+| **Dashboard Config** | `apps/dashboard/.env`, `.env.local` | Настройки специфични за Dashboard приложението. |
+| **Extension Config** | `apps/extension/.env.production`, `.env.development` | Настройки специфични за Chrome Extension. |
+| **Supabase Config** | `supabase/config.toml` | Настройки на Supabase CLI и Docker контейнерите. |
+| **Database Migrations** | `supabase/migrations/` | SQL скриптове за дефиниране на схемата и RLS политиките. |
+| **Validation Schemas** | `packages/validation/schemas/` | Zod схеми за валидация (единствен сорс на истина). |
+| **Shared Types** | `packages/shared/src/types/` | Споделени TypeScript интерфейси и типове. |
+
+---
+
 ## Правила при промяна на архитектурата
 
 1. Промяна в комуникационните пътеки → актуализирай този файл + `CONTEXT_MAP.md`
@@ -158,3 +182,16 @@ Dashboard /extension-auth page → content-dashboard-auth.ts → chrome.runtime.
 3. Нова Zod schema → добавя се само в `@brainbox/validation`
 4. Нова таблица в Supabase → migration + `pnpm db:gen` + актуализация на `@brainbox/database`
 5. Нова платформа в Extension → нов adapter + нов content script + актуализация на `DATA_SCHEMA.md`
+
+---
+
+## Производителност и Качество (Performance & Quality)
+
+Всички компоненти и API-та трябва да се стремят към следните нива:
+
+| Метрика | Цел | Обяснение |
+|---------|-----|-----------|
+| **API Response** | < 500ms | Време за отговор на Dashboard API (без AI generation) |
+| **Main Bundle** | < 250KB | Размер на основния JavaScript пакет на Dashboard |
+| **Lighthouse** | > 90 | Performance, Accessibility, SEO и Best Practices |
+| **LCP** | < 2.5s | Largest Contentful Paint за Dashboard страниците |

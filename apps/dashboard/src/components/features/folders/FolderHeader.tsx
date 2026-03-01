@@ -1,13 +1,14 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Folder as FolderType } from '@brainbox/shared';
-import { useFolderStore } from '@/store/useFolderStore';
-import { useShallow } from 'zustand/react/shallow';
-import { createClient } from '@/lib/supabase/client';
+import type { Folder as FolderType } from '@brainbox/shared';
+import { AlertTriangle, CheckCircle, Edit2, Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { Edit2, Trash2, AlertTriangle, CheckCircle } from 'lucide-react';
-import { toast } from 'react-hot-toast';
+import React, { useState } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+
+import { useToast } from '@/hooks/use-toast';
+import { createClient } from '@/lib/supabase/client';
+import { useFolderStore } from '@/store/useFolderStore';
 
 interface FolderHeaderProps {
   folder: FolderType;
@@ -35,6 +36,7 @@ const BG_COLORS: Record<string, string> = {
 
 export default function FolderHeader({ folder, chatCount }: FolderHeaderProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const { deleteFolder } = useFolderStore(useShallow(s => ({ deleteFolder: s.deleteFolder })));
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -56,7 +58,7 @@ export default function FolderHeader({ folder, chatCount }: FolderHeaderProps) {
         .eq('id', folder.id);
 
       if (error) {
-        toast.error('Failed to delete folder');
+        toast({ title: 'Failed to delete folder', variant: 'destructive' });
         console.error('Error deleting folder:', error);
         return;
       }
@@ -65,11 +67,11 @@ export default function FolderHeader({ folder, chatCount }: FolderHeaderProps) {
       deleteFolder(folder.id);
 
       // Show success toast and redirect
-      toast.success('Folder deleted successfully');
+      toast({ title: 'Folder deleted successfully' });
       router.push('/chats');
     } catch (error) {
       console.error('Error deleting folder:', error);
-      toast.error('An error occurred while deleting the folder');
+      toast({ title: 'An error occurred while deleting the folder', variant: 'destructive' });
     } finally {
       setIsDeleting(false);
       setShowDeleteConfirm(false);

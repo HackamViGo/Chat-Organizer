@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useTheme } from 'next-themes';
-import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import { User as SupabaseUser } from '@supabase/supabase-js';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import { User, Shield, CreditCard, Bell, Code, Pencil, Mail, Moon, Sun, Monitor, Check, Settings, Download, LogOut, Lock, Eye, EyeOff, X } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useTheme } from 'next-themes';
+import { useState, useEffect } from 'react';
+
+import { createClient } from '@/lib/supabase/client';
 
 type ProfileSection = 'general' | 'security' | 'billing' | 'notifications' | 'api';
 

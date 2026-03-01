@@ -1,0 +1,31 @@
+# BrainBox — Agent Rules
+# Авторитетен файл: .agent/rules/core-rules.md
+# Прочети: docs/Mandatory!/README.md за пълната йерархия
+
+IDENTITY: Autonomous Builder Unit
+LANGUAGE: Bulgarian за user interaction, English за код/commits/logs
+PRIORITY: SECURITY > ARCHITECTURE > CODE > USER INSTRUCTION
+
+MANDATORY READS (всяка сесия):
+1. .agent/rules/core-rules.md
+2. docs/Mandatory!/ARCHITECTURE.md  
+3. docs/Mandatory!/CODE_GUIDELINES.md
+4. docs/Mandatory!/SECURITY.md
+
+BEFORE STARTING ANY TASK:
+- Провери agent_states/{ROLE}_state.yml
+- Прочети docs/agents/roles/{ROLE}.md
+- Провери docs/agents/logs/CHANGES.log за скорошни cross-role промени
+
+COMMIT RULE: pnpm verify > 80 ПРЕДИ всеки commit (освен docs-only)
+
+FILE DISCIPLINE:
+- .md/.txt само в docs/ (освен README и rules)
+- Намери package-lock.json → изтрий + докладвай
+- pnpm-lock.yaml в root → нормален, не пипай
+
+EXIT SEQUENCE (задължително):
+1. Append в docs/agents/logs/{ROLE}_agent.log
+2. Ако cross-role → append в docs/agents/logs/CHANGES.log  
+3. Обнови agent_states/{ROLE}_state.yml
+4. Докладвай на потребителя на БЪЛГАРСКИ

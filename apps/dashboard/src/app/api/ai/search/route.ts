@@ -1,59 +1,68 @@
-import { NextResponse } from 'next/server';
-import { generateEmbedding } from '../../../../lib/services/ai';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { z } from 'zod';
-import { aiRateLimit } from '@/lib/rate-limit';
+import { aiSearchRequestSchema } from '@brainbox/validation'
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
 
-const searchSchema = z.object({
-  query: z.string().min(1),
-  limit: z.number().optional().default(10),
-  threshold: z.number().optional().default(0.5),
-});
+import { generateEmbedding } from '../../../../lib/services/ai'
+
+import { logger } from '@/lib/logger'
+import { aiRateLimit } from '@/lib/rate-limit'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { query, limit, threshold } = searchSchema.parse(body);
+    const body = await request.json()
+    const result = aiSearchRequestSchema.safeParse(body)
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Validation Error', details: result.error.errors },
+        { status: 400 }
+      )
+    }
+    const { query, limit, threshold } = result.data
 
-    const supabase = createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = createServerSupabaseClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // S4-3: Rate Limiting
     if (aiRateLimit) {
-      const { success } = await aiRateLimit.limit(user.id);
+      const { success } = await aiRateLimit.limit(user.id)
       if (!success) {
-        return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+        return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
       }
     }
 
     // 1. Generate embedding for the query string
-    const embedding = await generateEmbedding(query);
+    const embedding = await generateEmbedding(query)
 
     // 2. Call the Supabase RPC function for vector similarity search
-    const { data: chats, error } = await (supabase as any).rpc('match_chats', {
+    const { data: chats, error } = await supabase.rpc('match_chats', {
       query_embedding: embedding,
       match_threshold: threshold,
       match_count: limit,
       p_user_id: user.id,
-    });
+    } as any)
 
     if (error) {
-      console.error('Semantic Search RPC Error:', error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      logger.error('API', 'Semantic Search RPC Error', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    return NextResponse.json(chats);
-  } catch (error: any) {
+    return NextResponse.json(chats)
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Validation Error', details: error.errors }, { status: 400 });
+      return NextResponse.json(
+        { error: 'Validation Error', details: error.errors },
+        { status: 400 }
+      )
     }
-    return NextResponse.json(
-      { error: 'Internal Server Error', message: error.message || 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    const message = error instanceof Error ? error.message : 'An unexpected error occurred'
+    return NextResponse.json({ error: 'Internal Server Error', message }, { status: 500 })
   }
 }

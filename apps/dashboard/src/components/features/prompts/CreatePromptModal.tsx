@@ -1,14 +1,21 @@
 'use client';
 
+import type { Prompt } from '@brainbox/shared';
+import { promptSchema, type PromptFormData } from '@brainbox/validation';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { X, Check } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { promptSchema, type PromptFormData } from '@brainbox/validation';
-import { usePromptStore } from '@/store/usePromptStore';
 import { useShallow } from 'zustand/react/shallow';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { createClient } from '@/lib/supabase/client';
-import { X, Check } from 'lucide-react';
-import { Prompt } from '@brainbox/shared';
+import { useAuthStore } from '@/store/useAuthStore';
+import { usePromptStore } from '@/store/usePromptStore';
+
+
 
 interface CreatePromptModalProps {
   isOpen: boolean;
@@ -44,6 +51,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
       updatePrompt: s.updatePrompt,
     }))
   );
+  const user = useAuthStore(s => s.user);
 
   const {
     register,
@@ -86,7 +94,6 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
 
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
         console.error('User not authenticated');
@@ -169,18 +176,19 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
       />
 
       {/* Modal */}
-      <div className="relative bg-card border rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <div data-testid="create-prompt-modal" className="relative bg-card border rounded-lg shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b">
           <h2 className="text-2xl font-bold">
             {editingPrompt ? 'Edit Prompt' : 'Create New Prompt'}
           </h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-2 hover:bg-muted rounded-md transition-colors"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Button>
         </div>
 
         {/* Form */}
@@ -190,11 +198,11 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
             <label className="block text-sm font-medium mb-2">
               Title <span className="text-destructive">*</span>
             </label>
-            <input
+            <Input
               {...register('title')}
+              data-testid="prompt-title-input"
               type="text"
               placeholder="e.g., Code Review Assistant"
-              className="w-full px-3 py-2 bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             />
             {errors.title && (
               <p className="text-sm text-destructive mt-1">{errors.title.message}</p>
@@ -206,11 +214,12 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
             <label className="block text-sm font-medium mb-2">
               Content <span className="text-destructive">*</span>
             </label>
-            <textarea
+            <Textarea
               {...register('content')}
+              data-testid="prompt-content-textarea"
               rows={10}
               placeholder="Enter your prompt here..."
-              className="w-full px-3 py-2 bg-background border rounded-md focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+              className="resize-none"
             />
             {errors.content && (
               <p className="text-sm text-destructive mt-1">{errors.content.message}</p>
@@ -225,7 +234,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
             <label className="block text-sm font-medium mb-3">
               Color <span className="text-destructive">*</span>
             </label>
-            <div className="grid grid-cols-6 sm:grid-cols-9 gap-2">
+            <div data-testid="prompt-color-picker" className="grid grid-cols-6 sm:grid-cols-9 gap-2">
               {PRESET_COLORS.map((color) => (
                 <button
                   key={color.hex}
@@ -254,6 +263,7 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
           <div className="flex items-center gap-2">
             <input
               {...register('use_in_context_menu')}
+              data-testid="prompt-context-menu-checkbox"
               type="checkbox"
               id="use_in_context_menu"
               className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary"
@@ -265,20 +275,21 @@ export function CreatePromptModal({ isOpen, onClose, editingPrompt }: CreateProm
 
           {/* Actions */}
           <div className="flex justify-end gap-3 pt-4 border-t">
-            <button
+            <Button
               type="button"
+              variant="secondary"
               onClick={onClose}
-              className="px-4 py-2 bg-muted text-foreground rounded-md hover:bg-muted/80 transition-colors"
+              data-testid="cancel-prompt-btn"
             >
               Cancel
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50"
+              data-testid="submit-prompt-btn"
             >
               {isSubmitting ? 'Saving...' : editingPrompt ? 'Update' : 'Create'}
-            </button>
+            </Button>
           </div>
         </form>
       </div>

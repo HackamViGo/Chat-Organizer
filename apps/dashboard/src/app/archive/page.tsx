@@ -1,6 +1,7 @@
 'use client';
 
 import { useChatStore } from '@/store/useChatStore';
+import { useShallow } from 'zustand/react/shallow';
 import { ChatCard } from '@/components/features/chats/ChatCard';
 import { Archive } from 'lucide-react';
 import { useEffect, useState } from 'react';
@@ -8,7 +9,9 @@ import { createClient } from '@/lib/supabase/client';
 import { Chat } from '@brainbox/shared';
 
 export default function ArchivePage() {
-  const { chats } = useChatStore();
+  const { chats } = useChatStore(
+    useShallow((state) => ({ chats: state.chats }))
+  );
   const [archivedChats, setArchivedChats] = useState<Chat[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 

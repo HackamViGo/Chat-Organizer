@@ -1,5 +1,10 @@
-import { create } from 'zustand';
 import type { ListWithItems, ListItem } from '@brainbox/shared';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+export const clearListStore = () => {
+  useListStore.persist.clearStorage();
+};
 
 interface ListStore {
   lists: ListWithItems[];
@@ -21,7 +26,9 @@ interface ListStore {
   setLoading: (loading: boolean) => void;
 }
 
-export const useListStore = create<ListStore>((set) => ({
+export const useListStore = create<ListStore>()(
+  persist(
+    (set) => ({
   lists: [],
   selectedListId: null,
   isLoading: false,
@@ -73,4 +80,19 @@ export const useListStore = create<ListStore>((set) => ({
     })),
   
   setLoading: (loading) => set({ isLoading: loading }),
-}));
+    }),
+    {
+      name: 'brainbox-list-store',
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      })),
+      partialize: (state) => ({ lists: state.lists }),
+      version: 1,
+      migrate: (persistedState: unknown, _version: number) => {
+        return persistedState as ListStore;
+      }
+    }
+  )
+);

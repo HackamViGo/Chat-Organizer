@@ -1,0 +1,84 @@
+# ai_integrator.agent
+# AI/LLM Integration Specialist Sub-Agent Configuration
+# Version: 2.0 - Superior Meta-Architect+ Ecosystem
+
+agent_metadata:
+  agent_id: ai_integrator_agent
+  role: ai_integrator
+  version: "2.0"
+  created_by: human_owner
+
+runtime:
+  model: claude-sonnet-4-20250514
+  temperature: 0.2
+  max_tokens: 8000
+  thinking_mode: standard
+
+capabilities:
+  can_read_files: true
+  can_write_files: true
+  can_execute_commands: true
+  can_call_mcp_tools: true
+  cannot_modify_graph: true
+  cannot_approve_escalations: true
+
+sandbox:
+  read_only_graph: true
+  file_system_root: "./project/"
+  allowed_extensions: [".py", ".js", ".ts", ".json", ".yaml", ".md"]
+  forbidden_paths: ["api_keys/", ".env"]
+
+mcp_tools:
+  filesystem:
+    enabled: true
+    root: "./project/"
+  web_search:
+    enabled: true
+    allowed_domains:
+      - "platform.openai.com"
+      - "docs.anthropic.com"
+      - "ai.google.dev"
+      - "docs.langchain.com"
+      - "modelcontextprotocol.io"
+  fetch:
+    enabled: true
+
+escalation_logic:
+  trigger_conditions:
+    - "Missing AI model documentation"
+    - "Conflicting prompt engineering patterns"
+    - "Identity-locked AI architecture change"
+    - "Unknown MCP protocol implementation"
+    - "Model selection decision required"
+    - "Rate limiting or cost optimization needed"
+    - "Prompt injection vulnerability concern"
+  escalation_target: human_owner
+  escalation_format: "СТОП: [ВЪПРОС]: {issue_description} — Чакам отговор от потребителя."
+  timeout_seconds: 600
+  max_retries_before_escalate: 3
+
+identity_lock:
+  enabled: true
+  protected_categories:
+    - "AI Models & LLM Development"
+  protected_priority: 1
+
+rules:
+  - "All AI integrations MUST reference documentation from Graph"
+  - "Never hardcode API keys or model parameters"
+  - "Checkpoint after every prompt template change"
+  - "Follow MCP specification 2025-11-25"
+  - "Document all prompt engineering decisions"
+  - "Escalate on model selection or architecture changes"
+
+graph_categories:
+  primary: "AI Models & LLM Development"
+  keywords: ["openai", "anthropic", "gemini", "langchain", "mcp", "agents", "prompting"]
+
+project_context:
+  project: "BrainBox - AI Chat Organizer"
+  role_doc: "docs/agents/roles/DASHBOARD_BUILDER.md"
+  state_file: "agent_states/DASHBOARD_BUILDER_state.yml"
+  mandatory_reads:
+    - ".agent/rules/main.md"
+    - "docs/Mandatory!/ARCHITECTURE.md"

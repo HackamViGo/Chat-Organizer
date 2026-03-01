@@ -8,7 +8,10 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# pnpm
+.pnpm-store
 node_modules
+.pnpm-debug.log*
 dist
 dist-ssr
 *.local
@@ -17,7 +20,9 @@ dist-ssr
 .next/
 out/
 
-# Playwright MCP
+# Playwright
+playwright-report/
+test-results/
 .playwright-mcp/
 
 # Editor directories and files
@@ -53,6 +58,8 @@ audit_report.md
 docs/audit_report.md
 docs/project/audit_summary.md
 scripts/pre-migration/
+docs/user/*
+
 
 # Project state and internal docs
 walkthrough.md

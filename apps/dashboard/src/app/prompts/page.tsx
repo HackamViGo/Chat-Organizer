@@ -1,24 +1,33 @@
 'use client';
 
-import React, { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { usePromptStore } from '@/store/usePromptStore';
-import { useFolderStore } from '@/store/useFolderStore';
-import { PromptCard } from '@/components/features/prompts/PromptCard';
-import { CreatePromptModal } from '@/components/features/prompts/CreatePromptModal';
-import { EnhancePromptCard } from '@/components/features/prompts/EnhancePromptCard';
-import { DailyPromptCard } from '@/components/features/prompts/DailyPromptCard';
-import { createClient } from '@/lib/supabase/client';
+import type { Prompt, Folder } from '@brainbox/shared';
+import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses  } from '@brainbox/shared';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { FileEdit, Plus, Search, ArrowUpDown, LayoutGrid, Folder as FolderIcon, X, Trash2, CheckSquare } from 'lucide-react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import React, { useEffect, useState, useMemo, useCallback, Suspense } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+
+
+import { CreatePromptModal } from '@/components/features/prompts/CreatePromptModal';
+import { DailyPromptCard } from '@/components/features/prompts/DailyPromptCard';
+import { EnhancePromptCard } from '@/components/features/prompts/EnhancePromptCard';
+import { PromptCard } from '@/components/features/prompts/PromptCard';
 import { FOLDER_ICONS } from '@/components/layout/HybridSidebar';
-import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@brainbox/shared';
-import { Prompt, Folder } from '@brainbox/shared';
+import { createClient } from '@/lib/supabase/client';
+import { useFolderStore } from '@/store/useFolderStore';
+import { usePromptStore } from '@/store/usePromptStore';
+
 
 type SortOption = 'date-desc' | 'date-asc' | 'title-asc' | 'title-desc';
 
 function PromptsPageContent() {
-  const { prompts, setPrompts, updatePrompt, selectedPromptIds, deletePrompt, clearSelection } = usePromptStore();
-  const { folders, addFolder, isLoading: foldersLoading } = useFolderStore();
+  const { prompts, setPrompts, updatePrompt, selectedPromptIds, deletePrompt, clearSelection } = usePromptStore(
+    useShallow(s => ({ prompts: s.prompts, setPrompts: s.setPrompts, updatePrompt: s.updatePrompt, selectedPromptIds: s.selectedPromptIds, deletePrompt: s.deletePrompt, clearSelection: s.clearSelection }))
+  );
+  const { folders, addFolder, isLoading: foldersLoading } = useFolderStore(
+    useShallow(s => ({ folders: s.folders, addFolder: s.addFolder, isLoading: s.isLoading }))
+  );
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -50,6 +59,20 @@ function PromptsPageContent() {
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Dynamic column count for virtualization
+  const [columns, setColumns] = useState(1);
+  useEffect(() => {
+    const updateCols = () => {
+      if (window.innerWidth >= 1024) setColumns(3); // lg
+      else if (window.innerWidth >= 768) setColumns(2); // md
+      else setColumns(1);
+    };
+    updateCols();
+    window.addEventListener('resize', updateCols);
+    return () => window.removeEventListener('resize', updateCols);
+  }, []);
+
   // Filter and sort prompts
   const filteredAndSortedPrompts = useMemo(() => {
     let filtered = prompts;
@@ -96,6 +119,12 @@ function PromptsPageContent() {
       }
     });
   }, [prompts, selectedFolderId, categoryFilter, searchQuery, sortBy]);
+
+  const rowVirtualizer = useWindowVirtualizer({
+    count: Math.ceil(filteredAndSortedPrompts.length / columns),
+    estimateSize: () => 240, // estimated height of PromptCard + gap
+    overscan: 5,
+  });
 
   const handleEdit = (prompt: Prompt) => {
     setEditingPrompt(prompt);
@@ -388,9 +417,30 @@ function PromptsPageContent() {
           )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredAndSortedPrompts.map((prompt) => (
-            <PromptCard key={prompt.id} prompt={prompt} onEdit={handleEdit} />
+        <div
+          className="w-full relative"
+          style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+        >
+          {rowVirtualizer.getVirtualItems().map((virtualRow: any) => (
+            <div
+              key={virtualRow.index}
+              className="absolute top-0 left-0 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              style={{
+                height: `${virtualRow.size}px`,
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+            >
+              {Array.from({ length: columns }).map((_, colIndex) => {
+                const itemIndex = virtualRow.index * columns + colIndex;
+                const prompt = filteredAndSortedPrompts[itemIndex];
+                if (!prompt) return <div key={colIndex} />;
+                return (
+                  <div key={prompt.id} className="h-full">
+                    <PromptCard prompt={prompt} onEdit={handleEdit} />
+                  </div>
+                );
+              })}
+            </div>
           ))}
         </div>
       )}

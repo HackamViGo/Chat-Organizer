@@ -50,9 +50,11 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ prompts: data || [] });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, { 
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }
 
@@ -110,14 +112,24 @@ export async function PUT(request: NextRequest) {
   }
 
   if (!user) {
-    return new NextResponse('Unauthorized', {
-      status: 401
-    });
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401
+    }
+    );
   }
 
   try {
     const body = await request.json();
-    const validatedData = updatePromptSchema.parse(body);
+    const result = updatePromptSchema.safeParse(body);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
     const { id, ...updates } = validatedData;
 
     // Update prompt that belongs to the user
@@ -140,9 +152,11 @@ export async function PUT(request: NextRequest) {
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, { 
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }
 
@@ -200,14 +214,24 @@ export async function POST(request: NextRequest) {
   }
 
   if (!user) {
-    return new NextResponse('Unauthorized', {
-      status: 401
-    });
+    return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401
+    }
+    );
   }
 
   try {
     const body = await request.json();
-    const validatedData = createPromptSchema.parse(body);
+    const result = createPromptSchema.safeParse(body);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
 
     const { data, error } = await supabase
       .from('prompts')
@@ -229,8 +253,10 @@ export async function POST(request: NextRequest) {
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, { 
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }

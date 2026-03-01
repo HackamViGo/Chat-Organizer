@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { Prompt, PromptUpdate } from '@brainbox/shared';
-import { usePromptStore } from '@/store/usePromptStore';
+import type { Prompt, PromptUpdate } from '@brainbox/shared';
+import { AlertTriangle, Check, Copy, Edit2, Menu, MoreVertical, Trash2 } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useShallow } from 'zustand/react/shallow';
+
+import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/client';
-import { 
-  MoreVertical, Trash2, Edit2, Copy, Check, X, AlertTriangle, Menu, Square, CheckSquare
-} from 'lucide-react';
+import { usePromptStore } from '@/store/usePromptStore';
 
 interface PromptCardProps {
   prompt: Prompt;
@@ -162,6 +162,7 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
   return (
     <div 
       className="relative group h-full"
+      data-testid="prompt-card"
       draggable
       onDragStart={handleDragStart}
     >
@@ -173,18 +174,19 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
             Delete this prompt?
           </p>
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="destructive"
               onClick={handleDelete}
-              className="px-4 py-2 bg-destructive text-destructive-foreground rounded-md text-sm font-medium hover:bg-destructive/90 transition-colors"
+              data-testid="prompt-confirm-delete-btn"
             >
               Delete
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="secondary"
               onClick={() => setShowDeleteConfirm(false)}
-              className="px-4 py-2 bg-muted text-foreground rounded-md text-sm font-medium hover:bg-muted/80 transition-colors"
             >
               Cancel
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -234,18 +236,21 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
 
         {/* Header */}
         <div className="flex items-start justify-between mb-3 mt-2">
-          <h3 className="text-lg font-semibold line-clamp-2 flex-1">
+          <h3 className="text-lg font-semibold line-clamp-2 flex-1" data-testid="prompt-title">
             {prompt.title}
           </h3>
           
           {/* Menu Button */}
           <div className="relative">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
+              className="w-8 h-8"
               onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
-              className="p-1 hover:bg-muted rounded-md transition-colors"
+              data-testid="prompt-menu-btn"
             >
               <MoreVertical className="w-5 h-5" />
-            </button>
+            </Button>
 
             {/* Dropdown Menu */}
             {showMenu && (
@@ -265,6 +270,7 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
                       setShowMenu(false);
                     }}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm hover:bg-accent transition-colors"
+                    data-testid="prompt-edit-btn"
                   >
                     <Edit2 className="w-4 h-4" />
                     Edit
@@ -316,6 +322,7 @@ export function PromptCard({ prompt, onEdit }: PromptCardProps) {
                       setShowMenu(false);
                     }}
                     className="flex items-center gap-2 w-full px-3 py-2 text-sm text-destructive hover:bg-accent transition-colors"
+                    data-testid="prompt-menu-delete-btn"
                   >
                     <Trash2 className="w-4 h-4" />
                     Delete

@@ -1,23 +1,23 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useChatStore } from '@/store/useChatStore';
-import { useFolderStore } from '@/store/useFolderStore';
-import { createClient } from '@/lib/supabase/client';
-import { User as SupabaseUser } from '@supabase/supabase-js';
-import { useShallow } from 'zustand/react/shallow';
 import { LIMITS } from '@brainbox/shared';
+import type { User as SupabaseUser } from '@supabase/supabase-js';
+import { useEffect, useState, useMemo } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 
 // New sub-components
+import { ChatStatisticsCard } from '@/components/features/dashboard/ChatStatisticsCard';
+import { DailyPromptTipCard } from '@/components/features/dashboard/DailyPromptTipCard';
 import { DashboardMetrics } from '@/components/features/dashboard/DashboardMetrics';
+import { GPT5AlphaCard } from '@/components/features/dashboard/GPT5AlphaCard';
+import { NotificationsCard } from '@/components/features/dashboard/NotificationsCard';
 import { RecentProjects } from '@/components/features/dashboard/RecentProjects';
+import { SystemStatusCard } from '@/components/features/dashboard/SystemStatusCard';
 import { UsageChart } from '@/components/features/dashboard/UsageChart';
 import { UserInfoCard } from '@/components/features/dashboard/UserInfoCard';
-import { ChatStatisticsCard } from '@/components/features/dashboard/ChatStatisticsCard';
-import { SystemStatusCard } from '@/components/features/dashboard/SystemStatusCard';
-import { NotificationsCard } from '@/components/features/dashboard/NotificationsCard';
-import { GPT5AlphaCard } from '@/components/features/dashboard/GPT5AlphaCard';
-import { DailyPromptTipCard } from '@/components/features/dashboard/DailyPromptTipCard';
+import { createClient } from '@/lib/supabase/client';
+import { useChatStore } from '@/store/useChatStore';
+import { useFolderStore } from '@/store/useFolderStore';
 
 export default function HomePage() {
   // OPTIMIZATION: Use useShallow to prevent unnecessary re-renders when other store properties change

@@ -1,118 +1,93 @@
-import { NextResponse } from 'next/server';
-import { analyzeChatContent } from '@brainbox/shared';
-import { z } from 'zod';
-import { createServerSupabaseClient } from '@/lib/supabase/server';
-import { aiRateLimit } from '@/lib/rate-limit';
+import { analyzeChatContent } from '@brainbox/shared'
+import { aiGenerateRequestSchema } from '@brainbox/validation'
+import { NextResponse } from 'next/server'
+import { z } from 'zod'
 
-const requestSchema = z.object({
-  content: z.string().min(1),
-  apiKey: z.string().optional(), // Optional: can use server-side env var instead
-  history: z.array(z.object({
-    role: z.enum(['user', 'model']),
-    text: z.string()
-  })).optional(),
-  systemInstruction: z.string().optional(),
-});
+import { logger } from '@/lib/logger'
+import { aiRateLimit } from '@/lib/rate-limit'
+import { createServerSupabaseClient } from '@/lib/supabase/server'
 
 /**
  * AI Generate API endpoint
  * Follows Google Cloud best practices for API key usage
  * @see https://docs.cloud.google.com/docs/authentication/api-keys-use#node.js
- * 
- * Security: API keys should be stored server-side in environment variables
- * Client-provided API keys are optional and only used if provided
  */
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { content, apiKey, history, systemInstruction } = requestSchema.parse(body);
+    const body = await request.json()
+    const validationResult = aiGenerateRequestSchema.safeParse(body)
+    
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Validation Error', details: validationResult.error.errors },
+        { status: 400 }
+      )
+    }
+    const { content, apiKey = '' } = validationResult.data
 
-    const supabase = createServerSupabaseClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const supabase = createServerSupabaseClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
 
     if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // S4-3: Rate Limiting
     if (aiRateLimit) {
-      const { success } = await aiRateLimit.limit(user.id);
+      const { success } = await aiRateLimit.limit(user.id)
       if (!success) {
-        return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+        return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
       }
     }
 
-    // Use server-side API key from environment if client doesn't provide one
-    // This follows best practice: prefer server-side configuration
-    const apiKeyToUse = apiKey || process.env.GEMINI_API_KEY;
-    
-    /* console.debug('[AI Route] 🤖 Incoming generate request', {
-      contentLength: content?.length,
-      hasClientApiKey: !!apiKey,
-      useServerApiKey: !!process.env.GEMINI_API_KEY,
-      resolvedApiKey: apiKeyToUse ? `${apiKeyToUse.substring(0, 6)}...` : 'NONE'
-    }); */
+    const apiKeyToUse = apiKey || process.env.GEMINI_API_KEY
 
     if (!apiKeyToUse) {
       return NextResponse.json(
-        { 
-          error: 'API Key Required', 
-          message: 'GEMINI_API_KEY not configured. Please set it in environment variables or provide an API key.' 
+        {
+          error: 'API Key Required',
+          message:
+            'GEMINI_API_KEY not configured. Please set it in environment variables or provide an API key.',
         },
         { status: 400 }
-      );
+      )
     }
 
-    const result = await analyzeChatContent(content, apiKeyToUse);
+    const result = await analyzeChatContent(content, apiKeyToUse)
 
-    return NextResponse.json(result);
-  } catch (error: any) {
+    return NextResponse.json(result)
+  } catch (error: unknown) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
         { error: 'Validation Error', details: error.errors },
         { status: 400 }
-      );
+      )
     }
 
-    // Enhanced error handling for API key issues
-    if (error?.message?.includes('API_KEY') || error?.message?.includes('GEMINI_API_KEY')) {
+    const err = error as { message?: string; status?: number; stack?: string }
+
+    // Enhanced error handling
+    if (err?.message?.includes('API_KEY') || err?.message?.includes('GEMINI_API_KEY')) {
       return NextResponse.json(
-        { 
-          error: 'API Key Error', 
-          message: error.message || 'Invalid or missing API key configuration' 
+        {
+          error: 'API Key Error',
+          message: err.message || 'Invalid or missing API key configuration',
         },
         { status: 401 }
-      );
+      )
     }
 
-    if (error?.status === 429) {
-      return NextResponse.json(
-        { 
-          error: 'Quota Exceeded', 
-          message: 'API quota exceeded. Please try again later.' 
-        },
-        { status: 429 }
-      );
+    if (err?.status === 429) {
+      return NextResponse.json({ error: 'Quota Exceeded' }, { status: 429 })
     }
 
-    if (error?.status === 403) {
-      return NextResponse.json(
-        { 
-          error: 'Access Forbidden', 
-          message: 'API access forbidden. Please check your API key permissions.' 
-        },
-        { status: 403 }
-      );
-    }
-
-    console.error('[AI Route] ❌ Internal Error:', {
-      message: error.message,
-      stack: error.stack
-    });
+    logger.error('API', 'Internal AI Generate Error', err)
 
     return NextResponse.json(
-      { error: 'Internal Server Error', message: error.message || 'An unexpected error occurred' },
+      { error: 'Internal Server Error', message: err.message || 'An unexpected error occurred' },
       { status: 500 }
-    );
+    )
   }
 }

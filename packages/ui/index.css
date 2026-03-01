@@ -1,0 +1,12 @@
+/* BrainBox UI — Token Index
+ * Single import point: @import "@brainbox/ui/tokens"
+ *
+ * Usage in app entry CSS files:
+ *   @import "tailwindcss";
+ *   @import "@brainbox/ui/tokens";
+ */
+
+@import "./tokens/colors.css";
+@import "./tokens/typography.css";
+@import "./tokens/z-index.css";
+@import "./tokens/effects.css";

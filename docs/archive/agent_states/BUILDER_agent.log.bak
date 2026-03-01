@@ -1,0 +1,7 @@
+[2026-02-21 09:05] Resolved Vite connection issues (host 127.0.0.1) and synchronized Sidebar theme.
+[2026-02-21 09:16] Fixed auth sync loop and theme standardization in Sidebar.
+[2026-02-22 17:18] Switched global environment variables (DASHBOARD_URL and NEXT_PUBLIC_APP_URL) in root .env files to development (http://localhost:3000).
+[2026-02-23 02:43] Security fix: Replaced z.any() with strict messageSchema in chat.ts and updated exports.
+[2026-02-23 02:50] Logic fix: Corrected Optimistic Update in useChatStore.ts (Dashboard) and updated store interface.
+[2026-02-23 03:01] Security fix: Implemented global cleanup and memory leak protection in prompt-inject.ts using AbortController and MutationObserver.
+[2026-02-23 05:48:12] COMPLETED: S4 Dashboard State & API Refactor. Implemented Zod validation, strict optimistic updates, rate limiting, and useShallow optimizations. Health score verified.

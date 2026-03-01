@@ -23,3 +23,9 @@ export const updatePromptSchema = z.object({
 
 export type CreatePromptInput = z.infer<typeof createPromptSchema>;
 export type UpdatePromptInput = z.infer<typeof updatePromptSchema>;
+
+export const searchQuerySchema = z.object({
+  query: z.string().min(1)
+});
+
+export type SearchQueryInput = z.infer<typeof searchQuerySchema>;

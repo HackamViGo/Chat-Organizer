@@ -35,10 +35,7 @@
   },
   "content_scripts": [
     {
-      "matches": [
-        "https://chatgpt.com/*",
-        "https://chat.openai.com/*"
-      ],
+      "matches": ["https://chatgpt.com/*", "https://chat.openai.com/*"],
       "js": [
         "lib/config-global.js",
         "lib/ui.js",
@@ -48,9 +45,7 @@
       "run_at": "document_idle"
     },
     {
-      "matches": [
-        "https://claude.ai/*"
-      ],
+      "matches": ["https://claude.ai/*"],
       "js": [
         "lib/config-global.js",
         "lib/ui.js",
@@ -61,63 +56,37 @@
     },
     {
       "matches": ["https://gemini.google.com/*"],
-      "js": [
-        "lib/ui.js",
-        "content/brainbox_master.js"
-      ],
+      "js": ["lib/ui.js"],
       "run_at": "document_end"
     },
     {
       "matches": ["https://chat.deepseek.com/*"],
-      "js": [
-        "lib/ui.js",
-        "content/content-deepseek.js"
-      ],
+      "js": ["lib/ui.js", "content/content-deepseek.js"],
       "run_at": "document_end"
     },
     {
       "matches": ["https://www.perplexity.ai/*"],
-      "js": [
-        "lib/ui.js",
-        "content/content-perplexity.js"
-      ],
+      "js": ["lib/ui.js", "content/content-perplexity.js"],
       "run_at": "document_end"
     },
     {
-      "matches": [
-        "https://x.com/i/grok*",
-        "https://grok.com/*"
-      ],
-      "js": [
-        "lib/ui.js",
-        "content/content-grok.js"
-      ],
+      "matches": ["https://x.com/i/grok*", "https://grok.com/*"],
+      "js": ["lib/ui.js", "content/content-grok.js"],
       "run_at": "document_end"
     },
     {
       "matches": ["https://chat.qwenlm.ai/*"],
-      "js": [
-        "lib/ui.js",
-        "content/content-qwen.js"
-      ],
+      "js": ["lib/ui.js", "content/content-qwen.js"],
       "run_at": "document_end"
     },
     {
       "matches": ["https://chat.lmsys.org/*"],
-      "js": [
-        "lib/ui.js",
-        "content/content-lmarena.js"
-      ],
+      "js": ["lib/ui.js", "content/content-lmarena.js"],
       "run_at": "document_end"
     },
     {
-      "matches": [
-        "<all_urls>"
-      ],
-      "js": [
-        "lib/config-global.js",
-        "prompt-inject/prompt-inject.js"
-      ],
+      "matches": ["<all_urls>"],
+      "js": ["lib/config-global.js", "prompt-inject/prompt-inject.js"],
       "run_at": "document_idle",
       "exclude_matches": [
         "https://gemini.google.com/*",
@@ -130,12 +99,8 @@
       ]
     },
     {
-      "matches": [
-        "https://brainbox-alpha.vercel.app/extension-auth"
-      ],
-      "js": [
-        "content/content-dashboard-auth.js"
-      ],
+      "matches": ["https://brainbox-alpha.vercel.app/extension-auth"],
+      "js": ["content/content-dashboard-auth.js"],
       "run_at": "document_idle"
     }
   ],
@@ -156,13 +121,8 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "icons/*",
-        "content/inject-gemini-main.js"
-      ],
-      "matches": [
-        "https://gemini.google.com/*"
-      ]
+      "resources": ["icons/*", "content/inject-gemini-main.js"],
+      "matches": ["https://gemini.google.com/*"]
     }
   ],
   "content_security_policy": {

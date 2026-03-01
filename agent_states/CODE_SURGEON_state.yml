@@ -1,0 +1,16 @@
+agent: CODE_SURGEON
+status: ACTIVE
+  - date: "2026-02-28"
+    task: "SURGERY-003: Добавяне на Zustand Persist"
+  - date: "2026-02-28"
+    task: "SURGERY-004: Sync Batching for Rate Limit Safety"
+  - date: "2026-02-28"
+    task: "SURGERY-005: Enforce Vitest Coverage Thresholds"
+  - date: "2026-02-28"
+    task: "SURGERY-007: Optimization V2"
+  - date: "2026-02-28"
+    task: "SURGERY-002: Имплементиране на useUIStore"
+  - date: "2026-02-28"
+    task: "SURGERY-001: Имплементиране на useAuthStore"
+  - date: "2026-02-28"
+    task: "SURGERY-008: Auth Store Key Alignment and Naming Conventions"

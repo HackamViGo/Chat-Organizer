@@ -1,6 +1,12 @@
+import type { Image, UploadItem } from '@brainbox/shared';
 import { create } from 'zustand';
-import { Image, UploadItem } from '@brainbox/shared';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
 import { createClient } from '@/lib/supabase/client';
+
+export const clearImageStore = () => {
+  useImageStore.persist.clearStorage();
+};
 
 interface ImageStore {
   images: Image[];
@@ -30,7 +36,9 @@ interface ImageStore {
   moveImages: (imageIds: string[], folderId: string | null) => Promise<void>;
 }
 
-export const useImageStore = create<ImageStore>((set, get) => ({
+export const useImageStore = create<ImageStore>()(
+  persist(
+    (set, _get) => ({
   images: [],
   selectedImageIds: new Set(),
   isLoading: false,
@@ -150,4 +158,19 @@ export const useImageStore = create<ImageStore>((set, get) => ({
       )
     }));
   }
-}));
+    }),
+    {
+      name: 'brainbox-image-store',
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      })),
+      partialize: (state) => ({ images: state.images }),
+      version: 1,
+      migrate: (persistedState: unknown, _version: number) => {
+        return persistedState as ImageStore;
+      },
+    }
+  )
+);

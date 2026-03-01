@@ -12,7 +12,8 @@
     "./services": "./src/services"
   },
   "dependencies": {
-    "@brainbox/validation": "workspace:*"
+    "@brainbox/validation": "workspace:*",
+    "@google/generative-ai": "^0.21.0"
   },
   "devDependencies": {
     "@types/chrome": "^0.1.36"

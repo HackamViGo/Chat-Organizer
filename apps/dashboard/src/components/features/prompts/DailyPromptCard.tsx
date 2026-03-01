@@ -1,11 +1,13 @@
 'use client';
 
+import type { Prompt } from '@brainbox/shared';
+import { Copy, Check, Bookmark, Zap } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-import { Copy, Check, Bookmark, Zap, Play } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
-import { usePromptStore } from '@/store/usePromptStore';
 import { useShallow } from 'zustand/react/shallow';
-import { Prompt } from '@brainbox/shared';
+
+import { createClient } from '@/lib/supabase/client';
+import { useAuthStore } from '@/store/useAuthStore';
+import { usePromptStore } from '@/store/usePromptStore';
 import './DailyPromptCard.css';
 
 interface DailyPromptCardProps {
@@ -19,6 +21,7 @@ export function DailyPromptCard({ userPrompts = [] }: DailyPromptCardProps) {
   const [isSaved, setIsSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const { setPrompts } = usePromptStore(useShallow(s => ({ setPrompts: s.setPrompts })));
+  const user = useAuthStore(s => s.user);
 
   const dailyPromptData = {
     title: "Vibrant 3D Product Shot",
@@ -71,7 +74,6 @@ Aspect ratio: 3:4. Ultra-HD quality. Photographic realism.`,
 
     try {
       const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
 
       if (!user) {
         alert('Please login to save prompts');

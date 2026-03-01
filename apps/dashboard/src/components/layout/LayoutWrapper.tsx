@@ -1,20 +1,23 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { HybridSidebar } from '@/components/layout/HybridSidebar';
 import { DataProvider } from '@/components/providers/DataProvider';
 import { Menu } from 'lucide-react';
+import { useUIStore } from '@/store/useUIStore';
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const isMobileSidebarOpen = useUIStore((s) => s.isMobileSidebarOpen);
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
+  const toggleMobileSidebar = useUIStore((s) => s.toggleMobileSidebar);
   const isAuthPage = pathname?.startsWith('/auth');
 
   // Close sidebar on route change
   useEffect(() => {
-    setIsMobileOpen(false);
-  }, [pathname]);
+    setMobileSidebarOpen(false);
+  }, [pathname, setMobileSidebarOpen]);
 
   if (isAuthPage) {
     return <>{children}</>;
@@ -23,24 +26,21 @@ export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   return (
     <DataProvider>
       <div className="flex relative min-h-screen bg-background">
-        <HybridSidebar 
-          isMobileOpen={isMobileOpen} 
-          onCloseMobile={() => setIsMobileOpen(false)} 
-        />
+        <HybridSidebar />
         
         {/* Mobile Hamburger */}
         <button 
-          onClick={() => setIsMobileOpen(!isMobileOpen)}
+          onClick={toggleMobileSidebar}
           className="fixed top-3 left-4 z-50 md:hidden p-2 rounded-lg bg-card/80 backdrop-blur-sm border border-border shadow-sm"
         >
           <Menu size={20} className="text-muted-foreground" />
         </button>
 
         {/* Mobile Backdrop */}
-        {isMobileOpen && (
+        {isMobileSidebarOpen && (
           <div 
             className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm md:hidden"
-            onClick={() => setIsMobileOpen(false)}
+            onClick={() => setMobileSidebarOpen(false)}
           />
         )}
 

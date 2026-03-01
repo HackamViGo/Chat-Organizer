@@ -5,12 +5,17 @@ import { useRouter } from 'next/navigation';
 import { Bell, Globe, Database, Folder, Star, Sparkles, Download, Upload, FileText, FileJson, Trash2, X, AlertTriangle, LogOut } from 'lucide-react';
 import { useFolderStore } from '@/store/useFolderStore';
 import { useChatStore } from '@/store/useChatStore';
+import { useShallow } from 'zustand/react/shallow';
 import { createClient } from '@/lib/supabase/client';
 
 export default function SettingsPage() {
   const router = useRouter();
-  const { folders, setFolders } = useFolderStore();
-  const { chats, setChats } = useChatStore();
+  const { folders, setFolders } = useFolderStore(
+    useShallow((state) => ({ folders: state.folders, setFolders: state.setFolders }))
+  );
+  const { chats, setChats } = useChatStore(
+    useShallow((state) => ({ chats: state.chats, setChats: state.setChats }))
+  );
   const [quickAccessFolders, setQuickAccessFolders] = useState<string[]>([]);
   const [isLoadingFolders, setIsLoadingFolders] = useState(true);
   const [isExporting, setIsExporting] = useState(false);

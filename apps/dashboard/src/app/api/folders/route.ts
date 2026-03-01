@@ -2,30 +2,19 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
+import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { z } from 'zod';
-
-// Zod schemas for validation
-const updateFolderSchema = z.object({
-  id: z.string().uuid(),
-  name: z.string().min(1).optional(),
-  color: z.string().min(1).optional(),
-  type: z.enum(['chat', 'image', 'prompt', 'list', 'default', 'custom']).optional(),
-  icon: z.string().optional(),
-  parent_id: z.string().uuid().nullable().optional(),
-});
-
-const createFolderSchema = z.object({
-  name: z.string().min(1),
-  color: z.string().min(1),
-  type: z.enum(['chat', 'image', 'prompt', 'list', 'default', 'custom']).optional(),
-  icon: z.string().optional(),
-  parent_id: z.string().uuid().nullable().optional(),
-});
+import {
+  createFolderSchema,
+  updateFolderSchema,
+  type CreateFolderInput,
+  type UpdateFolderInput
+} from '@brainbox/validation';
 
 // Helper to get user from either cookies or Authorization header
 async function getAuthenticatedUser(request: NextRequest) {
   const authHeader = request.headers.get('Authorization');
-  
+
   // If Authorization header exists, use it (for extension)
   if (authHeader && authHeader.startsWith('Bearer ')) {
     const supabase = createClient(
@@ -68,9 +57,11 @@ export async function GET(request: NextRequest) {
   try {
     const { data: { user }, error: authError } = await getAuthenticatedUser(request);
     if (authError || !user) {
-      return new NextResponse('Unauthorized', { 
-        status: 401
-      });
+      return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401
+      }
+    );
     }
 
     // Use server client with proper auth context
@@ -116,15 +107,19 @@ export async function GET(request: NextRequest) {
     // Verify auth context by checking current user
     const { data: { user: verifiedUser }, error: authCheckError } = await supabase.auth.getUser();
     if (authCheckError || !verifiedUser) {
-      return new NextResponse('Authentication context error', { 
-        status: 401
-      });
+      return NextResponse.json(
+      { error: 'Authentication context error' },
+      { status: 401
+      }
+    );
     }
     
     if (verifiedUser.id !== user.id) {
-      return new NextResponse('User ID mismatch', { 
-        status: 403
-      });
+      return NextResponse.json(
+      { error: 'User ID mismatch' },
+      { status: 403
+      }
+    );
     }
 
     const { data, error } = await supabase
@@ -141,9 +136,11 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('[API /folders] Error:', error);
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, { 
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }
 
@@ -151,13 +148,23 @@ export async function PUT(request: NextRequest) {
   try {
     const { data: { user }, error: authError } = await getAuthenticatedUser(request);
     if (authError || !user) {
-      return new NextResponse('Unauthorized', { 
-        status: 401
-      });
+      return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401
+      }
+    );
     }
 
     const body = await request.json();
-    const validatedData = updateFolderSchema.parse(body);
+    const result = updateFolderSchema.safeParse(body);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
     const { id, ...updates } = validatedData;
 
     // Use server client with proper auth context
@@ -217,9 +224,11 @@ export async function PUT(request: NextRequest) {
         };
         
         if (isDescendant(updatesWithParent.parent_id, id)) {
-          return new NextResponse('Cannot move folder into its own descendant', {
-            status: 400
-          });
+          return NextResponse.json(
+      { error: 'Cannot move folder into its own descendant' },
+      { status: 400
+          }
+    );
         }
       }
     }
@@ -244,9 +253,11 @@ export async function PUT(request: NextRequest) {
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, { 
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }
 
@@ -254,18 +265,22 @@ export async function DELETE(request: NextRequest) {
   try {
     const { data: { user }, error: authError } = await getAuthenticatedUser(request);
     if (authError || !user) {
-      return new NextResponse('Unauthorized', { 
-        status: 401
-      });
+      return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401
+      }
+    );
     }
 
     const { searchParams } = new URL(request.url);
     const id = searchParams.get('id');
     
     if (!id) {
-      return new NextResponse('Folder ID is required', {
-        status: 400
-      });
+      return NextResponse.json(
+      { error: 'Folder ID is required' },
+      { status: 400
+      }
+    );
     }
 
     // Use server client with proper auth context
@@ -321,9 +336,11 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, {
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }
 
@@ -331,13 +348,23 @@ export async function POST(request: NextRequest) {
   try {
     const { data: { user }, error: authError } = await getAuthenticatedUser(request);
     if (authError || !user) {
-      return new NextResponse('Unauthorized', { 
-        status: 401
-      });
+      return NextResponse.json(
+      { error: 'Unauthorized' },
+      { status: 401
+      }
+    );
     }
 
     const body = await request.json();
-    const validatedData = createFolderSchema.parse(body);
+    const result = createFolderSchema.safeParse(body);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
     const { name, color, type, icon } = validatedData;
 
     // Use server client with proper auth context
@@ -402,8 +429,10 @@ export async function POST(request: NextRequest) {
       );
     }
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new NextResponse(errorMessage, { 
-      status: 500
-    });
+    return NextResponse.json(
+      { error: errorMessage ?? 'Internal Server Error' },
+      { status: 500
+    }
+    );
   }
 }

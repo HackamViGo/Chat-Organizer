@@ -106,6 +106,7 @@ export default function SignUpPage() {
                 onChange={(e) => setFullName(e.target.value)}
                 placeholder="John Doe"
                 required
+                autoComplete="name"
                 className="w-full pl-10 pr-4 py-3 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               />
             </div>
@@ -123,6 +124,7 @@ export default function SignUpPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 required
+                autoComplete="email"
                 className="w-full pl-10 pr-4 py-3 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               />
             </div>
@@ -140,6 +142,7 @@ export default function SignUpPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                autoComplete="new-password"
                 className="w-full pl-10 pr-4 py-3 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               />
             </div>
@@ -157,6 +160,7 @@ export default function SignUpPage() {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                autoComplete="new-password"
                 className="w-full pl-10 pr-4 py-3 bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               />
             </div>
@@ -188,6 +192,7 @@ export default function SignUpPage() {
         </div>
 
         <button
+          type="button"
           onClick={handleGoogleSignUp}
           disabled={isLoading}
           className="w-full py-3 bg-white dark:bg-black/30 hover:bg-slate-50 dark:hover:bg-black/50 border border-slate-200 dark:border-white/10 text-slate-700 dark:text-slate-200 rounded-xl font-semibold transition-colors flex items-center justify-center gap-2"

@@ -5,6 +5,7 @@ import { useShallow } from 'zustand/react/shallow'
 
 import { CONFIG } from '@/lib/config'
 import { createClient } from '@/lib/supabase/client'
+import { useAuthStore } from '@/store/useAuthStore'
 import { useChatStore } from '@/store/useChatStore'
 import { useFolderStore } from '@/store/useFolderStore'
 import { usePromptStore } from '@/store/usePromptStore'
@@ -55,11 +56,22 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       deleteChat: s.deleteChat,
     }))
   )
+  const { initialize, isAuthenticated } = useAuthStore(
+    useShallow((state) => ({
+      initialize: state.initialize,
+      isAuthenticated: state.isAuthenticated,
+    }))
+  )
   const isFetchingRef = useRef(false)
   const supabase = createClient()
 
+  // Initialize Auth on mount
+  useEffect(() => {
+    initialize()
+  }, [initialize])
+
   const fetchData = useCallback(async () => {
-    if (isFetchingRef.current) return
+    if (isFetchingRef.current || !isAuthenticated) return
     isFetchingRef.current = true
     setFoldersLoading(true)
     setPromptsLoading(true)
@@ -103,24 +115,16 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       setPromptsLoading(false)
       setChatsLoading(false)
     }
-  }, [setFolders, setFoldersLoading, setPrompts, setPromptsLoading, setChats, setChatsLoading])
+  }, [setFolders, setFoldersLoading, setPrompts, setPromptsLoading, setChats, setChatsLoading, isAuthenticated])
 
   useEffect(() => {
-    // Initial fetch
-    fetchData()
-
-    // Subscribe to Auth changes
-    const {
-      data: { subscription: authSub },
-    } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        fetchData()
-      } else if (event === 'SIGNED_OUT') {
-        setFolders([])
-        setPrompts([])
-        setChats([])
-      }
-    })
+    if (isAuthenticated) {
+      fetchData()
+    } else {
+      setFolders([])
+      setPrompts([])
+      setChats([])
+    }
 
     // Real-time Subscriptions
     const foldersChannel = supabase
@@ -177,7 +181,6 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .subscribe()
 
     return () => {
-      authSub.unsubscribe()
       supabase.removeChannel(foldersChannel)
       supabase.removeChannel(promptsChannel)
       supabase.removeChannel(chatsChannel)
@@ -195,6 +198,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setPrompts,
     setChats,
     supabase,
+    isAuthenticated,
   ])
 
   return <>{children}</>

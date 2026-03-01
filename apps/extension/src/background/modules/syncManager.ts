@@ -7,6 +7,7 @@
 
 import { decryptToken } from '@/lib/crypto'
 import { logger } from '@/lib/logger'
+import { CONFIG } from '@/lib/config'
 
 export interface SyncItem {
   id: string
@@ -106,8 +107,8 @@ export class SyncManager {
 
     // Initial sync on startup
     this.processQueue(async (item) => {
-      const { CONFIG } = await import('@/lib/config')
       try {
+
         const response = await fetch(`${CONFIG.API_BASE_URL}/api/chats`, {
           method: 'POST',
           headers: {

@@ -20,7 +20,9 @@ dist-ssr
 .next/
 out/
 
-# Playwright MCP
+# Playwright
+playwright-report/
+test-results/
 .playwright-mcp/
 
 # Editor directories and files

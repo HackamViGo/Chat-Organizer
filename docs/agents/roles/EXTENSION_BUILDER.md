@@ -13,10 +13,13 @@
 - Промени в Dashboard API routes
 - Добавяне на нови npm пакети
 
-**При приключване:**
+**При приключване (Rule #10 Exit Protocol):**
 1. Обнови `agent_states/EXTENSION_BUILDER_state.yml`
-2. Append в `docs/agents/logs/EXTENSION_BUILDER_agent.log`
-3. Ако промяната засяга Dashboard или shared → append и в `CHANGES.log`
+2. Добави детайлен блок в `docs/agents/logs/EXTENSION_BUILDER_agent.log`
+3. Append в `docs/agents/logs/CHANGES.log` за изисквания към другите агенти.
+4. Докладвай на потребителя на български.
+5. Обнови .agent/rules/knowledge_graph.json
+6. Обнови .agent/rules/ProjectGraph.json
 
 **Log формат:**
 ```

@@ -9,6 +9,19 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/__tests__/setup.ts'],
+    coverage: {
+      provider: 'v8',
+      thresholds: {
+        'src/api/**': {
+          statements: 85,
+          branches: 80
+        },
+        'src/components/**': {
+          statements: 75,
+          branches: 75
+        }
+      }
+    }
   },
   resolve: {
     alias: {

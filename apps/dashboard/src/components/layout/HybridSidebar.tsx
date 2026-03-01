@@ -1,15 +1,20 @@
 'use client';
 
-import React, { useState, useMemo, Suspense, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
+import React, { useState, useMemo, Suspense, useEffect, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+
+import type { FolderWithChildren} from './FolderTree';
+import { FolderTreeItem, FOLDER_ICONS } from './FolderTree';
+
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
-import { FolderWithChildren, FolderTreeItem, FOLDER_ICONS } from './FolderTree';
+import { useUIStore } from '@/store/useUIStore';
+
 export { FOLDER_ICONS };
 import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import { useShallow } from 'zustand/react/shallow';
 import {
   LayoutGrid, Settings, FileEdit,
   MessageCircle, Brain, Sun, Moon,
@@ -134,10 +139,13 @@ function getDisplayItems(folders: FolderWithChildren[], chats: any[], limit = 5)
 }
 
 // --- Main Content ---
-function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: boolean, onCloseMobile?: () => void }) {
+function HybridSidebarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const currentFolderParam = searchParams.get('folder');
+  
+  const isMobileSidebarOpen = useUIStore((s) => s.isMobileSidebarOpen);
+  const setMobileSidebarOpen = useUIStore((s) => s.setMobileSidebarOpen);
   
   // State
   const [isHovered, setIsHovered] = useState(false);
@@ -234,12 +242,12 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
   return (
     <>
       <AnimatePresence>
-        {isMobileOpen && (
+        {isMobileSidebarOpen && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onCloseMobile}
+            onClick={() => setMobileSidebarOpen(false)}
             className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[55] md:hidden"
             aria-hidden="true"
           />
@@ -254,21 +262,21 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
         initial={false}
         animate={{ 
           width: isHovered ? 256 : 80,
-          x: isMobileOpen ? 0 : undefined 
+          x: isMobileSidebarOpen ? 0 : undefined 
         }}
         transition={{ ease: [0.4, 0, 0.2, 1], duration: 0.45 }}
         className={`
           fixed left-0 top-0 h-screen z-[60] bg-slate-900 border-r border-white/10
           flex flex-col shadow-2xl 
-          md:translate-x-0 ${isMobileOpen ? 'translate-x-0' : '-translate-x-full'}
+          md:translate-x-0 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
           will-change-[width,transform]
           transition-colors
         `}
       >
         <button 
-          onClick={onCloseMobile}
+          onClick={() => setMobileSidebarOpen(false)}
           aria-label="Close sidebar"
-          className={`md:hidden absolute top-4 right-4 p-2 text-slate-400 hover:text-white ${!isMobileOpen && 'hidden'}`}
+          className={`md:hidden absolute top-4 right-4 p-2 text-slate-400 hover:text-white ${!isMobileSidebarOpen && 'hidden'}`}
         >
           <X size={20} />
         </button>
@@ -535,10 +543,10 @@ function HybridSidebarContent({ isMobileOpen, onCloseMobile }: { isMobileOpen?: 
   );
 }
 
-export function HybridSidebar(props: { isMobileOpen?: boolean, onCloseMobile?: () => void }) {
+export function HybridSidebar() {
   return (
     <Suspense fallback={<div className="w-20 bg-slate-900 h-screen fixed left-0 top-0 border-r border-white/10" />}>
-      <HybridSidebarContent {...props} />
+      <HybridSidebarContent />
     </Suspense>
   );
 }

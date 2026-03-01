@@ -1,18 +1,24 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses , getItemsInFolderAndNested, getChildFolders } from '@brainbox/shared';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import JSZip from 'jszip';
+import { MessageSquarePlus, MessageSquare, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight, Search, Calendar, Filter, Download, ChevronDown, Sparkles } from 'lucide-react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import React, { useState, useEffect, useCallback, useMemo, Suspense } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+
+import { ChatCard } from '@/components/features/chats/ChatCard';
+import { MasterToolbar } from '@/components/features/chats/MasterToolbar';
+import { FOLDER_ICONS } from '@/components/layout/HybridSidebar';
+import { createClient } from '@/lib/supabase/client';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
-import { ChatCard } from '@/components/features/chats/ChatCard';
-import { MessageSquarePlus, MessageSquare, CheckSquare, Square, Trash2, AlertTriangle, LayoutGrid, Plus, Folder as FolderIcon, X, ChevronRight, Search, Calendar, Filter, Download, ChevronDown, Sparkles } from 'lucide-react';
-import { FOLDER_ICONS } from '@/components/layout/HybridSidebar';
-import { getFolderColorClass, getFolderTextColorClass, getCategoryIconContainerClasses } from '@brainbox/shared';
-import { createClient } from '@/lib/supabase/client';
-import { getItemsInFolderAndNested, getChildFolders } from '@brainbox/shared';
-import Link from 'next/link';
-import JSZip from 'jszip';
-import { MasterToolbar } from '@/components/features/chats/MasterToolbar';
+
+
+
+
 
 function ChatsPageContent() {
   const { 
@@ -23,8 +29,20 @@ function ChatsPageContent() {
     deselectAllChats, 
     deleteChats,
     updateChat
-  } = useChatStore();
-  const { folders, addFolder, isLoading: foldersLoading } = useFolderStore();
+  } = useChatStore(
+    useShallow(s => ({
+      chats: s.chats,
+      setChats: s.setChats,
+      selectedChatIds: s.selectedChatIds,
+      selectAllChats: s.selectAllChats,
+      deselectAllChats: s.deselectAllChats,
+      deleteChats: s.deleteChats,
+      updateChat: s.updateChat
+    }))
+  );
+  const { folders, addFolder, isLoading: foldersLoading } = useFolderStore(
+    useShallow(s => ({ folders: s.folders, addFolder: s.addFolder, isLoading: s.isLoading }))
+  );
   const searchParams = useSearchParams();
   const router = useRouter();
   
@@ -256,6 +274,25 @@ function ChatsPageContent() {
       setIsSaving(false);
     }
   };
+
+  // Dynamic column count for virtualization
+  const [columns, setColumns] = useState(1);
+  useEffect(() => {
+    const updateCols = () => {
+      if (window.innerWidth >= 1024) setColumns(3); // lg
+      else if (window.innerWidth >= 768) setColumns(2); // md
+      else setColumns(1);
+    };
+    updateCols();
+    window.addEventListener('resize', updateCols);
+    return () => window.removeEventListener('resize', updateCols);
+  }, []);
+
+  const rowVirtualizer = useWindowVirtualizer({
+    count: Math.ceil(displayedChats.length / columns),
+    estimateSize: () => 240, // estimated height of ChatCard + gap
+    overscan: 5,
+  });
 
   if (!mounted || isLoading || foldersLoading) {
     return (
@@ -707,14 +744,32 @@ function ChatsPageContent() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayedChats.map((chat, i) => (
-              <div 
-                key={chat.id} 
-                className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-backwards"
-                style={{ animationDelay: `${i * 0.05}s` }}
+          <div
+            className="w-full relative"
+            style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+          >
+            {rowVirtualizer.getVirtualItems().map((virtualRow: any) => (
+              <div
+                key={virtualRow.index}
+                className="absolute top-0 left-0 w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                style={{
+                  height: `${virtualRow.size}px`,
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
               >
-                <ChatCard chat={chat} />
+                {Array.from({ length: columns }).map((_, colIndex) => {
+                  const itemIndex = virtualRow.index * columns + colIndex;
+                  const chat = displayedChats[itemIndex];
+                  if (!chat) return <div key={colIndex} />;
+                  return (
+                    <div 
+                      key={chat.id} 
+                      className="animate-in fade-in slide-in-from-bottom-4 duration-500 fill-mode-backwards h-full"
+                    >
+                      <ChatCard chat={chat} />
+                    </div>
+                  );
+                })}
               </div>
             ))}
           </div>

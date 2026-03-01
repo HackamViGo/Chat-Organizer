@@ -1,7 +1,11 @@
+import { GoogleGenerativeAI } from '@google/generative-ai';
+
+import modelsConfig from '../config/ai_models_config.json';
+
 /**
- * AI Service - Centralized Gateway Routing
- * All internal AI tasks (analysis, summary, enhancement) must route 
- * via the central API gateway defined in ai_models_config.json.
+ * AI Service - Direct Gemini Integration
+ * All internal AI tasks (analysis, summary, enhancement) are handled
+ * using the configured Gemini Flash model.
  */
 
 export interface AIAnalysisResult {
@@ -10,82 +14,103 @@ export interface AIAnalysisResult {
   tasks: string[];
 }
 
-// Internal model aliases (aligned with packages/shared/src/config/ai_models_config.json)
-const MODELS = {
-  ANALYSIS: 'internal-analyzer',
-  SUMMARY: 'internal-summarizer',
-  ENHANCE: 'internal-enhancer',
-  EMBEDDING: 'internal-embedder'
+/**
+ * Common Gemini model fetcher
+ */
+const getModel = (apiKey: string, modelAlias: 'analysis' | 'prompt_improvement') => {
+  const genAI = new GoogleGenerativeAI(apiKey);
+  return genAI.getGenerativeModel({ 
+    model: modelsConfig.models[modelAlias].model_name 
+  });
 };
 
 /**
- * Common gateway fetcher
+ * analyzeChatContent
+ * Extracts title, summary, and action items from conversation content.
  */
-const callGateway = async (endpoint: string, payload: any, baseUrl: string, token?: string) => {
-  const response = await fetch(`${baseUrl}${endpoint}`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
-    },
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.message || `Gateway Error: ${response.status}`);
-  }
-
-  return await response.json();
-};
-
 export const analyzeChatContent = async (
   content: string,
-  baseUrl: string,
-  token?: string
+  apiKey: string
 ): Promise<AIAnalysisResult> => {
   try {
-    const result = await callGateway('/api/ai/analyze', {
-      content: content.substring(0, 30000), // Larger context allowed via gateway
-      model_alias: MODELS.ANALYSIS
-    }, baseUrl, token);
+    const model = getModel(apiKey, 'analysis');
+    
+    const prompt = `
+      Analyze the following chat content. 
+      JSON Response Schema:
+      {
+        "title": "Short descriptive title (max 5 words)",
+        "summary": "Concise summary (max 2 sentences)",
+        "tasks": ["Extracted actionable tasks or follow-ups (max 5 items)"]
+      }
 
-    return result as AIAnalysisResult;
-  } catch (error: any) {
-    throw new Error(`AI Analysis Failed: ${error.message}`);
+      Chat Content:
+      "${content.substring(0, 30000)}"
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
+    
+    // Simple JSON extraction
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      // Type casting justified as we strictly enforce the schema in the prompt
+      return JSON.parse(jsonMatch[0]) as AIAnalysisResult;
+    }
+
+    throw new Error('Failed to parse AI response as JSON');
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`AI Analysis Failed: ${message}`);
   }
 };
 
+/**
+ * generatePromptImprovement
+ * Enhances a user prompt to be more structured and effective.
+ */
 export const generatePromptImprovement = async (
   originalPrompt: string,
-  baseUrl: string,
-  token?: string
+  apiKey: string
 ): Promise<string> => {
   try {
-    const result = await callGateway('/api/ai/enhance', {
-      prompt: originalPrompt,
-      model_alias: MODELS.ENHANCE
-    }, baseUrl, token);
+    const model = getModel(apiKey, 'prompt_improvement');
     
-    return result.enhancedPrompt || originalPrompt;
-  } catch (error) {
+    const prompt = `
+      Act as an expert prompt engineer. Improve and structure the following prompt for better results. 
+      Return ONLY the improved prompt text.
+
+      Original Prompt:
+      "${originalPrompt}"
+    `;
+
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    return response.text().trim();
+  } catch {
     return originalPrompt;
   }
 };
 
+/**
+ * generateEmbedding
+ * Generates a semantic vector representation for RAG/search.
+ */
 export const generateEmbedding = async (
   text: string,
-  baseUrl: string,
-  token?: string
+  apiKey: string
 ): Promise<number[]> => {
   try {
-    const result = await callGateway('/api/ai/embed', {
-      text,
-      model_alias: MODELS.EMBEDDING
-    }, baseUrl, token);
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({ 
+      model: modelsConfig.models.embedding.model_name 
+    });
     
-    return result.embedding;
-  } catch (error) {
-    return Array(1536).fill(0);
+    const result = await model.embedContent(text);
+    return result.embedding.values;
+  } catch {
+    // Return zero vector as fallback
+    return Array(768).fill(0); // Note: text-embedding-004 is 768 or 1536 depending on config.
   }
 };

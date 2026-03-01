@@ -1,4 +1,5 @@
 # BrainBox Documentation — Reading Order
+> **Обновен:** 2026-02-28
 
 Този документ описва йерархията и препоръчителния ред за четене на документацията на BrainBox.
 
@@ -10,16 +11,15 @@
 
 ## При работа по Chrome Extension
 - `docs/Mandatory!/EXTENSION.md` — Платформи, адаптери, файлова карта и специфични за разширението проблеми.
-- `docs/technical/CHROME_EXTENSION_POLICY.md` — Политики за сигурност и изисквания на Chrome Web Store.
+- `docs/Mandatory!/UI_SYSTEM.md` — UI граници, Tailwind v4, design tokens, dark mode стратегии.
 
 ## При работа по Dashboard & API
-- `docs/technical/DATA_SCHEMA.md` — Каноничен формат на данните и Zod схеми.
-- `docs/technical/SYNC_PROTOCOL.md` — Детайлно описание на API endpoints и синхронизацията.
-- `docs/Mandatory!/PRODUCT.md` — Бизнес логика,freemium модел и целева аудитория.
+- `docs/Mandatory!/UI_SYSTEM.md` — UI граници, Tailwind v4 CSS-first конфигурация, design tokens.
+- `docs/Mandatory!/PRODUCT.md` — Бизнес логика, freemium модел и целева аудитория.
 
 ## При инфраструктурни и проектни промени
-- `docs/technical/CONTEXT_MAP.md` — Собственост на файловете по слоеве.
-- `docs/project_history_summary.md` — Хронология на развитието и технологичен стак.
+- `docs/Mandatory!/DEPLOYMENT.md` — CI/CD, Vercel, Chrome Web Store.
+- `docs/Mandatory!/ARCHITECTURE.md` — 3-слоева архитектура и комуникационни пътеки.
 
 ---
 > [!IMPORTANT]

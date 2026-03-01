@@ -438,6 +438,7 @@ it('calls deleteChat', () => {
 | React компонент | PascalCase | `ChatCard`, `FolderTree` |
 | Hook | `use` prefix + PascalCase | `useChatStore`, `useShallow` |
 | Zustand store файл | `use` + Feature + `Store` | `useChatStore.ts` |
+| Zustand persist key | `brainbox-{entity}-store` | `brainbox-chat-store` |
 | API route файл | `route.ts` в директория | `api/chats/route.ts` |
 | Adapter файл | `platform.adapter.ts` | `chatgpt.adapter.ts` |
 | Content script | `content-platform.ts` | `content-claude.ts` |

@@ -156,7 +156,15 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const validatedData = updateFolderSchema.parse(body);
+    const result = updateFolderSchema.safeParse(body);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
     const { id, ...updates } = validatedData;
 
     // Use server client with proper auth context
@@ -348,7 +356,15 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const validatedData = createFolderSchema.parse(body);
+    const result = createFolderSchema.safeParse(body);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
     const { name, color, type, icon } = validatedData;
 
     // Use server client with proper auth context

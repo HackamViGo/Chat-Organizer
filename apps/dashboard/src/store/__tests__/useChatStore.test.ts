@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+
 import { useChatStore } from '../useChatStore';
+
+import { syncBatchService } from '@/lib/services/sync-batch.service';
 
 // Helper: minimal valid Chat shape
 const makeChat = (override = {}) => ({
@@ -17,6 +20,7 @@ describe('useChatStore — Optimistic Updates & Rollback', () => {
   beforeEach(() => {
     useChatStore.setState({ chats: [], selectedChatId: null, selectedChatIds: new Set(), isLoading: false });
     vi.clearAllMocks();
+    vi.spyOn(syncBatchService, 'enqueue').mockResolvedValue(true);
   });
 
   // ─────────────────────────────────────────────────────────────
@@ -27,7 +31,7 @@ describe('useChatStore — Optimistic Updates & Rollback', () => {
     it('optimistically removes chat from list', async () => {
       useChatStore.setState({ chats: [makeChat({ id: '1' }), makeChat({ id: '2' })] });
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+      useChatStore.setState({ chats: [makeChat({ id: '1' }), makeChat({ id: '2' })] });
 
       await useChatStore.getState().deleteChat('1');
 
@@ -38,7 +42,7 @@ describe('useChatStore — Optimistic Updates & Rollback', () => {
     it('rolls back if API call fails', async () => {
       useChatStore.setState({ chats: [makeChat({ id: '1' })] });
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+      vi.spyOn(syncBatchService, 'enqueue').mockRejectedValue(new Error('Failed'));
 
       await expect(useChatStore.getState().deleteChat('1')).rejects.toThrow();
 
@@ -58,8 +62,6 @@ describe('useChatStore — Optimistic Updates & Rollback', () => {
         chats: [makeChat({ id: '1' }), makeChat({ id: '2' }), makeChat({ id: '3' })],
       });
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
-
       await useChatStore.getState().deleteChats(['1', '2']);
 
       expect(useChatStore.getState().chats).toHaveLength(1);
@@ -71,7 +73,7 @@ describe('useChatStore — Optimistic Updates & Rollback', () => {
         chats: [makeChat({ id: '1' }), makeChat({ id: '2' })],
       });
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+      vi.spyOn(syncBatchService, 'enqueue').mockRejectedValue(new Error('Failed'));
 
       await expect(useChatStore.getState().deleteChats(['1', '2'])).rejects.toThrow();
 
@@ -80,12 +82,11 @@ describe('useChatStore — Optimistic Updates & Rollback', () => {
 
     it('is a no-op for empty array', async () => {
       useChatStore.setState({ chats: [makeChat()] });
-      const fetchMock = vi.fn();
-      vi.stubGlobal('fetch', fetchMock);
+      const enqueueMock = vi.spyOn(syncBatchService, 'enqueue');
 
       await useChatStore.getState().deleteChats([]);
 
-      expect(fetchMock).not.toHaveBeenCalled();
+      expect(enqueueMock).not.toHaveBeenCalled();
       expect(useChatStore.getState().chats).toHaveLength(1);
     });
   });
@@ -98,10 +99,7 @@ describe('useChatStore — Optimistic Updates & Rollback', () => {
     it('optimistically updates the chat title', async () => {
       useChatStore.setState({ chats: [makeChat({ id: '1', title: 'Old Title' })] });
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => makeChat({ id: '1', title: 'New Title' }),
-      }));
+      vi.spyOn(syncBatchService, 'enqueue').mockResolvedValue(makeChat({ id: '1', title: 'New Title' }));
 
       await useChatStore.getState().updateChat('1', { title: 'New Title' });
 
@@ -111,7 +109,7 @@ describe('useChatStore — Optimistic Updates & Rollback', () => {
     it('rolls back title change on API failure', async () => {
       useChatStore.setState({ chats: [makeChat({ id: '1', title: 'Original' })] });
 
-      vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+      vi.spyOn(syncBatchService, 'enqueue').mockRejectedValue(new Error('Failed'));
 
       await expect(useChatStore.getState().updateChat('1', { title: 'Changed' })).rejects.toThrow();
 

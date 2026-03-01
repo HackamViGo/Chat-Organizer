@@ -1,15 +1,21 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useChatStore } from '@/store/useChatStore';
-import { useShallow } from 'zustand/react/shallow';
-import { Chat, Platform, Message } from '@brainbox/shared';
+import type { Message } from '@brainbox/shared';
+import { Chat, Platform } from '@brainbox/shared';
 import { 
-  Send, Bot, Sparkles, Plus, MessageSquare, 
-  Cpu, Zap, MoreVertical, Trash2, ArrowLeft,
+  Send, Bot, Sparkles, Plus, Zap, Trash2, ArrowLeft,
   Settings, CheckCircle, Lock, Key, Crown
 } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import React, { useState, useRef, useEffect } from 'react';
+import { useShallow } from 'zustand/react/shallow';
+
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useAuthStore } from '@/store/useAuthStore';
+import { useChatStore } from '@/store/useChatStore';
+
 
 
 const MODELS = [
@@ -37,8 +43,8 @@ export const ChatStudio: React.FC = () => {
   const [selectedModel, setSelectedModel] = useState(MODELS[0]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Settings State (in real app would be from settings store)
-  const [isPro, setIsPro] = useState(false);
+  // Settings State 
+  const { isPro } = useAuthStore(useShallow(s => ({ isPro: s.isPro })));
   const [apiKey, setApiKey] = useState('');
   const [apiKeyInput, setApiKeyInput] = useState('');
 
@@ -46,12 +52,7 @@ export const ChatStudio: React.FC = () => {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       try {
-        const storedPro = localStorage.getItem('isPro') === 'true';
-        // NOTE: geminiApiKey uses sessionStorage (not localStorage) to reduce XSS exposure.
-        // Key is cleared when tab closes. User re-enters on next session.
-        // TODO: migrate to server-side settings storage (tracked in CHANGES.log)
         const storedKey = sessionStorage.getItem('geminiApiKey') || '';
-        setIsPro(storedPro);
         setApiKey(storedKey);
       } catch (error) {
         if (error instanceof DOMException) {
@@ -100,7 +101,7 @@ export const ChatStudio: React.FC = () => {
     let fullResponse = '';
     
     try {
-      let currentChatId = activeChatId;
+      const currentChatId = activeChatId;
 
       // Map system instruction
       let sysInstruction = "You are a helpful AI assistant.";
@@ -219,18 +220,7 @@ export const ChatStudio: React.FC = () => {
   };
 
   const activateUltra = () => {
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem('isPro', 'true');
-        setIsPro(true);
-      } catch (error) {
-        console.warn('Failed to save Pro status to localStorage:', error);
-        // Still set in state even if localStorage fails
-        setIsPro(true);
-      }
-    } else {
-      setIsPro(true);
-    }
+    alert('Ultra checkout flow would begin here.');
   };
 
   // --- ACCESS GATE: PRO CHECK ---
@@ -267,16 +257,17 @@ export const ChatStudio: React.FC = () => {
               </div>
            </div>
 
-           <button 
+           <Button 
+             className="w-full py-6 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-600 text-white font-bold text-lg shadow-xl shadow-orange-500/20 hover:scale-105 transition-all outline-none border-none"
              onClick={activateUltra}
-             className="w-full py-4 rounded-xl bg-gradient-to-r from-yellow-500 to-orange-600 text-white font-bold text-lg shadow-xl shadow-orange-500/20 hover:scale-105 active:scale-95 transition-all"
+             data-testid="chat-studio-unlock-ultra-btn"
            >
              Unlock Ultra
-           </button>
+           </Button>
            
-           <button onClick={() => router.push('/')} className="text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+           <Button variant="link" onClick={() => router.push('/')} className="text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
              Return to Dashboard
-           </button>
+           </Button>
         </div>
       </div>
     );
@@ -301,21 +292,23 @@ export const ChatStudio: React.FC = () => {
            <form onSubmit={saveKey} className="w-full flex flex-col gap-4">
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input 
+                <Input 
                   type="password"
                   value={apiKeyInput}
                   onChange={(e) => setApiKeyInput(e.target.value)}
                   placeholder="Paste your Gemini API Key"
-                  className="w-full bg-white dark:bg-black/30 border border-slate-200 dark:border-white/10 rounded-xl pl-10 pr-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 transition-all"
+                  className="pl-10 h-12 rounded-xl border-slate-200 dark:border-white/10 dark:bg-black/30 focus-visible:ring-cyan-500"
+                  data-testid="chat-studio-api-key-input"
                 />
               </div>
-              <button 
+              <Button 
                 type="submit"
                 disabled={!apiKeyInput.trim()}
-                className="w-full py-3 rounded-xl bg-cyan-600 hover:bg-cyan-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold shadow-lg shadow-cyan-500/20 transition-all"
+                className="w-full h-12 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-bold shadow-lg shadow-cyan-500/20"
+                data-testid="chat-studio-save-key-btn"
               >
                 Save & Enter Studio
-              </button>
+              </Button>
            </form>
            
            <div className="text-xs text-slate-400">
@@ -339,12 +332,13 @@ export const ChatStudio: React.FC = () => {
             <button 
               onClick={handleNewChat}
               className="w-full flex items-center justify-center gap-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-3 rounded-xl font-semibold hover:opacity-90 transition-opacity shadow-lg"
+              data-testid="chat-studio-new-chat-btn"
             >
               <Plus size={18} /> New Conversation
             </button>
          </div>
          
-         <div className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
+         <div data-testid="chat-history-list" className="flex-1 overflow-y-auto custom-scrollbar p-3 space-y-2">
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">Recent Chats</div>
             {chats.filter(c => !c.is_archived).slice(0, 20).map(chat => (
                <button
@@ -355,6 +349,7 @@ export const ChatStudio: React.FC = () => {
                       ? 'bg-white dark:bg-white/5 shadow-md border-slate-200 dark:border-white/5' 
                       : 'hover:bg-white/50 dark:hover:bg-white/5 text-slate-600 dark:text-slate-400'}
                  `}
+                 data-testid="chat-history-item"
                >
                  <div className="font-medium truncate text-sm text-slate-900 dark:text-slate-200 mb-0.5">{chat.title}</div>
                  <div className="flex items-center justify-between">
@@ -471,7 +466,7 @@ export const ChatStudio: React.FC = () => {
                <button type="button" className="p-3 text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
                   <Plus size={20} />
                </button>
-               <textarea 
+               <Textarea 
                   autoFocus
                   rows={1}
                   value={input}
@@ -483,13 +478,15 @@ export const ChatStudio: React.FC = () => {
                     }
                   }}
                   placeholder={`Message ${selectedModel.name}...`}
-                  className="flex-1 bg-transparent border-none focus:ring-0 text-slate-900 dark:text-white placeholder:text-slate-400 py-3 max-h-32 resize-none"
+                  className="flex-1 bg-transparent border-none focus-visible:ring-0 focus-visible:ring-offset-0 text-slate-900 dark:text-white placeholder:text-slate-400 max-h-32 resize-none shadow-none"
                   style={{ minHeight: '48px' }}
+                  data-testid="chat-studio-input"
                />
                <button 
                   type="submit"
                   disabled={!input.trim() || isLoading}
                   className={`p-3 rounded-xl transition-all duration-300 ${input.trim() ? 'bg-cyan-500 text-white shadow-lg shadow-cyan-500/30' : 'bg-slate-200 dark:bg-white/10 text-slate-400'}`}
+                  data-testid="chat-studio-send-btn"
                >
                   <Send size={20} />
                </button>

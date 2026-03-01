@@ -1,9 +1,9 @@
 {
   "metadata": {
     "title": "BrainBox Knowledge Graph",
-    "version": "1.3.0",
-    "last_updated": "2026-02-27T23:50:00Z",
-    "description": "Master map of external documentation, business logic rules, schemas, and security policies."
+    "version": "1.4.0",
+    "last_updated": "2026-02-28T23:49:10.438Z",
+    "description": "Master map of external documentation, business logic rules, schemas, and security policies. Updated with Surgical Sprint integrations (Playwright, Virtualization, Shadcn)."
   },
   "nodes": [
     {
@@ -11,7 +11,11 @@
       "category": "External Documentation",
       "title": "Chrome Extension Manifest V3",
       "url": "https://developer.chrome.com/docs/extensions/mv3/",
-      "tags": ["extension", "mv3", "chrome"],
+      "tags": [
+        "extension",
+        "mv3",
+        "chrome"
+      ],
       "relevance": "Core architecture for apps/extension, defining background workers and storage APIs."
     },
     {
@@ -19,7 +23,11 @@
       "category": "External Documentation",
       "title": "Supabase Docs",
       "url": "https://supabase.com/docs/",
-      "tags": ["database", "auth", "rls"],
+      "tags": [
+        "database",
+        "auth",
+        "rls"
+      ],
       "relevance": "Primary backend service for Auth, PostgreSQL, and RLS management."
     },
     {
@@ -27,16 +35,25 @@
       "category": "External Documentation",
       "title": "Next.js Documentation",
       "url": "https://nextjs.org/docs/",
-      "tags": ["dashboard", "ssr", "api"],
+      "tags": [
+        "dashboard",
+        "ssr",
+        "api"
+      ],
       "relevance": "Framework for apps/dashboard, managing routing and server-side logic."
     },
     {
       "id": "A.4",
       "category": "External Documentation",
-      "title": "Tailwind CSS Documentation",
+      "title": "Tailwind CSS v4 Documentation",
       "url": "https://tailwindcss.com/docs/",
-      "tags": ["ui", "styling"],
-      "relevance": "Styling framework used across all UI components."
+      "tags": [
+        "ui",
+        "styling",
+        "v4",
+        "css-first"
+      ],
+      "relevance": "Tailwind v4 (CSS-first) used across ALL apps. Entry: @import 'tailwindcss'. Theme: @theme {} block. PostCSS: @tailwindcss/postcss. No tailwind.config.ts needed."
     },
     {
       "id": "B.1",
@@ -119,6 +136,14 @@
       "implementation": "apps/dashboard/src/components/features/chats/ChatStudio.tsx"
     },
     {
+      "id": "B.14",
+      "category": "Business Logic",
+      "title": "SyncBatchService Rate Limiting",
+      "node_name": "sync-batch-service",
+      "rationale": "Batches and deduplicates rapid consecutive mutations from Dashboard UI stores to remain under the 30 RPM AI platform sync rate limits.",
+      "implementation": "apps/dashboard/src/lib/services/sync-batch.service.ts"
+    },
+    {
       "id": "B.11",
       "category": "Business Logic",
       "title": "Platform-Specific Rate Limits",
@@ -190,7 +215,13 @@
       "id": "C.2",
       "category": "Schemas",
       "title": "Prompt Schema",
-      "fields": ["title", "content", "color", "folder_id", "use_in_context_menu"],
+      "fields": [
+        "title",
+        "content",
+        "color",
+        "folder_id",
+        "use_in_context_menu"
+      ],
       "location": "packages/validation/schemas/prompt.ts"
     },
     {
@@ -265,7 +296,11 @@
         "images": "2MB"
       },
       "implementation": "apps/dashboard/src/app/api/images/route.ts",
-      "required_checks": ["MIME type check", "size < limit", "upsert: false"]
+      "required_checks": [
+        "MIME type check",
+        "size < limit",
+        "upsert: false"
+      ]
     },
     {
       "id": "E.3",
@@ -287,21 +322,109 @@
       "task": "brainbox_master.js deactivated from manifest content_scripts. Pending final archival decision by EXTENSION_BUILDER."
     },
     {
+      "id": "D.7",
+      "category": "Guidelines",
+      "title": "UI System — Unified Tailwind v4 + Design Tokens",
+      "rule": "Both apps use Tailwind v4 (CSS-first). Design tokens live in packages/ui/tokens/. Import via @import '@brainbox/ui/tokens'. No tailwind.config.ts. Extension popup: @import 'tailwindcss' + @theme block. Content scripts: inline styles only via injectStyles(), never Tailwind.",
+      "tokens": {
+        "colors": "packages/ui/tokens/colors.css → --ui-color-platform-*, --ui-color-glass-*",
+        "typography": "packages/ui/tokens/typography.css → --ui-font-sans, --ui-font-mono",
+        "z-index": "packages/ui/tokens/z-index.css → --ui-z-* (UI stack ≤400, content scripts 10000-9999999)",
+        "effects": "packages/ui/tokens/effects.css → --ui-effect-glass-*, --ui-effect-glow-*"
+      },
+      "reference": "docs/Mandatory!/UI_SYSTEM.md v3.0.0"
+    },
+    {
+      "id": "D.8",
+      "category": "Guidelines",
+      "title": "Z-Index Two-Stack Convention",
+      "rule": "Standard UI (Dashboard + Ext Popup): max z-index 400 (--ui-z-toast). Content scripts injected in foreign DOM (ChatGPT/Gemini): 10000–9999999. These are intentionally different scales. Never use raw z-index numbers — use --ui-z-* tokens."
+    },
+    {
       "id": "G.1",
       "category": "Configuration & Resource Map",
       "title": "Environment & API Configuration",
       "description": "Central lookup for configuration files and environment variables. Avoid redundant searches.",
       "locations": {
         "local_supabase_keys": "supabase/.supabase_local_keys.txt (Auto-generated by CLI status)",
-        "global_env": [".env", ".env.local (root)"],
-        "dashboard_env": ["apps/dashboard/.env", "apps/dashboard/.env.local"],
-        "extension_env": ["apps/extension/.env.development", "apps/extension/.env.production"],
+        "global_env": [
+          ".env",
+          ".env.local (root)"
+        ],
+        "dashboard_env": [
+          "apps/dashboard/.env",
+          "apps/dashboard/.env.local"
+        ],
+        "extension_env": [
+          "apps/extension/.env.development",
+          "apps/extension/.env.production"
+        ],
         "supabase_config": "supabase/config.toml",
         "database_migrations": "supabase/migrations/",
         "validation_schemas": "packages/validation/schemas/",
-        "shared_types": "packages/shared/src/types/"
+        "shared_types": "packages/shared/src/types/",
+        "ui_tokens": "packages/ui/tokens/ (colors.css, typography.css, z-index.css, effects.css)"
       },
       "usage_guide": "Never hardcode keys. Use verified locations to resolve environment dependencies."
+    },
+    {
+      "id": "B.15",
+      "category": "Business Logic",
+      "title": "Progressive Web App (PWA) Support",
+      "node_name": "next-pwa-config",
+      "rationale": "Dashboard is configured as a PWA using next-pwa to support installable experiences and baseline offline static caching.",
+      "implementation": "package.json (next-pwa)"
+    },
+    {
+      "id": "H.1",
+      "category": "Missing/Deferred Systems",
+      "title": "Internationalization (i18n)",
+      "description": "The project currently does not implement an i18n framework (e.g., next-intl). All GUI strings are hardcoded."
+    },
+    {
+      "id": "H.2",
+      "category": "Missing/Deferred Systems",
+      "title": "Telemetry & Error Tracking",
+      "description": "No formal telemetry or error tracking (e.g., Sentry, PostHog, Datadog) is installed. Debugging implies observing local/server logs."
+    },
+    {
+      "id": "I.1",
+      "category": "Agent Framework",
+      "title": "Agent Roles Directory",
+      "description": "Defines permissions and exact responsibilities for AI agents working in this repository.",
+      "location": "docs/agents/roles/",
+      "roles": [
+        "QA_EXAMINER",
+        "CODE_SURGEON",
+        "DASHBOARD_BUILDER",
+        "EXTENSION_BUILDER",
+        "DOCS_LIBRARIAN",
+        "DB_ARCHITECT",
+        "ENV_ENGINEER",
+        "BRAINBOX_AUDITOR"
+      ]
+    },
+    {
+      "id": "D.9",
+      "category": "Guidelines",
+      "title": "API Response Format Enforcement",
+      "rule": "API route errors must use NextResponse.json({ error: ... }, { status: ... }) instead of plain strings for predictable parsing.",
+      "implementation": "apps/dashboard/src/app/api/"
+    },
+    {
+      "id": "B.16",
+      "category": "Business Logic",
+      "title": "List Virtualization via @tanstack/react-virtual",
+      "node_name": "list-virtualization",
+      "rationale": "Large data grids (chats, prompts) use window virtualizer with dynamic column chunking to boost DOM performance.",
+      "implementation": "apps/dashboard/src/app/chats/page.tsx, apps/dashboard/src/app/prompts/page.tsx"
+    },
+    {
+      "id": "D.10",
+      "category": "Guidelines",
+      "title": "Component Library Standards",
+      "rule": "All new standard UI elements (Buttons, Inputs, Dialogs, Selects) MUST use Shadcn-UI components from components/ui instead of native HTML logic.",
+      "implementation": "apps/dashboard/components.json"
     }
   ]
 }

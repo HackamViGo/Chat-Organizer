@@ -118,7 +118,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const validatedData = createChatSchema.parse(body)
+    const result = createChatSchema.safeParse(body)
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      )
+    }
+    const validatedData = result.data
 
     const sourceId =
       validatedData.source_id || extractSourceId(validatedData.url, validatedData.platform)
@@ -200,7 +208,15 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const validatedData = updateChatSchema.parse(body)
+    const result = updateChatSchema.safeParse(body)
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      )
+    }
+    const validatedData = result.data
     const { id, ...updates } = validatedData
 
     const { data, error } = await supabase

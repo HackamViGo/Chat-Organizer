@@ -1,6 +1,7 @@
 # ARCHITECTURE.md
 
-> **Версия:** 3.1.0  
+> **Версия:** 3.2.0
+> **Последна актуализация:** 2026-02-28
 > **Авторитет:** Архитект. Промени изискват архитектурен review, не само PR approval.  
 > **Правило:** Никой агент не добавя нов слой, нов state manager или нова комуникационна пътека без да актуализира този файл първо.
 
@@ -41,6 +42,8 @@
 - Комуникация с Dashboard чрез HTTP API с Bearer JWT
 - **Rate Limiting:** Интегриран Token Bucket ограничител (apps/extension/src/lib/rate-limiter.ts) за избягване на блокиране от AI платформи:
   - ChatGPT: 60 RPM | Claude: 30 RPM | Gemini: 20 RPM | Dashboard: 100 RPM
+  > ⚠️ **Rate limit разяснение:** Клиентският bucket на Extension (Dashboard: 100 RPM) е по-висок от сървърния лимит на Dashboard ($30 RPM за `/api/chats/extension`, виж SECURITY.md §4). Двата лимита са в **различни слоеве**: Extension ограничава собствения си темп (client-side), а Dashboard server ограничава входния трафик (server-side). Sync service-ът трябва да batch-ва заявките, за да остане под 30 RPM сървърния лимит.
+  > ℹ️ `/api/chats` (CRUD) лимитът е отделен — 100 req/мин за нормален Dashboard CRUD трафик (не Extension sync).
 
 **Какво НЕ прави:**
 - Не съдържа бизнес логика (тя е в Dashboard)
@@ -79,7 +82,8 @@
 1. `middleware.ts` — auth guard, CORS за Extension, rate limiting
 2. `app/api/**/route.ts` — API layer, Zod validation, Supabase операции
 3. `store/*.ts` — Zustand, UI state, optimistic updates
-4. `components/` — React компоненти, само рендериране и event handling
+4. `lib/services/sync-batch.service.ts` — Обединява и забавя (debounce) API заявки от store-овете за предпазване от rate limits (30 RPM).
+5. `components/` — React компоненти, само рендериране и event handling
 
 **Правило за слоевете:** Логика тече само надолу. Компонент не извиква Supabase директно. Store не рендерира UI. API route не импортира от store.
 
@@ -94,8 +98,9 @@ Monorepo пакети, достъпни в двете приложения чр�
 | `@brainbox/shared` | TypeScript типове, utility функции, constants | Всичко |
 | `@brainbox/validation` | Zod schemas — единствен source of truth за валидация | Dashboard API, Extension adapters |
 | `@brainbox/database` | Supabase генерирани TypeScript типове | Dashboard, shared |
-| `@brainbox/config` | Tailwind, TypeScript, PostCSS конфигурации | Двете приложения |
+| `@brainbox/config` | TypeScript, PostCSS конфигурации (legacy shell) | Двете приложения |
 | `@brainbox/assets` | AI платформени икони и branding | Dashboard UI, Extension popup |
+| `@brainbox/ui` | Централизирани design tokens (colors, typography, z-index, effects) | Dashboard, Extension popup |
 
 **Правило:** Пакетите не съдържат runtime логика, специфична за едното приложение. Ако нещо работи само в Extension — то е в Extension. Ако работи само в Dashboard — то е в Dashboard.
 

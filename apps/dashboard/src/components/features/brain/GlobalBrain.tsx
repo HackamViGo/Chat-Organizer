@@ -1,13 +1,15 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
 import { BrainCircuit, Send, X, Sparkles, User } from 'lucide-react';
-import { useChatStore } from '@/store/useChatStore';
+import React, { useState, useRef, useEffect } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 
+import { useChatStore } from '@/store/useChatStore';
+import { useUIStore } from '@/store/useUIStore';
+
 export const GlobalBrain: React.FC = () => {
-  const chats = useChatStore(useShallow((s) => s.chats));
-  const [isOpen, setIsOpen] = useState(false);
+  const chats = useChatStore(useShallow((s: any) => s.chats));
+  const { isGlobalBrainOpen, setGlobalBrainOpen } = useUIStore(useShallow(s => ({ isGlobalBrainOpen: s.isGlobalBrainOpen, setGlobalBrainOpen: s.setGlobalBrainOpen })));
   const [query, setQuery] = useState('');
   const [history, setHistory] = useState<{ role: 'user' | 'ai'; content: string }[]>([
     { role: 'ai', content: "Hello! I am your Collective Memory. I've analyzed all your chats. Ask me things like:\n\n*   \"Where did we discuss Supabase auth?\"\n*   \"What was the conclusion on the UI design?\"\n*   \"Summarize my work on Python scripts.\"" }
@@ -19,7 +21,7 @@ export const GlobalBrain: React.FC = () => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [history, isOpen]);
+  }, [history, isGlobalBrainOpen]);
 
   const handleAsk = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -33,7 +35,7 @@ export const GlobalBrain: React.FC = () => {
     try {
       // Build context from all chats
       const context = chats
-        .map(c => `Chat: ${c.title}\nContent: ${c.content || ''}\nSummary: ${c.summary || ''}`)
+        .map((c: any) => `Chat: ${c.title}\nContent: ${c.content || ''}\nSummary: ${c.summary || ''}`)
         .join('\n\n');
 
       const response = await fetch('/api/ai/generate', {
@@ -57,10 +59,10 @@ export const GlobalBrain: React.FC = () => {
     }
   };
 
-  if (!isOpen) {
+  if (!isGlobalBrainOpen) {
     return (
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={() => setGlobalBrainOpen(true)}
         className="fixed bottom-6 right-6 md:bottom-10 md:right-10 z-40 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white p-4 rounded-full shadow-lg shadow-purple-900/30 transition-all hover:scale-110 active:scale-95 group"
         title="Open Collective Memory"
       >
@@ -88,7 +90,7 @@ export const GlobalBrain: React.FC = () => {
             </div>
           </div>
           <button 
-            onClick={() => setIsOpen(false)}
+            onClick={() => setGlobalBrainOpen(false)}
             className="text-slate-400 hover:text-white p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
             <X size={20} />

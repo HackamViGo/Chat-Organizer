@@ -121,7 +121,15 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const validatedData = updatePromptSchema.parse(body);
+    const result = updatePromptSchema.safeParse(body);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
     const { id, ...updates } = validatedData;
 
     // Update prompt that belongs to the user
@@ -215,7 +223,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const validatedData = createPromptSchema.parse(body);
+    const result = createPromptSchema.safeParse(body);
+    
+    if (!result.success) {
+      return NextResponse.json(
+        { error: 'Invalid request data', details: result.error.errors },
+        { status: 400 }
+      );
+    }
+    const validatedData = result.data;
 
     const { data, error } = await supabase
       .from('prompts')

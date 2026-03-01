@@ -1,8 +1,9 @@
 # 🤖 AI Best Practices Guide for BrainBox
 
 **Purpose:** Comprehensive guide for AI agents working on BrainBox project  
-**Last Updated:** 2025-01-15  
-**Version:** 1.0.0
+**Last Updated:** 2026-02-28  
+**Version:** 1.1.0  
+> **Бележка:** Tailwind секцията е обновена за v4 (CSS-first). Tailwind v3 е депрекиран.
 
 ---
 

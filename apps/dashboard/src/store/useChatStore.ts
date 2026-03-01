@@ -1,5 +1,12 @@
-import { create } from 'zustand';
 import type { Chat } from '@brainbox/shared';
+import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+import { syncBatchService } from '@/lib/services/sync-batch.service';
+
+export const clearChatStore = () => {
+  useChatStore.persist.clearStorage();
+};
 
 interface ChatStore {
   chats: Chat[];
@@ -19,7 +26,9 @@ interface ChatStore {
   setLoading: (loading: boolean) => void;
 }
 
-export const useChatStore = create<ChatStore>((set, get) => ({
+export const useChatStore = create<ChatStore>()(
+  persist(
+    (set, get) => ({
   chats: [],
   selectedChatId: null,
   selectedChatIds: new Set<string>(),
@@ -38,23 +47,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     }));
 
     try {
-      // 3. Perform API Request
-      const response = await fetch('/api/chats', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'include',
-        body: JSON.stringify({ id, ...updates }),
-      });
-      
-      if (!response.ok) throw new Error('Failed to update chat');
+      // 3. Perform Batched API Request
+      const updatedChat = await syncBatchService.enqueue(
+        '/api/chats', 
+        'PUT', 
+        JSON.stringify({ id, ...updates }), 
+        `update-chat-${id}`
+      );
       
       // 4. Sync with server response (optional, for exact DB timestamps)
-      const updatedChat = await response.json();
-      set((state) => ({
-        chats: state.chats.map((chat) =>
-          chat.id === id ? { ...chat, ...updatedChat } : chat
-        ),
-      }));
+      if (updatedChat) {
+        set((state) => ({
+          chats: state.chats.map((chat) =>
+            chat.id === id ? { ...chat, ...updatedChat } : chat
+          ),
+        }));
+      }
     } catch (error) {
       console.error('Error updating chat, rolling back:', error);
       // 5. Rollback to previous state on failure!
@@ -77,15 +85,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     });
 
     try {
-      // 2. Perform API Request
-      const response = await fetch(`/api/chats?ids=${id}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete chat');
-      }
+      // 2. Perform Batched API Request
+      await syncBatchService.enqueue(
+        `/api/chats?ids=${id}`, 
+        'DELETE', 
+        undefined, 
+        `delete-chat-${id}`
+      );
     } catch (error) {
       console.error('Error deleting chat, rolling back:', error);
       // 3. Rollback on failure
@@ -114,15 +120,13 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     });
 
     try {
-      // 2. Perform API Request
-      const response = await fetch(`/api/chats?ids=${ids.join(',')}`, {
-        method: 'DELETE',
-        credentials: 'include',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete chats');
-      }
+      // 2. Perform Batched API Request
+      await syncBatchService.enqueue(
+        `/api/chats?ids=${ids.join(',')}`, 
+        'DELETE', 
+        undefined, 
+        `delete-chats-${ids.join(',')}`
+      );
     } catch (error) {
       console.error('Error deleting chats, rolling back:', error);
       // 3. Rollback on failure
@@ -151,4 +155,22 @@ export const useChatStore = create<ChatStore>((set, get) => ({
     set({ selectedChatIds: new Set<string>() }),
   selectChat: (id) => set({ selectedChatId: id }),
   setLoading: (loading) => set({ isLoading: loading }),
-}));
+    }),
+    {
+      name: 'brainbox-chat-store',
+      storage: createJSONStorage(() => (typeof window !== 'undefined' ? localStorage : {
+        getItem: () => null,
+        setItem: () => {},
+        removeItem: () => {},
+      })),
+      partialize: (state) => ({ chats: state.chats }),
+      version: 1,
+      migrate: (persistedState: unknown, version: number) => {
+        if (version === 0) {
+          // Add any migration logic from version 0 to version 1 if needed
+        }
+        return persistedState as ChatStore;
+      },
+    }
+  )
+);

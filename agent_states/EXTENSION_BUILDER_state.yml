@@ -21,4 +21,6 @@ history:
     task: 'Environment Config Additions'
   - date: '2026-02-27'
     task: 'Memory Leaks + Empty Catch Fix (Post-Audit Sprint)'
+  - date: '2026-02-28'
+    task: 'Investigate HMR Connection Refused Errors'
 pending_handoffs: []

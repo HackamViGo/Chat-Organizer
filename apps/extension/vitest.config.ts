@@ -14,7 +14,13 @@ export default defineConfig({
         'dist/**',
         '**/*.test.ts',
         '**/__tests__/**'
-      ]
+      ],
+      thresholds: {
+        'src/background/**': {
+          statements: 90,
+          branches: 85
+        }
+      }
     },
     exclude: [
       '**/node_modules/**',

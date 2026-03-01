@@ -15,7 +15,15 @@ import { createServerSupabaseClient } from '@/lib/supabase/server'
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { content, apiKey } = aiGenerateRequestSchema.parse(body)
+    const validationResult = aiGenerateRequestSchema.safeParse(body)
+    
+    if (!validationResult.success) {
+      return NextResponse.json(
+        { error: 'Validation Error', details: validationResult.error.errors },
+        { status: 400 }
+      )
+    }
+    const { content, apiKey = '' } = validationResult.data
 
     const supabase = createServerSupabaseClient()
     const {

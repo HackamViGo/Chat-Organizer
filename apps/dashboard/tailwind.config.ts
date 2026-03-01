@@ -1,8 +1,7 @@
-import type { Config } from 'tailwindcss';
 import baseConfig from '@brainbox/config/tailwind';
+import type { Config } from 'tailwindcss';
 
-/** @type {import('tailwindcss').Config} */
-module.exports = {
+const config = {
   ...baseConfig,
   darkMode: ['class'],
   content: [
@@ -55,5 +54,6 @@ module.exports = {
     },
   },
   plugins: [],
-};
+} satisfies Config;
 
+export default config;

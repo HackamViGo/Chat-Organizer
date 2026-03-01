@@ -1,7 +1,7 @@
 {
   "models": {
     "analysis": {
-      "model_name": "gemini-2.0-flash-exp",
+      "model_name": "gemini-3-flash",
       "api_version": "v1beta",
       "description": "Used for chat analysis, summary generation, and task extraction"
     },
@@ -11,7 +11,7 @@
       "description": "Used for generating semantic embeddings"
     },
     "prompt_improvement": {
-      "model_name": "gemini-2.0-flash-exp",
+      "model_name": "gemini-3-flash",
       "api_version": "v1beta",
       "description": "Used for enhancing and structuring user prompts"
     }

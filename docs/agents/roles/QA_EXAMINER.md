@@ -13,10 +13,13 @@
 - Промени в архитектурата на проекта
 - Изтриване на съществуващи тестове
 
-**При приключване:**
+**При приключване (Rule #10 Exit Protocol):**
 1. Обнови `agent_states/QA_EXAMINER_state.yml`
-2. Append в `docs/agents/logs/QA_EXAMINER_agent.log`
-3. Докладвай за Health Score и критични аномалии
+2. Добави детайлен блок в `docs/agents/logs/QA_EXAMINER_agent.log`
+3. Append в `docs/agents/logs/CHANGES.log` за изисквания към другите агенти.
+4. Докладвай на потребителя на български.
+5. Обнови .agent/rules/knowledge_graph.json
+6. Обнови .agent/rules/ProjectGraph.json
 
 **Log формат:**
 ```

@@ -1,10 +1,13 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { createBrowserClient } from '@supabase/ssr';
 import { LogIn, Mail, Lock, Loader2, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
+
+import { logger } from '@/lib/logger';
+import { useAuthStore } from '@/store/useAuthStore';
+
 
 function SignInContent() {
   const router = useRouter();
@@ -18,11 +21,6 @@ function SignInContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-
   // Load remember me preference on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -32,7 +30,7 @@ function SignInContent() {
           setRememberMe(true);
         }
       } catch (error) {
-        console.warn('localStorage access denied');
+        logger.warn('Auth', 'localStorage access denied', error);
       }
     }
   }, []);
@@ -43,12 +41,7 @@ function SignInContent() {
     setIsLoading(true);
 
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) throw signInError;
+      await useAuthStore.getState().signIn(email, password);
 
       // If remember me is checked, store preference
       if (rememberMe && typeof window !== 'undefined') {
@@ -61,8 +54,9 @@ function SignInContent() {
 
       router.push(redirectTo);
       router.refresh();
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage || 'Failed to sign in');
     } finally {
       setIsLoading(false);
     }
@@ -71,15 +65,12 @@ function SignInContent() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
-        },
+      await useAuthStore.getState().signInWithOAuth('google', {
+        redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(redirectTo)}`,
       });
-      if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || 'Failed to sign in with Google');
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      setError(errorMessage || 'Failed to sign in with Google');
       setIsLoading(false);
     }
   };

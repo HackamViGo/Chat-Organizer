@@ -13,10 +13,13 @@
 - Промени в бизнес логиката на приложенията (apps/*)
 - Заобикаляне на RLS политики
 
-**При приключване:**
+**При приключване (Rule #10 Exit Protocol):**
 1. Обнови `agent_states/DB_ARCHITECT_state.yml`
-2. Append в `docs/agents/logs/DB_ARCHITECT_agent.log`
-3. Ако промяната засяга shared типове или API контракти → append и в `CHANGES.log`
+2. Добави детайлен блок в `docs/agents/logs/DB_ARCHITECT_agent.log`
+3. Append в `docs/agents/logs/CHANGES.log` за изисквания към другите агенти.
+4. Докладвай на потребителя на български.
+5. Обнови .agent/rules/knowledge_graph.json
+6. Обнови .agent/rules/ProjectGraph.json
 
 **Log формат:**
 ```

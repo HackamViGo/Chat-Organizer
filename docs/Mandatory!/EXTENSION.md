@@ -1,5 +1,5 @@
 # Chrome Extension — Deep Dive
-**Версия:** 2.2.0 | **Последна актуализация:** 2026-02-25 | **Базиран на код от:** 2026-02-25
+**Версия:** 2.3.0 | **Последна актуализация:** 2026-02-28 | **Базиран на код от:** 2026-02-28
 
 ---
 
@@ -8,7 +8,8 @@
 | Аспект | Стойност |
 |--------|----------|
 | Manifest версия | MV3 |
-| Build система | Vite + CRXJS |
+| Build система | Vite 5 + CRXJS |
+| CSS система | Tailwind **v4** (CSS-first, `@import "tailwindcss"`) |
 | Auth метод | AES-GCM encrypted JWT в `chrome.storage.local` |
 | Sync метод | Background fetch → Dashboard API |
 | Offline support | `chrome.storage.local` queue (`SyncManager`) |
@@ -62,6 +63,7 @@
 ### Sync Queue Flow
 1. **SyncManager**: Ако Dashboard е недостъпен (offline), заявката се добавя в `brainbox_sync_queue`.
 2. **Retry Logic**: Използва `chrome.alarms` за периодични опити за синхронизация при възстановяване на връзката.
+3. **Разлика с Dashboard**: Докато Extension използва `SyncManager` за *offline queueing*, Dashboard използва `SyncBatchService` за *rate limit safety* (batching на бързи мутации от UI-я).
 
 ---
 
@@ -97,5 +99,6 @@
 | Дата | Промяна | Файл |
 |------|---------|------|
 | 2026-02-25 | Пълна реконструкция на документацията | `docs/Mandatory!/EXTENSION.md` |
-| 2026-02-25 | Добавено AES-GCM криптиране на токените | `authManager.ts` |
+| 2026-02-28 | Tailwind v3 → v4 миграция. `tailwind.config.ts` изтрит. CSS: `@import "tailwindcss"` + `@theme` блок. | `postcss.config.js`, `popup/styles/index.css` |
+| 2026-02-28 | `@brainbox/ui` пакет добавен — централизирани design tokens | `packages/ui/tokens/` |
 | 2026-02-25 | Енфорснат `DEBUG_MODE=false` | `config.ts` |

@@ -1,0 +1,25 @@
+name: 🚀 Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  deploy-info:
+    name: Deploy Info
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log deployment target
+        run: |
+          if [ '${{ github.ref_name }}' = 'main' ]; then
+            echo '🚀 PRODUCTION deployment triggered'
+          else
+            echo '🧪 STAGING (dev) deployment triggered'
+          fi
+      - name: Extension version check
+        run: |
+          VERSION=$(node -p "require('./apps/extension/package.json').version")
+          echo "Extension version: $VERSION"

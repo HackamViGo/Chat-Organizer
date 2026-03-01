@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SmartPromptSearch } from '@/lib/services/smart-prompt-search';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   try {
     const category = request.nextUrl.searchParams.get('category');

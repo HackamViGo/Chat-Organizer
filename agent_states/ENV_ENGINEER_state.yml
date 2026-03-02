@@ -3,3 +3,7 @@ status: IDLE
 history:
   - date: '2026-02-27'
     task: 'Post-Audit Infrastructure Fix (QA Sprint) — stripDevCSP extended, brainbox_master deactivated, dist verified clean'
+  - date: '2026-03-02'
+    task: 'Supabase-Vercel Auth Alignment: Redirects fixed, .env synced, Google OAuth verified, legacy /login routes purged.'
+  - date: '2026-03-02'
+    task: 'Applied environment changes by stopping/restarting pnpm dev (Port 3000, 5173 RESET)'

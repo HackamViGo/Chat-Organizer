@@ -35,7 +35,7 @@ VALUES (
   'authenticated',
   'test@brainbox.ai',
   -- Hashed 'password123' using standard local bcrypt logic
-  '$2a$10$wT5iGvG7lCjV9w9Xl1z1uO_Qtta7pbZeyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9', -- This is a placeholder; usually we use crypt() if pgcrypto is on
+  crypt('password123', gen_salt('bf')), -- Valid bcrypt hash for local development
   now(),
   NULL,
   now(),

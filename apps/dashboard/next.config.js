@@ -1,9 +1,9 @@
-const withPWA = require('@ducanh2912/next-pwa').default({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-});
+// const withPWA = require('@ducanh2912/next-pwa').default({
+//   dest: 'public',
+//   register: true,
+//   skipWaiting: true,
+//   disable: process.env.NODE_ENV === 'development',
+// });
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -17,14 +17,18 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ['@brainbox/assets', '@brainbox/database', '@brainbox/validation', '@brainbox/shared'],
+  transpilePackages: [
+    '@brainbox/assets',
+    '@brainbox/database',
+    '@brainbox/validation',
+    '@brainbox/shared',
+  ],
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? { exclude: ['error'] } : false,
   },
+}
 
-};
-
-module.exports = withPWA(nextConfig);
+module.exports = nextConfig // withPWA(nextConfig);

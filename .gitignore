@@ -60,7 +60,9 @@ docs/project/audit_summary.md
 scripts/pre-migration/
 docs/user/
 docs/archive/
+docs/Mandatory!/
 docs/temp/
+agent_states/
 
 
 # Project state and internal docs

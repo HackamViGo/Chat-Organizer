@@ -7,7 +7,7 @@ To standardize error detection globally across `apps/dashboard`, `apps/extension
 
 | Code | HTTP Status | Description | Action/Resolution |
 |------|-------------|-------------|--------|
-| `AUTH_001` | 401 | Missing Token | Provide a valid Bearer JWT. Flow redirects user to `/login` |
+| `AUTH_001` | 401 | Missing Token | Provide a valid Bearer JWT. Flow redirects user to `/auth/signin` |
 | `AUTH_002` | 401 | Invalid or Expired Token | Clear invalid tokens and trigger an auth refresh |
 | `AUTH_003` | 403 | RLS Policy Violation | Ensure `user_id` constraints match the entity requested |
 

@@ -1,9 +1,9 @@
 {
   "metadata": {
     "title": "BrainBox Knowledge Graph",
-    "version": "1.4.0",
-    "last_updated": "2026-02-28T23:49:10.438Z",
-    "description": "Master map of external documentation, business logic rules, schemas, and security policies. Updated with Surgical Sprint integrations (Playwright, Virtualization, Shadcn)."
+    "version": "2.1.0",
+    "last_updated": "2026-03-03T00:50:00.000Z",
+    "description": "Master map of external documentation, business logic rules, schemas, and security policies. Unified Roles v2.1 (Merged Prompt/Extension, New UI/UX Role)."
   },
   "nodes": [
     {
@@ -11,11 +11,7 @@
       "category": "External Documentation",
       "title": "Chrome Extension Manifest V3",
       "url": "https://developer.chrome.com/docs/extensions/mv3/",
-      "tags": [
-        "extension",
-        "mv3",
-        "chrome"
-      ],
+      "tags": ["extension", "mv3", "chrome"],
       "relevance": "Core architecture for apps/extension, defining background workers and storage APIs."
     },
     {
@@ -23,11 +19,7 @@
       "category": "External Documentation",
       "title": "Supabase Docs",
       "url": "https://supabase.com/docs/",
-      "tags": [
-        "database",
-        "auth",
-        "rls"
-      ],
+      "tags": ["database", "auth", "rls"],
       "relevance": "Primary backend service for Auth, PostgreSQL, and RLS management."
     },
     {
@@ -35,11 +27,7 @@
       "category": "External Documentation",
       "title": "Next.js Documentation",
       "url": "https://nextjs.org/docs/",
-      "tags": [
-        "dashboard",
-        "ssr",
-        "api"
-      ],
+      "tags": ["dashboard", "ssr", "api"],
       "relevance": "Framework for apps/dashboard, managing routing and server-side logic."
     },
     {
@@ -47,12 +35,7 @@
       "category": "External Documentation",
       "title": "Tailwind CSS v4 Documentation",
       "url": "https://tailwindcss.com/docs/",
-      "tags": [
-        "ui",
-        "styling",
-        "v4",
-        "css-first"
-      ],
+      "tags": ["ui", "styling", "v4", "css-first"],
       "relevance": "Tailwind v4 (CSS-first) used across ALL apps. Entry: @import 'tailwindcss'. Theme: @theme {} block. PostCSS: @tailwindcss/postcss. No tailwind.config.ts needed."
     },
     {
@@ -60,13 +43,48 @@
       "category": "Project Documentation",
       "title": "Master System Documentation",
       "url": "docs/user/MASTER_DOCUMENT.md",
-      "tags": [
-        "master",
-        "guide",
-        "consolidated",
-        "docs"
-      ],
+      "tags": ["master", "guide", "consolidated", "docs"],
       "relevance": "Single source of truth for the entire BrainBox system, merging 22 mandatory documents."
+    },
+    {
+      "id": "A.6",
+      "category": "Project Documentation",
+      "title": "Supabase Migration Guide",
+      "url": "docs/Mandatory!/SUPABASE_MIGRATION.md",
+      "tags": ["supabase", "migration", "infrastructure", "auth"],
+      "relevance": "Critical procedure for switching Supabase projects, syncing environment variables and Google OAuth."
+    },
+    {
+      "id": "A.7",
+      "category": "Project Documentation",
+      "title": "UI Component Map",
+      "url": "docs/Mandatory!/UI_COMPONENT_MAP.md",
+      "tags": ["ui", "components", "dashboard"],
+      "relevance": "Inventory of all Dashboard React components with props, store dependencies and render mode."
+    },
+    {
+      "id": "A.8",
+      "category": "Project Documentation",
+      "title": "Page Route Map",
+      "url": "docs/Mandatory!/PAGE_ROUTE_MAP.md",
+      "tags": ["routing", "pages", "dashboard"],
+      "relevance": "Mapping of all Dashboard page and layout routes with rendering mode, auth, and top-level components."
+    },
+    {
+      "id": "A.9",
+      "category": "Project Documentation",
+      "title": "Feature Data Flow",
+      "url": "docs/Mandatory!/FEATURE_DATA_FLOW.md",
+      "tags": ["dataflow", "features", "business-logic"],
+      "relevance": "Detailed data flow for key features from UI action to database and back."
+    },
+    {
+      "id": "A.10",
+      "category": "Project Documentation",
+      "title": "Platform Adapters Map",
+      "url": "docs/Mandatory!/PLATFORM_ADAPTERS_MAP.md",
+      "tags": ["extension", "adapters", "platforms"],
+      "relevance": "Documentation of all platform adapters in the extension, including capture methods and extracted fields."
     },
     {
       "id": "B.1",
@@ -228,13 +246,7 @@
       "id": "C.2",
       "category": "Schemas",
       "title": "Prompt Schema",
-      "fields": [
-        "title",
-        "content",
-        "color",
-        "folder_id",
-        "use_in_context_menu"
-      ],
+      "fields": ["title", "content", "color", "folder_id", "use_in_context_menu"],
       "location": "packages/validation/schemas/prompt.ts"
     },
     {
@@ -309,11 +321,7 @@
         "images": "2MB"
       },
       "implementation": "apps/dashboard/src/app/api/images/route.ts",
-      "required_checks": [
-        "MIME type check",
-        "size < limit",
-        "upsert: false"
-      ]
+      "required_checks": ["MIME type check", "size < limit", "upsert: false"]
     },
     {
       "id": "E.3",
@@ -360,18 +368,9 @@
       "description": "Central lookup for configuration files and environment variables. Avoid redundant searches.",
       "locations": {
         "local_supabase_keys": "supabase/.supabase_local_keys.txt (Auto-generated by CLI status)",
-        "global_env": [
-          ".env",
-          ".env.local (root)"
-        ],
-        "dashboard_env": [
-          "apps/dashboard/.env",
-          "apps/dashboard/.env.local"
-        ],
-        "extension_env": [
-          "apps/extension/.env.development",
-          "apps/extension/.env.production"
-        ],
+        "global_env": [".env", ".env.local (root)"],
+        "dashboard_env": ["apps/dashboard/.env", "apps/dashboard/.env.local"],
+        "extension_env": ["apps/extension/.env.development", "apps/extension/.env.production"],
         "supabase_config": "supabase/config.toml",
         "database_migrations": "supabase/migrations/",
         "validation_schemas": "packages/validation/schemas/",
@@ -403,18 +402,18 @@
     {
       "id": "I.1",
       "category": "Agent Framework",
-      "title": "Agent Roles Directory",
-      "description": "Defines permissions and exact responsibilities for AI agents working in this repository.",
+      "title": "Super-Agent Roles (v2.1)",
+      "description": "WHO (Identity) + HOW (Skills) + TOOLS (MCP) system. UI/UX Vision for BOTH Site/Extension.",
       "location": "docs/agents/roles/",
       "roles": [
-        "QA_EXAMINER",
-        "CODE_SURGEON",
+        "UI_UX_DESIGNER",
+        "ENV_ENGINEER",
+        "DB_ARCHITECT",
         "DASHBOARD_BUILDER",
         "EXTENSION_BUILDER",
-        "DOCS_LIBRARIAN",
-        "DB_ARCHITECT",
-        "ENV_ENGINEER",
-        "BRAINBOX_AUDITOR"
+        "BRAINBOX_AUDITOR",
+        "QA_EXAMINER",
+        "DOCS_LIBRARIAN"
       ]
     },
     {

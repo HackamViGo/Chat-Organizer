@@ -22,6 +22,10 @@
   --color-glass-bg:     var(--ui-color-glass-bg);
   --color-glass-border: var(--ui-color-glass-border);
 
+  /* Primary Theme Color (BrainBox Purple) */
+  --color-primary: hsl(263.4 70% 50.4%);
+  --color-primary-foreground: hsl(210 20% 98%);
+
   /* Animations */
   --animate-pulse-glow: pulse-glow 2s infinite ease-in-out;
 
@@ -64,4 +68,9 @@
   .glow-lmarena:hover    { box-shadow: var(--ui-effect-glow-lmarena); }
   .glow-deepseek:hover   { box-shadow: var(--ui-effect-glow-deepseek); }
   .glow-qwen:hover       { box-shadow: var(--ui-effect-glow-qwen); }
+
+  /* Premium Utilities */
+  .text-glow-primary {
+    text-shadow: 0 0 8px hsla(263, 70%, 50%, 0.4);
+  }
 }

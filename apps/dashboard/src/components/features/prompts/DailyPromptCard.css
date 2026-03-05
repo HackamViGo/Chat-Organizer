@@ -43,7 +43,7 @@
 
 /* Front Side */
 .daily-prompt-front {
-  background-color: #0d0d0d;
+  background-color: var(--color-background);
   display: flex;
   flex-direction: column;
   justify-content: center;

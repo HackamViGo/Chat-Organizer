@@ -1,7 +1,6 @@
 'use client';
 
-import React from 'react';
-import Link from 'next/link';
+import type { Folder } from '@brainbox/shared';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   ChevronDown, 
@@ -9,10 +8,15 @@ import {
   Folder as FolderIcon,
   FolderOpen,
   LayoutGrid, Archive, FileEdit, Settings,
-  Plus, User, Search, Trash2, ListTodo, 
+  User, Search, ListTodo, 
   MessageSquarePlus, Brain
 } from 'lucide-react';
-import { Chat, Folder } from '@brainbox/shared';
+import Link from 'next/link';
+import React from 'react';
+import { useShallow } from 'zustand/react/shallow';
+
+
+import { useChatStore } from '@/store/useChatStore';
 
 // --- Configuration ---
 
@@ -39,7 +43,6 @@ export interface FolderWithChildren extends Folder {
 interface FolderTreeItemProps {
   folder: FolderWithChildren;
   level: number;
-  allChats: Chat[];
   isActive: (id: string) => boolean;
   onToggle: (id: string) => void;
   expandedFolders: Set<string>;
@@ -49,14 +52,15 @@ interface FolderTreeItemProps {
 // --- Component ---
 
 export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({ 
-  folder, level, allChats, isActive, onToggle, expandedFolders, isExpanded
+  folder, level, isActive, onToggle, expandedFolders, isExpanded
 }) => {
+  const folderChats = useChatStore(useShallow(s => s.chats.filter(c => c.folder_id === folder.id && !c.is_archived)));
+
   // 1. THE 80px PURGE (Visibility Fix)
   // Hide everything if sidebar is not expanded
   if (!isExpanded) return null;
 
   const isFolderExpanded = expandedFolders.has(folder.id);
-  const folderChats = allChats.filter(c => c.folder_id === folder.id && !c.is_archived);
   const hasContent = (folder.children && folder.children.length > 0) || folderChats.length > 0;
   
   // Icon Logic
@@ -142,7 +146,6 @@ export const FolderTreeItem: React.FC<FolderTreeItemProps> = ({
                 key={child.id}
                 folder={child}
                 level={level + 1}
-                allChats={allChats}
                 isActive={isActive}
                 onToggle={onToggle}
                 expandedFolders={expandedFolders}

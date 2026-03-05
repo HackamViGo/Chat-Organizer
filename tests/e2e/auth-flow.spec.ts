@@ -1,56 +1,60 @@
-import { test, expect } from '@playwright/test';
+import * as path from 'path';
+
+import { test, expect, chromium, type BrowserContext } from '@playwright/test';
 
 test.describe('End-to-End Extension Auth & Sync', () => {
-    test('Dashboard Auth Syncs to Extension', async ({ page, context }) => {
+    let context: BrowserContext;
+    const pathToExtension = path.join(process.cwd(), 'apps/extension/dist');
+
+    test.beforeEach(async () => {
+        context = await chromium.launchPersistentContext('', {
+            headless: false,
+            args: [
+                `--disable-extensions-except=${pathToExtension}`,
+                `--load-extension=${pathToExtension}`,
+            ],
+        });
+    });
+
+    test.afterEach(async () => {
+        await context.close();
+    });
+
+    test('Dashboard Auth Syncs to Extension', async () => {
+        const page = await context.newPage();
         // Monitor console logs
         page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
-        // 1. Navigate to Dashboard (running locally)
-        console.log('Navigating to Dashboard...');
-        await page.goto('http://localhost:3000');
+        // 1. Navigate to Extension Auth page
+        console.log('Navigating to Extension Auth page...');
+        await page.goto('http://localhost:3000/extension-auth');
         
-        // 2. Simulate Supabase Login
-        // We set the localStorage key that content-dashboard-auth.ts listens for
+        // 2. Simulate Login via CustomEvent
         const mockSession = {
-            access_token: 'e2e-test-access-token',
-            refresh_token: 'e2e-test-refresh-token',
-            expires_at: Math.floor(Date.now() / 1000) + 3600,
-            user: { email: 'e2e-test@example.com', id: 'e2e-user-id' }
+            accessToken: 'e2e-test-access-token',
+            refreshToken: 'e2e-test-refresh-token',
+            expiresAt: Date.now() + 3600000,
+            rememberMe: true
         };
 
-        console.log('Injecting Mock Session into localStorage...');
+        console.log('Injecting Mock Session via brainbox-auth-ready event...');
         await page.evaluate((session) => {
-            localStorage.setItem('sb-localhost-auth-token', JSON.stringify(session));
-            // Dispatch storage event to force immediate sync check if script relies on it or polling
-            window.dispatchEvent(new StorageEvent('storage', {
-                key: 'sb-localhost-auth-token',
-                newValue: JSON.stringify(session)
+            window.dispatchEvent(new CustomEvent('brainbox-auth-ready', {
+                detail: session
             }));
         }, mockSession);
 
         // 3. Wait for Sync (Content Script -> Background)
         console.log('Waiting for sync...');
-        await page.waitForTimeout(3000); // Give it time to poll or react
+        await page.waitForTimeout(3000); 
 
         // 4. Verify Extension Background Storage
-        // We need to access the background page/service worker
-        // 4. Verify Extension Background Storage
-        // We need to access the background page/service worker
         console.log('Waiting for Service Worker...');
         let serviceWorker = context.serviceWorkers()[0];
         
-        // Poll for service worker if not ready
-        for (let i = 0; i < 10; i++) {
-            if (serviceWorker) break;
-            await page.waitForTimeout(500);
-            serviceWorker = context.serviceWorkers()[0];
-        }
-
         if (!serviceWorker) {
-            console.log('Service worker not found in context.serviceWorkers(). list:', context.serviceWorkers());
-            // Try to wait for event as fallback
             try {
-                serviceWorker = await context.waitForEvent('serviceworker', { timeout: 5000 });
+                serviceWorker = await context.waitForEvent('serviceworker', { timeout: 10000 });
             } catch (e) {
                 console.log('Timeout waiting for serviceworker event');
             }
@@ -64,26 +68,33 @@ test.describe('End-to-End Extension Auth & Sync', () => {
 
         // Check storage in Service Worker
         console.log('Checking Extension Storage...');
-        const storageState = await serviceWorker.evaluate(async () => {
-            return await chrome.storage.local.get(null);
+        const storageData = await serviceWorker.evaluate(async () => {
+            // @ts-ignore - chrome API
+            return await chrome.storage.local.get(['accessToken', 'refreshToken']);
         });
 
-        console.log('Extension Storage State:', storageState);
+        console.log('Extension Storage State:', storageData);
 
         // Assertions
-        expect(storageState.accessToken).toBe('e2e-test-access-token');
-        expect(storageState.refreshToken).toBe('e2e-test-refresh-token');
-        console.log('✅ Auth Sync Verified!');
+        expect(storageData.accessToken).toBeTruthy();
+        expect(storageData.refreshToken).toBeTruthy();
+        
+        // Extra check: ensure it's encrypted (not raw)
+        expect(storageData.accessToken).not.toBe('e2e-test-access-token');
+        
+        console.log('✅ Auth Sync Verified (Encrypted tokens found)!');
     });
 
-    test('Extension Injects Content Script on ChatGPT', async ({ page }) => {
+
+
+    test('Extension Injects Content Script on ChatGPT', async () => {
+        const page = await context.newPage();
         // 1. Go to ChatGPT
         console.log('Navigating to ChatGPT...');
         await page.goto('https://chatgpt.com');
         await page.waitForLoadState('domcontentloaded');
 
         // 2. Check for BrainBox indicators
-        // The extension injects a shadow host or specific styles
         const isInjecting = await page.evaluate(() => {
             const styles = document.querySelectorAll('style');
             const styleArr = Array.from(styles);
@@ -91,8 +102,6 @@ test.describe('End-to-End Extension Auth & Sync', () => {
         });
 
         console.log('BrainBox Styles Found:', isInjecting);
-        
-        // Note: Without login, robust UI might not appear, but styles usually inject early
-        // expect(isInjecting).toBe(true); // Soft assertion, might flake if network slow
     });
 });
+

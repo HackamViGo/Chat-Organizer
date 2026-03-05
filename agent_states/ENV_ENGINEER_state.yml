@@ -3,3 +3,18 @@ status: IDLE
 history:
   - date: '2026-02-27'
     task: 'Post-Audit Infrastructure Fix (QA Sprint) — stripDevCSP extended, brainbox_master deactivated, dist verified clean'
+  - date: '2026-03-02' 
+    task: 'Supabase-Vercel Auth Alignment: Redirects fixed, .env synced, Google OAuth verified, legacy /login routes purged.'
+  - date: '2026-03-02'
+    task: 'Applied environment changes by stopping/restarting pnpm dev (Port 3000, 5173 RESET)'
+  - date: "2026-03-02"
+    task: "Server restart and environment sync verification"
+  - date: "2026-03-02"
+    task: "Production deployment success & Supabase Migration Guide creation"
+  - date: "2026-03-04"
+    task: "MCP Infrastructure Update: Integrated Context7, Next DevTools, Playwright, Supabase, Filesystem, Puppeteer, and llms-txt. Fixed web/fetch mapping."
+  - date: "2026-03-04"
+    task: "Извършено възстановяване на изтрити логове и състояния за периода 28.02 - 04.03.2026."
+
+  - date: "2026-03-02"
+    task: "Vercel Auth Routing Migration (/login -> /auth/signin) and infrastructure files update"

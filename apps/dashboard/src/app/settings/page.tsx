@@ -544,12 +544,12 @@ export default function SettingsPage() {
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: `${folder.color || '#667eea'}20` }}
+                        className={`w-10 h-10 rounded-lg flex items-center justify-center ${!folder.color && 'bg-primary/20'}`}
+                        style={folder.color ? { backgroundColor: `${folder.color}20` } : {}}
                       >
                         <Folder
-                          className="w-5 h-5"
-                          style={{ color: folder.color || '#667eea' }}
+                          className={`w-5 h-5 ${!folder.color && 'text-primary'}`}
+                          style={folder.color ? { color: folder.color } : {}}
                         />
                       </div>
                       <div>

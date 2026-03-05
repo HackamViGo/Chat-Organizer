@@ -62,8 +62,8 @@ export default function SignUpPage() {
 
   if (success) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-[#0B1121] dark:via-[#0f1729] dark:to-[#0B1121] p-6">
-        <div className="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl text-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-background dark:via-card dark:to-background p-6">
+        <div className="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl text-center border border-border">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-emerald-500/20 flex items-center justify-center">
             <svg className="w-8 h-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -77,8 +77,8 @@ export default function SignUpPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-[#0B1121] dark:via-[#0f1729] dark:to-[#0B1121] p-6">
-      <div className="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-background dark:via-card dark:to-background p-6">
+      <div className="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl bg-white dark:bg-background/50 backdrop-blur-xl border border-border dark:border-white/10">
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
             <UserPlus className="text-white" size={32} />
@@ -187,7 +187,7 @@ export default function SignUpPage() {
             <div className="w-full border-t border-slate-200 dark:border-white/10" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-[#0B1121] text-slate-500">Or continue with</span>
+            <span className="px-2 bg-white dark:bg-background text-slate-500">Or continue with</span>
           </div>
         </div>
 

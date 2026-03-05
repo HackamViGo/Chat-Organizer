@@ -13,3 +13,8 @@ history:
     task: "Consolidated GitHub Actions (deleted build/test, updated release)"
   - date: "2026-02-28"
     task: "Comprehensive Docs vs Code QA Audit (Phase 1 & 2)"
+  - date: "2026-03-04"
+    task: "Поправка на Playwright тестова среда: инсталиране на Chromium и рестарт на Dashboard сървър."
+  - date: "2026-03-04"
+    task: "Коригиране на TypeScript/ESLint грешки в tests/auth-bridge.spec.ts."
+

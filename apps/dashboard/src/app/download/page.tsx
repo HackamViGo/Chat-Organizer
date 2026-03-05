@@ -4,7 +4,7 @@ import { Download, Chrome, Zap, FolderOpen, MessageSquare, Sparkles } from 'luci
 
 export default function DownloadPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-[#0B1121] dark:via-[#0f1729] dark:to-[#0B1121] p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-background dark:via-card dark:to-background p-6">
       <div className="max-w-4xl mx-auto">
         
         {/* Hero Section */}

@@ -226,7 +226,7 @@ export const ChatStudio: React.FC = () => {
   // --- ACCESS GATE: PRO CHECK ---
   if (!isPro) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-[#0B1121] relative overflow-hidden">
+      <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-background relative overflow-hidden">
         {/* Background Effects */}
         <div className="absolute top-0 left-0 w-full h-full opacity-30 pointer-events-none">
             <div className="absolute top-[20%] left-[20%] w-[500px] h-[500px] bg-purple-500/30 rounded-full blur-[100px] animate-pulse" />
@@ -276,7 +276,7 @@ export const ChatStudio: React.FC = () => {
   // --- ACCESS GATE: API KEY CHECK ---
   if (!apiKey) {
     return (
-      <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-[#0B1121] relative overflow-hidden">
+      <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-background relative overflow-hidden">
         <div className="glass-panel p-8 md:p-12 rounded-3xl max-w-md w-full text-center shadow-2xl border-t border-white/20 relative z-10 flex flex-col items-center gap-6">
            <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 mb-2">
              <Key size={32} className="text-white" />
@@ -325,7 +325,7 @@ export const ChatStudio: React.FC = () => {
 
   // --- MAIN STUDIO RENDER ---
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-[#0B1121] overflow-hidden">
+    <div className="flex h-screen bg-slate-50 dark:bg-background overflow-hidden">
       {/* Left Sidebar: History */}
       <div className="w-80 border-r border-slate-200 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-xl flex-col hidden md:flex">
          <div className="p-4 border-b border-slate-200 dark:border-white/5">
@@ -376,7 +376,7 @@ export const ChatStudio: React.FC = () => {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col relative">
          {/* Header */}
-         <div className="h-16 border-b border-slate-200 dark:border-white/5 bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-md flex items-center justify-between px-6 z-10">
+         <div className="h-16 border-b border-slate-200 dark:border-white/5 bg-white/80 dark:bg-background/80 backdrop-blur-md flex items-center justify-between px-6 z-10">
             <div className="flex items-center gap-4">
                <button className="md:hidden text-slate-500" onClick={() => router.push('/')}><ArrowLeft size={20} /></button>
                <div className="flex items-center gap-3">
@@ -435,7 +435,7 @@ export const ChatStudio: React.FC = () => {
                     <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
                        msg.role === 'user' 
                        ? 'bg-blue-600 text-white rounded-tr-sm' 
-                       : 'bg-white dark:bg-[#1a2236] border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-tl-sm'
+                       : 'bg-white dark:bg-muted border border-slate-200 dark:border-white/5 text-slate-800 dark:text-slate-200 rounded-tl-sm'
                     }`}>
                        <div className="whitespace-pre-wrap">{msg.content}</div>
                     </div>
@@ -447,7 +447,7 @@ export const ChatStudio: React.FC = () => {
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-slate-100 dark:bg-white/5 ${selectedModel.color}`}>
                      <Sparkles size={16} className="animate-spin" />
                   </div>
-                  <div className="bg-white dark:bg-[#1a2236] border border-slate-200 dark:border-white/5 px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1">
+                  <div className="bg-white dark:bg-muted border border-slate-200 dark:border-white/5 px-4 py-3 rounded-2xl rounded-tl-sm flex items-center gap-1">
                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce" />
                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce delay-100" />
                      <span className="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce delay-200" />
@@ -458,7 +458,7 @@ export const ChatStudio: React.FC = () => {
          </div>
 
          {/* Input */}
-         <div className="p-6 pt-2 bg-gradient-to-t from-slate-50 dark:from-[#0B1121] via-slate-50 dark:via-[#0B1121] to-transparent">
+         <div className="p-6 pt-2 bg-gradient-to-t from-slate-50 dark:from-background via-slate-50 dark:via-background to-transparent">
             <form 
               onSubmit={handleSend}
               className="glass-panel p-2 rounded-2xl flex items-end gap-2 shadow-2xl shadow-cyan-900/10 border-slate-300 dark:border-white/10 bg-white/80 dark:bg-black/40 backdrop-blur-xl"

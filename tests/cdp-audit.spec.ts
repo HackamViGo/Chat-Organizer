@@ -217,26 +217,35 @@ test.describe('CDP Deep Audit - BrainBox Extension', () => {
             rememberMe: true
         };
 
-        // Check for DOM marker injected by content script
+        // Check for content script load
         try {
-            console.log('🔍 Waiting for content script marker...');
-            await page.waitForSelector('#brainbox-auth-script-loaded', { state: 'attached', timeout: 5000 });
-            console.log('✅ Content script loaded (DOM marker found)');
+            console.log('🔍 Waiting for content script...');
+            await page.waitForTimeout(1000);
+            
+            // Note: Currently the auth content script doesn't inject a specific DOM ID marker,
+            // we rely on it just being loaded.
         } catch (e) {
-            console.error('❌ Content script marker NOT found within timeout');
+            console.error('❌ Content script check failed');
         }
 
-        console.log('\n💉 Injecting mock session via window.postMessage...');
+        console.log('\n💉 Injecting mock session via CustomEvent...');
         
         // Wait for content script to load (dynamic imports can be slow)
         await page.waitForTimeout(3000);
 
-        await page.evaluate((tokenPayload) => {
-            window.postMessage({
-                type: 'BRAINBOX_AUTH_SYNC',
-                payload: tokenPayload
-            }, window.location.origin);
+        await page.evaluate((tokenDetails) => {
+            // New authentication system uses CustomEvent 'brainbox-auth-ready'
+            // instead of window.postMessage with BRAINBOX_AUTH_SYNC
+            window.dispatchEvent(new CustomEvent('brainbox-auth-ready', {
+              detail: {
+                accessToken: tokenDetails.accessToken,
+                refreshToken: tokenDetails.refreshToken,
+                expiresAt: tokenDetails.expiresAt,
+                rememberMe: tokenDetails.rememberMe,
+              }
+            }));
         }, mockSession);
+
 
         // Wait for SW to process
         await page.waitForTimeout(2000);

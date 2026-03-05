@@ -1,5 +1,12 @@
 'use client';
 
+import type { Chat, Folder } from '@brainbox/shared';
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import {
+  LayoutGrid, Settings, FileEdit,
+  MessageCircle, Brain, Sun, Moon,
+  X, Search, ListTodo, ChevronLeft
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -9,17 +16,13 @@ import { useShallow } from 'zustand/react/shallow';
 import type { FolderWithChildren} from './FolderTree';
 import { FolderTreeItem, FOLDER_ICONS } from './FolderTree';
 
+
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
+import { usePromptStore } from '@/store/usePromptStore';
 import { useUIStore } from '@/store/useUIStore';
 
 export { FOLDER_ICONS };
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import {
-  LayoutGrid, Settings, FileEdit,
-  MessageCircle, Brain, Sun, Moon,
-  X, Search, ListTodo, ChevronLeft
-} from 'lucide-react';
 
 // --- Theme Toggle Component ---
 const ThemeToggle: React.FC = () => {
@@ -59,7 +62,7 @@ const ThemeToggle: React.FC = () => {
     return (
       <motion.div 
         layout={layout || "position"}
-        className="flex flex-col w-full group/nav relative"
+        className="flex flex-col w-full group/nav relative min-w-0"
       >
         <Link 
           href={to}
@@ -92,7 +95,7 @@ const ThemeToggle: React.FC = () => {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -10 }}
                 transition={{ duration: 0.2, ease: "easeOut" }}
-                className="truncate whitespace-nowrap text-sm font-medium pr-4"
+                className="truncate whitespace-nowrap text-sm font-medium pr-4 flex-1 min-w-0"
               >
                 {label}
               </motion.span>
@@ -122,11 +125,11 @@ const ThemeToggle: React.FC = () => {
 // --- Logic Helpers ---
 interface DisplayItemsResult {
   visibleFolders: FolderWithChildren[];
-  visibleChats: any[];
+  visibleChats: Chat[];
   totalHiddenCount: number;
 }
 
-function getDisplayItems(folders: FolderWithChildren[], chats: any[], limit = 5): DisplayItemsResult {
+function getDisplayItems(folders: FolderWithChildren[], chats: Chat[], limit = 5): DisplayItemsResult {
   const visibleFolders = folders.slice(0, limit);
   const remainingSlots = Math.max(0, limit - visibleFolders.length);
   const visibleChats = chats.slice(0, remainingSlots);
@@ -136,6 +139,28 @@ function getDisplayItems(folders: FolderWithChildren[], chats: any[], limit = 5)
   const totalHiddenCount = Math.max(0, totalItems - shownItems);
 
   return { visibleFolders, visibleChats, totalHiddenCount };
+}
+
+// --- Fallback Components ---
+function SidebarSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 px-4 py-3 opacity-50">
+      {[1, 2, 3].map((i) => (
+        <div key={i} className="flex items-center gap-3 w-full">
+          <div className="w-4 h-4 rounded bg-muted animate-pulse shrink-0" />
+          <div className={`h-3 rounded bg-muted animate-pulse ${i === 1 ? 'w-24' : i === 2 ? 'w-32' : 'w-20'}`} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SidebarEmptyState({ label }: { label: string }) {
+  return (
+    <div className="px-4 py-4 text-xs text-muted-foreground text-center italic border border-dashed border-border/50 rounded-lg mx-4 mb-2">
+      No {label} found
+    </div>
+  );
 }
 
 // --- Main Content ---
@@ -161,12 +186,14 @@ function HybridSidebarContent() {
 
   // Stores
   const folders = useFolderStore(useShallow(s => s.folders));
-  const chats = useChatStore(useShallow(s => s.chats));
+  const isLoadingFolders = useFolderStore(useShallow(s => s.isLoading));
+  const isLoadingChats = useChatStore(useShallow(s => s.isLoading));
+  const isLoadingPrompts = usePromptStore(useShallow(s => s.isLoading));
 
   // Route Detection
   const isChatRoute = pathname.startsWith('/chats');
   const isPromptRoute = pathname.startsWith('/prompts');
-  const isStudioRoute = pathname.startsWith('/ai-studio');
+  const isStudioRoute = pathname.startsWith('/studio');
 
   // Logic: Double Click to enter folder
   const handleFolderDoubleClick = useCallback((folderId: string) => {
@@ -177,32 +204,34 @@ function HybridSidebarContent() {
   const handleBackNavigation = useCallback(() => {
     if (!currentRootId) return;
     const currentFolder = folders.find(f => f.id === currentRootId);
-    if (currentFolder && (currentFolder as any).parent_id) {
-       setCurrentRootId((currentFolder as any).parent_id);
+    if (currentFolder && (currentFolder as Folder).parent_id) {
+       setCurrentRootId((currentFolder as Folder).parent_id!);
     } else {
        setCurrentRootId(null);
     }
   }, [currentRootId, folders]);
 
-  const toggleFolder = (id: string) => {
-    const next = new Set(expandedFolders);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setExpandedFolders(next);
-  };
+  const toggleFolder = useCallback((id: string) => {
+    setExpandedFolders(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   // Build Tree Data
   const getFoldersByType = useCallback((type: 'chat' | 'prompt', rootId: string | null) => {
     const folderMap = new Map<string, FolderWithChildren>();
     folders.forEach(f => {
-      if ((f as any).type === type) {
+      if ((f as Folder).type === type) {
         folderMap.set(f.id, { ...f, children: [] });
       }
     });
     
     const result: FolderWithChildren[] = [];
     folderMap.forEach(f => {
-      const parentId = (f as any).parent_id;
+      const parentId = (f as Folder).parent_id;
       if (parentId === rootId || (!parentId && rootId === null)) {
          result.push(f);
       }
@@ -218,14 +247,15 @@ function HybridSidebarContent() {
 
   // -- Chat Data --
   const currentChatFolders = useMemo(() => isChatRoute ? getFoldersByType('chat', currentRootId) : [], [isChatRoute, getFoldersByType, currentRootId]);
-  const currentChats = useMemo(() => {
+  
+  const currentChats = useChatStore(useShallow((state) => {
     if (!isChatRoute) return [];
-    return chats.filter(c => {
+    return state.chats.filter(c => {
       if (c.is_archived) return false;
       if (currentRootId) return c.folder_id === currentRootId;
       return !c.folder_id;
     });
-  }, [chats, isChatRoute, currentRootId]);
+  }));
 
   const { visibleFolders: chatFolders, visibleChats: chatItems, totalHiddenCount: chatHidden } = useMemo(() => 
     getDisplayItems(currentChatFolders, currentChats, VISIBLE_LIMIT), 
@@ -325,8 +355,7 @@ function HybridSidebarContent() {
                     <input 
                       type="text" 
                       placeholder="Search..." 
-                      className="w-full bg-secondary/50 text-sm text-foreground placeholder:text-muted-foreground rounded-lg py-2 pl-[52px] pr-3 border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-inner"
-                      style={{ paddingLeft: '56px' }} 
+                      className="w-full bg-secondary/50 text-sm text-foreground placeholder-muted-foreground rounded-lg py-2 pl-14 pr-3 border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 transition-all shadow-inner"
                     />
                  </motion.div>
                )}
@@ -385,32 +414,40 @@ function HybridSidebarContent() {
                       </motion.button>
                     )}
                   </AnimatePresence>
-                  {chatFolders.map(f => (
-                    <div key={f.id} onDoubleClick={() => handleFolderDoubleClick(f.id)}>
-                      <FolderTreeItem 
-                        folder={f}
-                        level={0}
-                        allChats={chats}
-                        isActive={(id) => currentFolderParam === id}
-                        onToggle={toggleFolder}
-                        expandedFolders={expandedFolders}
-                        isExpanded={isHovered}
-                      />
-                    </div>
-                  ))}
-                  {chatItems.map(chat => (
-                    <Link 
-                      key={chat.id}
-                      href={`/chats?id=${chat.id}`}
-                      className="group flex items-center w-full h-10 hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
-                    >
-                      <div className="w-20 shrink-0 flex items-center justify-center">
-                        <MessageCircle size={16} className="shrink-0 group-hover:text-primary transition-colors" />
-                      </div>
-                      <span className="truncate text-sm pr-4">{chat.title}</span>
-                    </Link>
-                  ))}
-                  {chatHidden > 0 && <div className="pl-20 py-1 text-xs text-slate-500 italic">+ {chatHidden} more items...</div>}
+                  
+                  {isLoadingFolders || isLoadingChats ? (
+                    <SidebarSkeleton />
+                  ) : chatFolders.length === 0 && chatItems.length === 0 ? (
+                    <SidebarEmptyState label="chats" />
+                  ) : (
+                    <>
+                      {chatFolders.map(f => (
+                        <div key={f.id} onDoubleClick={() => handleFolderDoubleClick(f.id)}>
+                          <FolderTreeItem 
+                            folder={f}
+                            level={0}
+                            isActive={(id) => currentFolderParam === id}
+                            onToggle={toggleFolder}
+                            expandedFolders={expandedFolders}
+                            isExpanded={isHovered}
+                          />
+                        </div>
+                      ))}
+                      {chatItems.map(chat => (
+                        <Link 
+                          key={chat.id}
+                          href={`/chats?id=${chat.id}`}
+                          className="group flex items-center w-full h-10 hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+                        >
+                          <div className="w-20 shrink-0 flex items-center justify-center">
+                            <MessageCircle size={16} className="shrink-0 group-hover:text-primary transition-colors" />
+                          </div>
+                          <span className="truncate text-sm pr-4">{chat.title}</span>
+                        </Link>
+                      ))}
+                      {chatHidden > 0 && <div className="pl-20 py-1 text-xs text-slate-500 italic">+ {chatHidden} more items...</div>}
+                    </>
+                  )}
                 </motion.div>
               )}
             </NavItem>
@@ -433,6 +470,7 @@ function HybridSidebarContent() {
                    exit={{ opacity: 0, height: 0 }}
                    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
                 >
+
                   <AnimatePresence mode="wait">
                     {currentRootId && (
                       <motion.button 
@@ -447,43 +485,51 @@ function HybridSidebarContent() {
                       </motion.button>
                     )}
                   </AnimatePresence>
-                  {promptFolders.map(f => (
-                    <div key={f.id} onDoubleClick={() => handleFolderDoubleClick(f.id)}>
-                      <FolderTreeItem 
-                        folder={f}
-                        level={0}
-                        allChats={chats}
-                        isActive={(id) => currentFolderParam === id}
-                        onToggle={toggleFolder}
-                        expandedFolders={expandedFolders}
-                        isExpanded={isHovered}
-                      />
-                     </div>
-                  ))}
-                  {promptItems.map(p => (
-                    <Link
-                      key={p.id}
-                      href={`/prompts?id=${p.id}`}
-                      className="group flex items-center w-full h-10 hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
-                    >
-                      <div className="w-20 shrink-0 flex items-center justify-center">
-                        <FileEdit size={16} className="shrink-0 group-hover:text-primary" />
-                      </div>
-                      <span className="truncate text-sm pr-4">{p.title}</span>
-                    </Link>
-                  ))}
-                  {promptHidden > 0 && <div className="pl-20 py-1 text-xs text-slate-500 italic">+ {promptHidden} more items...</div>}
+                  
+                  {isLoadingFolders || isLoadingPrompts ? (
+                    <SidebarSkeleton />
+                  ) : promptFolders.length === 0 && promptItems.length === 0 ? (
+                    <SidebarEmptyState label="prompts" />
+                  ) : (
+                    <>
+                      {promptFolders.map(f => (
+                        <div key={f.id} onDoubleClick={() => handleFolderDoubleClick(f.id)}>
+                          <FolderTreeItem 
+                            folder={f}
+                            level={0}
+                            isActive={(id) => currentFolderParam === id}
+                            onToggle={toggleFolder}
+                            expandedFolders={expandedFolders}
+                            isExpanded={isHovered}
+                          />
+                         </div>
+                      ))}
+                      {promptItems.map(p => (
+                        <Link
+                          key={p.id}
+                          href={`/prompts?id=${p.id}`}
+                          className="group flex items-center w-full h-10 hover:bg-white/5 text-slate-400 hover:text-white transition-colors"
+                        >
+                          <div className="w-20 shrink-0 flex items-center justify-center">
+                            <FileEdit size={16} className="shrink-0 group-hover:text-primary" />
+                          </div>
+                          <span className="truncate text-sm pr-4">{p.title}</span>
+                        </Link>
+                      ))}
+                      {promptHidden > 0 && <div className="pl-20 py-1 text-xs text-slate-500 italic">+ {promptHidden} more items...</div>}
+                    </>
+                  )}
                 </motion.div>
                )}
             </NavItem>
 
             <NavItem 
-              to="/ai-studio" 
+              to="/studio" 
               icon={Brain} 
-              label="AI Studio ✨" 
+              label="Studio ✨" 
               isActive={isStudioRoute} 
               isHovered={isHovered} 
-              specialStyle={pathname === '/ai-studio' ? "bg-primary/20 text-primary" : undefined}
+              specialStyle={pathname === '/studio' ? "bg-primary/20 text-primary" : undefined}
               layout="position"
             />
 

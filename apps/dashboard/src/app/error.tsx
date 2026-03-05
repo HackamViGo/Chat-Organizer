@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect } from 'react';
 import { AlertCircle } from 'lucide-react';
+import { useEffect } from 'react';
 
 export default function Error({
   error,
@@ -11,12 +11,13 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
+    // eslint-disable-next-line no-console
     console.error('Error:', error);
   }, [error]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-[#0B1121] dark:via-[#0f1729] dark:to-[#0B1121]">
-      <div className="glass-card p-8 rounded-2xl max-w-md w-full text-center">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-background dark:via-card dark:to-background">
+      <div className="glass-card p-8 rounded-2xl max-w-md w-full text-center border border-border">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center">
           <AlertCircle className="text-red-500" size={32} />
         </div>

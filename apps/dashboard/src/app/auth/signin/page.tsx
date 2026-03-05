@@ -76,8 +76,8 @@ function SignInContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-[#0B1121] dark:via-[#0f1729] dark:to-[#0B1121] p-6">
-      <div className="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl bg-white dark:bg-[#0B1121]/50 backdrop-blur-xl border border-white/20 dark:border-white/10">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-background dark:via-card dark:to-background p-6">
+      <div className="glass-card w-full max-w-md p-8 rounded-2xl shadow-2xl bg-white dark:bg-background/50 backdrop-blur-xl border border-border dark:border-white/10">
         <div className="text-center mb-8">
           <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center">
             <LogIn className="text-white" size={32} />
@@ -170,7 +170,7 @@ function SignInContent() {
             <div className="w-full border-t border-slate-200 dark:border-white/10" />
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-[#0B1121] text-slate-500">Or continue with</span>
+            <span className="px-2 bg-white dark:bg-background text-slate-500">Or continue with</span>
           </div>
         </div>
 
@@ -202,7 +202,7 @@ function SignInContent() {
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-[#0B1121]">
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-background">
         <Loader2 className="animate-spin text-cyan-600" size={48} />
       </div>
     }>

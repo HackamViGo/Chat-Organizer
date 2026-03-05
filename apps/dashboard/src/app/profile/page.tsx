@@ -426,7 +426,7 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-[#0B1121] dark:via-[#0f1729] dark:to-[#0B1121]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-background dark:via-card dark:to-background">
       <div className="max-w-7xl mx-auto p-6 md:p-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">

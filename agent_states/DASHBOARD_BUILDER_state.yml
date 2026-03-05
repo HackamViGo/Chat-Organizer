@@ -8,3 +8,6 @@ history:
     task: 'Refactored account/delete, ai/generate, ai/search routes to fix lint and logging'
   - date: '2026-02-27'
     task: 'Implemented Two-Tier ESLint strategy and memory optimization in CI'
+  - date: '2026-03-04'
+    task: 'Supabase WebSocket connection memoization and hydration warning fixes.'
+

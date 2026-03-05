@@ -1,9 +1,9 @@
 # 🤖 AI Best Practices Guide for BrainBox
 
 **Purpose:** Comprehensive guide for AI agents working on BrainBox project  
-**Last Updated:** 2026-02-28  
-**Version:** 1.1.0  
-> **Бележка:** Tailwind секцията е обновена за v4 (CSS-first). Tailwind v3 е депрекиран.
+**Last Updated:** 2026-03-03  
+**Version:** 1.2.0  
+> **Бележка:** Tailwind секцията е изцяло актуализирана за v4 (CSS-first). Tailwind v3 и `tailwind.config.ts` са депрекирани.
 
 ---
 
@@ -862,85 +862,71 @@ const useFishStore = create(
 
 ---
 
+
 ## 🎨 Tailwind CSS Best Practices
 
-### Dynamic Classes
+### Tailwind v4 (CSS-first)
 
-**Reference:** [Tailwind CSS Documentation](https://tailwindcss.com/docs)
+**Reference:** [Tailwind CSS v4.0 Documentation](https://tailwindcss.com/docs/v4-beta)
+
+#### ✅ Use @import for Tokens
+Всички нови проекти и компоненти трябва да ползват централизираните токени.
+
+```css
+/* apps/dashboard/src/app/globals.css */
+@import "tailwindcss";
+@import "@brainbox/ui/tokens";
+
+@theme {
+  --color-brand: var(--ui-color-platform-chatgpt);
+}
+```
 
 #### ✅ Correct Dynamic Class Generation
+Никога не конструирай класове динамично!
 
 ```html
-<!-- ✅ GOOD - Complete class names as full strings -->
-<div class="{{ error ? 'text-red-600' : 'text-green-600' }}"></div>
+<!-- ✅ GOOD - Коректни низове -->
+<div class="{{ isActive ? 'bg-primary' : 'bg-secondary' }}"></div>
 
-<!-- ❌ BAD - Dynamic class construction doesn't work -->
-<div class="text-${color}-600"></div>
+<!-- ❌ BAD - Не работи в v4 (JIT не го хваща) -->
+<div class="bg-${color}-500"></div>
 ```
 
-#### ✅ Use Class Maps for Dynamic Colors
+#### ✅ Use Platform Color Maps
+За цветове на AI платформи използвай `PLATFORM_CLASSES` дефинирани в `UI_SYSTEM.md`.
+
+### Dark Mode Strategy
+
+#### ✅ Theme-based Dark Mode (Dashboard/Popup)
+В v4 използваме `@variant dark` или директен `.dark` селектор в `@theme`.
+
+```css
+/* Custom utility в globals.css */
+.glass-card {
+  background: var(--ui-color-glass-bg);
+  @variant dark {
+    background: rgba(0, 0, 0, 0.8);
+  }
+}
+```
+
+#### ✅ Content Script Isolation
+За UI инжектиран в чужди сайтове (ChatGPT/Claude): **Tailwind е ЗАБРАНЕН**.
 
 ```typescript
-// ✅ GOOD - Map colors to complete class names
-const FOLDER_COLOR_CLASSES: Record<string, string> = {
-  blue: 'bg-blue-500 text-white',
-  cyan: 'bg-cyan-500 text-white',
-  purple: 'bg-purple-500 text-white',
-  // ... etc
-};
-
-// Usage
-<div className={FOLDER_COLOR_CLASSES[color] || 'bg-slate-500'}>
-```
-
-### Dark Mode
-
-#### ✅ Manual Dark Mode Toggle
-
-```html
-<!-- ✅ GOOD - Dark mode with class on HTML -->
-<html class="dark">
-<body>
-  <div class="bg-white dark:bg-black text-slate-900 dark:text-white">
-    <!-- Content -->
-  </div>
-</body>
-</html>
-```
-
-#### ✅ Configure Dark Mode in Tailwind Config
-
-```javascript
-/** @type {import('tailwindcss').Config} */
-module.exports = {
-  darkMode: 'selector', // Manual toggle with 'dark' class
-  // OR
-  darkMode: ['variant', [
-    '@media (prefers-color-scheme: dark) { &:not(.light *) }',
-    '&:is(.dark *)',
-  ]], // Multiple conditions
-  // ...
-};
+// ✅ GOOD - Само inline CSS в injectStyles()
+const style = `.bb-menu { background: #fff; } @media (prefers-color-scheme: dark) { .bb-menu { background: #000; } }`;
 ```
 
 ### Responsive Design
 
 #### ✅ Mobile-First Approach
-
-```typescript
-// ✅ GOOD - Mobile-first responsive classes
-<div className="
-  p-4          // Mobile: padding 1rem
-  md:p-6       // Tablet: padding 1.5rem
-  lg:p-8       // Desktop: padding 2rem
-  xl:p-10      // Large: padding 2.5rem
-">
-```
+Винаги тръгвай от мобилна версия (без префикс) и добавяй `md:`, `lg:`, `xl:` за по-големи екрани.
 
 **References:**
-- [Tailwind CSS Documentation](https://tailwindcss.com/docs)
-- [Dark Mode](https://tailwindcss.com/docs/dark-mode)
-- [Responsive Design](https://tailwindcss.com/docs/responsive-design)
+- [UI_SYSTEM.md](../Mandatory!/UI_SYSTEM.md) — Основен документ за UI стандарти.
+- [Tailwind v4 Upgrade Guide](https://tailwindcss.com/docs/upgrade-guide)
 
 ---
 

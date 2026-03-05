@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { useRouter } from 'next/navigation';
 import { CheckCircle2, Chrome, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+ 
+import { logger } from '@/lib/logger';
+import { createClient } from '@/lib/supabase/client';
 
 export default function ExtensionAuthPage() {
   const [status, setStatus] = useState<'checking' | 'sending' | 'success' | 'error'>('checking');
@@ -16,7 +18,7 @@ export default function ExtensionAuthPage() {
       if (typeof window !== 'undefined') {
         try {
           localStorage.removeItem('brainbox_extension_token');
-        } catch (e) {
+        } catch {
           // Ignore errors if localStorage is not accessible
           if (process.env.NODE_ENV === 'development') {
             // log removed
@@ -55,7 +57,7 @@ export default function ExtensionAuthPage() {
         } catch (error) {
           if (error instanceof DOMException) {
             if (error.name === 'SecurityError') {
-              console.warn('[Extension Auth] localStorage access denied, skipping remember me check');
+              logger.warn('Auth', '[Extension Auth] localStorage access denied, skipping remember me check');
             }
           }
         }
@@ -109,8 +111,9 @@ export default function ExtensionAuthPage() {
         }
       }, 2000);
 
-    } catch (error: any) {
-      console.error('Extension auth error:', error);
+    } catch (err: unknown) {
+      const error = err as Error;
+      logger.error('Auth', 'Extension auth error', error);
       setStatus('error');
       setMessage(error.message || 'Failed to connect extension');
     }
@@ -121,7 +124,7 @@ export default function ExtensionAuthPage() {
   }, [handleExtensionAuth]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-[#0B1121] dark:via-[#0f1729] dark:to-[#0B1121] p-6 flex items-center justify-center">
+    <div suppressHydrationWarning className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-cyan-50 dark:from-background dark:via-card dark:to-background p-6 flex items-center justify-center">
       <div className="glass-card rounded-2xl p-8 max-w-md w-full shadow-2xl text-center">
         <div className="mb-6">
           {status === 'checking' || status === 'sending' ? (

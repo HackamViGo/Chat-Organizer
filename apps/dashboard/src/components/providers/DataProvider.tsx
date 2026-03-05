@@ -1,9 +1,12 @@
 'use client'
-
-import { useEffect, useRef, useCallback } from 'react'
+ 
+import type { Folder, Chat, Prompt } from '@brainbox/shared'
+import { useEffect, useRef, useCallback, useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 
+
 import { CONFIG } from '@/lib/config'
+import { logger } from '@/lib/logger'
 import { createClient } from '@/lib/supabase/client'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useChatStore } from '@/store/useChatStore'
@@ -45,15 +48,11 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     setChats,
     setLoading: setChatsLoading,
     addChat,
-    updateChat: updateChatInStore,
-    deleteChat: deleteChatInStore,
   } = useChatStore(
     useShallow((s) => ({
       setChats: s.setChats,
       setLoading: s.setLoading,
       addChat: s.addChat,
-      updateChat: s.updateChat,
-      deleteChat: s.deleteChat,
     }))
   )
   const { initialize, isAuthenticated } = useAuthStore(
@@ -63,7 +62,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
     }))
   )
   const isFetchingRef = useRef(false)
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   // Initialize Auth on mount
   useEffect(() => {
@@ -108,7 +107,7 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
         setPrompts(promptsResult.value.prompts || [])
       }
     } catch (error) {
-      console.error('Error in DataProvider:', error)
+      logger.error('DataProvider', 'Error fetching data', error)
     } finally {
       isFetchingRef.current = false
       setFoldersLoading(false)
@@ -131,15 +130,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .channel('folders-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'folders' }, (payload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload
+        const typedNew = newRecord as Record<string, unknown>
+        const typedOld = oldRecord as Record<string, unknown>
         if (eventType === 'INSERT') {
           const state = useFolderStore.getState()
-          if (!state.folders.some((f) => f.id === newRecord.id)) {
-            addFolder(newRecord as any)
+          if (!state.folders.some((f) => f.id === typedNew.id)) {
+            addFolder(typedNew as unknown as Folder)
           }
         } else if (eventType === 'UPDATE') {
-          updateFolder(newRecord.id, newRecord as any)
+          updateFolder(typedNew.id as string, typedNew as unknown as Partial<Folder>)
         } else if (eventType === 'DELETE') {
-          deleteFolder(oldRecord.id)
+          deleteFolder(typedOld.id as string)
         }
       })
       .subscribe()
@@ -148,15 +149,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .channel('prompts-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'prompts' }, (payload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload
+        const typedNew = newRecord as Record<string, unknown>
+        const typedOld = oldRecord as Record<string, unknown>
         if (eventType === 'INSERT') {
           const state = usePromptStore.getState()
-          if (!state.prompts.some((p) => p.id === newRecord.id)) {
-            addPrompt(newRecord as any)
+          if (!state.prompts.some((p) => p.id === typedNew.id)) {
+            addPrompt(typedNew as unknown as Prompt)
           }
         } else if (eventType === 'UPDATE') {
-          updatePrompt(newRecord.id, newRecord as any)
+          updatePrompt(typedNew.id as string, typedNew as unknown as Partial<Prompt>)
         } else if (eventType === 'DELETE') {
-          deletePrompt(payload.old?.id)
+          deletePrompt(typedOld?.id as string)
         }
       })
       .subscribe()
@@ -165,17 +168,17 @@ export function DataProvider({ children }: { children: React.ReactNode }) {
       .channel('chats-realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'chats' }, (payload) => {
         const { eventType, new: newRecord, old: oldRecord } = payload
+        const typedNew = newRecord as unknown as Chat
+        const typedOld = oldRecord as unknown as Chat
         if (eventType === 'INSERT') {
           const state = useChatStore.getState()
-          if (!state.chats.some((c) => c.id === newRecord.id)) {
-            addChat(newRecord as any)
+          if (!state.chats.some((c) => c.id === typedNew.id)) {
+            addChat(typedNew)
           }
         } else if (eventType === 'UPDATE') {
-          // S4-4: Use action instead of setState
-          useChatStore.getState().updateChat(newRecord.id, newRecord as any)
+          useChatStore.getState().updateChat(typedNew.id, typedNew)
         } else if (eventType === 'DELETE') {
-          // S4-4: Use action instead of setState
-          useChatStore.getState().deleteChat(oldRecord.id)
+          useChatStore.getState().deleteChat(typedOld.id)
         }
       })
       .subscribe()

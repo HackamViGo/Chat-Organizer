@@ -80,7 +80,11 @@ function stripDevCSP(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [crx({ manifest }) as any, stripDevCSP()],
+  plugins: [
+    crx({ manifest }) as any,
+    process.env.PLAYWRIGHT_TEST === 'true' ? null : stripDevCSP(),
+  ].filter(Boolean),
+
   resolve: {
     alias: {
       '@brainbox/shared/schemas': resolve(__dirname, '../../packages/shared/schemas.js'),

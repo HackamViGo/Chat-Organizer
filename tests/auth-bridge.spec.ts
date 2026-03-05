@@ -1,7 +1,12 @@
-import { test, expect, type BrowserContext } from '@playwright/test';
-import path from 'path';
-import { chromium } from 'playwright';
-import fs from 'fs';
+import * as fs from 'fs';
+import * as path from 'path';
+
+import { test, expect, chromium, type BrowserContext } from '@playwright/test';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const chrome: any;
+
+
 
 test.describe('Auth Bridge Verification', () => {
     let context: BrowserContext;
@@ -108,10 +113,11 @@ test.describe('Auth Bridge Verification', () => {
         await expect.poll(async () => {
             return await sw.evaluate(async () => {
                 const res = await chrome.storage.local.get(['BRAINBOX_SESSION']);
-                const session = (res as any)['BRAINBOX_SESSION'];
+                const session = res['BRAINBOX_SESSION'] as { access_token?: string } | undefined;
                 console.log(`[Worker] Storage check: ${session?.access_token}`);
                 return session?.access_token;
             });
+
         }, { 
             message: 'Wait for BRAINBOX_SESSION to be synced',
             timeout: 5000 
@@ -180,12 +186,19 @@ test.describe('Auth Bridge Verification', () => {
         
         const storedSession = await sw.evaluate(async () => {
             const res = await chrome.storage.local.get(['BRAINBOX_SESSION']);
-            return (res as any)['BRAINBOX_SESSION'];
+            return res['BRAINBOX_SESSION'] as { 
+                access_token: string; 
+                user: { email: string; app_metadata: { provider: string } } 
+            } | undefined;
         });
 
+
         expect(storedSession).toBeDefined();
+        if (!storedSession) return;
+        
         expect(storedSession.access_token).toBe(mockToken);
         expect(storedSession.user.email).toBe('test@gmail.com');
+
         
         console.log('✅ BRAINBOX_TOKEN_TRANSFER storage mechanism verified');
         console.log('⚠️  Manual E2E test required to verify window.postMessage flow');

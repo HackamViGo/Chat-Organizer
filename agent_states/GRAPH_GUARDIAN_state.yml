@@ -1,0 +1,5 @@
+agent: GRAPH_GUARDIAN
+status: IDLE
+last_active: never
+last_task: null
+notes: "Initialized by DOCS_LIBRARIAN cleanup"

@@ -1,7 +1,9 @@
 /// <reference types="chrome"/>
 
 import React from 'react';
+
 import { useTheme } from '../hooks/useTheme';
+
 import { CONFIG } from '@/lib/config';
 
 export default function Header() {
@@ -16,10 +18,12 @@ export default function Header() {
     <div className="bg-slate-900/50 border-b border-slate-700/50 px-4 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-2xl">🧠</span>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+            <img src="/src/icons/icon128.png" className="w-5 h-5 object-contain invert" alt="Logo" />
+          </div>
           <div>
             <h1 className="text-slate-200 font-semibold text-lg leading-none">BrainBox</h1>
-            <p className="text-slate-400 text-xs">AI Manager</p>
+            <p className="text-slate-400 text-xs text-glow-primary">AI Manager</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

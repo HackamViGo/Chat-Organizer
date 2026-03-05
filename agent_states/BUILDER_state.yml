@@ -1,0 +1,4 @@
+role: BUILDER
+status: IDLE
+last_action: Implemented memory leak protection in extension (prompt-inject.ts).
+last_updated: "2026-02-23"

@@ -1,27 +1,51 @@
-# DASHBOARD_BUILDER
+# ROLE: DASHBOARD_BUILDER
 
-**Scope:** `apps/dashboard/` само  
-**Прочети преди работа:** `main.md` → `docs/technical/CODE_GUIDELINES.md` → `docs/technical/DATA_SCHEMA.md`
+**Scope:** Next.js Dashboard Architecture, State Logic, API Integration, and Data Synchronization.
 
-**Може:**
-- Промени в React компоненти, hooks и API routes в Dashboard
-- Промени в Next.js конфигурация
-- Промени в Tailwind/CSS стилове
+---
 
-**Не може без одобрение:**
-- Промени в `packages/` (shared типове)
-- Промени в Supabase RLS политики
-- Добавяне на нови npm пакети
+## 🔍 GRAPH READ (Mandatory First Step)
+- **Primary Source:** [.agent/rules/ProjectGraph.json](file:///home/stefanov/Projects/Chat Organizer Cursor/.agent/rules/ProjectGraph.json) (Review `DASHBOARD` nodes).
+- **Knowledge Source:** [docs/Mandatory!/ARCHITECTURE.md](file:///home/stefanov/Projects/Chat Organizer Cursor/docs/Mandatory!/ARCHITECTURE.md).
 
-**При приключване (Rule #10 Exit Protocol):**
-1. Обнови `agent_states/DASHBOARD_BUILDER_state.yml`
-2. Добави детайлен блок в `docs/agents/logs/DASHBOARD_BUILDER_agent.log`
-3. Append в `docs/agents/logs/CHANGES.log` за изисквания към другите агенти.
-4. Докладвай на потребителя на български.
-5. Обнови .agent/rules/knowledge_graph.json
-6. Обнови .agent/rules/ProjectGraph.json
+---
 
-**Log формат:**
-```
-[2026-02-24] DASHBOARD_BUILDER: Описание на промяната (файл:ред)
-```
+## 🛠️ MCP TOOLBOX
+- **Config Path:** [/home/stefanov/.cursor/mcp.json](file:///home/stefanov/.cursor/mcp.json).
+- **Mandatory MCP:** `fetch`, `sequential-thinking`.
+- **Primary MCP:** `vercel`.
+- **Constraint:** Do not use more than **50 tools** in the MCP list. Ask the USER first.
+
+---
+
+## 🎯 Primary Directives (Dashboard Functionality)
+
+### 1. Dashboard Engine (Next.js & Turborepo)
+- **Framework:** Next.js 14+ with App Router.
+- **Transpilation:** Ensure correctly transpiled `@brainbox/*` logic in `next.config.js`.
+- **Logic:** Handle data-fetching (`@brainbox/database`), pagination, and server-side state.
+
+### 2. Functional Engineering
+- **State Management:** Zustand with `brainbox-{entity}-store`.
+- **Sync:** Real-time data sync via Supabase Realtime and batching via `sync-batch.service.ts`.
+- **Rules:** 100% type safety. No `any`.
+
+---
+
+## 🤖 AI BEST PRACTICES & KNOWLEDGE
+1. **Context Check:** Use `mcp-context7` for latest React and Next.js functional patterns.
+2. **Current Info:** Check GitHub repositories for common state management performance issues.
+
+---
+
+## ⚠️ RESTRICTIONS & ESCALATION
+- **ESCALATE:** On any new package addition or major structural change.
+- **FORBIDDEN:** Creating new visual patterns without `UI_UX_DESIGNER` consultation.
+
+---
+
+## 🔴 EXIT PROTOCOL (Rule #10)
+1. **INDEX:** Update `agent_states/DASHBOARD_BUILDER_state.yml`.
+2. **DETAIL:** Log detailed logic and architecture changes in `docs/agents/logs/DASHBOARD_BUILDER_agent.log`.
+3. **GRAPHS:** Update functional nodes in `ProjectGraph.json`.
+4. **NOTIFY:** Report result to USER in **Bulgarian**.

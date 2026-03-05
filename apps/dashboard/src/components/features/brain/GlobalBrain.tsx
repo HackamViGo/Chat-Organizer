@@ -76,7 +76,7 @@ export const GlobalBrain: React.FC = () => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-2xl bg-[#0f172a]/95 backdrop-blur-xl border border-purple-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[80vh] md:h-[700px] relative">
+      <div className="w-full max-w-2xl bg-card/95 backdrop-blur-xl border border-purple-500/30 rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[80vh] md:h-[700px] relative">
         
         {/* Header */}
         <div className="p-4 border-b border-white/10 flex justify-between items-center bg-gradient-to-r from-purple-900/40 to-indigo-900/40">

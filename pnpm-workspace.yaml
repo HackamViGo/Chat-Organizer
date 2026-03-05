@@ -1,3 +1,11 @@
 packages:
   - 'apps/*'
   - 'packages/*'
+
+# Enable pnpm's built-in Git hooks
+# This ensures pnpm-specific hooks (like pre-commit) run automatically
+# when you run git commands
+# See: https://pnpm.io/cli/exec#--git-hooks
+git-hooks:
+  enabled: true
+

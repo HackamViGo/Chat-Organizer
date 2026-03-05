@@ -18,3 +18,5 @@ history:
 
   - date: "2026-03-02"
     task: "Vercel Auth Routing Migration (/login -> /auth/signin) and infrastructure files update"
+  - date: "2026-03-06"
+    task: "Initialized feature/npm branch, synced system states and cleaned up legacy docs."

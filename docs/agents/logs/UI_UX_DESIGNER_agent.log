@@ -1,0 +1,50 @@
+Date: 2026-03-03 12:00
+Task: UI/UX Deep Fix Sprint
+Role: UI_UX_DESIGNER
+
+- apps/dashboard/tailwind.config.ts:5 — Removed legacy v3 colors and simplified to use @theme definitions
+- apps/dashboard/src/app/globals.css:32 — Overrode CSS custom properties to follow proper v4 @theme values
+- apps/dashboard/src/components/layout/HybridSidebar.tsx:384 — Fixed layout rendering bugs (min-w-0 flex children) and improved Zustand usage with useShallow variables. Included Skeletons and Empty States for UX
+- apps/dashboard/src/components/layout/FolderTree.tsx:57 — Moved state filtering logic into the Folder component to prevent re-rendering the whole Sidebar on single chat update
+- apps/dashboard/src/app/auth/signin/page.tsx:79 — Replaced hardcoded HEX arbitrary classes to proper standard Tailwind bg-background and bg-card overrides
+- apps/dashboard/src/components/features/chats/ChatStudio.tsx:520 — Replaced hardcoded colors to var(--color-background) and primary variables
+- apps/dashboard/src/components/features/prompts/DailyPromptCard.css:46 — Replaced text hardcoded colors to properly support standard CSS variables for theme
+
+  Verify: pnpm verify = SUCCESS
+  Status: SUCCESS
+
+Date: 2026-03-06 07:43
+Task: Full UI Refactoring Plan Generation — REFACTOR_PLAN.md + ui_auditor.py
+Role: UI_ARCHITECT
+- docs/user/UI/REFACTOR_PLAN.md — Генериран (8 секции, ~2500 думи)
+  - Секция 1: Executive Summary (19 файла, 4 нови, 1 защитен)
+  - Секция 2: Shared инфраструктура — 6 липсващи елемента (appStore, useModelHighlight, glass CSS classes, Sidebar PIN, cn(), activeModel UIStore)
+  - Секция 3: Страница по страница (11 routes — layout, Sidebar, Dashboard, Chats, Prompts, Workspace NEW, Vault, Settings, Lists, Profile, AI Studio⛔)
+  - Секция 4: Конфликти — 9 конфликта (C-0 AI Studio≠Workspace КРИТИЧЕН, C-1 Platform enum, C-2 glass-card CSS, C-3 double fetchSettings, C-4 activeModel missing, C-5 dark mode default, C-6 any types, C-7 console.log, C-8 Tailwind v4)
+  - Секция 5: Implementation order — 3 фази (0=Инфраструктура→1=Layout→2=Страници→3=Polish)
+  - Секция 6: Пълен файлов списък (19 файла с тип и риск)
+  - Секция 7: Python scripts документация
+  - Секция 8: 8 въпроса към собственика (Q-1 vault route, Q-2 Chat.model field, Q-3 ThemeToggle, Q-4 Lists scope, Q-5 cn(), Q-6 images route, Q-7 activeModel persist, Q-8 global search)
+- tools/guardians/ui_auditor.py — Създаден (304 реда Python)
+  - Check: Hardcoded platform hex colors (8 платформи)
+  - Check: Dynamic Tailwind class interpolation
+  - Check: Inline backdropFilter styles
+  - Check: console.log в production
+  - Check: any типове
+  - Check: Lipсващи glass CSS класове в globals.css
+  - Check: Липсващи CSS variables
+  - Check: useShallow при Zustand destructuring
+  - Output → tools/guardians/guardians.log (append-only)
+Verify: pnpm verify = N/A (planning/documentation task)
+Status: SUCCESS
+
+Date: 2026-03-06 18:50
+Task: DB Investigation & REFACTOR_PLAN finalization
+Role: UI_ARCHITECT
+- docs/user/UI/REFACTOR_PLAN.md — Финализиран с DB данни.
+  - Потвърдено: Chat.platform text field стойности (lmsys ⚠️ потвърдено).
+  - Потвърдено: cn.ts съществува в packages/shared.
+  - Решени всички 8 въпроса от Секция 8.
+- Appended final report and mapping corrections to the refactor plan.
+Verify: pnpm verify = FAILURE (existing extension type errors, plan is docs-only/tool)
+Status: SUCCESS

@@ -61,6 +61,8 @@ scripts/pre-migration/
 docs/user/
 docs/archive/
 docs/temp/
+agent_states/
+docs/agents/logs/
 
 
 # Project state and internal docs

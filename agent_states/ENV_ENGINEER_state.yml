@@ -1,5 +1,0 @@
-agent: ENV_ENGINEER
-status: IDLE
-history:
-  - date: '2026-02-27'
-    task: 'Post-Audit Infrastructure Fix (QA Sprint) — stripDevCSP extended, brainbox_master deactivated, dist verified clean'

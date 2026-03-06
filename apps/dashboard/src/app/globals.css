@@ -24,6 +24,13 @@
   --color-input: hsl(214.3 31.8% 91.4%);
   --color-ring: hsl(262.1 83.3% 57.8%);
   --radius: 0.75rem;
+
+  /* UI_BIBLE Semantic colors */
+  --color-surface: rgba(255, 255, 255, 0.8);
+  --color-surface-alt: rgba(248, 250, 252, 0.5);
+  --color-text-primary: #0f172a;
+  --color-text-secondary: #475569;
+  --color-text-muted: #94a3b8;
 }
 
 .dark {
@@ -48,6 +55,13 @@
   --color-border: hsl(217.2 32.6% 17.5%);
   --color-input: hsl(217.2 32.6% 17.5%);
   --color-ring: hsl(263.4 70% 50.4%);
+
+  /* UI_BIBLE Semantic colors - Dark */
+  --color-surface: rgba(15, 23, 42, 0.4);
+  --color-surface-alt: rgba(30, 41, 59, 0.3);
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #64748b;
 }
 
 @layer base {
@@ -103,6 +117,39 @@
   .animate-pulse-scale {
     animation: pulse-scale 0.6s ease-in-out;
   }
+
+  /* Mandatory Glass Utilities from REFACTOR_PLAN / UI_BIBLE */
+  .glass-panel {
+    background: var(--color-surface);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(var(--color-foreground-rgb), 0.08);
+    box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.05);
+  }
+
+  .glass-input {
+    background: rgba(var(--color-background-rgb), 0.5);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(var(--color-foreground-rgb), 0.1);
+    transition: all 0.2s ease;
+  }
+
+  .glass-input:focus {
+    background: rgba(var(--color-background-rgb), 0.8);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+  }
+
+  .glass-button {
+    background: rgba(var(--color-primary-rgb), 0.1);
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(var(--color-primary-rgb), 0.2);
+    transition: all 0.2s ease;
+  }
+
+  .glass-button:hover {
+    background: rgba(var(--color-primary-rgb), 0.15);
+    transform: translateY(-1px);
+  }
 }
 
 /* Typography & Content Styling */
@@ -112,7 +159,7 @@
 
 body {
   font-family: var(--font-mono);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 
 .markdown-content {
@@ -163,14 +210,21 @@ body {
 
 /* Glassmorphism Cards */
 .glass-card {
-  background: rgba(var(--color-background-rgb), 0.7);
+  background: var(--color-surface);
   backdrop-filter: blur(14px);
-  border: 1px solid rgba(var(--color-foreground-rgb), 0.1);
-  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.05);
+  border: 1px solid rgba(var(--color-foreground-rgb), 0.08);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.03);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(var(--color-foreground-rgb), 0.15);
+  box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.07);
 }
 
 .dark .glass-card {
-  background: rgba(var(--color-background-rgb), 0.4);
-  border: 1px solid rgba(var(--color-foreground-rgb), 0.05);
+  background: var(--color-surface);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
 }
+

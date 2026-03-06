@@ -617,6 +617,18 @@ python tools/guardians/ui_auditor.py --path apps/dashboard/src --json
 
 Output → `tools/guardians/guardians.log`
 
+### Guardian Script Comparison (v1 vs v2)
+Проведени бяха първоначални (baseline) сканирания с двете версии на скрипта върху директория `apps/dashboard/src`:
+
+**`ui_auditor.py` (v1):**
+* Намери: **151 нарушения** (основно липсващи glass classes в `globals.css` и solid backgrounds, плюс `any` types и hardcoded цветове).
+* Предимства: Бързо, установява базовата линия за UI_BIBLE съответствие.
+
+**`ui_auditor_v2.py` (v2):**
+* Намери: **284 нарушения** (59 ERRORs, 225 WARNINGs).
+* Предимства: Много по-стриктно. Добавя нови проверки (пр. `h-screen forbidden in Extension context`, специфични warnings за `SOLID_BACKGROUND` вместо glass). Втората версия улавя скрити проблеми с layout-а (като `h-screen`), които биха счупили Extension изгледа според правилата.
+
+**Решение:** Ще използваме **`ui_auditor_v2.py`** като основен инструмент за проверка и валидация по време на ибмплементацията (Phase 0 - 3), тъй като покрива повече edge cases и има по-прецизен ERROR/WARNING reporting подход.
 ---
 
 ## Секция 8: Потвърдени отговори (Финализирано 2026-03-06)

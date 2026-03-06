@@ -13,9 +13,7 @@
   },
   "dependencies": {
     "@brainbox/validation": "workspace:*",
-    "@google/generative-ai": "^0.21.0"
-  },
-  "devDependencies": {
-    "@types/chrome": "^0.1.36"
+    "@google/generative-ai": "^0.21.0",
+    "zod": "^3.25.76"
   }
 }

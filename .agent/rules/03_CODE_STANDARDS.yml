@@ -1,0 +1,43 @@
+version: '5.0.0'
+priority: 'MEDIUM'
+description: 'TypeScript, React, Styling, State, API standards'
+fallback: 'docs/user/FallbackRules/03_CODE_STANDARDS.md'
+
+rules:
+  typescript:
+    - rule: 'EXPLICIT_RETURN_TYPES'
+      description: 'All exported functions must have explicit return types.'
+    - rule: 'INTERFACE_OVR_TYPE'
+      description: 'Prefer interfaces for objects. Use types for unions/intersections.'
+
+  react:
+    - rule: 'SERVER_COMPONENTS_DEFAULT'
+      description: "Use server components by default. Only add 'use client' when hooks or events are needed."
+    - rule: 'MEMOIZATION'
+      description: 'Use memo, useMemo, and useCallback strictly for intensive operations or stable prop passing, not blindly.'
+
+  styling:
+    - rule: 'DESIGN_SYSTEM'
+      description: 'Use global design system tokens (e.g., .glass-card, var(--color-platform)) instead of raw utility classes.'
+    - rule: 'NO_DYNAMIC_INTERPOLATION'
+      description: 'Cannot use string interpolation for Tailwind classes (e.g., bg-${color}-500). Use full class map.'
+
+  state_management:
+    - rule: 'ZUSTAND_USE_SHALLOW'
+      description: 'Mandatory when destructuring multiple values from a Zustand store.'
+
+  logging:
+    - rule: 'NO_CONSOLE_LOG'
+      description: 'console.log is forbidden in production. Use @brainbox/shared logger.'
+
+  extension:
+    - rule: 'MV3_ONLY'
+      description: 'Manifest V3 only. Service worker mandatory, no localhost in production manifest.'
+
+  graph:
+    - rule: 'UPDATE_PROJECT_GRAPHS'
+      description: 'Agents must update contextual ProjectGraph.json and knowledge_graph.json if structural relationships change. DO NOT use plain text replacement or edit JSON manually.'
+    - rule: 'GRAPH_CLI_USAGE'
+      description: 'READ => `python .agent/tools/graph.py search --graph project <query>`. WRITE => `python .agent/tools/graph.py add --graph project --id <new_node_id> --desc <desc>`. Check help with -h.'
+    - rule: 'GRAPH_FALLBACK'
+      description: 'If the Python script fails, use `grep` or `jq` in the terminal to read data. DO NOT attempt to write unless using inline Python.'

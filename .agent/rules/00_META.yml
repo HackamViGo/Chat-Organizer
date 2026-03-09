@@ -1,0 +1,24 @@
+version: '5.0.0'
+description: 'Core hierarchy and governance'
+fallback: 'docs/user/FallbackRules/00_META.md'
+
+rules:
+  hierarchy:
+    - rule: 'PRIORITY_CHAIN'
+      description: '01_CRITICAL > 03_CODE_STANDARDS > 04_AGENT_PROTOCOL > 02_WORKFLOW'
+    - rule: 'CONFLICT_RESOLUTION'
+      description: 'Local config overrides global. Security overrides code style.'
+
+  file_ownership:
+    - path: 'apps/extension'
+      role: 'EXTENSION_ENGINEER'
+    - path: 'apps/dashboard'
+      role: 'FRONTEND_ENGINEER'
+    - path: 'packages/*'
+      role: 'ARCHITECT'
+    - path: 'supabase/*'
+      role: 'BACKEND_ENGINEER'
+
+  emergency_override:
+    - condition: 'Production is down or security vulnerability'
+      action: 'Bypass normal rules, fix immediately, document in logs/violations.json'

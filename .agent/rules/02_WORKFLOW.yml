@@ -1,0 +1,27 @@
+version: '5.0.0'
+priority: 'HIGH'
+description: 'Git, PR, Env, Verification and Testing standards'
+fallback: 'docs/user/FallbackRules/02_WORKFLOW.md'
+
+rules:
+  git:
+    - rule: 'MAIN_BRANCH'
+      description: 'Never push directly to main or dev. Branch from dev.'
+    - rule: 'SQUASH_MERGE'
+      description: 'PRs to dev should be squash-merged to maintain clean history.'
+
+  environments:
+    - rule: 'NO_COMMITTING_ENV'
+      description: '.env must never be committed.'
+    - rule: 'ENV_SWITCHING'
+      description: 'Manually cp .env.prod, .env.dev, or .env.docker. No auto-scripts.'
+
+  verification:
+    - rule: 'PNPM_VERIFY'
+      description: 'Score must be > 80 (Lint, Typecheck, Format, Test, Audit) before merge/commit.'
+    - rule: 'TYPE_CHECK_MANDATORY'
+      description: 'tsc --noEmit must pass completely (30/30 points).'
+
+  documentation:
+    - rule: 'TODO_TRACKING'
+      description: 'Any TODO must reference an issue: TODO(#123).'

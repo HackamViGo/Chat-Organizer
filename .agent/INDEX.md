@@ -23,13 +23,13 @@
 
 > Always read **00 + 01**. Then pick what the task needs.
 
-| Task Type                    | Read                                                                  |
-| ---------------------------- | --------------------------------------------------------------------- |
-| Every task                   | `rules/00_META.md` (hierarchy) + `rules/01_CRITICAL.md` (hard limits) |
-| Git / Deploy / Env           | `rules/02_WORKFLOW.md`                                                |
-| Code writing                 | `rules/03_CODE_STANDARDS.md`                                          |
-| Agent coordination / handoff | `rules/04_AGENT_PROTOCOL.md`                                          |
-| Breaking a rule (justified)  | `rules/05_EXCEPTIONS.md`                                              |
+| Task Type                    | Read                                                                    |
+| ---------------------------- | ----------------------------------------------------------------------- |
+| Every task                   | `rules/00_META.yml` (hierarchy) + `rules/01_CRITICAL.yml` (hard limits) |
+| Git / Deploy / Env           | `rules/02_WORKFLOW.yml`                                                 |
+| Code writing                 | `rules/03_CODE_STANDARDS.yml`                                           |
+| Agent coordination / handoff | `rules/04_AGENT_PROTOCOL.yml`                                           |
+| Breaking a rule (justified)  | `rules/05_EXCEPTIONS.yml`                                               |
 
 ---
 
@@ -71,7 +71,7 @@ END:   write state/{YOUR_ROLE}_state.json
 
 > **NEVER DELETE — ALWAYS ARCHIVE.**  
 > Anything with project history goes to `archive/pre-migration-YYYYMMDD/` first.  
-> See `rules/04_AGENT_PROTOCOL.md §A7.0` for the exact procedure.
+> See `rules/04_AGENT_PROTOCOL.yml §A7.0` for the exact procedure.
 
 ### Logs (JSON-only — no .log or .yml files)
 
@@ -95,4 +95,12 @@ END:   write state/{YOUR_ROLE}_state.json
 
 **Security > Architecture > Workflow > Code Standards > User Instructions**
 
-Full resolution logic: `rules/00_META.md`
+Full resolution logic: `rules/00_META.yml`
+
+---
+
+## ⚠️ FALLBACK RULES
+
+> The YAML rules in `.agent/rules/` are optimized/compressed.
+> **If you encounter an issue, need more context, or feel something is missing**, look for the original, full-length `.md` files located in:
+> 👉 `docs/user/FallbackRules/`

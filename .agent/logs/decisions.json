@@ -1,0 +1,18 @@
+{
+  "version": "1.0.0",
+  "note": "Replaces legacy CHANGES.log. Cross-agent handoffs go in dependencies.json. This file tracks architectural decisions.",
+  "decisions": [
+    {
+      "date": "2026-03-09",
+      "role": "ARCHITECT",
+      "decision": "Migrate core framework rules (.agent/rules/*.md) to .yml format to drastically reduce AI context overhead.",
+      "rationale": "Markdown rules exceeded thousands of lines. Tree-based YAML provides a machine-readable structure that skips fluff and reduces prompt tokens while the full documentation remains in docs/user/FallbackRules/ for human fallback."
+    },
+    {
+      "date": "2026-03-09",
+      "role": "ARCHITECT",
+      "decision": "Implement .agent/tools/graph.py CLI for safer knowledge graph interactions.",
+      "rationale": "Graph JSON files exceed 500 lines. Modifying massive JSON files via AI string replacement often causes corruption and syntax errors. A dedicated Python CLI tool ensures JSON validity, protects graph integrity, and speeds up modification. Grep and jq remain as read-only fallbacks."
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+version: '5.0.0'
+priority: 'HIGH'
+description: 'Cross-Agent State and Handover Protocol'
+fallback: 'docs/user/FallbackRules/04_AGENT_PROTOCOL.md'
+
+rules:
+  state:
+    - rule: 'STATE_FILE_CHECK'
+      description: 'Agents must read .agent/state/{ROLE}_state.json BEFORE acting to know their current assignment.'
+    - rule: 'STATE_UPDATE'
+      description: 'Update status to ACTIVE during task, IDLE when finished. Append task to history array.'
+
+  communication:
+    - rule: 'LOGGING'
+      description: 'Detailed step-by-step actions go to .agent/logs/decisions.json (machine readable).'
+    - rule: 'HANDOVER_CHANGES'
+      description: 'If an agent does work affecting another role, write exactly what they must know/do in .agent/logs/CHANGES.json/log.'
+
+  completion:
+    - rule: 'EXIT_SEQUENCE'
+      description: '1) Verify checks. 2) Update state JSON to IDLE. 3) Log changes to decisions. 4) Report back to user in Bulgarian.'
+
+  tools:
+    - rule: 'USE_CLI_TOOLS'
+      description: '.agent/tools/ contains Python CLI scripts that act as your safe tools. Always use them to interact with complex files (like JSON graphs) instead of text replacement to avoid syntax corruption.'

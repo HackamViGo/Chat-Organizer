@@ -1,0 +1,245 @@
+---
+trigger: always_on
+---
+
+# BrainBox — Core Rules
+
+**Версия:** 4.1.0 | **Дата:** 2026-02-25 | **Важи за:** Всички агенти и разработчици
+
+> Това е единственият авторитетен документ за правила.  
+> При конфликт с друг файл — този документ печели.  
+> **Приоритет:** SECURITY > ARCHITECTURE > CODE > USER INSTRUCTION
+
+---
+
+## 🔴 ПРАВИЛО #0 — Файлова дисциплина
+
+### Документи
+
+- Всички `.md` и `.txt` файлове живеят САМО в `docs/`
+- Единственото изключение: `README.md` в корена на пакет/app
+- Rules файлове: `.agent/rules/`, `.agents/rules/` и `.cursorrules` в root
+- Никакви `.md` или `.txt` извън тези места — без изключения
+
+### Защитени документи (НИКОГА не мести в archive)
+
+- `docs/Mandatory!/ARCHITECTURE.md`
+- `docs/Mandatory!/SECURITY.md`
+- `docs/Mandatory!/CODE_GUIDELINES.md`
+- `docs/Mandatory!/PRODUCT.md`
+- `.agent/rules/main.md`
+- `.agent/rules/core-rules.md`
+
+### GRAPH PROTOCOL:
+
+START: Преди задача → прочети релевантните nodes от ProjectGraph.json (засегнати файлове) и knowledge_graph.json (Business Logic + Guidelines за scope-а).
+END: След задача → обнови/добави nodes в двата графа ако са се променили файлове, зависимости или е открита нова бизнес логика.
+
+### Lock файлове
+
+- `pnpm-lock.yaml` в ROOT → ✅ правилен, не пипай
+- `package-lock.json` навсякъде → ❌ npm е изпълнен директно — изтрий + докладвай
+
+### Commits
+
+- Commit е разрешен САМО след `pnpm verify` с резултат > 80
+- Изключение: `docs/` only промени (документация без код)
+- При hotfix: `git commit --no-verify` е допустимо НО трябва коментар защо
+
+---
+
+## 🔴 ПРАВИЛО #1 — Package Manager
+
+- Само `pnpm`. Никога `npm install` или `yarn`.
+- Ако намериш `package-lock.json` → изтрий го и докладвай.
+- Всички зависимости хойстнати в root `package.json`.
+
+---
+
+## 🔴 ПРАВИЛО #2 — Архитектурни граници
+
+- `apps/extension` никога не импортира от `apps/dashboard`.
+- `apps/dashboard` никога не импортира от `apps/extension`.
+- Споделена логика → само през `packages/`.
+- Нов архитектурен слой → изисква одобрение преди имплементация.
+
+---
+
+## 🔴 ПРАВИЛО #3 — Type Safety
+
+- `any` е **забранено**. Използвай `unknown` + type guards.
+- `z.any()` е **забранено** в Zod схеми.
+- Всички Zod схеми живеят в `@brainbox/validation/schemas/`.
+- Никакви inline Zod схеми в API routes.
+- `ignoreBuildErrors: true` и `ignoreDuringBuilds: true` са **забранени** в `next.config.js`.
+
+---
+
+## 🔴 ПРАВИЛО #4 — Сигурност
+
+- `user_id` идва само от `auth.getUser()` server-side. Никога от request body.
+- RLS е активно за всички таблици. Никога не го заобикаляй.
+- Никакви hardcoded URLs — използвай `API_BASE_URL` от config.
+- API ключове (включително `geminiApiKey`) не се съхраняват в `localStorage`.
+- JWT токени в Extension се криптират with AES-GCM.
+
+---
+
+## 🔴 ПРАВИЛО #5 — Logging & Debug
+
+- Никакво `console.log` в production. Използвай `logger.ts`.
+- `DEBUG_MODE` трябва да е `false` преди всеки commit към `main`.
+- Изключения: `logger.ts` вътрешно ползва `console.*` — ОК.
+
+---
+
+## 🟡 ПРАВИЛО #6 — State Management
+
+- `useShallow` е задължително при Zustand деструктуриране.
+- Всички persist ключове (storage keys) в Zustand ЗАДЪЛЖИТЕЛНО следват формата `brainbox-{entity}-store` (напр. `brainbox-auth-store`). Стари имена (като `promptmaster-*`) са абсолютно забранени.
+- Optimistic updates: snapshot → update → API call → rollback при грешка.
+
+---
+
+## 🟡 ПРАВИЛО #7 — Extension специфики
+
+- Само MV3 Manifest. Service Worker, не background page.
+- Никакъв `localhost` в production manifest — `stripDevCSP` е активен.
+- `brainbox_master.js` е deprecated — не го модифицирай.
+- `DEBUG_MODE = true` е забранено в production builds.
+
+---
+
+## 🟡 ПРАВИЛО #8 — Git Workflow
+
+- Никакъв директен push към `main` (освен документиран hotfix).
+- Branches: `feature/`, `fix/`, `hotfix/`.
+- Commit формат: `type(scope): message` (feat, fix, refactor, docs, test, chore).
+- При неяснота: формулирай въпрос с A/B варианти и **чакай отговор**.
+
+---
+
+## 🟡 ПРАВИЛО #9 — Забранени промени без одобрение
+
+- `packages/shared/src/types/` — споделени типове
+- `packages/validation/schemas/` — Zod схеми
+- `apps/extension/manifest.json` — permissions
+- `apps/dashboard/src/middleware.ts` — auth логика
+- `turbo.json` — pipeline
+- Нови npm зависимости
+- RLS политики в Supabase
+
+---
+
+## 🟡 ПРАВИЛО — Agent Log система
+
+### YAML state (машинно четим — само index)
+
+Файл: `agent_states/{ROLE}_state.yml`
+
+Формат (не променяй структурата):
+agent: ROLE_NAME
+status: IDLE | ACTIVE
+history: - date: "2026-02-25"
+task: "Кратко описание"
+
+Правила:
+
+- history е append-only (не презаписвай стари записи)
+- Само задачата — без детайли (детайлите са в .log)
+- Максимум 10 записа → по-старите се архивират в log файла
+
+### Log файл (детайлен — четим от хора)
+
+Файл: `docs/agents/logs/{ROLE}_agent.log`
+Append-only: НИКОГА не презаписвай
+
+## Формат за всяка задача:
+
+Date: YYYY-MM-DD HH:MM
+Task: Кратко заглавие
+Role: ROLE_NAME
+
+- конкретна промяна (файл:ред) — какво е направено
+- конкретна промяна (файл:ред) — какво е направено
+  Verify: pnpm verify = XX/100
+  Status: SUCCESS | PARTIAL | FAILED
+
+---
+
+### CHANGES.log (cross-role)
+
+Файл: `docs/agents/logs/CHANGES.log`
+Append-only
+
+Формат:
+[YYYY-MM-DD] SOURCE_ROLE → засяга TARGET_ROLE:
+Промяна: описание (файл:ред)
+Изисква: какво трябва TARGET_ROLE да направи
+
+---
+
+## 🔴 ПРАВИЛО #10 — Exit Protocol (само за агенти)
+
+При приключване на задача, актуализирай два документа:
+
+1. **YAML (Index)** (`agent_states/{ROLE}_state.yml`): Добави нов запис в `history` само с `date` и `task`.
+2. **Log файл (Detail)** (`docs/agents/logs/{ROLE}_agent.log`): Добави детайлен блок съгласно "Agent Log система".
+3. Ако засяга друга роля → append в `docs/agents/logs/CHANGES.log`
+4. Докладвай на потребителя на **български**.
+
+---
+
+## 🔴 ПРАВИЛО #11 — Git & DevOps Protocol
+
+### Workflow
+
+1. **Source:** Винаги тръгвай от **dev**.
+2. **Branch:** `feature/description` или `fix/description`.
+3. **Push:** Само текущия feature branch.
+4. **PR:** САМО към **dev**. НИКОГА към **main**.
+
+### Commits
+
+- Формат: `type(scope): message` (feat, fix, chore, refactor, test, docs, style).
+- Без "WIP", "update", "fix bug" и подобни неясни съобщения.
+
+### Забрани
+
+- Директен push към **main** или **dev** е абсолютно забранен.
+- **Force push** е абсолютно забранен.
+- Работа само в **Docker** среда.
+
+---
+
+## 🔴 ПРАВИЛО #12 — Agent Folders & Roles Discipline
+
+### Directory Discipline
+
+- **`docs/agents/logs/`**: САМО `.log` файлове съгласно формата на ПРАВИЛО #9 и `CHANGES.log`. Никакви други документи.
+- **`docs/agents/roles/`**: САМО `.md` файлове с дефиниции на роли. Никакви други документи.
+
+### Role Matching Logic
+
+- Преди всяка задача проверявай наличните роли в `docs/agents/roles/`.
+- Ако зададената роля не съвпада точно с никоя от изброените → **избери най-близката** по значение и функции от наличните.
+- Никога не създавай нова роля без изрично одобрение.
+
+---
+
+## 🔴 ПРАВИЛО #13 — Environment Management
+
+### .env Структура
+
+- `.env.prod` → Production (Supabase PROD, Vercel PROD URL)
+- `.env.dev` → Development (Supabase DEV, Vercel Preview URL)
+- `.env.docker` → Local (Supabase CLI/Docker)
+
+### Превключване на среди
+
+Преди работа се увери, че активираш правилната среда:
+
+- `cp .env.dev .env` (за работа с Dev/Preview)
+- `cp .env.prod .env` (за работа с Production)
+- `cp .env.docker .env` (за локален Docker)
+  _Забележка: Винаги копирай и в под-директориите (apps/dashboard, apps/extension) ако е необходимо специфично превключване._

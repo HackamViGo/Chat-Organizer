@@ -1,0 +1,96 @@
+# .agent INDEX — Agent Entry Point
+
+> **Read this first. Only this. Then pick what you need.**
+
+---
+
+## Step 1 — Identify Your Role
+
+| Role                   | File                                                               |
+| ---------------------- | ------------------------------------------------------------------ |
+| ARCHITECT              | [roles/ARCHITECT.md](roles/ARCHITECT.md)                           |
+| BACKEND_ENGINEER       | [roles/BACKEND_ENGINEER.md](roles/BACKEND_ENGINEER.md)             |
+| FRONTEND_ENGINEER      | [roles/FRONTEND_ENGINEER.md](roles/FRONTEND_ENGINEER.md)           |
+| EXTENSION_ENGINEER     | [roles/EXTENSION_ENGINEER.md](roles/EXTENSION_ENGINEER.md)         |
+| AI_ENGINEER            | [roles/AI_ENGINEER.md](roles/AI_ENGINEER.md)                       |
+| QA_ENGINEER            | [roles/QA_ENGINEER.md](roles/QA_ENGINEER.md)                       |
+| DEVOPS_ENGINEER        | [roles/DEVOPS_ENGINEER.md](roles/DEVOPS_ENGINEER.md)               |
+| DOCUMENTATION_ENGINEER | [roles/DOCUMENTATION_ENGINEER.md](roles/DOCUMENTATION_ENGINEER.md) |
+
+---
+
+## Step 2 — Pick Your Rules (by task type)
+
+> Always read **00 + 01**. Then pick what the task needs.
+
+| Task Type                    | Read                                                                  |
+| ---------------------------- | --------------------------------------------------------------------- |
+| Every task                   | `rules/00_META.md` (hierarchy) + `rules/01_CRITICAL.md` (hard limits) |
+| Git / Deploy / Env           | `rules/02_WORKFLOW.md`                                                |
+| Code writing                 | `rules/03_CODE_STANDARDS.md`                                          |
+| Agent coordination / handoff | `rules/04_AGENT_PROTOCOL.md`                                          |
+| Breaking a rule (justified)  | `rules/05_EXCEPTIONS.md`                                              |
+
+---
+
+## Step 3 — Pick Your Skill (only if writing code)
+
+| You are touching...                | Read                                         |
+| ---------------------------------- | -------------------------------------------- |
+| TypeScript types, generics, guards | [skills/TYPESCRIPT.md](skills/TYPESCRIPT.md) |
+| React components, hooks            | [skills/REACT.md](skills/REACT.md)           |
+| Next.js routes, middleware, SSR    | [skills/NEXTJS.md](skills/NEXTJS.md)         |
+| Supabase queries, RLS, migrations  | [skills/SUPABASE.md](skills/SUPABASE.md)     |
+| Tailwind classes, design tokens    | [skills/TAILWIND.md](skills/TAILWIND.md)     |
+| Tests (unit, E2E, Playwright)      | [skills/TESTING.md](skills/TESTING.md)       |
+| Auth, secrets, encryption          | [skills/SECURITY.md](skills/SECURITY.md)     |
+
+---
+
+## Step 4 — Context (read only if you need it)
+
+| Need to know...                        | Read                                                                     |
+| -------------------------------------- | ------------------------------------------------------------------------ |
+| What is this project?                  | [context/PROJECT_OVERVIEW.md](context/PROJECT_OVERVIEW.md)               |
+| What tech decisions were made and why? | [context/TECH_STACK.md](context/TECH_STACK.md)                           |
+| What's being built right now?          | [context/CURRENT_SPRINT.md](context/CURRENT_SPRINT.md)                   |
+| High-level architecture decisions      | [context/ARCHITECTURE_PRINCIPLES.md](context/ARCHITECTURE_PRINCIPLES.md) |
+| Hard system limits and constraints     | [context/SYSTEM_CONSTRAINTS.md](context/SYSTEM_CONSTRAINTS.md)           |
+
+---
+
+## Step 5 — Before / After Every Task
+
+```
+START: read state/{YOUR_ROLE}_state.json + dependencies.json
+END:   write state/{YOUR_ROLE}_state.json
+       if cross-role impact → add handoff to dependencies.json
+```
+
+> **NEVER DELETE — ALWAYS ARCHIVE.**  
+> Anything with project history goes to `archive/pre-migration-YYYYMMDD/` first.  
+> See `rules/04_AGENT_PROTOCOL.md §A7.0` for the exact procedure.
+
+### Logs (JSON-only — no .log or .yml files)
+
+| File                    | Purpose                                   |
+| ----------------------- | ----------------------------------------- |
+| `dependencies.json`     | Cross-agent handoffs (pending + resolved) |
+| `logs/decisions.json`   | Architectural decisions                   |
+| `logs/violations.json`  | Rule violations                           |
+| `exceptions/index.json` | Active emergency overrides                |
+
+---
+
+## Full Documentation
+
+→ [`docs/Guides/`](../docs/Guides/) — Architecture, Security, API, Deployment, UI, etc.
+→ [`docs/GUIDELINES.md`](../docs/GUIDELINES.md) — Master index for the whole project
+
+---
+
+## Conflict Resolution
+
+**Security > Architecture > Workflow > Code Standards > User Instructions**
+
+Full resolution logic: `rules/00_META.md`

@@ -971,6 +971,100 @@ describe('ChatCard', () => {
 
 ---
 
+## 🔴 S8. Debug & Logging Rules (from core-rules v4)
+
+> Migrated from core-rules.md §ПРАВИЛО #5 — no conflicts with v5.
+
+### S8.1 No console.log in Production
+
+```typescript
+// ❌ FORBIDDEN in production
+console.log('debug', data)
+console.warn('deprecated')
+
+// ✅ CORRECT
+import { logger } from '@brainbox/shared'
+logger.info('event', { data })
+logger.warn('deprecated usage')
+```
+
+**`DEBUG_MODE` must be `false` before every commit to `main`.**  
+Exception: `logger.ts` itself may use `console.*` internally — that is OK.
+
+---
+
+## 🔴 S9. Zustand — useShallow Rule (from core-rules v4)
+
+> Migrated from core-rules.md §ПРАВИЛО #6.
+
+```typescript
+// ❌ FORBIDDEN (object selector without useShallow = re-render on every state change)
+const { chats, isLoading } = useChatStore((state) => ({
+  chats: state.chats,
+  isLoading: state.isLoading,
+}))
+
+// ✅ CORRECT
+import { useShallow } from 'zustand/react/shallow'
+
+const { chats, isLoading } = useChatStore(
+  useShallow((state) => ({
+    chats: state.chats,
+    isLoading: state.isLoading,
+  }))
+)
+```
+
+**`useShallow` is mandatory whenever destructuring multiple values from a Zustand store.**
+
+---
+
+## 🔴 S10. Extension Specifics (from core-rules v4)
+
+> Migrated from core-rules.md §ПРАВИЛО #7.
+
+- **MV3 only** — Service Worker, never background page.
+- **No `localhost`** in production manifest — `stripDevCSP` is active.
+- **`brainbox_master.js` is deprecated** — do not modify it.
+- **`DEBUG_MODE = true` is forbidden** in production builds.
+
+---
+
+## 🟡 S11. Forbidden Changes Without Approval (from core-rules v4)
+
+> Migrated from core-rules.md §ПРАВИЛО #9.
+
+The following files/paths require **explicit user approval** before modification:
+
+| Path                               | Reason                                             |
+| ---------------------------------- | -------------------------------------------------- |
+| `packages/shared/src/types/`       | Shared types — breaking changes cascade everywhere |
+| `packages/validation/schemas/`     | Zod schemas — API contracts                        |
+| `apps/extension/manifest.json`     | Extension permissions — Store review impact        |
+| `apps/dashboard/src/middleware.ts` | Auth logic — security critical                     |
+| `turbo.json`                       | Pipeline — affects all build steps                 |
+| New npm dependencies               | Bundle size + supply chain risk                    |
+| RLS policies in Supabase           | Data access control — security critical            |
+
+---
+
+## 🟡 S12. Graph Protocol (from core-rules v4)
+
+> Context graphs are now in `.agent/context/`. Paths updated for v5.
+
+**START task:** Read relevant nodes from:
+
+- `context/ProjectGraph.json` — which files are affected
+- `context/knowledge_graph.json` — business logic + domain constraints for scope
+
+**END task:** Update/add nodes in both graphs if:
+
+- Files were created, deleted, or significantly modified
+- New business logic was discovered
+- New dependencies between modules were identified
+
+---
+
 ## 📚 Related Documents
 
 - **00_META.md** — Rule hierarchy

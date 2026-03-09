@@ -56,6 +56,8 @@
 | What's being built right now?          | [context/CURRENT_SPRINT.md](context/CURRENT_SPRINT.md)                   |
 | High-level architecture decisions      | [context/ARCHITECTURE_PRINCIPLES.md](context/ARCHITECTURE_PRINCIPLES.md) |
 | Hard system limits and constraints     | [context/SYSTEM_CONSTRAINTS.md](context/SYSTEM_CONSTRAINTS.md)           |
+| File map — which files relate to what  | [context/ProjectGraph.json](context/ProjectGraph.json)                   |
+| Business logic + domain knowledge      | [context/knowledge_graph.json](context/knowledge_graph.json)             |
 
 ---
 

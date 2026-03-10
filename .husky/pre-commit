@@ -2,7 +2,16 @@ echo "🔍 Pre-commit: Running lint-staged..."
 pnpm exec lint-staged
 
 if [ $? -ne 0 ]; then
-  echo "❌ Pre-commit failed. Fix errors before committing."
+  echo "❌ Pre-commit: lint-staged failed. Fix errors before committing."
+  exit 1
+fi
+
+echo "🛡️  Pre-commit: Running Agent Guardians..."
+python3 .agent/tools/guardians/package_sync_checker.py
+python3 .agent/tools/guardians/zod_schema_locator.py
+
+if [ $? -ne 0 ]; then
+  echo "❌ Pre-commit: Guardians failed. Check logs for violations."
   exit 1
 fi
 

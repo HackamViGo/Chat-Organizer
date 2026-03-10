@@ -43,7 +43,10 @@
     "agent:checkpoint": "python3 .agent/tools/agent_cli.py checkpoint",
     "agent:rollback": "python3 .agent/tools/agent_cli.py rollback",
     "agent:report-task": "python3 .agent/tools/agent_cli.py report-task",
-    "agent:score": "python3 .agent/tools/scoring/cli.py"
+    "agent:score": "python3 .agent/tools/scoring/cli.py",
+    "agent:janitor": "python3 .agent/tools/guardians/brainbox_strict_janitor.py",
+    "agent:sync-check": "python3 .agent/tools/guardians/package_sync_checker.py",
+    "agent:zod-check": "python3 .agent/tools/guardians/zod_schema_locator.py"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

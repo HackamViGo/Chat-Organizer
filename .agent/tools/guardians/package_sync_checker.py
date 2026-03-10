@@ -20,7 +20,7 @@ def load_json(path):
         return json.load(f)
 
 def log_guardian(script, error, cause, action="PENDING"):
-    log_path = ROOT_DIR / "tools/guardians/guardians.log"
+    log_path = ROOT_DIR / ".agent/logs/guardians.log"
     entry = f"""
 Agent: SYSTEM_GUARDIAN
 Date: {os.popen('date "+%Y-%m-%d %H:%M"').read().strip()}

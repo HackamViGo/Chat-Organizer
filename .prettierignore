@@ -9,3 +9,4 @@ apps/extension/dist
 packages/database/database.types.ts
 packages/shared/src/types/database.types.ts
 
+.agent/

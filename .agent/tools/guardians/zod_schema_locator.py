@@ -11,7 +11,7 @@ ALLOWED_IMPORT = "from '@brainbox/validation'"
 ZOD_OBJECT_PATTERN = re.compile(r'z\.object\s*\(\{', re.MULTILINE)
 
 def log_guardian(script, error, cause, action="PENDING"):
-    log_path = ROOT_DIR / "tools/guardians/guardians.log"
+    log_path = ROOT_DIR / ".agent/logs/guardians.log"
     entry = f"""
 Agent: SYSTEM_GUARDIAN
 Date: {os.popen('date "+%Y-%m-%d %H:%M"').read().strip()}

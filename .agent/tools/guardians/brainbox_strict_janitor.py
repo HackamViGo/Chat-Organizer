@@ -44,7 +44,7 @@ def check_rule_integrity():
 
 def check_folder_integrity():
     issues = []
-    inventory_path = ROOT / "tools/automators/inventory.json"
+    inventory_path = ROOT / ".agent/tools/automators/inventory.json"
     if not inventory_path.exists(): return issues
     
     with open(inventory_path, 'r') as f:

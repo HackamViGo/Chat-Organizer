@@ -51,8 +51,6 @@ tools:
   "DONT USE":
     description: "Legacy UI tools and templates kept for future reference during UI migration."
     items:
-      ui_auditor.py:
-        purpose: "Checks for UI_BIBLE compliance, glassmorphism, and color variables."
       ui_auditor_v2.py:
         purpose: "Enhanced UI auditor with improved context window and h-screen checks."
       component_scaffolder.py:

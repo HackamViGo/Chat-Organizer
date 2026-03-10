@@ -24,15 +24,12 @@ tools:
   automators:
     description: "Scripts to accelerate development and reduce manual errors."
     items:
-      component_scaffolder.py:
-        purpose: "Scaffolds new UI components. (⚠️ Configured for legacy packages/ui structure; needs path update for apps/)."
-        usage: "python3 .agent/tools/automators/component_scaffolder.py <ComponentName>"
       env_vault_syncer.py:
         purpose: "Syncs .env keys to .env.example to prevent missing placeholders."
         usage: "python3 .agent/tools/automators/env_vault_syncer.py"
-      svg_to_icon.py:
-        purpose: "Converts raw SVG files into React components."
-        usage: "python3 .agent/tools/automators/svg_to_icon.py <input.svg>"
+      test-connection.js:
+        purpose: "Verifies connectivity and service health."
+        usage: "node .agent/tools/automators/test-connection.js"
 
   release:
     description: "Tools for managing versions and deployments."
@@ -50,3 +47,15 @@ tools:
       agent_cli.py:
         purpose: "Headless CLI for checkpoints and task reporting."
         usage: "pnpm agent:report-task <ROLE> <DESC>"
+
+  "DONT USE":
+    description: "Legacy UI tools and templates kept for future reference during UI migration."
+    items:
+      ui_auditor.py:
+        purpose: "Checks for UI_BIBLE compliance, glassmorphism, and color variables."
+      ui_auditor_v2.py:
+        purpose: "Enhanced UI auditor with improved context window and h-screen checks."
+      component_scaffolder.py:
+        purpose: "Generates boilerplate for UI components (obsolete paths)."
+      svg_to_icon.py:
+        purpose: "SVG to React Icon converter."

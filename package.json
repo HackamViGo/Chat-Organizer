@@ -39,7 +39,11 @@
     "legacy:dev": "next dev",
     "legacy:build": "next build",
     "prepare": "husky",
-    "audit": "pnpm verify"
+    "audit": "pnpm verify",
+    "agent:checkpoint": "python3 .agent/tools/agent_cli.py checkpoint",
+    "agent:rollback": "python3 .agent/tools/agent_cli.py rollback",
+    "agent:report-task": "python3 .agent/tools/agent_cli.py report-task",
+    "agent:score": "python3 .agent/tools/scoring/cli.py"
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",

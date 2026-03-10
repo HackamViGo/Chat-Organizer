@@ -1,0 +1,51 @@
+[
+  {
+    "id": "f7e1b34391",
+    "timestamp": 1773093164.570362,
+    "label": "initial",
+    "description": "Начално състояние",
+    "state": {
+      "total_score": 0.0,
+      "level": 1,
+      "streak": 0,
+      "multiplier": 1.0,
+      "combo_count": 0,
+      "penalties": 0.0,
+      "bonuses": 0.0,
+      "events_count": 0,
+      "custom_data": {}
+    },
+    "state_fingerprint": "5711908bc6be23ae",
+    "events_snapshot": [],
+    "auto_created": false,
+    "parent_checkpoint_id": "",
+    "tags": [
+      "initial"
+    ]
+  },
+  {
+    "id": "d0cf504742",
+    "timestamp": 1773093164.5705912,
+    "label": "TEST_AGENT_Initial_test_of_the_scoring_system",
+    "description": "Initial test of the scoring system",
+    "state": {
+      "total_score": 0.0,
+      "level": 1,
+      "streak": 0,
+      "multiplier": 1.0,
+      "combo_count": 0,
+      "penalties": 0.0,
+      "bonuses": 0.0,
+      "events_count": 0,
+      "custom_data": {}
+    },
+    "state_fingerprint": "5711908bc6be23ae",
+    "events_snapshot": [],
+    "auto_created": false,
+    "parent_checkpoint_id": "f7e1b34391",
+    "tags": [
+      "manual",
+      "TEST_AGENT"
+    ]
+  }
+]

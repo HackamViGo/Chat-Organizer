@@ -16,7 +16,7 @@
       "workspace": "docs",
       "type": "documentation",
       "responsibility": "Consolidated master system documentation for BrainBox, providing a single source of truth for architecture, security, guidelines, and workflows.",
-      "dependencies": ["docs/Mandatory!"],
+      "dependencies": ["docs/Guides"],
       "dependents": [],
       "status": "active"
     },
@@ -659,14 +659,14 @@
       "status": "active"
     },
     {
-      "id": "docs/agents/roles/BRAINBOX_AUDITOR.md",
+      "id": ".agent/roles/BRAINBOX_AUDITOR.md",
       "workspace": "docs",
       "type": "role",
       "responsibility": "Agent definition and boundary specifications for the BrainBox end-to-end Auditor role.",
       "status": "active"
     },
     {
-      "id": "docs/agents/logs/BRAINBOX_AUDITOR_agent.log",
+      "id": ".agent/logs/BRAINBOX_AUDITOR_agent.log",
       "workspace": "docs",
       "type": "agent_log",
       "responsibility": "Detailed operation log capturing all tasks performed by the BRAINBOX_AUDITOR agent.",
@@ -680,21 +680,21 @@
       "status": "active"
     },
     {
-      "id": "docs/Mandatory!/API_REFERENCE.md",
+      "id": "docs/Guides/API_REFERENCE.md",
       "workspace": "docs",
       "type": "documentation",
       "responsibility": "Master reference for all backend API endpoints and required formats.",
       "status": "active"
     },
     {
-      "id": "docs/Mandatory!/DATABASE_SCHEMA.md",
+      "id": "docs/Guides/DATABASE_SCHEMA.md",
       "workspace": "docs",
       "type": "documentation",
       "responsibility": "Generated schema representation tracking the Supabase shape and relationships.",
       "status": "active"
     },
     {
-      "id": "docs/Mandatory!/ERROR_CODES.md",
+      "id": "docs/Guides/ERROR_CODES.md",
       "workspace": "docs",
       "type": "documentation",
       "responsibility": "Dictionary of internal error codes returned by the API.",

@@ -5,11 +5,13 @@ if [ "$BRANCH" = "main" ] || [ "$BRANCH" = "dev" ]; then
   echo "   Use feature/ or fix/ branches and Pull Requests to 'dev'."
   exit 1
 fi
-echo "🔍 Quality Gate: Running Type-Check..."
-if pnpm turbo type-check; then
-  echo "✅ Safe to push!"
-  exit 0
-else
-  echo "❌ Type-check failed!"
+  echo "🔍 Quality Gate: Running Type-Check..."
+  if pnpm turbo type-check; then
+    echo "💾 Creating Agent Checkpoint..."
+    pnpm agent:checkpoint VCSS "Automatic push checkpoint"
+    echo "✅ Safe to push!"
+    exit 0
+  else
+    echo "❌ Type-check failed!"
   exit 1
 fi

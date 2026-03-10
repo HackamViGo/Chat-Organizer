@@ -19,6 +19,16 @@ rules:
     - path: 'supabase/*'
       role: 'BACKEND_ENGINEER'
 
+  repository_structure:
+    - rule: 'DOCUMENTATION_BOUNDARY'
+      description: 'All documentation (manuals, guides, archives) MUST live inside `docs/`. No .md or .txt files allowed in /apps, /packages, or root (except README and .agent).'
+    - rule: 'ARCHIVE_PATH'
+      description: 'History and legacy migrations move to `docs/archive/pre-migration-YYYYMMDD/` instead of root /archive/.'
+
+  fallback_protocol:
+    - rule: "NOTIFY_ON_FALLBACK"
+      description: "If an agent accesses any .md file in docs/user/FallbackRules/, they MUST immediately notify the user in Bulgarian: 'ВНИМАНИЕ: Използвам FALLBACK правила поради [причина]!'"
+
   emergency_override:
     - condition: 'Production is down or security vulnerability'
       action: 'Bypass normal rules, fix immediately, document in logs/violations.json'

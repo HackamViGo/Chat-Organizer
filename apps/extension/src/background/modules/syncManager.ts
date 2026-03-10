@@ -5,14 +5,14 @@
  * Useful for offline support and retrying failed requests.
  */
 
+import { CONFIG } from '@/lib/config'
 import { decryptToken } from '@/lib/crypto'
 import { logger } from '@/lib/logger'
-import { CONFIG } from '@/lib/config'
 
 export interface SyncItem {
   id: string
   type: 'chat'
-  data: any
+  data: unknown
   timestamp: number
   retries: number
 }
@@ -25,13 +25,14 @@ export class SyncManager {
    */
   static async getQueue(): Promise<SyncItem[]> {
     const result = await chrome.storage.local.get([QUEUE_KEY])
-    return result[QUEUE_KEY] || []
+    const data = result as Record<string, SyncItem[]>
+    return data[QUEUE_KEY] || []
   }
 
   /**
    * Add an item to the sync queue
    */
-  static async addToQueue(type: 'chat', data: any): Promise<void> {
+  static async addToQueue(type: 'chat', data: unknown): Promise<void> {
     const queue = await this.getQueue()
     const newItem: SyncItem = {
       id: crypto.randomUUID(),
@@ -101,15 +102,32 @@ export class SyncManager {
   /**
    * Initialize periodic sync or startup sync
    */
-  static async initialize(accessTokenParam: string | null) {
-    const accessToken = await decryptToken(accessTokenParam)
-    if (!accessToken) return
+  static async initialize() {
+    // Register alarm for periodic sync (every 5 minutes)
+    chrome.alarms.create('brainbox-sync-queue', { periodInMinutes: 5 })
+    
+    chrome.alarms.onAlarm.addListener(async (alarm) => {
+      if (alarm.name === 'brainbox-sync-queue') {
+        const { accessToken: encryptedToken } = await chrome.storage.local.get(['accessToken'])
+        if (encryptedToken) {
+          const token = await decryptToken(encryptedToken)
+          if (token) this.runSync(token)
+        }
+      }
+    })
 
-    // Initial sync on startup
+    // Initial sync
+    const { accessToken: encryptedToken } = await chrome.storage.local.get(['accessToken'])
+    if (encryptedToken) {
+      const token = await decryptToken(encryptedToken)
+      if (token) this.runSync(token)
+    }
+  }
+
+  private static async runSync(accessToken: string) {
     this.processQueue(async (item) => {
       try {
-
-        const response = await fetch(`${CONFIG.API_BASE_URL}/api/chats`, {
+        const response = await fetch(`${CONFIG.API_BASE_URL}/api/chats/extension`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -118,10 +136,18 @@ export class SyncManager {
           },
           body: JSON.stringify(item.data),
         })
+        
+        // If 429 (Rate Limit), stop procession for this cycle
+        if (response.status === 429) {
+          logger.warn('sync', 'Rate limited, stopping sync cycle')
+          return false
+        }
+        
         return response.ok
-      } catch {
+      } catch (error) {
+        logger.error('sync', 'Network error during sync', error)
         return false
       }
-    }).catch((err) => logger.error('sync', 'Startup sync failed', err))
+    }).catch((err) => logger.error('sync', 'Sync execution failed', err))
   }
 }

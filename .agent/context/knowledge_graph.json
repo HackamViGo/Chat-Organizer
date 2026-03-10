@@ -313,7 +313,7 @@
         "z-index": "packages/ui/tokens/z-index.css → --ui-z-* (UI stack ≤400, content scripts 10000-9999999)",
         "effects": "packages/ui/tokens/effects.css → --ui-effect-glass-*, --ui-effect-glow-*"
       },
-      "reference": "docs/Mandatory!/UI_SYSTEM.md v3.0.0"
+      "reference": "docs/Guides/UI_SYSTEM.md v3.0.0"
     },
     {
       "id": "D.8",
@@ -364,7 +364,7 @@
       "category": "Agent Framework",
       "title": "Agent Roles Directory",
       "description": "Defines permissions and exact responsibilities for AI agents working in this repository.",
-      "location": "docs/agents/roles/",
+      "location": ".agent/roles/",
       "roles": [
         "QA_EXAMINER",
         "CODE_SURGEON",

@@ -23,3 +23,15 @@ rules:
   tools:
     - rule: 'USE_CLI_TOOLS'
       description: '.agent/tools/ contains Python CLI scripts that act as your safe tools. Always use them to interact with complex files (like JSON graphs) instead of text replacement to avoid syntax corruption.'
+    - rule: 'PRE_TASK_DOC_SCAN'
+      description: 'Before every task, search for libraries/frameworks involved in mcp:context7 to ensure current best practices are followed.'
+
+  mcp_usage:
+    - rule: 'MCP_FIRST'
+      description: 'Use MCP-first approach for all problems. Active: filesystem, context7, memory, Sequential Thinking. Others are inactive by default.'
+    - rule: 'MCP_ERROR_RECOVERY'
+      description: 'On error: check mcp_config.json → enable → complete task → confirm → disable if not essential.'
+    - rule: 'NO_SIMULATION'
+      description: 'NEVER simulate MCP operations or outputs. Use real tool calls only.'
+    - rule: 'FLAG_USER_CHECKS'
+      description: 'ALWAYS flag for manual user verification ONLY if a change requires human senses (UI/UX feel, visual) or if an MCP server stays broken after auto-recovery. Agents manage MCP servers autonomously.'

@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createPromptSchema, updatePromptSchema } from '@brainbox/validation';
 
+import { syncRateLimit } from '@/lib/rate-limit';
+
 export async function GET(request: NextRequest) {
   try {
     const cookieStore = cookies();
@@ -119,6 +121,14 @@ export async function PUT(request: NextRequest) {
     );
   }
 
+  // Rate Limiting
+  if (syncRateLimit) {
+    const { success } = await syncRateLimit.limit(user.id);
+    if (!success) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    }
+  }
+
   try {
     const body = await request.json();
     const result = updatePromptSchema.safeParse(body);
@@ -219,6 +229,14 @@ export async function POST(request: NextRequest) {
       { status: 401
     }
     );
+  }
+
+  // Rate Limiting
+  if (syncRateLimit) {
+    const { success } = await syncRateLimit.limit(user.id);
+    if (!success) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+    }
   }
 
   try {

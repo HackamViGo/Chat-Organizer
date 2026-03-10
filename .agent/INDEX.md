@@ -64,13 +64,16 @@
 ## Step 5 — Before / After Every Task
 
 ```
-START: read state/{YOUR_ROLE}_state.json + dependencies.json
-END:   write state/{YOUR_ROLE}_state.json
-       if cross-role impact → add handoff to dependencies.json
+START: 1) read state/{YOUR_ROLE}_state.json + dependencies.json
+       2) check mcp:context7 for up-to-date documentation on involved libraries
+END:   1) write state/{YOUR_ROLE}_state.json
+       2) update context graphs using .agent/tools/graph.py
+       3) if cross-role impact → add handoff to dependencies.json
 ```
 
 > **NEVER DELETE — ALWAYS ARCHIVE.**  
-> Anything with project history goes to `archive/pre-migration-YYYYMMDD/` first.  
+> Anything with project history goes to `docs/archive/pre-migration-YYYYMMDD/` first.  
+> **DOCUMENTATION BOUNDARY:** All documentation, manuals, and history files MUST live inside `docs/`. No `.md`, `.txt`, or `.pdf` documentation outside `docs/` (except `.agent/` and root `README.md`).
 > See `rules/04_AGENT_PROTOCOL.yml §A7.0` for the exact procedure.
 
 ### Logs (JSON-only — no .log or .yml files)
@@ -81,6 +84,19 @@ END:   write state/{YOUR_ROLE}_state.json
 | `logs/decisions.json`   | Architectural decisions                   |
 | `logs/violations.json`  | Rule violations                           |
 | `exceptions/index.json` | Active emergency overrides                |
+| `checkpoints/checkpoints.json` | Snapshot history for rollback             |
+
+---
+
+## Step 6 — Automation & Tools (agent:scripts)
+
+| Command                   | Purpose                                     |
+| ------------------------- | ------------------------------------------- |
+| `pnpm agent:checkpoint R DESC` | Create a snapshot before risky operations   |
+| `pnpm agent:rollback ID`  | Restore state to a specific checkpoint      |
+| `pnpm agent:report-task R D` | Report task success and earn points       |
+| `pnpm agent:score`        | Open interactive Scoring CLI                |
+| `python .agent/tools/graph.py` | Update context graphs (Knowledge/Project) |
 
 ---
 

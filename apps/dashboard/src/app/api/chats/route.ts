@@ -6,6 +6,8 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
+import { syncRateLimit } from '@/lib/rate-limit'
+
 // --- Helpers ---
 
 /**
@@ -116,6 +118,14 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  // Rate Limiting
+  if (syncRateLimit) {
+    const { success } = await syncRateLimit.limit(user.id)
+    if (!success) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+    }
+  }
+
   try {
     const body = await request.json()
     const result = createChatSchema.safeParse(body)
@@ -206,6 +216,14 @@ export async function PUT(request: NextRequest) {
     )
   }
 
+  // Rate Limiting
+  if (syncRateLimit) {
+    const { success } = await syncRateLimit.limit(user.id)
+    if (!success) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+    }
+  }
+
   try {
     const body = await request.json()
     const result = updateChatSchema.safeParse(body)
@@ -252,6 +270,14 @@ export async function DELETE(request: NextRequest) {
       { error: 'Unauthorized' },
       { status: 401 }
     )
+  }
+
+  // Rate Limiting
+  if (syncRateLimit) {
+    const { success } = await syncRateLimit.limit(user.id)
+    if (!success) {
+      return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 })
+    }
   }
 
   try {

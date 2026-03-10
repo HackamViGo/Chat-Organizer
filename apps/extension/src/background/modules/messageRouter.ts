@@ -14,7 +14,7 @@ import { logger } from '@/lib/logger'
 
 interface MessageRequest {
   action: string
-  [key: string]: any
+  [key: string]: unknown
 }
 
 export class MessageRouter {
@@ -45,7 +45,7 @@ export class MessageRouter {
   private handleMessage(
     request: MessageRequest,
     sender: chrome.runtime.MessageSender,
-    sendResponse: (response?: any) => void
+    sendResponse: (response?: unknown) => void
   ): boolean {
     if (this.DEBUG_MODE) {
       logger.debug('router', `${request.action}`, {
@@ -102,6 +102,9 @@ export class MessageRouter {
       // ============ MISC ============
       case 'openLoginPage':
         return this.handleOpenLoginPage(sendResponse)
+
+      case 'logPromptUsage':
+        return this.handleLogPromptUsage(request, sendResponse)
 
       default:
         return false // Allow other listeners
@@ -221,16 +224,25 @@ export class MessageRouter {
   // ========================================================================
 
   private handleGetConversation(request: MessageRequest, sendResponse: Function): boolean {
+    const platform = request.platform as string
+    const conversationId = request.conversationId as string
+    const url = request.url as string | undefined
+    const payload = request.payload
+
     platformAdapters
-      .fetchConversation(request.platform, request.conversationId, request.url, request.payload)
+      .fetchConversation(platform, conversationId, url, payload)
       .then((data) => sendResponse({ success: true, data }))
       .catch((error) => sendResponse({ success: false, error: error.message }))
     return true
   }
 
   private handleSaveConversation(request: MessageRequest, sendResponse: Function): boolean {
+    const data = request.data as any
+    const folderId = (request.folderId as string | undefined) || null
+    const silent = (request.silent as boolean) || false
+
     dashboardApi
-      .saveToDashboard(request.data, request.folderId, request.silent)
+      .saveToDashboard(data, folderId, silent)
       .then((result) => sendResponse({ success: true, result }))
       .catch((error) => sendResponse({ success: false, error: error.message }))
     return true
@@ -242,6 +254,24 @@ export class MessageRouter {
 
   private handleOpenLoginPage(sendResponse: Function): boolean {
     chrome.tabs.create({ url: `${CONFIG.API_BASE_URL}/auth/signin?redirect=/extension-auth` })
+    sendResponse({ success: true })
+    return true
+  }
+
+  private handleLogPromptUsage(request: MessageRequest, sendResponse: Function): boolean {
+    const { promptId, platform } = request
+    logger.info('metrics', `Prompt used: ${promptId} on ${platform}`)
+    
+    // In the future, this can send to a /api/metrics endpoint
+    // For now, we'll store locally for sync later
+    chrome.storage.local.get(['prompt_usage_stats'], (result) => {
+      const stats = (result.prompt_usage_stats || {}) as Record<string, number>
+      if (typeof promptId === 'string') {
+        stats[promptId] = (stats[promptId] || 0) + 1
+        chrome.storage.local.set({ prompt_usage_stats: stats })
+      }
+    })
+
     sendResponse({ success: true })
     return true
   }

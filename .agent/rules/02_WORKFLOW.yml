@@ -9,6 +9,8 @@ rules:
       description: 'Never push directly to main or dev. Branch from dev.'
     - rule: 'SQUASH_MERGE'
       description: 'PRs to dev should be squash-merged to maintain clean history.'
+    - rule: 'ATOMIC_COMMITS'
+      description: 'Agents should commit after every logical sub-step to allow safe undo/recovery and clear history of work.'
 
   environments:
     - rule: 'NO_COMMITTING_ENV'

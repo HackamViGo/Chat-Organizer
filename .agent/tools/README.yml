@@ -1,0 +1,52 @@
+# BrainBox Agent Tools Registry (v5.0)
+# This file helps agents identify and use internal tools with minimal context.
+
+tools:
+  guardians:
+    description: "Systems for enforcing project rules and quality gates."
+    items:
+      package_sync_checker.py:
+        purpose: "Ensures dependency version parity across Monorepo (Apps/Packages)."
+        usage: "python3 .agent/tools/guardians/package_sync_checker.py"
+        gate: "PRE-COMMIT"
+      zod_schema_locator.py:
+        purpose: "Enforces centralized validation logic; forbids inline Zod schemas in API routes."
+        usage: "python3 .agent/tools/guardians/zod_schema_locator.py"
+        gate: "PRE-COMMIT"
+      brainbox_strict_janitor.py:
+        purpose: "Cleans project clutter and enforces Documentation Boundary (Rule #0) and Lock-file rules."
+        usage: "pnpm agent:janitor"
+        gate: "MANUAL / CI"
+      guardian.py:
+        purpose: "Base library for all guardian scripts."
+        usage: "internal"
+
+  automators:
+    description: "Scripts to accelerate development and reduce manual errors."
+    items:
+      component_scaffolder.py:
+        purpose: "Scaffolds new UI components. (⚠️ Configured for legacy packages/ui structure; needs path update for apps/)."
+        usage: "python3 .agent/tools/automators/component_scaffolder.py <ComponentName>"
+      env_vault_syncer.py:
+        purpose: "Syncs .env keys to .env.example to prevent missing placeholders."
+        usage: "python3 .agent/tools/automators/env_vault_syncer.py"
+      svg_to_icon.py:
+        purpose: "Converts raw SVG files into React components."
+        usage: "python3 .agent/tools/automators/svg_to_icon.py <input.svg>"
+
+  release:
+    description: "Tools for managing versions and deployments."
+    items:
+      version-bump.ts:
+        purpose: "Atomic version bump across all monorepo package.json files and manifest.xml."
+        usage: "pnpm tsx .agent/tools/release/version-bump.ts <version>"
+
+  scoring:
+    description: "Agent gamification and state rollback engine."
+    items:
+      cli.py:
+        purpose: "Interactive shell to view scores, events, and manage rollbacks."
+        usage: "pnpm agent:score"
+      agent_cli.py:
+        purpose: "Headless CLI for checkpoints and task reporting."
+        usage: "pnpm agent:report-task <ROLE> <DESC>"

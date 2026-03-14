@@ -29,6 +29,8 @@ def check_rule_integrity():
         if ".agent" in str(md_file): continue
         if ".agents" in str(md_file): continue
         if ".github" in str(md_file): continue
+        if "test-results" in str(md_file): continue
+        if "playwright-report" in str(md_file): continue
         
         # Rule #0 Exception: README.md at root of package/app
         is_allowed = False

@@ -1,4 +1,6 @@
 {
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "_comment": "Next.js specific config. Dashboard extends this. Extensions extend packages/config/tsconfig.base.json instead.",
   "compilerOptions": {
     "target": "ES2020",
     "lib": [

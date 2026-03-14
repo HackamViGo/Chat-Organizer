@@ -1,5 +1,11 @@
 'use client';
 
+import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
+import {
+  LayoutGrid, Settings, FileEdit,
+  MessageCircle, Brain, Sun, Moon,
+  X, Search, ListTodo, ChevronLeft
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useTheme } from 'next-themes';
@@ -9,17 +15,13 @@ import { useShallow } from 'zustand/react/shallow';
 import type { FolderWithChildren} from './FolderTree';
 import { FolderTreeItem, FOLDER_ICONS } from './FolderTree';
 
+import { useAuthStore } from '@/store/useAuthStore';
 import { useChatStore } from '@/store/useChatStore';
 import { useFolderStore } from '@/store/useFolderStore';
 import { useUIStore } from '@/store/useUIStore';
 
+// We do not export FOLDER_ICONS here as it's better exported from the source directly, but preserving to avoid breaking imports
 export { FOLDER_ICONS };
-import { motion, AnimatePresence, LayoutGroup } from 'framer-motion';
-import {
-  LayoutGrid, Settings, FileEdit,
-  MessageCircle, Brain, Sun, Moon,
-  X, Search, ListTodo, ChevronLeft
-} from 'lucide-react';
 
 // --- Theme Toggle Component ---
 const ThemeToggle: React.FC = () => {
@@ -120,13 +122,20 @@ const ThemeToggle: React.FC = () => {
 };
 
 // --- Logic Helpers ---
+interface ChatItem {
+  id: string;
+  title?: string;
+  folder_id?: string | null;
+  is_archived?: boolean;
+}
+
 interface DisplayItemsResult {
   visibleFolders: FolderWithChildren[];
-  visibleChats: any[];
+  visibleChats: ChatItem[];
   totalHiddenCount: number;
 }
 
-function getDisplayItems(folders: FolderWithChildren[], chats: any[], limit = 5): DisplayItemsResult {
+function getDisplayItems(folders: FolderWithChildren[], chats: ChatItem[], limit = 5): DisplayItemsResult {
   const visibleFolders = folders.slice(0, limit);
   const remainingSlots = Math.max(0, limit - visibleFolders.length);
   const visibleChats = chats.slice(0, remainingSlots);
@@ -162,11 +171,12 @@ function HybridSidebarContent() {
   // Stores
   const folders = useFolderStore(useShallow(s => s.folders));
   const chats = useChatStore(useShallow(s => s.chats));
+  const user = useAuthStore(s => s.user);
 
   // Route Detection
   const isChatRoute = pathname.startsWith('/chats');
   const isPromptRoute = pathname.startsWith('/prompts');
-  const isStudioRoute = pathname.startsWith('/ai-studio');
+  const isStudioRoute = pathname.startsWith('/studio');
 
   // Logic: Double Click to enter folder
   const handleFolderDoubleClick = useCallback((folderId: string) => {
@@ -177,8 +187,8 @@ function HybridSidebarContent() {
   const handleBackNavigation = useCallback(() => {
     if (!currentRootId) return;
     const currentFolder = folders.find(f => f.id === currentRootId);
-    if (currentFolder && (currentFolder as any).parent_id) {
-       setCurrentRootId((currentFolder as any).parent_id);
+    if (currentFolder && (currentFolder as unknown as { parent_id: string }).parent_id) {
+       setCurrentRootId((currentFolder as unknown as { parent_id: string }).parent_id);
     } else {
        setCurrentRootId(null);
     }
@@ -195,14 +205,14 @@ function HybridSidebarContent() {
   const getFoldersByType = useCallback((type: 'chat' | 'prompt', rootId: string | null) => {
     const folderMap = new Map<string, FolderWithChildren>();
     folders.forEach(f => {
-      if ((f as any).type === type) {
+      if ((f as unknown as { type: string }).type === type) {
         folderMap.set(f.id, { ...f, children: [] });
       }
     });
     
     const result: FolderWithChildren[] = [];
     folderMap.forEach(f => {
-      const parentId = (f as any).parent_id;
+      const parentId = (f as unknown as { parent_id: string | null | undefined }).parent_id;
       if (parentId === rootId || (!parentId && rootId === null)) {
          result.push(f);
       }
@@ -228,7 +238,7 @@ function HybridSidebarContent() {
   }, [chats, isChatRoute, currentRootId]);
 
   const { visibleFolders: chatFolders, visibleChats: chatItems, totalHiddenCount: chatHidden } = useMemo(() => 
-    getDisplayItems(currentChatFolders, currentChats, VISIBLE_LIMIT), 
+    getDisplayItems(currentChatFolders, currentChats as unknown as ChatItem[], VISIBLE_LIMIT), 
   [currentChatFolders, currentChats]);
 
   // -- Prompt Data --
@@ -248,7 +258,7 @@ function HybridSidebarContent() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setMobileSidebarOpen(false)}
-            className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[55] md:hidden"
+            className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-55 md:hidden"
             aria-hidden="true"
           />
         )}
@@ -266,7 +276,7 @@ function HybridSidebarContent() {
         }}
         transition={{ ease: [0.4, 0, 0.2, 1], duration: 0.45 }}
         className={`
-          fixed left-0 top-0 h-screen z-[60] 
+          fixed left-0 top-0 h-screen z-60 
           bg-card/95 backdrop-blur-xl border-r border-border
           flex flex-col shadow-2xl 
           md:translate-x-0 ${isMobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'}
@@ -287,7 +297,7 @@ function HybridSidebarContent() {
           <div className="h-16 flex items-center shrink-0 border-b border-border bg-transparent overflow-hidden">
              {/* Fixed Rail Anchor: Logo */}
              <div className="w-20 shrink-0 flex items-center justify-center">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-primary to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
+                <div className="w-8 h-8 rounded-lg bg-linear-to-tr from-primary to-blue-600 flex items-center justify-center shrink-0 shadow-lg shadow-primary/20">
                   <Brain className="text-white" size={18} />
                 </div>
              </div>
@@ -478,12 +488,12 @@ function HybridSidebarContent() {
             </NavItem>
 
             <NavItem 
-              to="/ai-studio" 
+              to="/studio" 
               icon={Brain} 
               label="AI Studio ✨" 
               isActive={isStudioRoute} 
               isHovered={isHovered} 
-              specialStyle={pathname === '/ai-studio' ? "bg-primary/20 text-primary" : undefined}
+              specialStyle={pathname === '/studio' ? "bg-primary/20 text-primary" : undefined}
               layout="position"
             />
 
@@ -502,12 +512,47 @@ function HybridSidebarContent() {
          <motion.div 
           layout="position"
           className={`
-            py-3 border-t border-border bg-transparent shrink-0 flex flex-col mt-auto
+            border-t border-border bg-transparent shrink-0 flex flex-col mt-auto
             ${isHovered ? 'px-0' : 'items-center'}
           `}
         >
-          <div className="w-full flex flex-col gap-1 items-center">
-              <div className="w-full">
+          <div className="w-full flex flex-col gap-1 items-center pb-3">
+              <div className="flex items-center w-full h-14 relative group">
+                <Link href="/profile" className="flex items-center w-full h-full" aria-label="Profile">
+                  <div className="w-20 h-full flex items-center justify-center shrink-0">
+                    {user?.user_metadata?.avatar_url ? (
+                      <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-border shadow-xs group-hover:ring-2 ring-primary/30 transition-all">
+                        <img src={user.user_metadata.avatar_url} alt="Profile" className="w-full h-full object-cover" />
+                      </div>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-linear-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white text-sm font-bold shrink-0 shadow-xs group-hover:ring-2 ring-primary/30 transition-all">
+                        {user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <AnimatePresence>
+                    {isHovered && (
+                      <motion.div 
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: -10 }}
+                        transition={{ duration: 0.2 }}
+                        className="flex flex-col justify-center overflow-hidden pr-4 w-full"
+                      >
+                        <span className="text-sm font-medium text-foreground truncate group-hover:text-primary transition-colors">
+                          {user?.user_metadata?.full_name || 'My Profile'}
+                        </span>
+                        <span className="text-xs text-muted-foreground truncate">
+                          {user?.email || 'Settings & Account'}
+                        </span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </Link>
+              </div>
+
+              <div className="w-full pt-2">
                 <NavItem 
                   to="/settings" 
                   icon={Settings} 

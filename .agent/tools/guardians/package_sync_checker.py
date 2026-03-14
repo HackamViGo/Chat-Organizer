@@ -8,6 +8,7 @@ PACKAGES_TO_CHECK = [
     ROOT_DIR / "package.json",
     ROOT_DIR / "apps/dashboard/package.json",
     ROOT_DIR / "apps/extension/package.json",
+    ROOT_DIR / "apps/extension_v3/package.json",
     ROOT_DIR / "packages/shared/package.json",
     ROOT_DIR / "packages/validation/package.json",
     ROOT_DIR / "packages/ui/package.json",

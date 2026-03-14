@@ -95,6 +95,24 @@
 
 ---
 
+---
+
+## Тестване при разработка (Development Testing)
+
+За тестване на разширението в реална среда (Gemini) се използва персистентен Chrome профил с предварително логнат акаунт (Ivan).
+
+### Старт на тестова сесия:
+Използвайте workflow-а `/test-extension`:
+1. Изградете разширението: `pnpm build` в `apps/extension_v3`.
+2. Стартирайте Chrome с профила:
+   ```bash
+   google-chrome --remote-debugging-port=9222 \
+     --user-data-dir="/home/stefanov/.brainbox-profiles/ivan-gemini" \
+     --load-extension="$(pwd)/apps/extension_v3/dist"
+   ```
+
+---
+
 ## Changelog
 | Дата | Промяна | Файл |
 |------|---------|------|

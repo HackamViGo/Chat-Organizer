@@ -30,6 +30,7 @@ const rootDir = process.cwd()
 const packageJsonFiles = [
   'package.json',
   'apps/extension/package.json',
+  'apps/extension_v3/package.json',
   'apps/dashboard/package.json',
   'packages/shared/package.json',
   'packages/assets/package.json',
@@ -37,7 +38,10 @@ const packageJsonFiles = [
   'packages/database/package.json',
 ]
 
-const manifestPath = 'apps/extension/manifest.json'
+const manifestPaths = [
+  'apps/extension/manifest.json',
+  'apps/extension_v3/manifest.json',
+]
 
 console.debug(`🚀 Starting version sync to v${newVersion}...`)
 
@@ -64,19 +68,23 @@ packageJsonFiles.forEach((relPath) => {
   }
 })
 
-// 2. Update Extension manifest.json
-const fullManifestPath = path.resolve(rootDir, manifestPath)
-if (fs.existsSync(fullManifestPath)) {
-  try {
-    const manifest = JSON.parse(fs.readFileSync(fullManifestPath, 'utf-8'))
-    const oldVersion = manifest.version
-    manifest.version = newVersion
+// 2. Update Extension manifest.json files (extension + extension_v3)
+manifestPaths.forEach((manifestPath) => {
+  const fullManifestPath = path.resolve(rootDir, manifestPath)
+  if (fs.existsSync(fullManifestPath)) {
+    try {
+      const manifest = JSON.parse(fs.readFileSync(fullManifestPath, 'utf-8'))
+      const oldVersion = manifest.version
+      manifest.version = newVersion
 
-    fs.writeFileSync(fullManifestPath, JSON.stringify(manifest, null, 2) + '\n')
-    console.debug(`✅ ${manifestPath.padEnd(30)} : ${oldVersion} -> ${newVersion}`)
-  } catch (err) {
-    console.error(`❌ Failed to update manifest:`, err)
+      fs.writeFileSync(fullManifestPath, JSON.stringify(manifest, null, 2) + '\n')
+      console.debug(`✅ ${manifestPath.padEnd(35)} : ${oldVersion} -> ${newVersion}`)
+    } catch (err) {
+      console.error(`❌ Failed to update manifest ${manifestPath}:`, err)
+    }
+  } else {
+    console.warn(`⚠️  Skip: ${manifestPath} (Not found)`)
   }
-}
+})
 
 console.debug('\n✨ Version synchronization complete.')

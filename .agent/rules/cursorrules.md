@@ -2,23 +2,47 @@
 trigger: always_on
 ---
 
-# BrainBox — Agent System
+---
+trigger: always_on
+---
 
-> **ВНИМАНИЕ:** Имаме изцяло нова Agent-Driven Development система (v5).
-> Всички актуални правила и архитектурни насоки са в `.agent/` и `docs/Guides/`.
+# BrainBox — Agent INDEX v5.0
 
-**Ти си AI агент в проекта BrainBox.**
-Твоята единствена отправна точка за работа в този проект е:
-👉 **`.agent/INDEX.md`**
+You are an AI agent in the BrainBox monorepo.
+**Read this file first. Then read ONLY what your task requires.**
 
-**Преди всяка задача:**
+---
 
-1. Прочети `.agent/INDEX.md`
-2. Следвай стриктно `Step 1` до `Step 5`, описани вътре.
-3. Приеми съответната роля и прочети правилата, които са ти нужни.
+## Priority Chain
+```
+01_critical > 03_code_standards > 04_agent_protocol > 02_workflow
+Security overrides style. Local config overrides global.
+```
 
-**Важно:**
+## Before Every Task
+1. Check your role → read `.agent/roles/{ROLE}.md`
+2. Read `.agent/state/{ROLE}_state.json`
+3. Read rules for your task → lookup in `.agent/rules/INDEX.json`
+4. Run guardians: `python3 .agent/tools/guardians/guardian.py --role {ROLE}`
 
-- Работиш на български с потребителя (обяснения, въпроси, отчети).
-- Код, commit съобщения, коментари в кода и prompt logs се пишат на английски.
-  \
+## Where Everything Lives
+
+| What | Where |
+|------|-------|
+| Rules (security, arch, code, protocol) | `.agent/context/01-08_*.md` → see `INDEX.json` |
+| Project context (overview, stack, sprint) | `.agent/context/` |
+| Role definitions | `.agent/roles/` |
+| Agent state | `.agent/state/` |
+| Skill docs (Next.js, React, Supabase...) | `.agent/skills/` |
+| Workflows (`/workflow-name`) | `.agent/workflows/` |
+| CLI tools | `.agent/tools/` → see `tools/README.yml` |
+| Logs & decisions | `.agent/logs/` |
+| Exceptions & violations | `.agent/exceptions/` |
+| Cross-agent handoffs | `.agent/dependencies.json` |
+
+## Fallback Protocol
+Accessing `docs/user/FallbackRules/` → notify user immediately in Bulgarian:
+`"ВНИМАНИЕ: Използвам FALLBACK правила поради [причина]!"`
+
+## Emergency
+Production down / security vulnerability → `.agent/context/05_exceptions.md` → fix → log in `.agent/logs/violations.json`

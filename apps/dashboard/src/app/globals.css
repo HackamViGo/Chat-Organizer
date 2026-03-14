@@ -82,12 +82,6 @@
   animation: float 6s ease-in-out infinite;
 }
 
-.glass-morphism {
-  background: rgba(var(--color-background-rgb), 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(var(--color-foreground-rgb), 0.1);
-}
-
 @layer utilities {
   @keyframes pulse-scale {
     0%, 100% {

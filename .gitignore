@@ -20,10 +20,12 @@ dist-ssr
 .next/
 out/
 
-# Playwright
+# Playwright & Vitest
 playwright-report/
 test-results/
 .playwright-mcp/
+coverage/
+*.lcov
 
 # Editor directories and files
 .vscode/*
@@ -37,6 +39,11 @@ test-results/
 *.sw?
 .cursor/
 .gemini/
+.agent/checkpoints/*
+tmp/
+*.heapsnapshot
+trace.json
+.eslintcache
 
 # Old extension versions (archived)
 gemini-share-exporter/

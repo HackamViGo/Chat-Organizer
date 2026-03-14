@@ -21,7 +21,7 @@ export default [
     languageOptions: {
       parser: typescriptParser,
       parserOptions: {
-        project: true,
+        projectService: true,
         tsconfigRootDir: import.meta.dirname,
       },
     },

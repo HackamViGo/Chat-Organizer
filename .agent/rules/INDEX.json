@@ -1,0 +1,168 @@
+{
+  "version": "5.0.0",
+  "description": "Agent navigation map. Read cursorrules.md first, then use this to find exactly what you need.",
+
+  "priority_chain": ["01_critical", "03_code_standards", "04_agent_protocol", "02_workflow"],
+
+  "rules": {
+    "01_critical":       { "file": ".agent/context/01_critical.md",       "read_when": "always" },
+    "02_workflow":       { "file": ".agent/context/02_workflow.md",       "read_when": "before commit, PR, env changes" },
+    "03_code_standards": { "file": ".agent/context/03_code_standards.md", "read_when": "before writing any code" },
+    "04_agent_protocol": { "file": ".agent/context/04_agent_protocol.md", "read_when": "before starting any task" },
+    "05_exceptions":     { "file": ".agent/context/05_exceptions.md",     "read_when": "hotfix or emergency override only" },
+    "06_extension_v3":   { "file": ".agent/context/06_extension_v3.md",   "read_when": "any work on apps/extension_v3" },
+    "07_tools":          { "file": ".agent/context/07_tools.md",          "read_when": "before using .agent/tools/ scripts" },
+    "08_workflows":      { "file": ".agent/context/08_workflows.md",      "read_when": "to find the right /workflow command" }
+  },
+
+  "roles": {
+    "ARCHITECT":          { "file": ".agent/roles/ARCHITECT.md",          "owns": ["packages/database", "packages/validation"] },
+    "BACKEND_ENGINEER":   { "file": ".agent/roles/BACKEND_ENGINEER.md",   "owns": ["supabase/*"] },
+    "FRONTEND_ENGINEER":  { "file": ".agent/roles/FRONTEND_ENGINEER.md",  "owns": ["packages/ui", "packages/assets"] },
+    "EXTENSION_ENGINEER": { "file": ".agent/roles/EXTENSION_ENGINEER.md", "owns": ["apps/extension", "apps/extension_v3"] },
+    "DASHBOARD_BUILDER":  { "file": ".agent/roles/DASHBOARD_BUILDER.md",  "owns": ["apps/dashboard"] },
+    "ENV_ENGINEER":       { "file": ".agent/roles/ENV_ENGINEER.md",       "owns": [".env", "packages/config"] },
+    "AI_ENGINEER":        { "file": ".agent/roles/AI_ENGINEER.md",        "owns": ["apps/extension_v3/src/platforms", "packages/shared"] },
+    "DEVOPS_ENGINEER":    { "file": ".agent/roles/DEVOPS_ENGINEER.md",    "owns": [".github/*", "vercel.json", "docker-compose.yml"] },
+    "DOCUMENTATION_ENGINEER": { "file": ".agent/roles/DOCUMENTATION_ENGINEER.md", "owns": ["docs/*", "README.md", "CHANGELOG.md"] },
+    "BRAINBOX_AUDITOR":   { "file": ".agent/roles/BRAINBOX_AUDITOR.md",   "owns": ["*"] },
+    "QA_EXAMINER":        { "file": ".agent/roles/QA_EXAMINER.md",        "owns": ["**/*.test.ts", "**/*.spec.ts", "tests/*", "playwright.config.ts", "vitest.config.ts"] }
+  },
+
+  "role_rules_map": {
+    "ARCHITECT":          ["01_critical", "03_code_standards", "04_agent_protocol"],
+    "BACKEND_ENGINEER":   ["01_critical", "03_code_standards", "04_agent_protocol", "02_workflow"],
+    "FRONTEND_ENGINEER":  ["01_critical", "03_code_standards", "04_agent_protocol"],
+    "EXTENSION_ENGINEER": ["01_critical", "03_code_standards", "04_agent_protocol", "06_extension_v3"],
+    "DASHBOARD_BUILDER":  ["01_critical", "03_code_standards", "04_agent_protocol"],
+    "ENV_ENGINEER":        ["01_critical", "02_workflow", "04_agent_protocol"],
+    "AI_ENGINEER":        ["01_critical", "03_code_standards", "04_agent_protocol"],
+    "DEVOPS_ENGINEER":    ["01_critical", "02_workflow", "04_agent_protocol"],
+    "DOCUMENTATION_ENGINEER": ["04_agent_protocol"],
+    "BRAINBOX_AUDITOR":   ["01_critical", "02_workflow", "03_code_standards", "04_agent_protocol", "05_exceptions"],
+    "QA_EXAMINER":        ["01_critical", "02_workflow", "03_code_standards"]
+  },
+
+  "role_skills_map": {
+    "ARCHITECT":          ["TYPESCRIPT"],
+    "BACKEND_ENGINEER":   ["SUPABASE", "SECURITY", "TYPESCRIPT"],
+    "FRONTEND_ENGINEER":  ["REACT", "NEXTJS", "TAILWIND", "TYPESCRIPT", "SUPABASE"],
+    "EXTENSION_ENGINEER": ["TYPESCRIPT", "SECURITY"],
+    "DASHBOARD_BUILDER":  ["REACT", "NEXTJS", "TAILWIND", "TYPESCRIPT"],
+    "ENV_ENGINEER":       [],
+    "AI_ENGINEER":        ["TYPESCRIPT", "SECURITY"],
+    "DEVOPS_ENGINEER":    ["SECURITY"],
+    "DOCUMENTATION_ENGINEER": [],
+    "BRAINBOX_AUDITOR":   ["TYPESCRIPT", "SECURITY", "TESTING"],
+    "QA_EXAMINER":        ["TESTING", "TYPESCRIPT"]
+  },
+
+  "role_workflows_map": {
+    "EXTENSION_ENGINEER": ["config-consolidation", "phase1-gemini-save", "phase2-all-platforms", "phase3-prompt-actions", "phase4-deepseek-qwen-lmarena", "optimizations-sprint1-2", "test-extension"],
+    "FRONTEND_ENGINEER":  ["new-api-endpoint", "nextjs"],
+    "DASHBOARD_BUILDER":  ["new-api-endpoint", "nextjs"],
+    "BACKEND_ENGINEER":   ["new-api-endpoint"],
+    "ENV_ENGINEER":       ["sync-env", "check-deps", "bump-version"],
+    "AI_ENGINEER":        ["phase1-gemini-save", "phase2-all-platforms", "phase3-prompt-actions", "phase4-deepseek-qwen-lmarena"],
+    "DEVOPS_ENGINEER":    ["bump-version", "sync-env", "checkpoint", "rollback"],
+    "DOCUMENTATION_ENGINEER": ["report-task"],
+    "BRAINBOX_AUDITOR":   ["run-guardians", "guardian-by-role", "check-deps", "janitor"],
+    "QA_EXAMINER":        ["run-guardians", "test-connections", "test-extension"],
+    "ARCHITECT":          ["bump-version", "graph-search", "graph-add"]
+  },
+
+  "role_guardians_map": {
+    "ARCHITECT":          ["sync"],
+    "BACKEND_ENGINEER":   ["sync", "zod", "janitor"],
+    "FRONTEND_ENGINEER":  ["zod", "janitor"],
+    "EXTENSION_ENGINEER": ["sync", "janitor"],
+    "DASHBOARD_BUILDER":  ["zod", "janitor"],
+    "ENV_ENGINEER":       ["sync", "janitor"],
+    "AI_ENGINEER":        ["janitor"],
+    "DEVOPS_ENGINEER":    ["sync", "janitor"],
+    "DOCUMENTATION_ENGINEER": ["janitor"],
+    "BRAINBOX_AUDITOR":   ["sync", "janitor", "zod"],
+    "QA_EXAMINER":        ["sync", "zod"]
+  },
+
+  "context": {
+    "project_overview":        ".agent/context/PROJECT_OVERVIEW.md",
+    "architecture_principles": ".agent/context/ARCHITECTURE_PRINCIPLES.md",
+    "system_constraints":      ".agent/context/SYSTEM_CONSTRAINTS.md",
+    "tech_stack":              ".agent/context/TECH_STACK.md",
+    "current_sprint":          ".agent/context/CURRENT_SPRINT.md",
+    "project_graph":           ".agent/context/ProjectGraph.json",
+    "knowledge_graph":         ".agent/context/knowledge_graph.json"
+  },
+
+  "skills": {
+    "NEXTJS":     ".agent/skills/NEXTJS.md",
+    "REACT":      ".agent/skills/REACT.md",
+    "SECURITY":   ".agent/skills/SECURITY.md",
+    "SUPABASE":   ".agent/skills/SUPABASE.md",
+    "TAILWIND":   ".agent/skills/TAILWIND.md",
+    "TESTING":    ".agent/skills/TESTING.md",
+    "TYPESCRIPT": ".agent/skills/TYPESCRIPT.md"
+  },
+
+  "workflows": {
+    "bump-version":                 ".agent/workflows/bump-version.md",
+    "check-deps":                   ".agent/workflows/check-deps.md",
+    "checkpoint":                   ".agent/workflows/checkpoint.md",
+    "config-consolidation":         ".agent/workflows/config-consolidation.md",
+    "graph-add":                    ".agent/workflows/graph-add.md",
+    "graph-search":                 ".agent/workflows/graph-search.md",
+    "guardian-by-role":             ".agent/workflows/guardian-by-role.md",
+    "janitor":                      ".agent/workflows/janitor.md",
+    "new-api-endpoint":             ".agent/workflows/new-api-endpoint.md",
+    "nextjs":                       ".agent/workflows/nextjs.md",
+    "optimizations-sprint1-2":      ".agent/workflows/optimizations-sprint1-2.md",
+    "phase1-gemini-save":           ".agent/workflows/phase1-gemini-save.md",
+    "phase2-all-platforms":         ".agent/workflows/phase2-all-platforms.md",
+    "phase3-prompt-actions":        ".agent/workflows/phase3-prompt-actions.md",
+    "phase4-deepseek-qwen-lmarena": ".agent/workflows/phase4-deepseek-qwen-lmarena.md",
+    "report-task":                  ".agent/workflows/report-task.md",
+    "rollback":                     ".agent/workflows/rollback.md",
+    "run-guardians":                ".agent/workflows/run-guardians.md",
+    "score":                        ".agent/workflows/score.md",
+    "sync-env":                     ".agent/workflows/sync-env.md",
+    "test-connections":             ".agent/workflows/test-connections.md",
+    "test-extension":               ".agent/workflows/test-extension.md"
+  },
+
+  "tools": {
+    "readme": ".agent/tools/README.yml",
+    "guardians": {
+      "orchestrator": "python3 .agent/tools/guardians/guardian.py --role {ROLE}",
+      "all":          "python3 .agent/tools/guardians/guardian.py --all",
+      "sync":         "python3 .agent/tools/guardians/package_sync_checker.py",
+      "zod":          "python3 .agent/tools/guardians/zod_schema_locator.py",
+      "janitor":      "pnpm agent:janitor"
+    },
+    "release": {
+      "version_bump": "pnpm tsx .agent/tools/release/version-bump.ts <X.Y.Z>"
+    },
+    "automators": {
+      "env_sync":     "python3 .agent/tools/automators/env_vault_syncer.py",
+      "test_connect": "node .agent/tools/automators/test-connection.js"
+    },
+    "graph": {
+      "search": "python3 .agent/tools/graph.py search --graph [project|knowledge] \"query\"",
+      "add":    "python3 .agent/tools/graph.py add --graph [project|knowledge] --id <id> --desc <desc>"
+    },
+    "scoring": {
+      "interactive": "pnpm agent:score",
+      "checkpoint":  "python3 .agent/tools/scoring/agent_cli.py checkpoint <ROLE> \"desc\"",
+      "rollback":    "python3 .agent/tools/scoring/agent_cli.py rollback <checkpoint_id>",
+      "report_task": "pnpm agent:report-task <ROLE> \"desc\" --difficulty <1-5>"
+    }
+  },
+
+  "logs": {
+    "decisions":  ".agent/logs/decisions.json",
+    "guardians":  ".agent/logs/guardians.log",
+    "violations": ".agent/logs/violations.json",
+    "handoffs":   ".agent/dependencies.json",
+    "exceptions": ".agent/exceptions/index.json"
+  }
+}

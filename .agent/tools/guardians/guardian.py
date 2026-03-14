@@ -14,7 +14,8 @@ SCRIPTS = {
 ROLE_MAP = {
     "ENV_ENGINEER": ["sync", "janitor"],
     "DASHBOARD_BUILDER": ["zod", "janitor"],
-    "EXTENSION_BUILDER": ["sync", "janitor"],
+    "EXTENSION_ENGINEER": ["sync", "janitor"],
+    "AI_ENGINEER": ["janitor"],
     "BRAINBOX_AUDITOR": ["sync", "janitor", "zod"],
     "QA_EXAMINER": ["sync", "zod"]
 }

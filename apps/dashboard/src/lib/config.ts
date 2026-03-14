@@ -17,7 +17,6 @@ export const CONFIG = {
 
   // Third-party API Keys (Server-only)
   GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-  CONTEXT7_API_KEY: process.env.CONTEXT7_API_KEY || '',
 
   // Environment State
   IS_DEV: process.env.NODE_ENV === 'development',

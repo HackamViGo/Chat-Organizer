@@ -1,0 +1,112 @@
+{
+  "manifest_version": 3,
+  "name": "BrainBox",
+  "version": "3.0.0",
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "scripting",
+    "webRequest",
+    "notifications"
+  ],
+  "host_permissions": [
+    "https://gemini.google.com/*",
+    "https://chatgpt.com/*",
+    "https://claude.ai/*",
+    "https://grok.com/*",
+    "https://www.perplexity.ai/*",
+    "https://*.brainbox.app/*",
+    "http://localhost:3000/*"
+  ],
+  "background": {
+    "_comment": "Path rewritten by @crxjs/vite-plugin at build time",
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://gemini.google.com/*"
+      ],
+      "js": [
+        "src/platforms/gemini/gemini-content-bridge.ts"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    },
+    {
+      "matches": [
+        "https://chatgpt.com/*"
+      ],
+      "js": [
+        "src/platforms/chatgpt/chatgpt-content-bridge.ts"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    },
+    {
+      "matches": [
+        "https://claude.ai/*"
+      ],
+      "js": [
+        "src/platforms/claude/claude-content-bridge.ts"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    },
+    {
+      "matches": [
+        "https://grok.com/*"
+      ],
+      "js": [
+        "src/platforms/grok/grok-content-bridge.ts"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    },
+    {
+      "matches": [
+        "https://www.perplexity.ai/*"
+      ],
+      "js": [
+        "src/platforms/perplexity/perplexity-content-bridge.ts"
+      ],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    },
+    {
+      "matches": [
+        "https://*.brainbox.app/*",
+        "http://localhost:3000/*"
+      ],
+      "js": [
+        "src/platforms/dashboard/dashboard-auth-bridge.ts"
+      ],
+      "run_at": "document_start",
+      "world": "ISOLATED"
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "src/platforms/gemini/gemini-main-bridge.js"
+      ],
+      "matches": [
+        "https://gemini.google.com/*"
+      ]
+    }
+  ],
+  "action": {
+    "default_popup": "src/popup/index.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  }
+}

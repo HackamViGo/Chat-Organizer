@@ -13,6 +13,12 @@
       "role": "ARCHITECT",
       "decision": "Implement .agent/tools/graph.py CLI for safer knowledge graph interactions.",
       "rationale": "Graph JSON files exceed 500 lines. Modifying massive JSON files via AI string replacement often causes corruption and syntax errors. A dedicated Python CLI tool ensures JSON validity, protects graph integrity, and speeds up modification. Grep and jq remain as read-only fallbacks."
+    },
+    {
+      "date": "2026-03-13",
+      "role": "AI_ENGINEER",
+      "decision": "Updated guardian.py and brainbox_strict_janitor.py to support AI_ENGINEER role and ignore test artifact directories.",
+      "rationale": "Guardian script was missing the AI_ENGINEER role mapping, and the janitor was flagging legitimate test results (playwright-report and test-results) as stray MD files. Added role parity and ignored transient test directories to allow CI/testing workflows without triggering hygiene alerts."
     }
   ]
 }

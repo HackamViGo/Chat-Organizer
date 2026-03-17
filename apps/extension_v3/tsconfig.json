@@ -11,15 +11,30 @@
     "resolveJsonModule": true,
     "sourceMap": true,
     "outDir": "./dist",
-    "rootDir": "./src",
     "baseUrl": ".",
+    "composite": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@brainbox/shared": ["../../packages/shared/src"],
-      "@brainbox/shared/*": ["../../packages/shared/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@brainbox/shared": [
+        "../../packages/shared/src"
+      ],
+      "@brainbox/shared/*": [
+        "../../packages/shared/src/*"
+      ]
     },
-    "types": ["chrome", "vite/client"]
+    "types": [
+      "chrome",
+      "vite/client"
+    ]
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

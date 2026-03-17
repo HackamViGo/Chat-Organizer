@@ -15,8 +15,19 @@ rules:
   type_safety:
     - rule: 'NO_ANY'
       description: "'any' type is forbidden. Use 'unknown' with type guards."
+      exceptions:
+        - "Platform adapter raw API responses may use `any` with explicit comment"
+        - "Normalizer input parameters may use `any` — output MUST be typed"
     - rule: 'ZOD_SCHEMAS'
       description: 'All validation must use Zod schemas located in @brainbox/validation.'
+
+  ownership:
+    - scope: 'apps/extension_v3/'
+      owner: 'EXTENSION_ENGINEER'
+      status: 'ACTIVE'
+    - scope: 'apps/extension/'
+      owner: 'EXTENSION_ENGINEER'
+      status: 'LEGACY (READ ONLY)'
 
   architecture:
     - rule: 'STRICT_BOUNDARIES'

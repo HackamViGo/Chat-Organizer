@@ -158,7 +158,7 @@
     {
       "resources": [
         "src/icons/*",
-        "src/content/inject-gemini-main.js"
+        "src/content/inject-gemini-main.ts"
       ],
       "matches": [
         "https://gemini.google.com/*"

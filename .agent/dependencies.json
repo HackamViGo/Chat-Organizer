@@ -1,4 +1,12 @@
 {
   "pending_handoffs": [],
-  "resolved_handoffs": []
+  "resolved_handoffs": [],
+  "contracts": {
+    "extension_v3_to_dashboard": {
+      "owner": "EXTENSION_ENGINEER",
+      "depends_on": "BACKEND_ENGINEER",
+      "contract": "POST /api/chats schema, GET /api/folders structure",
+      "breaking_change_protocol": "Update both sides simultaneously via shared package @brainbox/shared"
+    }
+  }
 }

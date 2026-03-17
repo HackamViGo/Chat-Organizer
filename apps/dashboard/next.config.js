@@ -17,7 +17,7 @@ const nextConfig = {
       },
     ],
   },
-  transpilePackages: ['@brainbox/assets', '@brainbox/database', '@brainbox/validation', '@brainbox/shared'],
+  transpilePackages: ['@brainbox/assets', '@brainbox/database', '@brainbox/validation', '@brainbox/shared', '@brainbox/ui'],
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },

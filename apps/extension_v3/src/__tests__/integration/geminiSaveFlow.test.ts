@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach } from 'vitest'
 import { setStorageData, resetAllMocks } from '../setup'
 
 describe('Gemini Save Flow (integration)', () => {
@@ -21,7 +21,6 @@ describe('Gemini Save Flow (integration)', () => {
   it('batchexecute payload is correctly double-serialized', () => {
     const conversationId = 'abc123def456'
     const dynamicKey = 'snX9ne'
-    const atToken = 'AT-test-token'
 
     const innerPayload = JSON.stringify([`c_${conversationId}`, 10, null, 1, [1], [4], null, 1])
     const middlePayload = [[[dynamicKey, innerPayload, null, 'generic']]]
@@ -35,13 +34,16 @@ describe('Gemini Save Flow (integration)', () => {
   })
 
   it('batchexecute response prefix is stripped correctly', () => {
-    const rawResponse = ")]}'
-" + JSON.stringify([[null, null, '{"test": true}']])
+    // Gemini batchexecute responses start with: )]}'\n  (5 chars)
+    // We build the prefix safely without a literal newline in source
+    const prefix = ')]}' + "'" + '\n'
+    const inner = JSON.stringify([[null, null, '{"test": true}']])
+    const rawResponse = prefix + inner
     const cleaned = rawResponse.slice(5)
     const parsed = JSON.parse(cleaned)
     expect(parsed[0][2]).toBe('{"test": true}')
-    const inner = JSON.parse(parsed[0][2])
-    expect(inner.test).toBe(true)
+    const innerObj = JSON.parse(parsed[0][2])
+    expect(innerObj.test).toBe(true)
   })
 
   it('storage tokens are available for adapter', async () => {

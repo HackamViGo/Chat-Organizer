@@ -174,7 +174,7 @@ describe('normalizeGemini', () => {
   it('handles parse errors gracefully', () => {
     const result = normalizeGemini(null as any, 'gem-err')
     expect(result.messages.length).toBeGreaterThanOrEqual(1)
-    expect(result.messages[0].content).toContain('Error')
+    expect(result.messages[0].content).toContain('Could not parse')
   })
 })
 

@@ -46,3 +46,18 @@ export function createMessage(data: {
     metadata: data.metadata || {},
   }
 }
+
+export function validateConversation(conv: unknown): { valid: boolean; errors: string[] } {
+  const errors: string[] = []
+  if (!conv || typeof conv !== 'object') {
+    return { valid: false, errors: ['Conversation must be an object'] }
+  }
+  const c = conv as Record<string, unknown>
+  if (!c.id || typeof c.id !== 'string') errors.push('Missing or invalid id')
+  if (!c.platform || typeof c.platform !== 'string') errors.push('Missing or invalid platform')
+  if (!c.title || typeof c.title !== 'string') errors.push('Missing or invalid title')
+  if (!Array.isArray(c.messages)) errors.push('messages must be an array')
+  if (typeof c.created_at !== 'number') errors.push('Missing or invalid created_at')
+  return { valid: errors.length === 0, errors }
+}
+

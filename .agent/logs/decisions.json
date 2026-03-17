@@ -13,6 +13,36 @@
       "role": "ARCHITECT",
       "decision": "Implement .agent/tools/graph.py CLI for safer knowledge graph interactions.",
       "rationale": "Graph JSON files exceed 500 lines. Modifying massive JSON files via AI string replacement often causes corruption and syntax errors. A dedicated Python CLI tool ensures JSON validity, protects graph integrity, and speeds up modification. Grep and jq remain as read-only fallbacks."
+    },
+    {
+      "date": "2026-03-15",
+      "role": "EXTENSION_ENGINEER",
+      "decision": "Inline @brainbox/ui/tokens CSS variables directly in extension_v3/src/popup/styles/index.css instead of using @import.",
+      "rationale": "PostCSS cannot resolve workspace package CSS imports during Vite build in the extension context. The @brainbox/ui package exports CSS via package.json 'exports' field, but the PostCSS import resolver does not traverse monorepo workspace node_modules for CSS files. Inlining is the correct, zero-dependency solution. The tokens are stable (design system level) and don't change frequently."
+    },
+    {
+      "date": "2026-03-15",
+      "role": "EXTENSION_ENGINEER",
+      "decision": "Use inject-gemini-main.ts (not .js) in manifest.json web_accessible_resources.",
+      "rationale": "@crxjs/vite-plugin handles TypeScript compilation of all content scripts and web-accessible resources declared with .ts extension. Static .js assets must physically exist in the public/ directory. Since inject-gemini-main is a TypeScript source file compiled by @crxjs, it must be declared as .ts in the manifest."
+    },
+    {
+      "date": "2026-03-15",
+      "role": "EXTENSION_ENGINEER",
+      "decision": "Remove rootDir: ./src constraint from extension_v3/tsconfig.json.",
+      "rationale": "The strict rootDir setting prevented imports from packages/ (e.g. @brainbox/shared, @brainbox/database) because TypeScript requires all source files to be within rootDir when it is set. In a monorepo with workspace packages, rootDir should be omitted and cross-package imports handled via paths aliases in tsconfig + Vite resolve.alias."
+    },
+    {
+      "date": "2026-03-15",
+      "role": "QA_ENGINEER",
+      "decision": "Use safe string concatenation for the Gemini batchexecute prefix in tests instead of literal newlines in source.",
+      "rationale": "The Gemini API response prefix ')]}'\\n contains a single-quote followed by a newline. When written as a literal string with a newline character directly in TypeScript source, esbuild (used by Vitest) fails to parse it as 'Unterminated string literal'. The fix is: const prefix = ')]}' + \"'\" + '\\n' — equivalent at runtime, but valid syntax."
+    },
+    {
+      "date": "2026-03-15",
+      "role": "DEVOPS_ENGINEER",
+      "decision": "Supabase cloud project (uuwnefffuitkskdsljpv) is the single source of truth. Local supabase stack is NOT running.",
+      "rationale": "The project uses cloud-first Supabase setup. All 3 migrations are applied and synced. No local Docker container is running (confirmed via supabase status). CLI version 2.67.1 is installed (latest: 2.78.1 — upgrade recommended but not blocking)."
     }
   ]
 }
